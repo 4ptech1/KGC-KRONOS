@@ -35,3 +35,6 @@ Dataset count: 0 verified pairs
 - **2026-10-14:** Repo set up. Added the 10 task specs (VCL 0.1 rev 2), `vcl/spec.md`, the
   Orchestrator prompt, the starter checker and the roadmap; all 10 specs pass the checker. Added
   the project folders, `.gitignore` and the spec-check CI workflow.
+- **2026-10-14:** VCL 0.1 revision 3: synthetic fixtures only (`fixture=target` removed),
+  COUNTIFS/SUMIFS assertions, per-column fixture seeds, and exact goal TESTs for task_07 and
+  task_08.

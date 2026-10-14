@@ -31,11 +31,13 @@ the VBA. Until then, the goal is a verified dataset of spec-to-VBA pairs.
   Microsoft 365 feature, in VBA or in formulas.
 - Synthetic data only. Never put real KGC files, names, figures or customer data in the repo,
   tests or prompts. Excel workbooks are git-ignored on purpose.
+- Synthetic fixtures only: every TEST uses a named FIXTURE file. `fixture=target` is banned
+  until March 2027, and the batch runner never touches real workbooks.
 - No local-model work (llama.cpp, fine-tuning, GGUF) until the new PC arrives in March 2027.
 
 ## Sources of truth
 
-- `vcl/spec.md`: VCL 0.1 revision 2, the language reference.
+- `vcl/spec.md`: VCL 0.1 revision 3, the language reference.
 - `vcl/orchestrator_prompt.txt`: the claude.ai prompt that writes specs. It contains the same
   reference text, so the two must always change together.
 - Any VCL change means: update both files and the changelog in `spec.md`, update
@@ -94,8 +96,8 @@ procedures, fixture builders and test calls for each batch. Per `vcl/spec.md`, i
   `PRE_` values, call the procedure with `Application.Run` (`runs=n` times), check the
   assertions, close without saving
 - write the test id to the Results sheet before each test, so a hang shows which test it was
-- support `COL`, `ROW_RANGE`, `COPY_ROW`, `FILL_COUNT`, `[Header]` ranges, `RESULT`,
-  `ERROR_COUNT` and `PRE_` measures
+- support `COL`, `ROW_RANGE`, `COPY_ROW`, `FILL_COUNT`, `COUNTIFS`, `SUMIFS`, `[Header]`
+  ranges, `RESULT`, `ERROR_COUNT` and `PRE_` measures
 - treat a failed PRE as: one ForgeLog entry, nothing changed, the Function returns -1
 - write Results columns: Test ID | Spec | Pass/Fail | Error No | Line | Description | Seconds
 
@@ -112,9 +114,12 @@ procedures, fixture builders and test calls for each batch. Per `vcl/spec.md`, i
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, and a pilot batch runs in
 Excel.
 
-Done: 10 specs in VCL 0.1 revision 2, `vcl/spec.md`, the Orchestrator prompt, the starter
-checker. Repo skeleton (folders, `.gitignore`, README, spec-check CI) is in the
-`phase0-skeleton` PR, waiting for review.
+Done: 10 specs, `vcl/spec.md`, the Orchestrator prompt, the starter checker, and the repo
+skeleton (folders, `.gitignore`, README, spec-check CI). VCL 0.1 revision 3 (synthetic
+fixtures only, COUNTIFS/SUMIFS, exact goal TESTs for task_07 and task_08) is in the
+`vcl-rev3` PR, waiting for review.
+
+Known: task_04 exceeds the ~60-line TASK guideline; accepted for now, revisit in March.
 
 Next, in order:
 1. Grow `compiler/vcl_check.py` into `compiler/parser.py` (spec to Python object) and

@@ -34,7 +34,7 @@ PERF     screen_off calc_manual
 ERR      standard
 FIXTURE  itp_01.xlsx sheet=ITP cols=A:Activity,B:Point Type,C:Inspection Status,D:Planned Date rows=40 data=A:text(15);B:values("Hold"x12,"Witness"x14,"Review"x10,""x4);C:values("Ready"x10,"Done"x18,"Pending"x8,""x4);D:dates(2026-10-01,2026-12-31)
 FIXTURE  itp_01.xlsx sheet=CallNotice cols=A:Activity rows=0
-TEST     fixture=itp_01.xlsx call=BuildCallNoticeList(ITP, CallNotice) runs=2 assert=RESULT <= 10 AND COUNTA(CallNotice![Activity]) = RESULT + 1 AND ERROR_COUNT = 0
+TEST     fixture=itp_01.xlsx call=BuildCallNoticeList(ITP, CallNotice) runs=2 assert=RESULT >= 1 AND RESULT = PRE_COUNTIFS(ITP![Inspection Status], "Ready", ITP![Point Type], "Hold") + PRE_COUNTIFS(ITP![Inspection Status], "Ready", ITP![Point Type], "Witness") AND COUNTA(CallNotice![Activity]) = RESULT + 1 AND ERROR_COUNT = 0
 TEST     fixture=itp_01.xlsx call=BuildCallNoticeList(ITP, CallNotice) assert=COUNTIF(CallNotice![Inspection Status], "Ready") = RESULT AND COUNTIF(CallNotice![Point Type], "Review") = 0
 TEST     fixture=itp_01.xlsx call=BuildCallNoticeList(ITP, CallNotice) assert=COUNTA(ITP![Inspection Status]) = PRE_COUNTA(ITP![Inspection Status]) AND COUNTA(ITP![Activity]) = PRE_COUNTA(ITP![Activity])
 TEST     fixture=itp_01.xlsx call=BuildCallNoticeList(CallNotice, CallNotice) assert=RESULT = -1 AND ERROR_COUNT = 1 AND COUNTA(CallNotice![Activity]) = PRE_COUNTA(CallNotice![Activity])

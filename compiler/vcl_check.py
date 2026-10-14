@@ -1,4 +1,4 @@
-"""Starter checker for VCL 0.1 (revision 2) TASK specs.
+"""Starter checker for VCL 0.1 (revision 3) TASK specs.
 
 Usage:  python compiler/vcl_check.py specs/*.vcl
 Checks structure and the spec-writing rules. It is a starting point for validator.py,
@@ -118,6 +118,8 @@ def check(path):
             and not any("RESULT = -1" in t for t in tests):
         err("PRE is used but no wrong-sheet TEST expects RESULT = -1")
     for t in tests:
+        if t.startswith("fixture=target"):
+            err("fixture=target is not allowed: use a named synthetic FIXTURE")
         m = re.search(r"call=(\w+)\(", t)
         if not m or m.group(1) != proc:
             err(f"TEST calls a different procedure: {t[:60]}")
