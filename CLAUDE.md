@@ -41,8 +41,8 @@ the VBA. Until then, the goal is a verified dataset of spec-to-VBA pairs.
 - `vcl/orchestrator_prompt.txt`: the claude.ai prompt that writes specs. It contains the same
   reference text, so the two must always change together.
 - Any VCL change means: update both files and the changelog in `spec.md`, update
-  `compiler/vcl_check.py`, re-run the checker on every spec, and tell me so I can update the
-  Orchestrator Project.
+  `compiler/parser.py`, `compiler/validator.py` and their tests, re-run the validator on every
+  spec, and tell me so I can update the Orchestrator Project.
 - `docs/VBA_Forge_Project_Roadmap.docx`: phases, gates and design decisions.
 
 ## Repo layout
@@ -52,7 +52,7 @@ CLAUDE.md            this brief
 README.md            overview, progress log, dataset count
 vcl/                 spec.md, orchestrator_prompt.txt
 specs/               one .vcl file per task (task_01.vcl, ...)
-compiler/            vcl_check.py now; parser.py, validator.py, router.py, assembler.py later
+compiler/            parser.py, validator.py now; router.py, assembler.py later
 templates/           one .bas template per op pattern
 harness/             ForgeTest.bas, batch_builder.py, results_import.py, lint.py
 batches/             generated batch modules, ready to paste into Excel
@@ -77,8 +77,8 @@ logs/
 **Specs**
 - Specs are inputs, not code to fix. Never edit a spec just to make a check pass; report the
   problem to me instead.
-- Run `python compiler/vcl_check.py specs/*.vcl` before every commit that touches `specs/`,
-  `vcl/` or `compiler/`.
+- Run `python -m unittest discover tests` and `python compiler/validator.py specs/*.vcl`
+  before every commit that touches `specs/`, `vcl/`, `compiler/` or `tests/`.
 
 **VBA (anything that will run in Excel)**
 - `Option Explicit`, Excel 2016 compatible, late-bound `Scripting.Dictionary` (no References).
@@ -104,7 +104,7 @@ procedures, fixture builders and test calls for each batch. Per `vcl/spec.md`, i
 ## Workflow for every change
 
 1. Make one small change.
-2. Verify it: run the checker and the tests for what you touched.
+2. Verify it: run the validator and the unit tests for what you touched.
 3. Read your own diff.
 4. Commit with a clear message that says what changed and why.
 5. Push and open or update a pull request; CI must pass. Don't merge to main unless I ask.
@@ -114,19 +114,19 @@ procedures, fixture builders and test calls for each batch. Per `vcl/spec.md`, i
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, and a pilot batch runs in
 Excel.
 
-Done: 10 specs, `vcl/spec.md`, the Orchestrator prompt, the starter checker, and the repo
-skeleton (folders, `.gitignore`, README, spec-check CI). VCL 0.1 revision 3 (synthetic
-fixtures only, COUNTIFS/SUMIFS, exact goal TESTs for task_07 and task_08) is in the
-`vcl-rev3` PR, waiting for review.
+Done: 10 specs, `vcl/spec.md`, the Orchestrator prompt, and the repo skeleton (folders,
+`.gitignore`, README, CI). Waiting for review, to be merged in this order:
+1. VCL 0.1 revision 3 (synthetic fixtures only, COUNTIFS/SUMIFS, exact goal TESTs for task_07
+   and task_08): `vcl-rev3` PR.
+2. `compiler/parser.py` and `compiler/validator.py`, with unit tests, replacing the starter
+   checker: `parser-validator` PR. All 10 specs validate with 0 errors.
 
 Known: task_04 exceeds the ~60-line TASK guideline; accepted for now, revisit in March.
 
 Next, in order:
-1. Grow `compiler/vcl_check.py` into `compiler/parser.py` (spec to Python object) and
-   `compiler/validator.py` (full checks), with unit tests in `tests/`.
-2. Pilot `harness/ForgeTest.bas`: `RunBatch` with 3 hand-written tests for `task_01`. I run it
+1. Pilot `harness/ForgeTest.bas`: `RunBatch` with 3 hand-written tests for `task_01`. I run it
    in Excel and paste the results into `data/results/pilot.csv`.
-3. Phase 1: `harness/batch_builder.py` (lint, FIXTURE to VBA, assemble a batch),
+2. Phase 1: `harness/batch_builder.py` (lint, FIXTURE to VBA, assemble a batch),
    `harness/results_import.py`, `harness/lint.py`, and the first 15 templates.
 
 Update this section at the end of every session.
