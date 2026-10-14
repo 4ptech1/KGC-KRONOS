@@ -1,4 +1,4 @@
-# VCL 0.1: VBA Command Language (revision 2, 14 Oct 2026)
+# VCL 0.1: VBA Command Language (revision 3, 14 Oct 2026)
 
 VCL is the contract between Claude (which writes specs) and VBA Forge (which turns them into
 tested VBA). This file is the reference that `validator.py` and the training data follow.
@@ -8,9 +8,14 @@ Target: Excel 2016 desktop. Specs never rely on Microsoft 365 functions such as 
 dynamic arrays; every op compiles to plain VBA. (`FILTER` here means AutoFilter, which
 Excel 2016 has.)
 
-## Rules for spec writers
+## Hard rules
 
 ```text
+1.  Reply with exactly one code block tagged vcl. No text before or after it.
+2.  Never write VBA. Express all logic with VCL keys, ops and expressions only.
+3.  Use only the keys, ops, functions and syntax defined here. Never invent new ones.
+4.  If a step truly cannot be expressed with ops, write it as NOTE "<terse technical text>".
+    Use NOTE rarely.
 5.  Every spec has at least two TEST lines: one proves the goal was met, one proves nothing
     else changed (for read-only work: proves the source data is unchanged). At least one
     TEST includes ERROR_COUNT = 0. When the test workbook has another sheet, add a
@@ -41,6 +46,7 @@ Excel 2016 has.)
     uses runs=2 to prove it.
 17. Prefer KIND Function returning a count (rows written, flagged or removed), so TESTs
     can check RESULT.
+18. Always test with a named synthetic FIXTURE. Never use fixture=target or real workbooks.
 ```
 
 ## Reference
@@ -62,7 +68,7 @@ PERF     screen_off calc_manual events_off    (opt, any of these)
 ERR      standard
 ALLOW    file_delete file_overwrite shell http  (opt)
 FIXTURE  <name>.xlsx <fixture spec>           (opt)
-TEST     fixture=<name>.xlsx|target call=<Proc>(<args>) [runs=<n>] assert=<assertion>   (two or more)
+TEST     fixture=<name>.xlsx call=<Proc>(<args>) [runs=<n>] assert=<assertion>   (two or more)
 
 Layout: pad keys with spaces so values line up. Nesting = 2 extra spaces after the key,
 relative to the enclosing OP line.
@@ -83,7 +89,7 @@ FORM     <frmName> CONTROLS <name>:<ControlType> ...   (opt)
 SIG      <module>.<Proc>(<name> As <Type>, ...) [As <Type>]   (one per procedure)
 FLOW     <caller> -> <callee> -> ...          (call order)
 FIXTURE  ...                                  (opt)
-TEST     fixture=... call=modMain.RunHeadless(<args>) assert=...   (two or more)
+TEST     fixture=<name>.xlsx call=modMain.RunHeadless(<args>) assert=...   (two or more)
 ---
 <one complete TASK spec per SIG, each starting with VCL 0.1, separated by lines
 containing only --->
@@ -132,6 +138,8 @@ Every other op is a call, NAME(arguments, key=value):
   Calls   CALL(<module>.<Proc>, <args>)
   Output  LOG(<expr>)   MSG(<expr>)   RETURN(<expr>)
   Escape  NOTE "<terse technical text>"
+FORMAT fill names: none (removes the fill), black, white, red, green, blue, yellow, magenta,
+cyan. Write any other colour as #RRGGBB.
 
 EXPRESSIONS
 Value functions:
@@ -160,30 +168,60 @@ SEMANTICS
               returns -1
   AND / OR    both sides may be evaluated, so guard risky comparisons with a nested IF
 
-TEST ASSERTIONS  (checked on the sandbox copy after the run)
+TEST ASSERTIONS  (checked on the test workbook after the run)
   COUNTIF(<Sheet>!<range>, <criteria>)  COUNTA(<Sheet>!<range>)  SUM(<Sheet>!<range>)
+  COUNTIFS(<Sheet>!<range>, <criteria>, <Sheet>!<range>, <criteria>, ...)
+                 rows where every range meets its criteria
+  SUMIFS(<Sheet>!<sumRange>, <Sheet>!<range>, <criteria>, ...)
+                 sum of sumRange over the rows where every range meets its criteria
   VALUE(<Sheet>!<cell>)  ROWS_USED(<Sheet>)  SHEET_EXISTS("<name>")  FILE_EXISTS("<path>")
   FILL_COUNT(<Sheet>!<range>, #RRGGBB)   cells in the range with that fill colour
   RESULT         the Function's return value (from the last run)
   ERROR_COUNT    errors written to ForgeLog during the run
   PRE_<measure>  the same measurement taken before the first run, e.g. PRE_COUNTA(Data!A:A)
+                 or PRE_COUNTIFS(Data![Status], "Open", Data![Owner], "QA")
+COUNTIF, COUNTIFS and SUMIFS work as in Excel 2016: criteria such as "Ready", "<>" (not
+blank), "<>B-109" or ">=5"; text matching ignores case. COUNTIFS and SUMIFS ranges must be
+the same size, so use [Header] ranges from the same sheet.
 Ranges by header: <Sheet>![Header] is the whole column under that row-1 header;
 <Sheet>![Header]<n> is that column's cell in row n. Prefer them to column letters.
-runs=<n> calls the procedure n times on the same copy before checking (default 1).
+runs=<n> calls the procedure n times on the same test workbook before checking
+(default 1).
 Combine assertions with AND. In TEST call arguments, a bare sheet name (Orders) means that
-worksheet in the test copy.
-fixture=target means a sandbox copy of the workbook the user will run the macro on. Use it
-for everyday requests. Use FIXTURE with a named file only when no real workbook exists.
+worksheet in the test workbook.
+fixture=<name>.xlsx names a FIXTURE file from this spec; the harness builds it fresh for
+every TEST. fixture=target and real workbooks are not allowed.
 
 FIXTURE SPEC
   FIXTURE <name>.xlsx sheet=<name> cols=<A:Header,B:Header,...> rows=<n> data=<col>:<rule>;<col>:<rule>
   Rules: values("a"x<n>,"b"x<n>)  seq(<start>,<step>)  int(<lo>,<hi>)  num(<lo>,<hi>)
          dates(<yyyy-mm-dd>,<yyyy-mm-dd>)  text(<length>)
   Add +blank(<n>) to any rule to leave n random cells of that column blank.
-  rows=0 creates the sheet with its header row only.
+  values(...) counts add up to rows. rows=0 creates the sheet with its header row only.
   Repeat FIXTURE lines with the same file name to add more sheets.
-  The builder uses a fixed random seed, so a spec always builds the same file.
+  Sheet names have no spaces, so TEST calls can use them bare. They may be short forms of
+  the real sheet names (WelderPerf for "Welder Performance"); ASSUME lines describe the
+  real workbook.
+  Each column has its own fixed seed, made from file name + sheet + column. The builder
+  uses it for everything random in that column: the shuffled order of values(...), the
+  int, num, dates and text values, and which cells +blank(<n>) leaves blank. Columns are
+  not correlated, and the same spec always builds the same file.
 ```
+
+## Changes in revision 3
+
+- Synthetic fixtures only: `fixture=target` is removed and every TEST names a FIXTURE file
+  (new hard rule 18, also in the Orchestrator's FINAL CHECK). Example 1 now builds
+  `orders_01.xlsx`.
+- `COUNTIFS(...)` and `SUMIFS(...)` assertions with Excel 2016 criteria; they work with
+  `PRE_` and with `[Header]` ranges.
+- Fixtures: each column has its own fixed seed (file name + sheet + column) for the order of
+  `values(...)`, the other random values and the `+blank(<n>)` cells; `values(...)` counts
+  add up to rows.
+- Fixture sheet names may be short forms of the real names, with no spaces; ASSUME lines
+  describe the real workbook.
+- FORMAT fill names are listed: none, black, white, red, green, blue, yellow, magenta, cyan.
+- This file now shows all hard rules, 1 to 18.
 
 ## Changes in revision 2
 
