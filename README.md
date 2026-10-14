@@ -16,15 +16,17 @@ See `CLAUDE.md` for the working rules and `docs/VBA_Forge_Project_Roadmap.docx` 
 
 ## Check the specs
 
-From the repo root, with Python 3.11:
+From the repo root, with Python 3.11 (standard library only):
 
 ```
-python compiler/vcl_check.py specs/*.vcl
+python -m unittest discover tests
+python compiler/validator.py specs/*.vcl
 ```
 
-It prints `OK` or `FAIL` per spec, one line per problem, and ends with
-`N files checked, N problems`. It exits 0 when everything passes and 1 otherwise. GitHub Actions
-runs the same check on every push and pull request.
+The validator prints one line per problem, as `path:line: error|warning: message`, and ends
+with `N files checked: N errors, N warnings`. It exits 1 if there is any error or no files
+were given; warnings alone exit 0. GitHub Actions runs both commands on every push and pull
+request.
 
 ## Dataset count
 
@@ -38,3 +40,6 @@ Dataset count: 0 verified pairs
 - **2026-10-14:** VCL 0.1 revision 3: synthetic fixtures only (`fixture=target` removed),
   COUNTIFS/SUMIFS assertions, per-column fixture seeds, and exact goal TESTs for task_07 and
   task_08.
+- **2026-10-14:** `compiler/parser.py` and `compiler/validator.py` replace the starter checker,
+  with unit tests in `tests/`. All 10 specs validate with 0 errors (task_04 gets a size
+  warning).

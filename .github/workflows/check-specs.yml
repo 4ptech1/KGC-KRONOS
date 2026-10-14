@@ -15,5 +15,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
-      - name: Run the VCL spec checker
-        run: python compiler/vcl_check.py specs/*.vcl
+      - name: Run the unit tests
+        run: python -m unittest discover tests
+      - name: Validate the specs
+        run: python compiler/validator.py specs/*.vcl
