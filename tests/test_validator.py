@@ -309,6 +309,26 @@ class Finding7KnownGaps(unittest.TestCase):
                                   "ARGS     ws As Range\nOP       FORMAT")))
 
 
+class BuildSectionsNeedTests(unittest.TestCase):
+    """Inside a BUILD, every TASK needs TESTs except modMain.Run and form event handlers."""
+
+    def test_task_section_without_tests_is_an_error(self):
+        no_tests = "\n".join(line for line in MINIMAL_BUILD.splitlines()
+                             if not line.startswith("TEST     fixture=demo_01.xlsx call=BoldHeader")
+                             and not line.startswith("TEST     fixture=demo_01.xlsx call=modFormat.BoldHeader"))
+        self.assertIn("TASK modFormat.BoldHeader needs at least two TEST lines (rule 5); in a BUILD only "
+                      "modMain.Run and form event handlers are exempt", errors(no_tests))
+
+    def test_main_run_and_form_handlers_are_exempt(self):
+        with_form = MINIMAL_BUILD.replace("MODULE   modFormat\n",
+                                          "MODULE   modFormat\nFORM     frmMain CONTROLS btnRun:CommandButton\n", 1)
+        with_form = edit(with_form, "SIG      modFormat.BoldHeader(ws As Worksheet)\n",
+                         "SIG      modFormat.BoldHeader(ws As Worksheet)\nSIG      frmMain.btnRun_Click()\n")
+        with_form += ("---\nVCL 0.1\nTASK\nPROC     btnRun_Click\nKIND     Sub\nMODULE   frmMain\n"
+                      "OP       CALL(modMain.RunHeadless, ACTIVE_SHEET)\nERR      standard\n")
+        self.assertEqual(errors(with_form), [])
+
+
 class Revision3(unittest.TestCase):
     def test_fixture_target_is_an_error(self):
         text = edit(MINIMAL, "fixture=demo_01.xlsx call=CountOpenRows(Data) assert",
