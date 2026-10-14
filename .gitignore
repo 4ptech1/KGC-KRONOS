@@ -1,0 +1,21 @@
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Office temp and lock files
+~$*
+
+# Excel workbooks: never commit one, so a real company file can't slip in
+*.xlsx
+*.xlsm
+*.xls
+*.xlsb
+
+# Run logs
+logs/*.log

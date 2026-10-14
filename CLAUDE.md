@@ -113,7 +113,8 @@ Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, and a pilo
 Excel.
 
 Done: 10 specs in VCL 0.1 revision 2, `vcl/spec.md`, the Orchestrator prompt, the starter
-checker.
+checker. Repo skeleton (folders, `.gitignore`, README, spec-check CI) is in the
+`phase0-skeleton` PR, waiting for review.
 
 Next, in order:
 1. Grow `compiler/vcl_check.py` into `compiler/parser.py` (spec to Python object) and
