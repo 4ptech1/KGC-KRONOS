@@ -19,3 +19,5 @@ jobs:
         run: python -m unittest discover tests
       - name: Validate the specs
         run: python compiler/validator.py specs/*.vcl
+      - name: Check the batch files are up to date
+        run: python harness/assemble.py --check

@@ -1,0 +1,21 @@
+test_id,spec,spec_line,expected_outcome,measure,expected_value,shown_in_results
+B000-T01,task_01,60,PASS,RESULT,26,yes
+B000-T01,task_01,60,PASS,ERROR_COUNT,0,yes
+B000-T01,task_01,60,PASS,COUNTA(Shortages![Part No]),27,yes
+B000-T01,task_01,60,PASS,"COUNTIF(Shortages![Shortage], ""<0"")",0,yes
+B000-T02,task_01,61,PASS,RESULT,26,yes
+B000-T02,task_01,61,PASS,ERROR_COUNT,0,yes
+B000-T02,task_01,61,PASS,"COUNTIF(Shortages![Remark], ""Required qty missing"")",3,yes
+B000-T03,task_01,62,PASS,RESULT,26,yes
+B000-T03,task_01,62,PASS,ERROR_COUNT,0,yes
+B000-T03,task_01,62,PASS,PRE_SUM(BOM![Required Qty]),986,yes
+B000-T03,task_01,62,PASS,PRE_SUM(GRN![Received Qty]),661,yes
+B000-T03,task_01,62,PASS,SUM(BOM![Required Qty]),986,yes
+B000-T03,task_01,62,PASS,SUM(GRN![Received Qty]),661,yes
+B000-T04,task_01,63,PASS,RESULT,-1,yes
+B000-T04,task_01,63,PASS,ERROR_COUNT,1,yes
+B000-T04,task_01,63,PASS,PRE_COUNTA(Shortages![Part No]),1,yes
+B000-T04,task_01,63,PASS,COUNTA(Shortages![Part No]),1,yes
+B000-T01,task_01,60,PASS,Shortages rows: Not received,7,no
+B000-T01,task_01,60,PASS,Shortages rows: Short,16,no
+B000-T01,task_01,60,PASS,Shortages rows: Required qty missing,3,no

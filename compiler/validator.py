@@ -747,11 +747,14 @@ class TaskChecker:
         for test in tests:
             self.line = test.line
             flags.append(self.check_test(test, files))
-        if self.in_build:
+        if self.in_build and self.exempt_from_tests():
             return
         first = tests[0].line if tests else spec.line
         if len(tests) < 2:
-            self.error("a spec needs at least two TEST lines (rule 5)", first)
+            where = (f"TASK {spec.value('MODULE')}.{spec.value('PROC')} needs at least two TEST lines (rule 5); "
+                     "in a BUILD only modMain.Run and form event handlers are exempt") if self.in_build \
+                else "a spec needs at least two TEST lines (rule 5)"
+            self.error(where, first)
         if tests and not any(f["error_count_0"] for f in flags):
             self.error("no TEST checks ERROR_COUNT = 0 (rule 5)", first)
         if tests and not any(f["pre"] for f in flags):
@@ -769,6 +772,11 @@ class TaskChecker:
                 and not any(f["passes_pre"] for f in flags if f["passes_pre"] is not None):
             self.error("no TEST passes PRE: every TEST's sheets miss a header that PRE checks", first)
 
+    def exempt_from_tests(self):
+        """Inside a BUILD, only modMain.Run (it shows the form) and form event handlers skip TESTs."""
+        module, proc = self.spec.value("MODULE"), self.spec.value("PROC")
+        return bool(FORM_NAME.fullmatch(module)) or (module, proc) == ("modMain", "Run")
+
     def check_test(self, test, files):
         flags = {"error_count_0": False, "wrong_sheet": False, "pre": False, "passes_pre": None}
         spec = self.spec
@@ -779,7 +787,8 @@ class TaskChecker:
         if sheets is None:
             self.error(f"TEST uses fixture {test.fixture}, but no FIXTURE line builds it")
         proc = spec.value("PROC")
-        if not self.in_build and test.procedure != proc:
+        allowed = {proc, f"{spec.value('MODULE')}.{proc}"} if self.in_build else {proc}
+        if test.procedure not in allowed:
             self.error(f"TEST calls {test.procedure}, but PROC is {proc}")
         argmap = {}
         if len(test.args) != len(spec.args):

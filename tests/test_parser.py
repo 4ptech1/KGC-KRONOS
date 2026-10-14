@@ -56,6 +56,8 @@ OP         IF UPPER(TRIM(CELL($ws, r, cStatus))) = "OPEN" THEN LET(found, found 
 OP       CALL(modFormat.BoldHeader, $ws)
 OP       RETURN(found)
 ERR      standard
+TEST     fixture=demo_01.xlsx call=RunHeadless(Data) runs=2 assert=RESULT = PRE_COUNTIF(Data![Status], "Open") AND ERROR_COUNT = 0
+TEST     fixture=demo_01.xlsx call=RunHeadless(Data) assert=COUNTA(Data![Status]) = PRE_COUNTA(Data![Status])
 ---
 VCL 0.1
 TASK
@@ -65,6 +67,8 @@ MODULE   modFormat
 ARGS     ws As Worksheet
 OP       FORMAT(ROW_RANGE($ws, 1, 1, LASTCOL($ws, 1)), bold=yes)
 ERR      standard
+TEST     fixture=demo_01.xlsx call=BoldHeader(Data) runs=2 assert=COUNTA(Data![Status]) = PRE_COUNTA(Data![Status]) AND ERROR_COUNT = 0
+TEST     fixture=demo_01.xlsx call=modFormat.BoldHeader(Data) assert=COUNTA(Data![ID]) = PRE_COUNTA(Data![ID])
 """
 
 
