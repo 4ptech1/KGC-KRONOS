@@ -593,8 +593,8 @@ Private Function ForgeFixtureSheet(ByVal wb As Workbook, ByVal sheetName As Stri
     Set ForgeFixtureSheet = ws
 End Function
 
-' Writes one row of literal values. Text gets a ' prefix so Excel keeps it as text ("25" stays
-' text, "1-2" doesn't turn into a date). Empty values leave the cell blank.
+' Writes one row of literal values. fixtures.py already put a ' in front of text that Excel would
+' convert ("25" stays text, "1-2" doesn't turn into a date). Empty values leave the cell blank.
 Private Sub ForgeWriteRow(ByVal ws As Worksheet, ByVal rowNo As Long, ByVal rowValues As Variant)
     Dim i As Long
     Dim n As Long
@@ -603,7 +603,6 @@ Private Sub ForgeWriteRow(ByVal ws As Worksheet, ByVal rowNo As Long, ByVal rowV
     ReDim rowData(1 To 1, 1 To n)
     For i = 1 To n
         rowData(1, i) = rowValues(LBound(rowValues) + i - 1)
-        If VarType(rowData(1, i)) = vbString Then rowData(1, i) = "'" & rowData(1, i)
     Next i
     ws.Range(ws.Cells(rowNo, 1), ws.Cells(rowNo, n)).Value = rowData
 End Sub

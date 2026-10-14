@@ -120,6 +120,9 @@ class GeneratedVba(unittest.TestCase):
         self.assertEqual(vba_literal(None), "Empty")
         self.assertEqual(vba_literal(datetime.date(2026, 3, 9)), "DateSerial(2026, 3, 9)")
         self.assertEqual(vba_literal('say "hi"'), '"say ""hi"""')
+        self.assertEqual(vba_literal("Part No"), '"Part No"')
+        for text in ("25", "W-01", "1-2", "TRUE", "=A1", "-x"):  # Excel would convert these
+            self.assertEqual(vba_literal(text), f'"\'{text}"')
         self.assertEqual(vba_literal(12.5), "12.5")
         with self.assertRaises(ValueError):
             vba_literal("café")
