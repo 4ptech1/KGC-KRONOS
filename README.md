@@ -21,12 +21,16 @@ From the repo root, with Python 3.11 (standard library only):
 ```
 python -m unittest discover tests
 python compiler/validator.py specs/*.vcl
+python harness/assemble.py --check
 ```
 
 The validator prints one line per problem, as `path:line: error|warning: message`, and ends
 with `N files checked: N errors, N warnings`. It exits 1 if there is any error or no files
-were given; warnings alone exit 0. GitHub Actions runs both commands on every push and pull
-request.
+were given; warnings alone exit 0. `assemble.py --check` fails if a committed batch in
+`batches/` is out of date (rebuild it with `python harness/assemble.py`). GitHub Actions runs all
+three on every push and pull request.
+
+To run a batch in Excel, follow `harness/PILOT.md`.
 
 ## Dataset count
 
@@ -43,3 +47,6 @@ Dataset count: 0 verified pairs
 - **2026-10-14:** `compiler/parser.py` and `compiler/validator.py` replace the starter checker,
   with unit tests in `tests/`. All 10 specs validate with 0 errors (task_04 gets a size
   warning).
+- **2026-10-14:** ForgeTest pilot: the runner engine (`harness/ForgeTest.bas`), seeded fixture
+  data (`harness/fixtures.py`), the batch assembler and `batches/batch_000_pilot.bas` (task_01,
+  4 TESTs) with its expected results. Waiting for the first Excel run.

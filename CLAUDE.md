@@ -54,7 +54,8 @@ vcl/                 spec.md, orchestrator_prompt.txt
 specs/               one .vcl file per task (task_01.vcl, ...)
 compiler/            parser.py, validator.py now; router.py, assembler.py later
 templates/           one .bas template per op pattern
-harness/             ForgeTest.bas, batch_builder.py, results_import.py, lint.py
+harness/             ForgeTest.bas, fixtures.py, assemble.py, PILOT.md now; batch_builder.py,
+                     results_import.py, lint.py later
 batches/             generated batch modules, ready to paste into Excel
 data/                verified/, repair/, eval/, results/
 library/             approved .bas, .cls, .frm files
@@ -78,7 +79,9 @@ logs/
 - Specs are inputs, not code to fix. Never edit a spec just to make a check pass; report the
   problem to me instead.
 - Run `python -m unittest discover tests` and `python compiler/validator.py specs/*.vcl`
-  before every commit that touches `specs/`, `vcl/`, `compiler/` or `tests/`.
+  before every commit that touches `specs/`, `vcl/`, `compiler/`, `harness/` or `tests/`.
+- Never edit `batches/*` by hand: rebuild with `python harness/assemble.py` (CI runs it with
+  `--check` and fails if a committed batch is out of date).
 
 **VBA (anything that will run in Excel)**
 - `Option Explicit`, Excel 2016 compatible, late-bound `Scripting.Dictionary` (no References).
@@ -114,18 +117,24 @@ procedures, fixture builders and test calls for each batch. Per `vcl/spec.md`, i
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, and a pilot batch runs in
 Excel.
 
-Done: 10 specs, `vcl/spec.md`, the Orchestrator prompt, and the repo skeleton (folders,
-`.gitignore`, README, CI). Waiting for review, to be merged in this order:
-1. VCL 0.1 revision 3 (synthetic fixtures only, COUNTIFS/SUMIFS, exact goal TESTs for task_07
-   and task_08): `vcl-rev3` PR.
-2. `compiler/parser.py` and `compiler/validator.py`, with unit tests, replacing the starter
-   checker: `parser-validator` PR. All 10 specs validate with 0 errors.
+Done (merged): 10 specs, `vcl/spec.md`, the Orchestrator prompt, the repo skeleton, VCL 0.1
+revision 3, and `compiler/parser.py` + `compiler/validator.py` (all 10 specs: 0 errors).
 
-Known: task_04 exceeds the ~60-line TASK guideline; accepted for now, revisit in March.
+In review: the `forgetest-pilot` PR. It has the runner engine (`harness/ForgeTest.bas`), the
+fixture generator (`harness/fixtures.py`), the batch assembler (`harness/assemble.py`) and
+`batches/batch_000_pilot.bas`: hand-written `BuildShortageList` plus the 4 TESTs of task_01,
+with expected results in `batches/batch_000_pilot.expected.csv`. It also makes TASK sections
+inside a BUILD need TESTs (except modMain.Run and form event handlers).
+
+Known:
+- task_04 exceeds the ~60-line TASK guideline; accepted for now, revisit in March.
+- `<Sheet>![Header]` is the whole column including the header row: the specs' `COUNTA(...) =
+  RESULT + 1` checks need that. spec.md says "under that row-1 header"; clarify in the next
+  VCL revision.
 
 Next, in order:
-1. Pilot `harness/ForgeTest.bas`: `RunBatch` with 3 hand-written tests for `task_01`. I run it
-   in Excel and paste the results into `data/results/pilot.csv`.
+1. I run `batches/batch_000_pilot.bas` in Excel 2016 (`harness/PILOT.md`) and paste the
+   Results sheet back; save it as `data/results/pilot.csv`. Expect one or two fix rounds.
 2. Phase 1: `harness/batch_builder.py` (lint, FIXTURE to VBA, assemble a batch),
    `harness/results_import.py`, `harness/lint.py`, and the first 15 templates.
 
