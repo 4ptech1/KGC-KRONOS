@@ -1,0 +1,155 @@
+// VCL 0.1 revision 3: formal line grammar (LALR, contextual lexer).
+//
+// FILE STRUCTURE (enforced by compiler/vcl_parse.py, documented here):
+//   A QUESTION reply is a single line:  # QUESTION: <text>
+//   Otherwise line 1 is "VCL 0.1" and line 2 is "TASK" or "BUILD".
+//   "# ASSUME: <text>" lines may follow, then key lines: <KEY><spaces><value>.
+//   TASK key order: PROC KIND MODULE ARGS RET VAR PRE OP PERF ERR ALLOW FIXTURE TEST
+//   BUILD key order: NAME TARGET ENTRY MODULE FORM SIG FLOW FIXTURE TEST, then "---" and
+//   one TASK per SIG.
+//   OP nesting: the value column of the first OP line is depth 0; each extra 2 spaces is
+//   one level deeper. Openers: LOOP_ROWS LOOP_COLS FOR_EACH IF(block) SELECT_CASE CASE CASE_ELSE.
+//
+// The driver picks the start rule from the key, e.g. an OP line's value is parsed as op_value.
+// The grammar defines syntax only. Which op names, option names and option words exist is
+// defined by the catalogue and checked by the validator.
+
+// ---------- TASK key values ----------
+proc_value: NAME
+kind_value: KIND_WORD
+module_value: NAME
+args_value: param ("," param)*
+param: NAME "As" TYPE
+ret_value: TYPE
+var_value: NAME "As" TYPE
+pre_value: expr (";" expr)*
+op_value: statement
+perf_value: PERF_FLAG+
+err_value: ERR_WORD
+allow_value: ALLOW_WORD+
+fixture_value: FILENAME "sheet=" NAME "cols=" col_list "rows=" INT ("data=" data_list)?
+test_value: "fixture=" FILENAME "call=" call_target "(" [call_arg ("," call_arg)*] ")" ("runs=" INT)? "assert=" assertion
+
+// ---------- BUILD key values ----------
+name_value: NAME
+target_value: TARGET_WORD
+entry_value: QUALNAME
+form_value: NAME "CONTROLS" control+
+control: NAME ":" CONTROL_TYPE
+sig_value: QUALNAME "(" [param ("," param)*] ")" ("As" TYPE)?
+flow_value: QUALNAME ("->" QUALNAME)+
+
+// ---------- OP statements ----------
+?statement: loop_rows
+          | loop_cols
+          | for_each
+          | if_inline
+          | if_block
+          | else_line
+          | select_case
+          | case_line
+          | case_else
+          | exit_if
+          | note
+          | call
+loop_rows: "LOOP_ROWS" option+
+loop_cols: "LOOP_COLS" option+
+for_each: "FOR_EACH" option+
+if_inline: "IF" expr "THEN" call
+if_block: "IF" expr
+else_line: "ELSE"
+select_case: "SELECT_CASE" expr
+case_line: "CASE" expr ("," expr)*
+case_else: "CASE_ELSE"
+exit_if: "EXIT_IF" expr
+note: "NOTE" STRING
+
+// ---------- expressions (VBA precedence: arithmetic > & > comparison > NOT > AND > OR) ----------
+?expr: or_expr
+?or_expr: and_expr ("OR" and_expr)*
+?and_expr: not_expr ("AND" not_expr)*
+?not_expr: "NOT" not_expr -> not_op
+         | comparison
+?comparison: concat (COMP_OP concat)?
+?concat: sum ("&" sum)*
+?sum: product (ADD_OP product)*
+?product: unary (MUL_OP unary)*
+?unary: "-" unary -> neg
+      | primary
+?primary: call
+        | ARG
+        | NAME
+        | QUALNAME
+        | STRING
+        | NUMBER
+        | COLOR
+        | list_lit
+        | "(" expr ")"
+call: NAME "(" [call_args] ")"
+call_args: call_item ("," call_item)*
+?call_item: option | expr
+option: OPTKEY "=" expr
+list_lit: "[" expr ("," expr)* "]"
+
+// ---------- TEST pieces ----------
+call_target: NAME | QUALNAME
+?call_arg: NAME | STRING | NUMBER | neg_number
+neg_number: "-" NUMBER
+assertion: a_cond ("AND" a_cond)*
+a_cond: a_sum (COMP_OP a_sum)?
+?a_sum: a_atom (ADD_OP a_atom)*
+?a_atom: a_func
+       | "-" a_atom -> a_neg
+       | NAME
+       | NUMBER
+       | STRING
+       | "(" a_sum ")"
+a_func: NAME "(" a_arg ("," a_arg)* ")"
+?a_arg: sheet_ref | a_sum | COLOR
+sheet_ref: NAME "!" (HEADER_REF | A1_REF)
+
+// ---------- FIXTURE pieces ----------
+col_list: col_def ("," col_def)*
+col_def: COLLETTER ":" HEADER_TEXT
+data_list: data_def (";" data_def)*
+data_def: COLLETTER ":" rule ("+" blank_mod)?
+?rule: values_rule | seq_rule | int_rule | num_rule | dates_rule | text_rule
+values_rule: "values(" value_item ("," value_item)* ")"
+value_item: STRING "x" INT
+seq_rule: "seq(" SIGNED_NUM "," SIGNED_NUM ")"
+int_rule: "int(" SIGNED_NUM "," SIGNED_NUM ")"
+num_rule: "num(" SIGNED_NUM "," SIGNED_NUM ")"
+dates_rule: "dates(" ISO_DATE "," ISO_DATE ")"
+text_rule: "text(" INT ")"
+blank_mod: "blank(" INT ")"
+
+// ---------- terminals ----------
+// Option keys are reserved words. That resolves "name=value" (an option) versus
+// "a = b" (a comparison) inside call arguments: only reserved keys make options.
+OPTKEY.2: /(dir|from|to|var|in|mode|into|key|order|header|what|fill|numfmt|bold|width|style|cols|col|crit|readonly|format|save|after|name|match)(?==)/
+KIND_WORD: "Sub" | "Function"
+TYPE: "Long" | "Double" | "String" | "Boolean" | "Date" | "Variant" | "Range" | "Worksheet" | "Workbook" | "Dictionary" | "Collection"
+PERF_FLAG: "screen_off" | "calc_manual" | "events_off"
+ERR_WORD: "standard"
+ALLOW_WORD: "file_delete" | "file_overwrite" | "shell" | "http"
+TARGET_WORD: "xlsm" | "xlam"
+CONTROL_TYPE: "TextBox" | "CommandButton" | "Label" | "ListBox" | "ComboBox" | "CheckBox" | "OptionButton"
+COMP_OP: "<=" | ">=" | "<>" | "=" | "<" | ">"
+ADD_OP: "+" | "-"
+MUL_OP: "*" | "/"
+QUALNAME.1: /[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*/
+NAME: /[A-Za-z_][A-Za-z0-9_]*/
+ARG: /\$[A-Za-z_][A-Za-z0-9_]*/
+STRING: /"(?:[^"]|"")*"/
+NUMBER: /\d+(\.\d+)?/
+SIGNED_NUM: /-?\d+(\.\d+)?/
+INT: /\d+/
+COLOR: /#[0-9A-Fa-f]{6}/
+FILENAME: /[a-z0-9_]+\.xlsx/
+COLLETTER: /[A-Z]{1,3}/
+HEADER_TEXT: /[^,\r\n]+?(?=,[A-Z]{1,3}:| rows=|$)/
+ISO_DATE: /\d{4}-\d{2}-\d{2}/
+HEADER_REF: /\[[^\]]+\]\d*/
+A1_REF: /\$?[A-Z]{1,3}\$?\d*(:\$?[A-Z]{1,3}\$?\d*)?/
+
+%ignore /[ \t]+/
