@@ -19,3 +19,7 @@ env/
 
 # Run logs
 logs/*.log
+
+# Build output from vclc: only dist/forge_module.bas is kept (CI checks it is up to date)
+dist/*
+!dist/forge_module.bas

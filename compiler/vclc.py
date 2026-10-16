@@ -26,7 +26,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from vba_lint import lint  # noqa: E402
-from vcl_codegen import CompileError, assemble, compile_text  # noqa: E402
+from vcl_codegen import CompileError, assemble, compile_text, module_title  # noqa: E402
 from vcl_fixtures import fixtures_module  # noqa: E402
 from vcl_interp import VclError, run_tests  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
@@ -103,7 +103,7 @@ def cmd_build(files, out_dir, today):
         print(f"OK   build  {p}")
     if not procs:
         return False
-    ok = lint_report(out / "forge_module.bas", assemble(procs, f"VBA Forge module: {len(procs)} procedures")) and ok
+    ok = lint_report(out / "forge_module.bas", assemble(procs, module_title(len(procs)))) and ok
     try:
         fixtures = fixtures_module(fixture_sets)
     except ValueError as e:
