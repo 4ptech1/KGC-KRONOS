@@ -96,13 +96,17 @@ class Accepts(unittest.TestCase):
         self.assertClean(spec(*loop("IF IS_DATE(CELL($ws, r, 4))",
                                     "  IF CELL($ws, r, 4) <= TODAY + 15 THEN LET(n, TODAY - CELL($ws, r, 4))")))
 
-    def test_real_specs_except_task_06(self):
+    def test_real_specs(self):
         for p in sorted((ROOT / "specs").glob("*.vcl")):
-            found = check_text(p.read_text())
-            if p.name == "task_06.vcl":
-                self.assertEqual(len(found), 1)
-            else:
-                self.assertEqual(found, [], p.name)
+            self.assertEqual(check_text(p.read_text()), [], p.name)
+
+    def test_task_06_before_the_t2_rewrite_is_rejected(self):
+        # T2: the original task_06 guarded the date comparison with a flag (IF NOT bad).
+        text = (ROOT / "specs" / "task_06.vcl").read_text()
+        self.assertIn("OP           IF IS_DATE(expDate)\n", text)
+        found = check_text(text.replace("OP           IF IS_DATE(expDate)\n", "OP           IF NOT bad\n"))
+        self.assertEqual(len(found), 1, found)
+        self.assertIn("compared with <", found[0][1])
 
 
 if __name__ == "__main__":
