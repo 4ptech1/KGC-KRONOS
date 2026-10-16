@@ -48,12 +48,13 @@ def mutants(text):
             yield i, "loop reversed", body.replace("dir=down", "dir=up")
 
 
-def mutate_report(text, snapshot=False):
+def mutate_report(text, snapshot=False, today=None):
     """snapshot=True also counts a mutant as caught when any test's final workbook (values and
-    fills) or RESULT differs from the original spec's: the check generated VBA will face."""
+    fills) or RESULT differs from the original spec's: the check generated VBA will face.
+    today pins TODAY for every run (default: the real date)."""
     lines = text.splitlines()
     killed, total, survivors = 0, 0, []
-    golden = [(r.result, r.state) for r in run_tests(text)] if snapshot else None
+    golden = [(r.result, r.state) for r in run_tests(text, today)] if snapshot else None
     for i, what, new_body in mutants(text):
         new_lines = list(lines)
         if new_body is None:
@@ -66,7 +67,7 @@ def mutate_report(text, snapshot=False):
             continue
         total += 1
         try:
-            results = run_tests(mutant)
+            results = run_tests(mutant, today)
             caught = any(not r.passed for r in results)
             if snapshot and not caught:
                 caught = [(r.result, r.state) for r in results] != golden

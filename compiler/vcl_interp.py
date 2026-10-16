@@ -84,10 +84,11 @@ def call_args(call):
 
 
 class Machine:
-    def __init__(self, spec, bound_args, log):
+    def __init__(self, spec, bound_args, log, today=None):
         self.spec = spec
         self.log = log
         self.args = bound_args
+        self.today = today or dt.date.today()
         self.vars = {}
         self.types = {}
         self.proc = ""
@@ -120,9 +121,9 @@ class Machine:
                 return self.args[str(t)[1:]]
             name = str(t)
             if name == "TODAY":
-                return dt.date.today()
+                return self.today
             if name == "NOW":
-                return dt.datetime.now()
+                return dt.datetime.combine(self.today, dt.datetime.now().time())
             if name in ("TRUE", "FALSE"):
                 return name == "TRUE"
             if name in self.vars:
@@ -537,7 +538,8 @@ class TestResult:
     state: dict = field(default_factory=dict)
 
 
-def run_tests(text):
+def run_tests(text, today=None):
+    """Run every TEST of a TASK spec. today pins TODAY (default: the real date)."""
     spec, problems = parse(text)
     if problems or not spec or spec["kind"] != "TASK":
         raise VclError(f"spec doesn't parse: {problems[:3]}")
@@ -575,7 +577,7 @@ def run_tests(text):
         result = None
         for _ in range(runs):
             log.clear()
-            result = Machine(spec, bound, log).run()
+            result = Machine(spec, bound, log, today).run()
         asserter = Asserter(book, before, result, len(log))
         failed = []
         for cond in assertion.children:
