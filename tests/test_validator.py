@@ -333,6 +333,55 @@ class Revision3(unittest.TestCase):
         self.assertIn("assertion: unknown function XLOOKUP", errors(text))
 
 
+class GrammarAndTypeStages(unittest.TestCase):
+    """The validator also runs vcl/grammar.lark and the type checker (revision 4)."""
+
+    def test_type_checker_catches_unguarded_values(self):
+        self.assertIn("type: raw cell value CELL($ws,2,cStatus) used in arithmetic: guard it with IS_NUMBER "
+                      "or IS_DATE first", errors(with_op("LET(found, CELL($ws, 2, cStatus) + 1)")))
+        flag = edit(MINIMAL, "VAR      found As Long", "VAR      found As Long\nVAR      ok As Boolean")
+        flag = edit(flag, RETURN_LINE, "OP       LET(ok, IS_NUMBER(CELL($ws, 2, 1)))\nOP       IF ok\n"
+                                       "OP         LET(found, CELL($ws, 2, 1))\n" + RETURN_LINE)
+        self.assertTrue(any(e.startswith("type: assigning raw cell value") for e in errors(flag)), errors(flag))
+
+    def test_grammar_catches_what_rule_checks_miss(self):
+        self.assertIn("grammar: syntax error at column 14 near '<'",
+                      errors(with_op("IF 1 < found < 3 THEN LET(found, 1)")))           # G7
+        star = edit(MINIMAL, "assert=RESULT = PRE_COUNTIF", "assert=RESULT * 1 = PRE_COUNTIF")
+        self.assertTrue(any(e.startswith("grammar: syntax error") for e in errors(star)), errors(star))
+
+    def test_one_message_per_broken_line(self):
+        # The type checker would add "argument ws must be written $ws" and "raw cell value ... used in
+        # arithmetic" for this line too; stage 1 already reports it, so they are left out.
+        self.assertEqual(errors(with_op("LET(found, CELL(ws, 2, 1) + 1)")), ["argument ws must be written $ws"])
+
+    def test_grammar_line_numbers_inside_a_build_are_the_files(self):
+        bad = edit(MINIMAL_BUILD, "OP       LET(found, 0)", "OP       LET(found, 1 < 2 < 3)")
+        line = bad.splitlines().index("OP       LET(found, 1 < 2 < 3)") + 1
+        self.assertIn(line, [p.line for p in validate_text(bad) if p.message.startswith("grammar:")])
+
+    def test_byte_order_mark_is_fine(self):
+        self.assertEqual(validate_text("\ufeff" + MINIMAL), [])
+
+    def test_doubled_quotes_escape_a_quote(self):  # G6
+        self.assertEqual(errors(with_op('LOG("Say ""hi""")')), [])
+        self.assertEqual(errors(edit(MINIMAL, '"Closed"x4', '"Clo""sed"x4')), [])
+        self.assertEqual(errors(edit(MINIMAL, 'PRE_COUNTIF(Data![Status], "Open")',
+                                     'PRE_COUNTIF(Data![Status], "Open") + COUNTIF(Data![Status], "a""b")')), [])
+
+    def test_note_as_a_one_line_if_action(self):
+        self.assertEqual(errors(with_op('IF found > 0 THEN NOTE "flag the row for review"')), [])
+
+    def test_reserved_option_words(self):  # G2
+        self.assertIn("key is a reserved option word: choose another name (G2)",
+                      errors(edit(MINIMAL, "VAR      found As Long", "VAR      found As Long\nVAR      key As Long")))
+        loop = edit(MINIMAL, "var=r", "var=name").replace("CELL($ws, r, cStatus)", "CELL($ws, name, cStatus)")
+        self.assertIn("name is a reserved option word: choose another loop variable name (G2)", errors(loop))
+        # only reserved words make options, so a declared name before "=" is a comparison
+        self.assertEqual(errors(with_op("SET_VALUE(CELL($ws, 1, 3), found=0)")), [])
+        self.assertIn("FORMAT has no option colour=", errors(with_op("FORMAT(CELL($ws, 1, 1), colour=red)")))
+
+
 class Warnings(unittest.TestCase):
     def test_more_than_40_op_lines_warns(self):
         extra = "OP       LET(found, found + 1)\n"

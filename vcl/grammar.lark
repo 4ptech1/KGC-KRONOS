@@ -55,7 +55,7 @@ flow_value: QUALNAME ("->" QUALNAME)+
 loop_rows: "LOOP_ROWS" option+
 loop_cols: "LOOP_COLS" option+
 for_each: "FOR_EACH" option+
-if_inline: "IF" expr "THEN" call
+if_inline: "IF" expr "THEN" (call | note)
 if_block: "IF" expr
 else_line: "ELSE"
 select_case: "SELECT_CASE" expr

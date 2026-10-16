@@ -145,7 +145,7 @@ class Token:
 
 TOKEN_RE = re.compile(r"""
     (?P<space>\s+)
-  | (?P<string>"[^"]*")
+  | (?P<string>"(?:[^"]|"")*")
   | (?P<range>[A-Za-z_]\w*!(?:\[[^\]]*\]\d*|\$?[A-Z]{1,3}\$?\d*(?::\$?[A-Z]{1,3}\$?\d*)?))
   | (?P<hex>\#\w*)
   | (?P<number>\d+(?:\.\d+)?)
@@ -392,10 +392,11 @@ def _rule(spec, n, item):
     rule = Rule(m["col"], kind, [], int(m["blank"] or 0))
     parts = [a.strip() for a in args.split(",")]
     if kind == "values":
-        if not re.fullmatch(r'"[^"]*"x\d+(?:,"[^"]*"x\d+)*', args):
+        if not re.fullmatch(r'"(?:[^"]|"")*"x\d+(?:,"(?:[^"]|"")*"x\d+)*', args):
             spec.error(n, f'FIXTURE data: values() takes "<text>"x<n>, ... , got \'{args}\'')
             return None
-        rule.args = [(text, int(count)) for text, count in re.findall(r'"([^"]*)"x(\d+)', args)]
+        rule.args = [(text.replace('""', '"'), int(count))
+                     for text, count in re.findall(r'"((?:[^"]|"")*)"x(\d+)', args)]
     elif kind in ("seq", "int", "num"):
         pattern = r"-?\d+" if kind == "int" else NUMBER_RE.pattern
         if len(parts) != 2 or not all(re.fullmatch(pattern, p) for p in parts):
@@ -440,7 +441,7 @@ def _test(spec, n, value):
             runs = int(m["runs"])
         else:
             spec.error(n, f"runs= must be a whole number of 1 or more, got '{m['runs']}'")
-    args = [a.strip() for a in m["args"].split(",")] if m["args"].strip() else []
+    args = [a.strip() for a in split_top(m["args"], ",")] if m["args"].strip() else []
     spec.tests.append(Test(n, m["fixture"], m["proc"], args, runs, m["assertion"].strip()))
 
 

@@ -395,6 +395,8 @@ class Gen:
                 self.update_facts_after(s)
             elif kind == "if_inline":
                 cond, act = s.children
+                if act.data == "note":
+                    raise CompileError(f"line {line}: NOTE steps need the local model; the MVP compiler can't translate them")
                 cc, _ = self.ex(cond)
                 saved = self.with_facts(self.checker.facts_if(cond, True))
                 body = self.action_lines(act)

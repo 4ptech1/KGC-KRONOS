@@ -5,6 +5,7 @@ parse(text) -> (spec, problems)
         parsed Lark trees for every line.
   problems: list of (line_no, message). Parsing never raises on bad input.
 """
+import re
 from pathlib import Path
 
 from lark import Lark, Token, Tree
@@ -23,6 +24,9 @@ START = {"PROC": "proc_value", "KIND": "kind_value", "MODULE": "module_value",
          "SIG": "sig_value", "FLOW": "flow_value"}
 OPENERS = {"loop_rows", "loop_cols", "for_each", "if_block", "select_case", "case_line",
            "case_else"}
+# G2: option names are reserved words, read from the grammar's OPTKEY terminal so there is one list.
+OPTION_WORDS = tuple(re.search(r"OPTKEY\.2: /\(([a-z|]+)\)\(\?==\)/",
+                               GRAMMAR.read_text(encoding="utf-8")).group(1).split("|"))
 
 _parser = None
 
@@ -115,26 +119,28 @@ def _parse_task(lines, first_no, problems):
     return spec
 
 
-def parse(text):
-    problems = []
-    lines = text.splitlines()
-    nonblank = [l for l in lines if l.strip()]
+def _parse_lines(lines, first_no, problems, allow_build=True):
+    """Parse one spec held in lines; first_no is the file line number of lines[0]."""
+    nonblank = [(i, l) for i, l in enumerate(lines) if l.strip()]
     if not nonblank:
-        return None, [(1, "empty spec")]
-    if nonblank[0].startswith("# QUESTION:"):
+        problems.append((first_no, "empty spec"))
+        return None
+    head_i, head = nonblank[0]
+    if head.startswith("# QUESTION:"):
         if len(nonblank) > 1:
-            problems.append((2, "a QUESTION reply must be the only line"))
-        return {"kind": "QUESTION", "text": nonblank[0][len("# QUESTION:"):].strip()}, problems
-    if lines[0].strip() != "VCL 0.1":
-        problems.append((1, "line 1 must be 'VCL 0.1'"))
-    kind = lines[1].strip() if len(lines) > 1 else ""
+            problems.append((first_no + nonblank[1][0], "a QUESTION reply must be the only line"))
+        return {"kind": "QUESTION", "text": head[len("# QUESTION:"):].strip()}
+    if head.strip() != "VCL 0.1":
+        problems.append((first_no + head_i, "line 1 must be 'VCL 0.1'"))
+    kind_i = nonblank[1][0] if len(nonblank) > 1 else head_i + 1
+    kind = lines[kind_i].strip() if kind_i < len(lines) else ""
     if kind == "TASK":
-        return _parse_task(lines[2:], 3, problems), problems
-    if kind == "BUILD":
-        sections = "\n".join(lines[2:]).split("\n---\n")
+        return _parse_task(lines[kind_i + 1:], first_no + kind_i + 1, problems)
+    if kind == "BUILD" and allow_build:
         head = {"kind": "BUILD", "keys": [], "tasks": []}
-        line_no = 3
-        for raw in sections[0].splitlines():
+        seps = [i for i in range(kind_i + 1, len(lines)) if lines[i].strip() == "---"]
+        for i in range(kind_i + 1, seps[0] if seps else len(lines)):
+            raw, line_no = lines[i], first_no + i
             if raw.strip() and not raw.startswith("#"):
                 key = raw.split()[0]
                 if key not in BUILD_ORDER:
@@ -143,14 +149,20 @@ def parse(text):
                     value = raw[len(key):].lstrip(" ")
                     tree = _parse_value(START[key], value, line_no, problems)
                     head["keys"].append({"key": key, "line": line_no, "tree": tree})
-            line_no += 1
-        for sec in sections[1:]:
-            sub, sub_problems = parse(sec.strip("\n"))
-            head["tasks"].append(sub)
-            problems.extend(sub_problems)
-        return head, problems
-    problems.append((2, "line 2 must be TASK or BUILD"))
-    return None, problems
+        for a, b in zip(seps, seps[1:] + [len(lines)]):
+            head["tasks"].append(_parse_lines(lines[a + 1:b], first_no + a + 1, problems, allow_build=False))
+        return head
+    problems.append((first_no + kind_i, "line 2 must be TASK" + (" or BUILD" if allow_build else "")))
+    return None
+
+
+def parse(text):
+    """parse(text) -> (spec, problems). Line numbers are the file's, also inside a BUILD."""
+    problems = []
+    if text.startswith("\ufeff"):  # a UTF-8 byte order mark, as Windows Notepad saves it
+        text = text[1:]
+    spec = _parse_lines(text.splitlines(), 1, problems)
+    return spec, problems
 
 
 if __name__ == "__main__":

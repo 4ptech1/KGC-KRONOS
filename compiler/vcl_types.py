@@ -352,7 +352,8 @@ class Checker:
                 self.need_bool(cond, facts, vflow, line)
                 inner = dict(facts)
                 inner.update(self.facts_if(cond, True))
-                self.check_action(act, inner, vflow, line)
+                if act.data == "call":            # THEN NOTE "..." has nothing to check
+                    self.check_action(act, inner, vflow, line)
                 for k in list(facts):
                     if k not in inner:
                         del facts[k]

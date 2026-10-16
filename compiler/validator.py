@@ -1,6 +1,14 @@
-"""Validate VCL 0.1 (revision 3) specs against vcl/spec.md.
+"""Validate VCL 0.1 specs against vcl/spec.md.
 
 Usage:  python compiler/validator.py specs/*.vcl
+
+Three stages, all reported the same way:
+  1. the rules of spec.md (this file, on top of the hand-written parser in parser.py)
+  2. "grammar:" problems from the formal grammar, vcl/grammar.lark (vcl_parse.py)
+  3. "type:" problems from the type checker (vcl_types.py): unguarded calculations, date
+     comparisons and assignments of raw cell values
+A stage 2 or 3 problem on a line that already has a stage 1 error is left out, so each broken
+line gets one clear message.
 
 Prints one line per problem:  path:line: error|warning: message
 Exits 1 if any spec has an error, or if no files were given. Warnings alone exit 0.
@@ -12,6 +20,9 @@ import sys
 from collections import Counter
 
 from parser import Problem, Token, parse_spec, tokenize
+from vcl_parse import OPTION_WORDS
+from vcl_parse import parse as grammar_parse
+from vcl_types import Checker as TypeChecker
 
 TYPES = {"Long", "Double", "String", "Boolean", "Date", "Variant", "Range", "Worksheet", "Workbook",
          "Dictionary", "Collection"}
@@ -179,8 +190,10 @@ def split_args(items):
         return []
     args = []
     for part in split_on(items, ","):
+        # G2: only a reserved option word directly followed by "=" makes an option; any other
+        # "name=value" is a comparison, exactly as in vcl/grammar.lark.
         if (len(part) >= 2 and is_tok(part[0], "name") and is_tok(part[1], "op", "=")
-                and not part[1].spaced and CAMEL.fullmatch(part[0].text)):
+                and not part[1].spaced and part[0].text in OPTION_WORDS):
             args.append((part[0], part[2:]))
         else:
             args.append((None, part))
@@ -204,7 +217,7 @@ def show(items):
 
 
 def blank_strings(text):
-    return re.sub(r'"[^"]*"', '""', text)
+    return re.sub(r'"(?:[^"]|"")*"', '""', text)
 
 
 # ---------------------------------------------------------------- TASK checks
@@ -334,6 +347,8 @@ class TaskChecker:
             if decl.name in self.loopvars:
                 self.error(f"loop variable {decl.name} is declared automatically: don't declare it in "
                            "ARGS or VAR", decl.line)
+            if decl.name in OPTION_WORDS:
+                self.error(f"{decl.name} is a reserved option word: choose another name (G2)", decl.line)
 
     # -- PRE
 
@@ -518,6 +533,8 @@ class TaskChecker:
     def check_loopvar(self, name, value):
         if not (len(value) == 1 and is_tok(value[0], "name") and CAMEL.fullmatch(value[0].text)):
             self.error(f"{name} var= needs a camelCase loop variable name, got '{show(value)}'")
+        elif value[0].text in OPTION_WORDS:
+            self.error(f"{value[0].text} is a reserved option word: choose another loop variable name (G2)")
 
     def check_choice(self, name, key, value, allowed):
         text = show(value)
@@ -526,10 +543,27 @@ class TaskChecker:
             return None
         return text
 
+    def call_parts(self, call):
+        """(positional, options) of a call. Under G2 only reserved words make options, so to the
+        grammar "colour=red" is a comparison. When its name isn't declared it is almost always a
+        misspelt option, so it is reported as one ("FORMAT has no option colour=")."""
+        positional, options = [], []
+        for key, items in call.args:
+            if key is not None:
+                options.append((key, items))
+            elif (len(items) >= 2 and is_tok(items[0], "name") and is_tok(items[1], "op", "=")
+                  and not items[1].spaced and CAMEL.fullmatch(items[0].text)
+                  and items[0].text not in self.vars and items[0].text not in self.loopvars
+                  and items[0].text not in self.args):
+                options.append((items[0], items[2:]))
+            else:
+                positional.append(items)
+        return positional, options
+
     def check_call_op(self, call):
         name = call.name
         fewest, most, allowed, required = OPS[name]
-        positional, options = call.positional, call.options
+        positional, options = self.call_parts(call)
         if name == "DEDUPE":  # cols=<n,n>: the numbers after cols= belong to it
             merged, positional, last = [], [], None
             for key, items in call.args:
@@ -712,10 +746,10 @@ class TaskChecker:
                 self.check_expr(items, f"{name} argument")
             return
         fewest, most, allowed = VALUE_FUNCS[name]
-        positional = call.positional
+        positional, options = self.call_parts(call)
         if not fewest <= len(positional) <= most:
             self.error(f"{name} takes {fewest} argument{'s' if fewest > 1 else ''}, got {len(positional)}")
-        for key, items in call.options:
+        for key, items in options:
             if key.text not in allowed:
                 self.error(f"{name} has no option {key.text}=")
             else:
@@ -1146,13 +1180,7 @@ def check_build(spec):
 
 # ---------------------------------------------------------------- entry points
 
-def validate(spec):
-    """All problems for a parsed spec, sorted by line."""
-    problems = list(spec.problems)
-    if spec.kind == "TASK":
-        problems += TaskChecker(spec).run()
-    elif spec.kind == "BUILD":
-        problems += check_build(spec)
+def _sorted_unique(problems):
     unique = []
     for p in sorted(problems, key=lambda p: (p.line, p.severity != "error")):
         if p not in unique:
@@ -1160,8 +1188,45 @@ def validate(spec):
     return unique
 
 
+def validate(spec):
+    """Stage 1 problems for a parsed spec, sorted by line."""
+    problems = list(spec.problems)
+    if spec.kind == "TASK":
+        problems += TaskChecker(spec).run()
+    elif spec.kind == "BUILD":
+        problems += check_build(spec)
+    return _sorted_unique(problems)
+
+
+def grammar_and_type_problems(text, known):
+    """Stages 2 and 3: the formal grammar, then the type checker on every TASK it parsed.
+    Problems on lines that already have a stage 1 error are left out."""
+    bad_lines = {p.line for p in known if p.severity == "error"}
+    spec, found = grammar_parse(text)
+    out = [Problem(line, "error", f"grammar: {msg}") for line, msg in found if line not in bad_lines]
+    if found or spec is None:
+        return out
+    tasks = [spec] if spec["kind"] == "TASK" else spec.get("tasks", []) if spec["kind"] == "BUILD" else []
+    for task in tasks:
+        if not task or task.get("kind") != "TASK":
+            continue
+        try:
+            typed = TypeChecker(task).run()
+        except Exception as exc:  # a crash here is a bug in the type checker, never in the spec
+            if not bad_lines:
+                out.append(Problem(task["keys"][0]["line"] if task["keys"] else 1, "error",
+                                   f"the type checker could not read this spec ({type(exc).__name__}: {exc})"))
+            continue
+        out += [Problem(line, "error", f"type: {msg}") for line, msg in typed if line not in bad_lines]
+    return out
+
+
 def validate_text(text):
-    return validate(parse_spec(text))
+    spec = parse_spec(text)
+    problems = validate(spec)
+    if spec.kind in ("TASK", "BUILD"):
+        problems = _sorted_unique(problems + grammar_and_type_problems(text, problems))
+    return problems
 
 
 def validate_file(path):

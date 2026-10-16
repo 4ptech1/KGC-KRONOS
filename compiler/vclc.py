@@ -1,6 +1,6 @@
 """vclc: the VBA Forge toolchain.
 
-  python compiler/vclc.py check  FILES...            parse + type check
+  python compiler/vclc.py check  FILES...            the validator: spec.md rules, grammar, type check
   python compiler/vclc.py test   FILES...            run every TEST in the reference interpreter
   python compiler/vclc.py build  FILES... [-o DIR]   compile, assemble, lint, write expected results
   python compiler/vclc.py mutate FILES... [--snapshot]   mutation score of each spec's tests
@@ -31,19 +31,18 @@ from vcl_fixtures import fixtures_module  # noqa: E402
 from vcl_interp import VclError, run_tests  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
 from vcl_parse import parse  # noqa: E402
-from vcl_types import Checker  # noqa: E402
+from validator import validate_file  # noqa: E402
 
 
 def cmd_check(files):
     bad = 0
     for p in files:
-        spec, problems = parse(Path(p).read_text(encoding="utf-8"))
-        if not problems and spec and spec["kind"] == "TASK":
-            problems = Checker(spec).run()
-        bad += bool(problems)
-        print(f"{'OK  ' if not problems else 'FAIL'} check  {p}")
-        for line, msg in problems:
-            print(f"       line {line}: {msg}")
+        problems = validate_file(p)
+        errors = [x for x in problems if x.severity == "error"]
+        bad += bool(errors)
+        print(f"{'OK  ' if not errors else 'FAIL'} check  {p}")
+        for x in problems:
+            print(f"       line {x.line}: {x.severity}: {x.message}")
     return bad == 0
 
 
