@@ -1,0 +1,46 @@
+# VBA Forge decisions
+
+One line per decision: what was decided, why, and where it is enforced. Boss can overturn any
+of them. Ids: **G** grammar, **S** semantics, **T** types (from `docs/vcl-m2-findings.md`),
+**E** language rules, **D** decisions Claude made on its own under the rule "pick the more
+conservative option, record it here, and carry on".
+
+## Language (VCL 0.1 revision 4, 16 Oct 2026)
+
+These clarify revision 3; they don't change any valid spec except task_06 (T2). spec.md and the
+Orchestrator prompt state them in the reference text.
+
+| Id | Decision | Why | Enforced by |
+| --- | --- | --- | --- |
+| G2 | Option names are reserved words: dir, from, to, var, in, mode, into, key, order, header, what, fill, numfmt, bold, width, style, cols, col, crit, readonly, format, save, after, name, match. Only these make `name=value` options (no space before `=`); any other `name=value` is a comparison. They can't be argument, variable or loop variable names. | `DICT_ADD(d, k, v, mode=sum)` and `SET_VALUE(c, got = 0)` look alike; reserved keys make the grammar unambiguous (it builds as LALR). | `vcl/grammar.lark` (OPTKEY), validator (reserved names, option splitting) |
+| G6 | A quote inside text is written as two quotes, as in VBA: `"Say ""hi"""`. | Revision 3 never said how. | grammar (STRING), `compiler/parser.py` tokenizer and `values(...)` |
+| G7 | Operator precedence matches VBA, tightest first: `-` (negation), `* /`, `+ -`, `&`, comparisons, NOT, AND, OR. Comparisons don't chain. | `a < b < c` would make VBA compare a Boolean with c, silently. | grammar |
+| S1 | IS_EMPTY: empty cell, empty text, or text made only of spaces, non-breaking spaces (character 160), tabs or line breaks. An error cell is not empty. | Copy-pasted "blank" cells often hold character 160. | `vcl/semantics.py`, ForgeLib `ForgeIsEmpty` |
+| S2 | TRIM removes spaces, non-breaking spaces, tabs and line breaks at both ends; inner spaces stay. | VBA's Trim removes only ordinary spaces. | semantics, `ForgeTrim` |
+| S3 | IS_NUMBER: numbers, and text that is a plain number after TRIM (optional sign, digits, optional `.` and digits). False for blanks, TRUE/FALSE, dates, errors, "1,250", "1e3", "25%", "(25)". | Regional settings decide what "1,250" means. | semantics, `ForgeIsNumber` |
+| S4 | IS_DATE is true only for real date values; text that looks like a date is false. | "03/04/2026" could be March or April. | semantics, `ForgeIsDate` |
+| S5 | IS_ERROR (true for #N/A, #DIV/0!, ...) is decided, and arrives with VCL 0.2. In 0.1 an error is not empty, not a number and not a date, so most specs already treat it as invalid. | Reports need to detect error cells. | semantics (`is_error`), VCL 0.2 |
+| S6 | Every value becomes text the same way on every PC: empty is "", whole numbers without ".0", "." as the decimal point, dates as yyyy-mm-dd, TRUE/FALSE, errors as their Excel text (#N/A). | VBA's CStr on a date follows regional settings, and Trim on a #N/A cell crashes. | semantics, `ForgeText` |
+| S7 | `=` and `<>` with text on either side compare the canonical text exactly (case and spaces count), so a cell holding 25 equals "25". | In VBA `cell = "25"` is False when the cell holds the number 25. | semantics, `ForgeEq` |
+| S8 | LEFT and RIGHT: a count below 0 counts as 0; a count beyond the length gives the whole text. | VBA raises an error for a negative count. | semantics, `ForgeLeft`, `ForgeRight` |
+| S9 | COL matches a header by its canonical text with line breaks and other whitespace turned into single spaces, ends trimmed, case ignored; the first match wins; 0 if none. | Headers typed with Alt+Enter or double spaces must still match. | semantics, `ForgeCol` |
+| S10 | Dictionary keys compare as canonical text, ignoring case: 1001 and "1001" are one key. | VBA's Dictionary treats 1001 and "1001" as different keys. | semantics, `ForgeDictAdd` and friends |
+| S11 | LASTROW and LASTCOL work like End(xlUp) and End(xlToLeft): the last cell holding any value, spaces-only text included; an empty column gives 1. | Matches what the generated VBA does. | semantics, `ForgeLastRow`, `ForgeLastCol` |
+| T2 | Guard a calculation or date comparison with the check itself (`IF IS_DATE(x)`), never with a flag set earlier (`IF NOT bad`). task_06 was rewritten this way; the rewrite was proved equivalent over all 20 input combinations. | No checker can follow a flag. | rule 15, FINAL CHECK, type checker |
+| E1 | `EXIT_IF <condition>` leaves the procedure when the condition is true. A Function then returns its RET type's default (0, "" or FALSE), as VBA does; to return something else write `IF <condition> THEN RETURN(<value>)`. VCL 0.2 adds EXIT_LOOP_IF to leave only a loop. | Revision 3 never defined EXIT_IF. | interpreter, compiler (`GoTo CleanExit`) |
+
+## Decisions Claude made on its own
+
+| Id | Date | Decision | Why it is the conservative choice |
+| --- | --- | --- | --- |
+| D1 | 16 Oct 2026 | The one fixture generator (`compiler/vcl_fixtures.py`) uses the pilot's SplitMix64 algorithm from `harness/fixtures.py` (PR #4), not the MVP's Python `random` module. It builds bit-for-bit the same data as the pilot. | The algorithm is written down in full (spec.md), so the data never depends on a Python version, and the pilot's expected results stay valid if PR #4 is revived. All specs still pass their TESTs on this data. |
+| D2 | 16 Oct 2026 | The batch builder is `vclc build`: besides `forge_module.bas` it writes `forge_fixtures.bas`, one `ForgeFixture_<file>(wb)` builder per fixture file, from the same generator. | Boss asked for one generator used by the interpreter, the batch builder and the expected results; PR #4's runner is deferred, so nothing in main may depend on it. |
+| D3 | 16 Oct 2026 | Only `dist/forge_module.bas` is committed (CI fails if it is out of date). The rest of `dist/` is rebuilt by `vclc build` and git-ignored. | The expected results depend on TODAY (task_06, task_09, task_10), so a committed copy would go stale every day. |
+| D4 | 16 Oct 2026 | `compiler/validator.py` keeps its hand-written parser and rules and adds two stages: the grammar and the type checker. `vclc check` runs this validator. | Keeps every existing rule and message; a differential run (see the PR) showed where the checkers disagreed, and each disagreement was fixed or is now reported. |
+| D5 | 16 Oct 2026 | Where the parsers disagreed, they were aligned on what spec.md already allows: a UTF-8 byte order mark and blank lines before `VCL 0.1` are fine; `IF ... THEN NOTE "..."` is fine. | Accepts only what the validator already accepted; no valid spec is rejected. |
+| D6 | 16 Oct 2026 | Assertions allow `+` and `-` only, not `*` and `/`; `NOT` right after a comparison operator needs brackets. | That is what the grammar and the interpreter support; spec.md never listed more. Stricter is safer. |
+| D7 | 16 Oct 2026 | ForgeLib stays in `vba/ForgeLib.bas` (the MVP's place), not in `library/`. The conformance cases stay in `tests/`. | `library/` is for approved code, and ForgeLib has never run in Excel. Fewer moves, fewer surprises. |
+| D8 | 16 Oct 2026 | These clarifications are VCL 0.1 revision 4; the version line in specs stays `VCL 0.1`. | No valid spec's syntax changes. |
+| D9 | 16 Oct 2026 | PRs #5 and #6 (Phase 1 and Phase 2 plans) stay open and untouched. No M0, M1 or M2-research PRs exist; the M2 research arrived inside the MVP zip. | They are proposals waiting for Boss, and nothing depends on them. |
+| D10 | 16 Oct 2026 | A RETURN value is converted to the Function's RET type, as VBA does (a Long rounds half to even). | Matches the generated VBA; no spec's results change. |
+| D11 | 16 Oct 2026 | Removed `pyflakes-4.0.3-py2.py3-none-any.whl` from the repo root. | It was committed by accident in 7c8e5fe; nothing uses it. |

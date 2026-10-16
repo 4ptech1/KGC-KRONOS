@@ -1,8 +1,11 @@
-# VCL 0.1: VBA Command Language (revision 3, 14 Oct 2026)
+# VCL 0.1: VBA Command Language (revision 4, 16 Oct 2026)
 
 VCL is the contract between Claude (which writes specs) and VBA Forge (which turns them into
 tested VBA). This file is the reference that `validator.py` and the training data follow.
 The Orchestrator prompt contains the same reference text, so update both together.
+The formal syntax is `vcl/grammar.lark`; the reference meaning of the value functions is
+`vcl/semantics.py` (tables in `docs/vcl-semantics.md`); the reasons behind each decision are
+in `DECISIONS.md`.
 
 Target: Excel 2016 desktop. Specs never rely on Microsoft 365 functions such as XLOOKUP or
 dynamic arrays; every op compiles to plain VBA. (`FILTER` here means AutoFilter, which
@@ -40,7 +43,8 @@ Excel 2016 has.)
 14. Find input columns by header name with COL(), never by fixed position, and check
     every header you use with a PRE line.
 15. Assume data is typed by hand: trim IDs before matching, and guard every calculation
-    and date comparison with IS_NUMBER or IS_DATE in a nested IF.
+    and date comparison with IS_NUMBER or IS_DATE in a nested IF. Guard with the check
+    itself (IF IS_DATE(x)), never with a flag variable set earlier.
 16. Make re-runs safe: rebuild output sheets from scratch, and recalculate totals from
     source data instead of adding to or subtracting from stored values. The goal TEST
     uses runs=2 to prove it.
@@ -109,7 +113,7 @@ Structural ops begin an OP line:
   SELECT_CASE <expr>                 (block form)
   CASE <value>, <value>
   CASE_ELSE
-  EXIT_IF <condition>
+  EXIT_IF <condition>                (leaves the procedure when the condition is true)
 
 Every other op is a call, NAME(arguments, key=value):
   Assign  LET(<var>, <expr>)
@@ -153,20 +157,43 @@ Value functions:
   LEN  TRIM  UPPER  LOWER  LEFT(<expr>, <n>)  RIGHT(<expr>, <n>)
   IS_EMPTY  IS_NUMBER  IS_DATE  IS_NOTHING  TODAY  NOW  FILE_NAME(<path>)
 Arguments are written $name. Variables and loop variables are bare names.
-Text uses "double quotes". Also numbers, TRUE, FALSE, NOTHING.
+Text uses "double quotes"; write a quote inside text as two quotes: "Say ""hi""".
+Also numbers, TRUE, FALSE, NOTHING.
 Operators: = <> < > <= >= AND OR NOT + - * / &
+Precedence, tightest first: - (negation), * /, + -, &, comparisons, NOT, AND, OR.
+Comparisons don't chain: write a < b AND b < c, never a < b < c.
+Option names are reserved words: dir from to var in mode into key order header what fill
+numfmt bold width style cols col crit readonly format save after name match. Write an
+option as name=value with no space before "="; never use these words as names.
 Columns are numbers (1 = A) everywhere except inside "A1 ref" strings.
 An array element can be a SET_VALUE target: SET_VALUE(ARR(data, r, 3), 0).
 
-SEMANTICS
-  IS_EMPTY    true for empty cells, empty text, and text made only of spaces
-  IS_NUMBER   true for numbers and for text that is a plain number ("25"); false for blanks
+SEMANTICS  (the same on every PC, whatever its regional settings)
+  IS_EMPTY    true for empty cells and for text made only of spaces, non-breaking spaces,
+              tabs or line breaks; an error cell (#N/A) is not empty
+  TRIM        removes spaces, non-breaking spaces, tabs and line breaks at both ends
+  IS_NUMBER   true for numbers and for text that is a plain number after TRIM ("25",
+              " -3.5 "); false for blanks, TRUE/FALSE, dates, errors, "1,250", "1e3", "25%"
   IS_DATE     true only for real Excel date values; text that looks like a date is false
-  COL         matches the header ignoring case and extra spaces; 0 if not found
-  Dictionary  keys are compared ignoring case; Dictionary and Collection VARs start empty
+  Text        a value becomes text the same way everywhere (TRIM, UPPER, LOWER, LEN, LEFT,
+              RIGHT, &, keys): whole numbers without ".0", "." as the decimal point, dates
+              as yyyy-mm-dd, TRUE/FALSE, errors as their Excel text (#N/A)
+  = and <>    with text on either side they compare that text exactly (case and spaces
+              count), so a cell holding 25 equals "25"; compare numbers or dates only after
+              IS_NUMBER or IS_DATE
+  LEFT RIGHT  a count below 0 gives ""; a count beyond the length gives the whole text
+  COL         matches the row-1 header ignoring case, extra spaces and line breaks; the first
+              match wins; 0 if not found
+  LASTROW     the last row holding any value (spaces too), like End(xlUp); 1 if the column
+              is empty. LASTCOL works the same along a row
+  Dictionary  keys are compared as text ignoring case, so 1001 and "1001" are one key;
+              Dictionary and Collection VARs start empty
   PRE         if a condition is false: one ForgeLog entry, nothing changes, and a Function
               returns -1
-  AND / OR    both sides may be evaluated, so guard risky comparisons with a nested IF
+  EXIT_IF     leaves the procedure; a Function then returns 0, "" or FALSE (use IF ... THEN
+              RETURN(<value>) to return something else)
+  AND / OR    both sides are always evaluated, so a guard on the left does not protect the
+              right: guard risky comparisons with a nested IF on the check itself
 
 TEST ASSERTIONS  (checked on the test workbook after the run)
   COUNTIF(<Sheet>!<range>, <criteria>)  COUNTA(<Sheet>!<range>)  SUM(<Sheet>!<range>)
@@ -207,6 +234,45 @@ FIXTURE SPEC
   int, num, dates and text values, and which cells +blank(<n>) leaves blank. Columns are
   not correlated, and the same spec always builds the same file.
 ```
+
+## Fixture generation (exact algorithm)
+
+The FIXTURE SPEC seed rule, in full. `compiler/vcl_fixtures.py` implements it, and the
+interpreter, the expected results and the fixture-builder VBA all use that one
+implementation. It must never change, because the expected results and the dataset depend
+on it.
+
+```text
+seed       first 8 bytes (big-endian) of SHA-256("<file>|<sheet>|<column letter>"),
+           for example "bom_grn_01.xlsx|BOM|C"
+PRNG       SplitMix64 on that seed; below(n) = uniform 0..n-1 by rejection sampling
+values()   every value in the order written, then a Fisher-Yates shuffle
+           (i from the last index down to 1, j = below(i + 1))
+seq()      start + i * step, no randomness
+int()      lo + below(hi - lo + 1), row by row
+num()      lo + (hi - lo) * next() / 2^64, rounded to 2 decimals, row by row
+dates()    first date + below(days + 1) days, row by row
+text(n)    n letters A-Z, each "ABC...Z"[below(26)], row by row
++blank(n)  after the values, a partial Fisher-Yates over the row numbers picks the n rows
+           to blank
+```
+
+A values() entry of `""` is a blank cell, and so is a column without a data rule.
+
+## Changes in revision 4
+
+Clarifications from the M2 research (`docs/vcl-m2-findings.md`); valid revision 3 specs stay
+valid, except task_06, which was rewritten (T2). Details and reasons: `DECISIONS.md`.
+
+- Option names are reserved words (G2): only they make `name=value` options, and they can't
+  be names.
+- A quote inside text is written as two quotes (G6).
+- Operator precedence matches VBA, and comparisons don't chain (G7).
+- SEMANTICS now states S1 to S11: emptiness, TRIM, numbers, dates, canonical text, `=` with
+  text, LEFT/RIGHT, COL, dictionary keys and LASTROW behave the same on every PC.
+- Rule 15: guard with the check itself, never with a flag (T2).
+- `EXIT_IF` leaves the procedure; a Function then returns 0, "" or FALSE.
+- New section above: the exact fixture generation algorithm.
 
 ## Changes in revision 3
 

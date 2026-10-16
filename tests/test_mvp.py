@@ -47,6 +47,15 @@ class Interpreter(unittest.TestCase):
         self.assertTrue(run_tests(text)[0].passed)
 
 
+    def test_exit_if_leaves_the_procedure_not_just_the_loop(self):
+        # RESULT = 0, not 5: RETURN(n) is never reached, and a Function then returns its default.
+        text = mini(["LET(n, 5)", "LOOP_ROWS dir=down from=2 to=4 var=r", "  EXIT_IF r = 3",
+                     "  SET_VALUE(CELL($ws, r, 3), 1)", "RETURN(n)"],
+                    ["fixture=t_01.xlsx call=P(S) assert=RESULT = 0 AND COUNTA(S!C:C) = 1 AND ERROR_COUNT = 0"])
+        self.assertTrue(run_tests(text)[0].passed)
+        self.assertIn("If (r = 3) Then GoTo CleanExit", compile_text(text))
+
+
 class Compiler(unittest.TestCase):
     def test_compiles_what_type_checks_and_refuses_the_rest(self):
         for p in all_specs():

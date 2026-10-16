@@ -459,6 +459,11 @@ class RealSpecs(unittest.TestCase):
         spec = example[example.index("VCL 0.1"):]
         self.assertEqual(validate_text(spec), [])
 
+    def test_example_1_file_is_the_prompts_example_1(self):
+        prompt = read("vcl/orchestrator_prompt.txt")
+        example = prompt[prompt.index("EXAMPLE 1"):prompt.index("EXAMPLE 2")]
+        self.assertEqual(read("vcl/examples/example1_rev3.vcl").strip(), example[example.index("VCL 0.1"):].strip())
+
     def test_spec_md_and_prompt_share_the_reference_text(self):
         spec, prompt = read("vcl/spec.md"), read("vcl/orchestrator_prompt.txt")
 

@@ -93,6 +93,7 @@ class Machine:
         self.types = {}
         self.proc = ""
         self.kind = "Sub"
+        self.ret = None
         for k in spec["keys"]:
             t = k["tree"]
             if t is None:
@@ -101,6 +102,8 @@ class Machine:
                 self.proc = str(t.children[0])
             elif k["key"] == "KIND":
                 self.kind = str(t.children[0])
+            elif k["key"] == "RET":
+                self.ret = str(t.children[0])
             elif k["key"] == "VAR":
                 name, typ = str(t.children[0]), str(t.children[1])
                 self.types[name] = typ
@@ -397,16 +400,40 @@ class Machine:
                     if not ok:
                         self.log.append((self.proc, 0, f"PRE failed: condition {i + 1}"))
                         return -1 if self.kind == "Function" else None
+        value, given = None, False
         try:
             self.block(self.spec["ops"])
         except _Return as r:
-            return r.value
+            value, given = r.value, True
         except _Exit:
             pass
         except (VclError, AttributeError, TypeError, KeyError, ValueError, ZeroDivisionError) as ex:
             self.log.append((self.proc, 13, f"runtime error: {ex}"))
             return -2 if self.kind == "Function" else None
-        return 0 if self.kind == "Function" else None
+        try:
+            return self.result(value, given)
+        except (VclError, TypeError, ValueError) as ex:
+            self.log.append((self.proc, 13, f"runtime error: {ex}"))
+            return -2 if self.kind == "Function" else None
+
+    def result(self, value, given):
+        """A Function's return value in its RET type, as VBA converts it. Without a RETURN
+        (the end of the procedure, or EXIT_IF) VBA gives the type's default: 0, "" or FALSE."""
+        if self.kind != "Function":
+            return None
+        if not given:
+            return {"Long": 0, "Double": 0.0, "String": "", "Boolean": False}.get(self.ret)
+        if self.ret == "Long":
+            return round(self.num(value))   # VBA rounds half to even, like Python's round
+        if self.ret == "Double":
+            return float(self.num(value))
+        if self.ret == "String":
+            return S.text_of(value)
+        if self.ret == "Boolean" and isinstance(value, bool):
+            return value
+        if self.ret == "Boolean":
+            raise VclError(f"type mismatch: {S.text_of(value)!r} is not TRUE or FALSE")
+        return value
 
 
 # ---------- TEST assertions ----------
