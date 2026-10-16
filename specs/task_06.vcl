@@ -38,7 +38,7 @@ OP           LET(welderId, TRIM(CELL($weldLog, r, cWelder)))
 OP           IF IS_EMPTY(welderId) THEN LET(bad, TRUE)
 OP           IF EXISTS(expiry, welderId) THEN DICT_GET(expiry, welderId, into=expDate)
 OP           IF NOT IS_DATE(expDate) THEN LET(bad, TRUE)
-OP           IF NOT bad
+OP           IF IS_DATE(expDate)
 OP             IF expDate < TODAY THEN LET(bad, TRUE)
 OP           IF bad
 OP             FORMAT(ROW_RANGE($weldLog, r, 1, lastCol), fill=#FF0000)
