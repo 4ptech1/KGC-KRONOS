@@ -11,6 +11,8 @@ from lark import Token, Tree
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent / "vcl"))
+import semantics as S  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from vcl_types import Checker, canon, mentions  # noqa: E402
 
@@ -321,8 +323,10 @@ class Gen:
                     out.append(f"{target}.Interior.Color = {color(f)}")
                 elif str(f) == "none":
                     out.append(f"ForgeNoFill {target}")
+                elif str(f) in S.FILL_COLORS:
+                    out.append(f"{target}.Interior.Color = {color(S.FILL_COLORS[str(f)])}")
                 else:
-                    raise CompileError(f"fill colour name {f} isn't supported by the MVP compiler; use #RRGGBB")
+                    raise CompileError(f"unknown fill colour name {f}; use #RRGGBB")
             if "numfmt" in opts:
                 out.append(f"{target}.NumberFormat = {e(opts['numfmt'])}")
             if "bold" in opts:

@@ -319,8 +319,10 @@ class Machine:
                     f = e(opts["fill"])
                     if str(f).lower() == "none":
                         rng.sheet.fills.pop((r, c), None)
-                    else:
+                    elif str(f).startswith("#"):
                         rng.sheet.fills[(r, c)] = str(f).upper()
+                    else:
+                        rng.sheet.fills[(r, c)] = S.FILL_COLORS[str(f).lower()]
                 if "numfmt" in opts:
                     rng.sheet.formats[(r, c)] = e(opts["numfmt"])
         elif name == "WRITE_ROW":

@@ -166,6 +166,11 @@ def last_row(column_values):
 
 # ---------------------------------------------------------------- VCL 0.2 value functions
 
+# FORMAT fill names: each is the colour of the VBA constant of that name (vbRed = RGB(255, 0, 0)).
+# "none" removes the fill, so it has no colour here. The validator's FILL_NAMES lists the same names.
+FILL_COLORS = {"black": "#000000", "white": "#FFFFFF", "red": "#FF0000", "green": "#00FF00",
+               "blue": "#0000FF", "yellow": "#FFFF00", "magenta": "#FF00FF", "cyan": "#00FFFF"}
+
 DATE_FORMATS = ("dd/mm/yyyy", "dd-mm-yyyy", "dd.mm.yyyy", "mm/dd/yyyy", "yyyy-mm-dd")
 
 
