@@ -1,7 +1,8 @@
 """VCL 0.2 (docs/vep-0.2-core.md) through every stage: the version line, the validator, the
 type checker, the interpreter, the compiler and ForgeLib.
 PR A: the value functions SAME, CLEAN_TEXT, IS_ERROR, PARSE_DATE, IIF and MOD.
-PR B: ForgeSetValue (S17), SKIP_IF, EXIT_LOOP_IF and WRITE_ROW."""
+PR B: ForgeSetValue (S17), SKIP_IF, EXIT_LOOP_IF and WRITE_ROW.
+PR C: MODIFIES and the automatic UNCHANGED check."""
 import glob
 import os
 import sys
@@ -16,7 +17,8 @@ import semantics  # noqa: E402
 import validator  # noqa: E402
 from vba_lint import lint  # noqa: E402
 from vcl_codegen import assemble, compile_text  # noqa: E402
-from vcl_interp import run_tests  # noqa: E402
+from vcl_fixtures import Sheet  # noqa: E402
+from vcl_interp import run_tests, unchanged_problems  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from vcl_types import check_text  # noqa: E402
@@ -87,6 +89,45 @@ FIXTURE  list_01.xlsx sheet=Out cols=A:Row rows=0 stale=2
 TEST     fixture=list_01.xlsx call=ListReady(Data, Out) runs=2 assert=RESULT = 2 AND ERROR_COUNT = 0 AND COUNTA(Out!A:A) = 3 AND SUM(Out![Qty]) = 14 AND VALUE(Out!A3) = 5 AND COUNTIF(Out![Status], "Ready") = 2 AND FILL_COUNT(Out!A1:C9, #FF0000) = 0
 TEST     fixture=list_01.xlsx call=ListReady(Data, Out) assert=COUNTA(Data![Status]) = PRE_COUNTA(Data![Status]) AND SUM(Data![Qty]) = PRE_SUM(Data![Qty])
 TEST     fixture=list_01.xlsx call=ListReady(Out, Out) assert=RESULT = -1 AND ERROR_COUNT = 1
+"""
+
+# Balance = Qty - Used where both are numbers; a negative balance gets a red row. Only the
+# Balance column's values and the sheet's fills may change.
+STOCK = """VCL 0.2
+TASK
+# ASSUME: Stock headers (row 1) include "Item", "Qty", "Used" and "Balance"; Item is never blank
+PROC     UpdateBalance
+KIND     Function
+MODULE   modStock
+ARGS     ws As Worksheet
+RET      Long
+VAR      cQty As Long
+VAR      cUsed As Long
+VAR      cBal As Long
+VAR      n As Long
+VAR      bal As Double
+PRE      COL($ws, "Qty") > 0; COL($ws, "Used") > 0; COL($ws, "Balance") > 0
+MODIFIES $ws["Balance"]
+MODIFIES $ws fills
+OP       LET(cQty, COL($ws, "Qty"))
+OP       LET(cUsed, COL($ws, "Used"))
+OP       LET(cBal, COL($ws, "Balance"))
+OP       LET(n, 0)
+OP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, 1) var=r
+OP         FORMAT(ROW_RANGE($ws, r, 1, cBal), fill=none)
+OP         SKIP_IF NOT IS_NUMBER(CELL($ws, r, cQty))
+OP         SKIP_IF NOT IS_NUMBER(CELL($ws, r, cUsed))
+OP         LET(bal, CELL($ws, r, cQty) - CELL($ws, r, cUsed))
+OP         SET_VALUE(CELL($ws, r, cBal), bal)
+OP         LET(n, n + 1)
+OP         IF bal < 0 THEN FORMAT(ROW_RANGE($ws, r, 1, cBal), fill=#FF0000)
+OP       RETURN(n)
+ERR      standard
+FIXTURE  stock_01.xlsx sheet=Stock cols=A:Item,B:Qty,C:Used,D:Balance rows=8 stale=2 data=A:seq(1,1);B:int(0,9)+boundary(5,5,"")+blank(1);C:int(0,9)+boundary(5,6,2);D:values("old"x8)
+FIXTURE  stock_01.xlsx sheet=Other cols=A:Note rows=1 data=A:text(3)
+TEST     fixture=stock_01.xlsx call=UpdateBalance(Stock) runs=2 assert=RESULT = 6 AND ERROR_COUNT = 0 AND VALUE(Stock!D2) = 0 AND VALUE(Stock!D3) = -1 AND COUNTIF(Stock![Balance], "old") = 2 AND FILL_COUNT(Stock![Item], #FF0000) = COUNTIF(Stock![Balance], "<0")
+TEST     fixture=stock_01.xlsx call=UpdateBalance(Stock) assert=SUM(Stock![Qty]) = PRE_SUM(Stock![Qty]) AND SUM(Stock![Used]) = PRE_SUM(Stock![Used])
+TEST     fixture=stock_01.xlsx call=UpdateBalance(Other) assert=RESULT = -1 AND ERROR_COUNT = 1
 """
 
 HEAD = ["VCL 0.2", "TASK", "PROC     P", "KIND     Function", "MODULE   m",
@@ -365,6 +406,106 @@ class TextStaysText(unittest.TestCase):
         self.assertIs(vcl_fixtures.needs_text_guard, semantics.needs_text_guard)
         self.assertEqual(vcl_fixtures.vba_literal("#N/A"), '"\'#N/A"')
         self.assertEqual(vcl_fixtures.vba_literal("Short"), '"Short"')
+
+
+
+class Modifies(unittest.TestCase):
+    """PR C: MODIFIES, checked statically per sheet and at run time per cell (UNCHANGED)."""
+
+    def test_the_example_is_valid_and_passes(self):
+        self.assertEqual([(p.line, p.message) for p in validator.validate_text(STOCK)], [])
+        results = run_tests(STOCK)
+        self.assertTrue(all(r.passed for r in results), [(r.line, r.failed) for r in results])
+
+    def test_it_needs_the_0_2_version_line(self):
+        self.assertIn("MODIFIES is VCL 0.2: start the spec with 'VCL 0.2' to use it",
+                      errors(LISTER.replace("VCL 0.2", "VCL 0.1", 1).replace("OP       LET(cStatus", "MODIFIES $out\nOP       LET(cStatus", 1)))
+
+    def test_a_change_outside_the_declared_columns_fails_the_test(self):
+        # Writing Item is allowed statically (values on $ws), but the cells say no.
+        bad = STOCK.replace("OP         LET(n, n + 1)", "OP         LET(n, n + 1)\nOP         SET_VALUE(CELL($ws, r, 1), r)")
+        self.assertEqual(errors(bad), [])
+        results = run_tests(bad)
+        self.assertFalse(results[0].passed)
+        self.assertIn("UNCHANGED: Stock!A2 was 1, now 2", results[0].failed)
+        self.assertIn("UNCHANGED: Stock!A2 was 1, now 2", results[1].failed)   # the collateral TEST too
+
+    def test_without_modifies_there_is_no_automatic_check(self):
+        bad = STOCK.replace("OP         LET(n, n + 1)", "OP         LET(n, n + 1)\nOP         SET_VALUE(CELL($ws, r, 1), r)")
+        bad = bad.replace('MODIFIES $ws["Balance"]\nMODIFIES $ws fills\n', "")
+        self.assertTrue(all(r.passed for r in run_tests(bad)[1:]))
+
+    def test_fills_need_their_own_line(self):
+        found = errors(STOCK.replace("MODIFIES $ws fills\n", ""))
+        self.assertIn("FORMAT changes fills on $ws: declare MODIFIES $ws fills", found)
+        # and at run time: a cols-only declaration doesn't allow fill changes
+        no_fills = STOCK.replace("MODIFIES $ws fills\n", "")
+        results = run_tests(no_fills)
+        self.assertTrue(any("fill was #FF0000, now none" in m for m in results[0].failed if isinstance(m, str)),
+                        results[0].failed)
+
+    def test_static_checks(self):
+        stray = LISTER.replace("OP       LET(cStatus", "MODIFIES $out\nOP       LET(cStatus", 1)
+        stray = stray.replace("OP       LET(outRow, 1)", "OP       LET(outRow, 1)\nOP       SET_VALUE(CELL($ws, 1, 9), 0)")
+        self.assertIn("SET_VALUE changes $ws, but no MODIFIES line declares $ws", errors(stray))
+        self.assertIn("SET_VALUE changes values on $ws: declare MODIFIES $ws[\"<header>\", ...]",
+                      errors(STOCK.replace('MODIFIES $ws["Balance"]\n', "")))
+        listed = LISTER.replace("OP       LET(cStatus", "MODIFIES $out\nMODIFIES $ws fills\nOP       LET(cStatus", 1)
+        self.assertIn("MODIFIES $ws, but no op writes to $ws",
+                      [p.message for p in validator.validate_text(listed) if p.severity == "warning"])
+        self.assertEqual(errors(LISTER.replace("OP       LET(cStatus", "MODIFIES $out\nOP       LET(cStatus", 1)), [])
+        self.assertIn("CLEAR changes formats or fills on $out: declare MODIFIES $out",
+                      errors(LISTER.replace("OP       LET(cStatus", 'MODIFIES $out["Row"]\nOP       LET(cStatus', 1)))
+
+    def test_rows_need_the_whole_sheet(self):
+        text = LISTER.replace("OP       LET(cStatus", 'MODIFIES $out["Row"]\nOP       LET(cStatus', 1)
+        text = text.replace("OP       CLEAR(USED_RANGE($out), what=all)\n", "OP       CLEAR(USED_RANGE($out), what=contents)\n")
+        text = text.replace("OP       RETURN(outRow - 1)", "OP       SORT(USED_RANGE($out), key=1, order=asc, header=yes)\nOP       RETURN(outRow - 1)")
+        self.assertIn("SORT changes rows on $out: declare MODIFIES $out", errors(text))
+
+    def test_bad_lines(self):
+        base = STOCK.replace('MODIFIES $ws["Balance"]\n', "{}\n")
+        cases = {
+            "MODIFIES ws": "MODIFIES needs $<sheet>, $<sheet>[\"<header>\", ...] or $<sheet> fills, got 'ws'",
+            "MODIFIES $n": "MODIFIES $n: $n is not a Worksheet argument",
+            "MODIFIES $ws[Balance]": "MODIFIES $ws[...] needs \"quoted\" header names, got 'Balance'",
+            'MODIFIES $ws["Balance", "balance "]': 'MODIFIES $ws lists "balance " twice',
+            'MODIFIES $ws["Balance"]\nMODIFIES $ws["Qty"]': "MODIFIES $ws declares columns twice: use one line",
+            'MODIFIES $ws["Balance"]\nMODIFIES $ws': "MODIFIES $ws (the whole sheet) already covers its other MODIFIES lines",
+        }
+        for line, message in cases.items():
+            with self.subTest(line=line):
+                self.assertIn(message, errors(base.format(line)))
+
+    def test_writes_must_name_a_sheet_argument(self):
+        text = STOCK.replace("VAR      bal As Double", "VAR      bal As Double\nVAR      target As Range")
+        text = text.replace("OP         SET_VALUE(CELL($ws, r, cBal), bal)",
+                            "OP         LET(target, ROW_RANGE($ws, r, cBal, cBal))\nOP         SET_VALUE(target, bal)")
+        self.assertIn("SET_VALUE: MODIFIES can't tell which sheet this changes; write through CELL, ROW_RANGE, "
+                      "USED_RANGE or RANGE of a $sheet argument", errors(text))
+
+    def test_the_whole_workbook_is_compared(self):
+        before = {"Data": Sheet("Data"), "Other": Sheet("Other")}
+        for sh in before.values():
+            sh.set(1, 1, "Key")
+            sh.set(2, 1, 25)
+        after = {n: sh.snapshot() for n, sh in before.items()}
+        after["Data"].set(2, 1, "25")                       # a number turned into text is a change
+        after["Other"].fills[(2, 1)] = "#FF0000"
+        found = unchanged_problems({"ws": {"cols": ["Key"]}}, {"Data": ["ws"]}, before, after, False)
+        self.assertEqual(found, ["UNCHANGED: Other!A2 fill was none, now #FF0000"])
+        found = unchanged_problems({"ws": {"cols": ["Key"]}}, {"Data": ["ws"]}, before, after, True)
+        self.assertEqual(found, ['UNCHANGED: Data!A2 was 25, now "25"', "UNCHANGED: Other!A2 fill was none, now #FF0000"])
+        after["Data"].set(1, 1, "Kee")                      # the header row is never declared
+        found = unchanged_problems({"ws": {"cols": ["Key"]}}, {"Data": ["ws"]}, before, after, False)
+        self.assertIn('UNCHANGED: Data!A1 was "Key", now "Kee"', found)
+        self.assertEqual(unchanged_problems({"ws": {"whole": True}, "o": {"whole": True}},
+                                            {"Data": ["ws"], "Other": ["o"]}, before, after, False), [])
+
+    def test_the_compiler_ignores_it(self):
+        vba = compile_text(STOCK)
+        self.assertNotIn("MODIFIES", vba)
+        self.assertEqual(lint(assemble([vba])), [])
 
 
 if __name__ == "__main__":

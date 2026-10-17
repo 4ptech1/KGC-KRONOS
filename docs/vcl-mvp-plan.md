@@ -23,7 +23,7 @@ Running the generated VBA in Excel is optional and never blocks work.
 | Mutation score, TEST assertions only | 87% of 417 deliberate bugs caught (was 68%) |
 | Mutation score, whole-workbook comparison | 96.4% (was 84%); the 15 survivors are equivalent mutants (`DECISIONS.md` D14) |
 | VBA lint (the compile errors Excel would raise) | 0 problems in 974 lines; 7 of 7 planted errors caught |
-| Unit tests | 186 pass |
+| Unit tests | 197 pass |
 
 ## Honest limits
 
@@ -63,8 +63,8 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    conformance cases for SAME, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, MODIFIES with automatic
    UNCHANGED, PARSE_DATE, IS_ERROR and CLEAN_TEXT (plus IIF and MOD). Then migrate the 10 specs
    with a migration tool. Design: `docs/vep-0.2-core.md` (four PRs, A to D).
-   **PR A (the six value functions) and PR B (SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, ForgeSetValue)
-   are done.**
+   **PR A (the six value functions), PR B (SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, ForgeSetValue) and
+   PR C (MODIFIES with UNCHANGED) are done.**
 4. **The rest of rev 3** in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 5. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives

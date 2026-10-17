@@ -4,7 +4,7 @@
 //   A QUESTION reply is a single line:  # QUESTION: <text>
 //   Otherwise line 1 is "VCL 0.1" and line 2 is "TASK" or "BUILD".
 //   "# ASSUME: <text>" lines may follow, then key lines: <KEY><spaces><value>.
-//   TASK key order: PROC KIND MODULE ARGS RET VAR PRE OP PERF ERR ALLOW FIXTURE TEST
+//   TASK key order: PROC KIND MODULE ARGS RET VAR PRE MODIFIES OP PERF ERR ALLOW FIXTURE TEST
 //   BUILD key order: NAME TARGET ENTRY MODULE FORM SIG FLOW FIXTURE TEST, then "---" and
 //   one TASK per SIG.
 //   OP nesting: the value column of the first OP line is depth 0; each extra 2 spaces is
@@ -23,6 +23,9 @@ param: NAME "As" TYPE
 ret_value: TYPE
 var_value: NAME "As" TYPE
 pre_value: expr (";" expr)*
+// VCL 0.2: MODIFIES $arg (the whole sheet) | $arg["Header", ...] (values in those columns) | $arg fills
+modifies_value: ARG (modifies_cols | FILLS_WORD)?
+modifies_cols: "[" STRING ("," STRING)* "]"
 op_value: statement
 perf_value: PERF_FLAG+
 err_value: ERR_WORD
@@ -142,6 +145,7 @@ KIND_WORD: "Sub" | "Function"
 TYPE: "Long" | "Double" | "String" | "Boolean" | "Date" | "Variant" | "Range" | "Worksheet" | "Workbook" | "Dictionary" | "Collection"
 PERF_FLAG: "screen_off" | "calc_manual" | "events_off"
 ERR_WORD: "standard"
+FILLS_WORD: "fills"
 ALLOW_WORD: "file_delete" | "file_overwrite" | "shell" | "http"
 TARGET_WORD: "xlsm" | "xlam"
 CONTROL_TYPE: "TextBox" | "CommandButton" | "Label" | "ListBox" | "ComboBox" | "CheckBox" | "OptionButton"

@@ -13,8 +13,8 @@ from dataclasses import dataclass, field
 
 VERSION = "VCL 0.1"
 VERSIONS = ("VCL 0.1", "VCL 0.2")  # a VCL 0.1 spec stays valid under 0.2
-TASK_KEYS = ["PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "OP", "PERF", "ERR", "ALLOW",
-             "FIXTURE", "TEST"]
+TASK_KEYS = ["PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
+             "ALLOW", "FIXTURE", "TEST"]
 BUILD_KEYS = ["NAME", "TARGET", "ENTRY", "MODULE", "FORM", "SIG", "FLOW", "FIXTURE", "TEST"]
 
 

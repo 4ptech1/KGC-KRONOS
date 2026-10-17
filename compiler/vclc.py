@@ -61,6 +61,9 @@ def cmd_test(files, today):
         print(f"{'OK  ' if not failed else 'FAIL'} test   {p}  ({len(res) - len(failed)}/{len(res)} tests)")
         for r in failed:
             print(f"       line {r.line}: RESULT={r.result} ERROR_COUNT={r.errors}")
+            for problem in r.failed:
+                if isinstance(problem, str):   # an UNCHANGED difference (MODIFIES)
+                    print(f"         {problem}")
     return bad == 0
 
 

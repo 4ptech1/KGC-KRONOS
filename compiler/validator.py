@@ -19,7 +19,7 @@ import re
 import sys
 from collections import Counter
 
-from parser import Problem, Token, parse_spec, tokenize
+from parser import Problem, Token, parse_spec, split_top, tokenize
 from vcl_fixtures import parse_fixture, sheet_rows, stale_rows
 from vcl_parse import OPTION_WORDS
 from vcl_parse import parse as grammar_parse
@@ -86,6 +86,10 @@ VALUE_FUNCS = {
 }
 VCL_02_FUNCS = {"SAME", "CLEAN_TEXT", "IS_ERROR", "PARSE_DATE", "IIF", "MOD"}
 VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
+# MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
+SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE"}
+ROW_OPS = {"INSERT_ROW", "DELETE_ROW", "SORT", "DEDUPE", "FILTER"}   # these move or hide rows
+MODIFIES_RE = re.compile(r"\$(?P<arg>[A-Za-z_]\w*)\s*(?:\[(?P<cols>.*)\]|\s(?P<fills>fills))?")
 DATE_FORMATS = ("dd/mm/yyyy", "dd-mm-yyyy", "dd.mm.yyyy", "mm/dd/yyyy", "yyyy-mm-dd")  # as vcl/semantics.py
 # second argument is a "quoted" header, ref, sheet name or date format
 STRING_SECOND = {"COL", "RANGE", "SHEET", "PARSE_DATE"}
@@ -254,6 +258,8 @@ class TaskChecker:
         self.sheet_ops = False     # ADD_SHEET / COPY_SHEET can create sheets the fixture lacks
         self.pre_conditions = []   # [(arg, header)] when every PRE condition is COL($x, "h") > 0
         self.pre_evaluable = True
+        self.modifies = {}         # arg -> {"whole": line, "cols": line, "fills": line}
+        self.writes = []           # (line, op, sheet arg or None, what it changes)
 
     def error(self, message, line=None):
         self.problems.append(Problem(line or self.line, "error", message))
@@ -268,8 +274,12 @@ class TaskChecker:
         self.check_decls()
         for pre in spec.lines("PRE"):
             self.check_pre(pre)
+        for mod in spec.lines("MODIFIES"):
+            self.check_modifies(mod)
         self.mode = "op"
         self.walk(spec.ops, None, [])
+        if spec.lines("MODIFIES"):
+            self.check_writes_are_declared()
         for line, arg, header in self.op_cols:
             if (arg, norm(header)) not in self.pre_cols:
                 self.error(f'header "{header}" on ${arg} is used but not checked in PRE (rule 14)', line)
@@ -413,6 +423,98 @@ class TaskChecker:
                            "ARGS or VAR", decl.line)
             if decl.name in OPTION_WORDS:
                 self.error(f"{decl.name} is a reserved option word: choose another name (G2)", decl.line)
+
+    # -- MODIFIES (VCL 0.2)
+
+    def check_modifies(self, mod):
+        self.line = mod.line
+        if self.spec.version != "VCL 0.2":
+            self.error("MODIFIES is VCL 0.2: start the spec with 'VCL 0.2' to use it")
+        m = MODIFIES_RE.fullmatch(mod.value)
+        if not m:
+            self.error('MODIFIES needs $<sheet>, $<sheet>["<header>", ...] or $<sheet> fills, '
+                       f"got '{mod.value}'")
+            return
+        arg = m.group("arg")
+        if self.args.get(arg) != "Worksheet":
+            self.error(f"MODIFIES ${arg}: ${arg} is not a Worksheet argument")
+            return
+        kind = "cols" if m.group("cols") is not None else "fills" if m.group("fills") else "whole"
+        if kind == "cols":
+            headers = []
+            for part in split_top(m.group("cols"), ","):
+                tokens, _ = tokenize(part.strip())
+                if len(tokens) != 1 or tokens[0].kind != "string" or not tokens[0].text[1:-1].strip():
+                    self.error(f'MODIFIES ${arg}[...] needs "quoted" header names, got \'{part.strip()}\'')
+                    continue
+                header = tokens[0].text[1:-1].replace('""', '"')
+                if norm(header) in headers:
+                    self.error(f'MODIFIES ${arg} lists "{header}" twice')
+                headers.append(norm(header))
+        seen = self.modifies.setdefault(arg, {})
+        if kind in seen:
+            what = {"whole": "the whole sheet", "cols": "columns", "fills": "fills"}[kind]
+            self.error(f"MODIFIES ${arg} declares {what} twice: use one line")
+        elif "whole" in seen or (kind == "whole" and seen):
+            self.error(f"MODIFIES ${arg} (the whole sheet) already covers its other MODIFIES lines")
+        seen[kind] = mod.line
+
+    def record_write(self, name, positional, options):
+        """Remember which sheet argument a write op changes, and how (MODIFIES checks it)."""
+        if name not in ("SET_VALUE", "WRITE_ROW", "FORMAT", "CLEAR", "COPY_ROW", "INSERT_ROW", "DELETE_ROW",
+                        "SORT", "WRITE_ARRAY", "SET_FORMULA", "DEDUPE", "FILTER"):
+            return
+        if name == "WRITE_ARRAY":
+            target = dict((k.text, v) for k, v in options).get("to")
+        elif name == "COPY_ROW":
+            target = positional[2] if len(positional) > 2 else None
+        else:
+            target = positional[0] if positional else None
+        if target is None:
+            return
+        if name == "SET_VALUE" and len(target) == 1 and isinstance(target[0], Call) and target[0].name == "ARR":
+            return   # an array element, not a cell
+        arg = None
+        if len(target) == 1 and is_tok(target[0], "arg"):
+            arg = target[0].text[1:]
+        elif len(target) == 1 and isinstance(target[0], Call) and target[0].name in SHEET_FUNCS:
+            first = target[0].positional[:1]
+            if first and len(first[0]) == 1 and is_tok(first[0][0], "arg"):
+                arg = first[0][0].text[1:]
+        keys = {k.text for k, _ in options}
+        what = dict((k.text, show(v)) for k, v in options).get("what", "all")
+        if name in ROW_OPS:
+            change = "rows"
+        elif name == "FORMAT":
+            change = "fills" if keys == {"fill"} else "formats"
+        elif name == "CLEAR":
+            change = "values" if what == "contents" else "formats"
+        else:
+            change = "values"
+        self.writes.append((self.line, name, arg, change))
+
+    def check_writes_are_declared(self):
+        """MODIFIES: every write names a declared sheet in a way its lines allow; every declared
+        sheet is written somewhere."""
+        needs = {"values": ("cols",), "fills": ("fills",), "formats": (), "rows": ()}
+        line_for = {"values": '${0}["<header>", ...]', "fills": "${0} fills", "formats": "${0}", "rows": "${0}"}
+        what_for = {"values": "values", "fills": "fills", "formats": "formats or fills", "rows": "rows"}
+        written = set()
+        for line, name, arg, change in self.writes:
+            if arg is None:
+                self.error(f"{name}: MODIFIES can't tell which sheet this changes; write through CELL, "
+                           "ROW_RANGE, USED_RANGE or RANGE of a $sheet argument", line)
+                continue
+            written.add(arg)
+            declared = self.modifies.get(arg)
+            if declared is None:
+                self.error(f"{name} changes ${arg}, but no MODIFIES line declares ${arg}", line)
+            elif "whole" not in declared and not any(k in declared for k in needs[change]):
+                self.error(f"{name} changes {what_for[change]} on ${arg}: declare "
+                           f"MODIFIES {line_for[change].format(arg)}", line)
+        for arg, kinds in self.modifies.items():
+            if arg not in written:
+                self.warning(f"MODIFIES ${arg}, but no op writes to ${arg}", min(kinds.values()))
 
     # -- PRE
 
@@ -690,6 +792,7 @@ class TaskChecker:
                 self.error("a Sub can't RETURN a value")
         if name in ("ADD_SHEET", "COPY_SHEET"):
             self.sheet_ops = True
+        self.record_write(name, positional, options)
         if name == "SET_VALUE" and len(positional) == 2:
             target, value = positional
             arg = self.row1_arg(target)

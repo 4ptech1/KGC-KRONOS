@@ -77,3 +77,6 @@ Dataset count: 0 verified pairs
 - **2026-10-17:** VCL 0.2, PR B: SKIP_IF, EXIT_LOOP_IF and WRITE_ROW. SET_VALUE, WRITE_ROW and
   COPY_ROW now keep text as text in Excel (`ForgeSetValue`), closing a gap between the
   interpreter and Excel for keys like "1001".
+- **2026-10-17:** VCL 0.2, PR C: MODIFIES says which sheets, columns and fills a spec may change.
+  The validator checks every write against it, and the interpreter checks every TEST cell by
+  cell (UNCHANGED). Nothing changes for the 10 specs until PR D adds MODIFIES lines to them.

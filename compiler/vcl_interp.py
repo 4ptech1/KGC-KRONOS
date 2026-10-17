@@ -100,6 +100,7 @@ class Machine:
         self.vars = {}
         self.types = {}
         self.proc = ""
+        self.pre_failed = False
         self.kind = "Sub"
         self.ret = None
         for k in spec["keys"]:
@@ -448,6 +449,7 @@ class Machine:
                     except (VclError, AttributeError, TypeError, KeyError) as ex:
                         ok = False
                     if not ok:
+                        self.pre_failed = True
                         self.log.append((self.proc, 0, f"PRE failed: condition {i + 1}"))
                         return -1 if self.kind == "Function" else None
         value, given = None, False
@@ -606,6 +608,89 @@ class Asserter:
         raise VclError(f"can't evaluate assertion part {d}")
 
 
+# ---------- MODIFIES: the automatic UNCHANGED check (VCL 0.2) ----------
+def modifies_of(spec):
+    """{arg: {"whole": True} or {"cols": [header, ...], "fills": True}} from the MODIFIES lines."""
+    out = {}
+    for k in spec["keys"]:
+        if k["key"] != "MODIFIES" or k["tree"] is None:
+            continue
+        kids = k["tree"].children
+        entry = out.setdefault(str(kids[0])[1:], {})
+        if len(kids) == 1:
+            entry["whole"] = True
+        elif isinstance(kids[1], Tree):
+            entry.setdefault("cols", []).extend(str(h)[1:-1].replace('""', '"') for h in kids[1].children)
+        else:
+            entry["fills"] = True
+    return out
+
+
+def _letters(c):
+    out = ""
+    while c:
+        c, rest = divmod(c - 1, 26)
+        out = chr(65 + rest) + out
+    return out
+
+
+def _kind(v):
+    if v is None:
+        return "empty"
+    if isinstance(v, bool):
+        return "bool"
+    if isinstance(v, (int, float)):
+        return "num"
+    if isinstance(v, (dt.date, dt.datetime)):
+        return "date"
+    if isinstance(v, S.XlError):
+        return "error"
+    return "text"
+
+
+def _show(v):
+    if v is None:
+        return "(empty)"
+    return '"' + v + '"' if isinstance(v, str) else S.text_of(v)
+
+
+def unchanged_problems(modifies, sheet_args, before, after, stopped_at_pre, limit=5):
+    """Cells MODIFIES doesn't allow to change that did change, as "UNCHANGED: ..." lines.
+    sheet_args maps each sheet name to the arguments the TEST passed it as. When every run
+    stopped at PRE, nothing may change at all."""
+    found = []
+    for name in sorted(set(before) | set(after)):
+        if name not in before or name not in after:
+            found.append(f"UNCHANGED: sheet {name} was {'added' if name in after else 'removed'}")
+            continue
+        allowed = {}
+        if not stopped_at_pre:
+            for arg in sheet_args.get(name, ()):
+                for key, value in modifies.get(arg, {}).items():
+                    allowed[key] = value if key != "cols" else allowed.get("cols", []) + value
+        if allowed.get("whole"):
+            continue
+        b, a = before[name], after[name]
+        wanted = {S.header_key(h) for h in allowed.get("cols", [])}
+        cols = {c for c in range(1, b.max_col() + 1) if S.header_key(b.get(1, c)) in wanted and b.get(1, c) is not None}
+        for (r, c) in sorted(set(b.cells) | set(a.cells)):
+            bv, av = b.cells.get((r, c)), a.cells.get((r, c))
+            if (r >= 2 and c in cols) or (_kind(bv), S.text_of(bv)) == (_kind(av), S.text_of(av)):
+                continue
+            found.append(f"UNCHANGED: {name}!{_letters(c)}{r} was {_show(bv)}, now {_show(av)}")
+        stores = [("number format", b.formats, a.formats)]
+        if not allowed.get("fills"):
+            stores.insert(0, ("fill", b.fills, a.fills))
+        for what, bs, as_ in stores:
+            for (r, c) in sorted(set(bs) | set(as_)):
+                if bs.get((r, c)) != as_.get((r, c)):
+                    found.append(f"UNCHANGED: {name}!{_letters(c)}{r} {what} was {bs.get((r, c)) or 'none'}, "
+                                 f"now {as_.get((r, c)) or 'none'}")
+    if len(found) > limit:
+        found = found[:limit] + [f"UNCHANGED: ... and {len(found) - limit} more changes"]
+    return found
+
+
 @dataclass
 class TestResult:
     line: int
@@ -655,9 +740,12 @@ def run_tests(text, today=None):
                 bound[pname] = S.to_number(str(v))
         log = []
         result = None
+        stopped_at_pre = True
         for _ in range(runs):
             log.clear()
-            result = Machine(spec, bound, log, today).run()
+            machine = Machine(spec, bound, log, today)
+            result = machine.run()
+            stopped_at_pre = stopped_at_pre and machine.pre_failed
         asserter = Asserter(book, before, result, len(log))
         failed = []
         for cond in assertion.children:
@@ -667,6 +755,13 @@ def run_tests(text, today=None):
                 ok = False
             if not ok:
                 failed.append(cond)
+        modifies = modifies_of(spec)
+        if modifies:
+            sheet_args = {}
+            for pname, v in zip(params, call_vals):
+                if isinstance(v, Token) and v.type == "NAME":
+                    sheet_args.setdefault(str(v), []).append(pname)
+            failed += unchanged_problems(modifies, sheet_args, before, book, stopped_at_pre)
         state = {name: (sorted((rc, S.text_of(v)) for rc, v in sh.cells.items()), sorted(sh.fills.items()),
                         sorted(sh.formats.items()))
                  for name, sh in book.items()}
