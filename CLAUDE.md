@@ -82,7 +82,7 @@ batches/             generated batch modules (later)
 data/                verified/, repair/, eval/, results/
 library/             approved .bas, .cls, .frm files
 tests/               unit tests for the Python tools
-docs/                roadmap, plans and design documents
+docs/                roadmap, plans, design documents, kgc-kronos-context.md (AI context)
 logs/
 .github/workflows/   CI
 (train/ and model/ arrive in March 2027)
@@ -164,4 +164,5 @@ Next, in order (`docs/vcl-mvp-plan.md`):
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 
-Update this section at the end of every session.
+Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
+context file Boss gives to other Claude chats) in step with it.
