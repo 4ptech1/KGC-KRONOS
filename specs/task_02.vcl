@@ -1,4 +1,4 @@
-VCL 0.1
+VCL 0.2
 TASK
 # ASSUME: Material Traceability headers (row 1) include "Part No", "Plate/Heat No" and "MTC No"; column order does not matter
 # ASSUME: rows with a blank Part No are skipped
@@ -15,17 +15,18 @@ VAR      cMtc As Long
 VAR      lastCol As Long
 VAR      flagged As Long
 PRE      COL($ws, "Part No") > 0; COL($ws, "Plate/Heat No") > 0; COL($ws, "MTC No") > 0
+MODIFIES $ws fills
 OP       LET(cPart, COL($ws, "Part No"))
 OP       LET(cHeat, COL($ws, "Plate/Heat No"))
 OP       LET(cMtc, COL($ws, "MTC No"))
 OP       LET(lastCol, LASTCOL($ws, 1))
 OP       LET(flagged, 0)
 OP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, cPart) var=r
-OP         IF NOT IS_EMPTY(CELL($ws, r, cPart))
-OP           FORMAT(ROW_RANGE($ws, r, 1, lastCol), fill=none)
-OP           IF IS_EMPTY(CELL($ws, r, cHeat)) OR IS_EMPTY(CELL($ws, r, cMtc))
-OP             FORMAT(ROW_RANGE($ws, r, 1, lastCol), fill=#FF0000)
-OP             LET(flagged, flagged + 1)
+OP         SKIP_IF IS_EMPTY(CELL($ws, r, cPart))
+OP         FORMAT(ROW_RANGE($ws, r, 1, lastCol), fill=none)
+OP         IF IS_EMPTY(CELL($ws, r, cHeat)) OR IS_EMPTY(CELL($ws, r, cMtc))
+OP           FORMAT(ROW_RANGE($ws, r, 1, lastCol), fill=#FF0000)
+OP           LET(flagged, flagged + 1)
 OP       RETURN(flagged)
 PERF     screen_off
 ERR      standard

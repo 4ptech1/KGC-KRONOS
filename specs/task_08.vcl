@@ -1,4 +1,4 @@
-VCL 0.1
+VCL 0.2
 TASK
 # ASSUME: Consumable Issue headers (row 1) include "Batch No" and "Qty Issued"
 # ASSUME: Inventory headers include "Batch No", "Opening Stock", "Issued to Date", "Balance" and "Remark"
@@ -23,6 +23,7 @@ VAR      batch As String
 VAR      used As Double
 VAR      unknown As Long
 PRE      COL($issues, "Batch No") > 0; COL($issues, "Qty Issued") > 0; COL($inv, "Batch No") > 0; COL($inv, "Opening Stock") > 0; COL($inv, "Issued to Date") > 0; COL($inv, "Balance") > 0; COL($inv, "Remark") > 0
+MODIFIES $inv["Issued to Date", "Remark", "Balance"]
 OP       LET(iBatch, COL($issues, "Batch No"))
 OP       LET(iQty, COL($issues, "Qty Issued"))
 OP       LET(vBatch, COL($inv, "Batch No"))
@@ -39,18 +40,18 @@ OP         IF NOT IS_EMPTY(batch) AND IS_NUMBER(CELL($issues, r, iQty))
 OP           IF EXISTS(known, batch) THEN DICT_ADD(issued, batch, CELL($issues, r, iQty), mode=sum)
 OP           IF NOT EXISTS(known, batch) THEN LET(unknown, unknown + 1)
 OP       LOOP_ROWS dir=down from=2 to=LASTROW($inv, vBatch) var=r
-OP         IF NOT IS_EMPTY(CELL($inv, r, vBatch))
-OP           LET(batch, TRIM(CELL($inv, r, vBatch)))
-OP           LET(used, 0)
-OP           IF EXISTS(issued, batch) THEN DICT_GET(issued, batch, into=used)
-OP           SET_VALUE(CELL($inv, r, vIssued), used)
-OP           CLEAR(CELL($inv, r, vRemark), what=contents)
-OP           IF IS_NUMBER(CELL($inv, r, vOpen))
-OP             SET_VALUE(CELL($inv, r, vBal), CELL($inv, r, vOpen) - used)
-OP             IF CELL($inv, r, vOpen) - used < 0 THEN SET_VALUE(CELL($inv, r, vRemark), "Negative balance")
-OP           ELSE
-OP             CLEAR(CELL($inv, r, vBal), what=contents)
-OP             SET_VALUE(CELL($inv, r, vRemark), "Opening stock missing")
+OP         SKIP_IF IS_EMPTY(CELL($inv, r, vBatch))
+OP         LET(batch, TRIM(CELL($inv, r, vBatch)))
+OP         LET(used, 0)
+OP         IF EXISTS(issued, batch) THEN DICT_GET(issued, batch, into=used)
+OP         SET_VALUE(CELL($inv, r, vIssued), used)
+OP         CLEAR(CELL($inv, r, vRemark), what=contents)
+OP         IF IS_NUMBER(CELL($inv, r, vOpen))
+OP           SET_VALUE(CELL($inv, r, vBal), CELL($inv, r, vOpen) - used)
+OP           IF CELL($inv, r, vOpen) - used < 0 THEN SET_VALUE(CELL($inv, r, vRemark), "Negative balance")
+OP         ELSE
+OP           CLEAR(CELL($inv, r, vBal), what=contents)
+OP           SET_VALUE(CELL($inv, r, vRemark), "Opening stock missing")
 OP       RETURN(unknown)
 PERF     screen_off calc_manual
 ERR      standard

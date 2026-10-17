@@ -374,10 +374,18 @@ UNCHANGED, checked on every TEST of a spec with MODIFIES (interpreter):
   (a number that became text counts as a change). The header row is always compared, and so
   are rows moved by inserts or deletes. A TEST whose every run stops at PRE must change
   nothing at all. A difference fails the TEST: UNCHANGED: Stock!A2 was 1, now 2
-A spec without MODIFIES gets no automatic check.
+A VCL 0.2 spec that writes but has no MODIFIES lines gets a validator warning and no automatic
+check. A spec that writes nothing needs no MODIFIES lines: every TEST checks it changed nothing.
 ```
 
 The conformance cases are in `docs/vcl-semantics.md` (S5, S12 to S17).
+
+## Changes for VCL 0.2, PR D1 (17 Oct 2026)
+
+- The 10 specs are VCL 0.2, rewritten by `compiler/vcl_migrate.py` with proven rewrites only
+  (SAME, SKIP_IF, WRITE_ROW, MODIFIES); every TEST gives the same RESULT and final workbook.
+- A VCL 0.2 spec that writes without MODIFIES gets a warning; one that writes nothing gets the
+  UNCHANGED check (D20).
 
 ## Changes for VCL 0.2, PR C (17 Oct 2026)
 

@@ -505,45 +505,38 @@ Public Function BuildShortageList(ByVal bom As Worksheet, ByVal grn As Worksheet
 213       If Not (ForgeCol(grn, "Received Qty") > 0) Then ForgeLog "BuildShortageList", 0, "PRE failed: (COL($grn,""Received Qty"")>0)", 210: BuildShortageList = -1: GoTo CleanExit
           Application.ScreenUpdating = False
           Application.Calculation = xlCalculationManual
-220       bomPart = ForgeCol(bom, "Part No")
-230       bomReq = ForgeCol(bom, "Required Qty")
-240       grnPart = ForgeCol(grn, "Part No")
-250       grnQty = ForgeCol(grn, "Received Qty")
-260       ForgeUsedRange(out).Clear
-270       ForgeSetValue out.Cells(1, 1), "Part No"
-280       ForgeSetValue out.Cells(1, 2), "Required"
-290       ForgeSetValue out.Cells(1, 3), "Received"
-300       ForgeSetValue out.Cells(1, 4), "Shortage"
-310       ForgeSetValue out.Cells(1, 5), "Remark"
-320       For r = 2 To ForgeLastRow(grn, grnPart)
-330           If ((Not ForgeIsEmpty(grn.Cells(r, grnPart).Value)) And ForgeIsNumber(grn.Cells(r, grnQty).Value)) Then ForgeDictAdd received, ForgeTrim(grn.Cells(r, grnPart).Value), grn.Cells(r, grnQty).Value, "sum"
+230       bomPart = ForgeCol(bom, "Part No")
+240       bomReq = ForgeCol(bom, "Required Qty")
+250       grnPart = ForgeCol(grn, "Part No")
+260       grnQty = ForgeCol(grn, "Received Qty")
+270       ForgeUsedRange(out).Clear
+280       ForgeWriteRow out, 1, 1, Array("Part No", "Required", "Received", "Shortage", "Remark")
+290       For r = 2 To ForgeLastRow(grn, grnPart)
+300           If ((Not ForgeIsEmpty(grn.Cells(r, grnPart).Value)) And ForgeIsNumber(grn.Cells(r, grnQty).Value)) Then ForgeDictAdd received, ForgeTrim(grn.Cells(r, grnPart).Value), grn.Cells(r, grnQty).Value, "sum"
           Next r
-340       outRow = 2
-350       For r = 2 To ForgeLastRow(bom, bomPart)
-360           If (Not ForgeIsEmpty(bom.Cells(r, bomPart).Value)) Then
-370               partNo = ForgeTrim(bom.Cells(r, bomPart).Value)
-380               got = 0
-390               If ForgeDictExists(received, partNo) Then got = ForgeNum(ForgeDictGet(received, partNo))
-400               If (Not ForgeIsNumber(bom.Cells(r, bomReq).Value)) Then
-410                   ForgeSetValue out.Cells(outRow, 1), partNo
-420                   ForgeSetValue out.Cells(outRow, 3), got
-430                   ForgeSetValue out.Cells(outRow, 5), "Required qty missing"
-440                   outRow = (outRow + 1)
-                  Else
-460                   If (got < ForgeNum(bom.Cells(r, bomReq).Value)) Then
-470                       ForgeSetValue out.Cells(outRow, 1), partNo
-480                       ForgeSetValue out.Cells(outRow, 2), bom.Cells(r, bomReq).Value
-490                       ForgeSetValue out.Cells(outRow, 3), got
-500                       ForgeSetValue out.Cells(outRow, 4), (ForgeNum(bom.Cells(r, bomReq).Value) - got)
-510                       If (got = 0) Then ForgeSetValue out.Cells(outRow, 5), "Not received"
-520                       If (got > 0) Then ForgeSetValue out.Cells(outRow, 5), "Short"
-530                       outRow = (outRow + 1)
-                      End If
+310       outRow = 2
+320       For r = 2 To ForgeLastRow(bom, bomPart)
+330           If ForgeIsEmpty(bom.Cells(r, bomPart).Value) Then GoTo Next_32
+340           partNo = ForgeTrim(bom.Cells(r, bomPart).Value)
+350           got = 0
+360           If ForgeDictExists(received, partNo) Then got = ForgeNum(ForgeDictGet(received, partNo))
+370           If (Not ForgeIsNumber(bom.Cells(r, bomReq).Value)) Then
+380               ForgeSetValue out.Cells(outRow, 1), partNo
+390               ForgeSetValue out.Cells(outRow, 3), got
+400               ForgeSetValue out.Cells(outRow, 5), "Required qty missing"
+410               outRow = (outRow + 1)
+              Else
+430               If (got < ForgeNum(bom.Cells(r, bomReq).Value)) Then
+440                   ForgeWriteRow out, outRow, 1, Array(partNo, bom.Cells(r, bomReq).Value, got, (ForgeNum(bom.Cells(r, bomReq).Value) - got))
+450                   If (got = 0) Then ForgeSetValue out.Cells(outRow, 5), "Not received"
+460                   If (got > 0) Then ForgeSetValue out.Cells(outRow, 5), "Short"
+470                   outRow = (outRow + 1)
                   End If
               End If
+Next_32:
           Next r
-540       BuildShortageList = (outRow - 2)
-541       GoTo CleanExit
+480       BuildShortageList = (outRow - 2)
+481       GoTo CleanExit
 CleanExit:
           ForgeRestore forgeScreen, forgeCalc, forgeEvents
           Exit Function
@@ -572,22 +565,22 @@ Public Function FlagMissingTraceability(ByVal ws As Worksheet) As Long
 171       If Not (ForgeCol(ws, "Plate/Heat No") > 0) Then ForgeLog "FlagMissingTraceability", 0, "PRE failed: (COL($ws,""Plate/Heat No"")>0)", 170: FlagMissingTraceability = -1: GoTo CleanExit
 172       If Not (ForgeCol(ws, "MTC No") > 0) Then ForgeLog "FlagMissingTraceability", 0, "PRE failed: (COL($ws,""MTC No"")>0)", 170: FlagMissingTraceability = -1: GoTo CleanExit
           Application.ScreenUpdating = False
-180       cPart = ForgeCol(ws, "Part No")
-190       cHeat = ForgeCol(ws, "Plate/Heat No")
-200       cMtc = ForgeCol(ws, "MTC No")
-210       lastCol = ForgeLastCol(ws, 1)
-220       flagged = 0
-230       For r = 2 To ForgeLastRow(ws, cPart)
-240           If (Not ForgeIsEmpty(ws.Cells(r, cPart).Value)) Then
-250               ForgeNoFill ForgeRowRange(ws, r, 1, lastCol)
-260               If (ForgeIsEmpty(ws.Cells(r, cHeat).Value) Or ForgeIsEmpty(ws.Cells(r, cMtc).Value)) Then
-270                   ForgeRowRange(ws, r, 1, lastCol).Interior.Color = RGB(255, 0, 0)
-280                   flagged = (flagged + 1)
-                  End If
+190       cPart = ForgeCol(ws, "Part No")
+200       cHeat = ForgeCol(ws, "Plate/Heat No")
+210       cMtc = ForgeCol(ws, "MTC No")
+220       lastCol = ForgeLastCol(ws, 1)
+230       flagged = 0
+240       For r = 2 To ForgeLastRow(ws, cPart)
+250           If ForgeIsEmpty(ws.Cells(r, cPart).Value) Then GoTo Next_24
+260           ForgeNoFill ForgeRowRange(ws, r, 1, lastCol)
+270           If (ForgeIsEmpty(ws.Cells(r, cHeat).Value) Or ForgeIsEmpty(ws.Cells(r, cMtc).Value)) Then
+280               ForgeRowRange(ws, r, 1, lastCol).Interior.Color = RGB(255, 0, 0)
+290               flagged = (flagged + 1)
               End If
+Next_24:
           Next r
-290       FlagMissingTraceability = flagged
-291       GoTo CleanExit
+300       FlagMissingTraceability = flagged
+301       GoTo CleanExit
 CleanExit:
           ForgeRestore forgeScreen, forgeCalc, forgeEvents
           Exit Function
@@ -624,36 +617,31 @@ Public Function BuildWelderRepairRate(ByVal nde As Worksheet, ByVal out As Works
 212       If Not (ForgeCol(nde, "Result") > 0) Then ForgeLog "BuildWelderRepairRate", 0, "PRE failed: (COL($nde,""Result"")>0)", 210: BuildWelderRepairRate = -1: GoTo CleanExit
           Application.ScreenUpdating = False
           Application.Calculation = xlCalculationManual
-220       cSeam = ForgeCol(nde, "Weld Seam No")
-230       cWelder = ForgeCol(nde, "Welder ID")
-240       cResult = ForgeCol(nde, "Result")
-250       ForgeUsedRange(out).Clear
-260       ForgeSetValue out.Cells(1, 1), "Welder ID"
-270       ForgeSetValue out.Cells(1, 2), "Seams Inspected"
-280       ForgeSetValue out.Cells(1, 3), "Repairs"
-290       ForgeSetValue out.Cells(1, 4), "Repair Rate"
-300       For r = 2 To ForgeLastRow(nde, cSeam)
-310           If ((Not ForgeIsEmpty(nde.Cells(r, cWelder).Value)) And (Not ForgeIsEmpty(nde.Cells(r, cResult).Value))) Then
-320               welderId = ForgeTrim(nde.Cells(r, cWelder).Value)
-330               ForgeDictAdd total, welderId, 1, "count"
-340               If (UCase$(ForgeText(ForgeTrim(nde.Cells(r, cResult).Value))) = "REPAIR") Then ForgeDictAdd repairs, welderId, 1, "count"
+230       cSeam = ForgeCol(nde, "Weld Seam No")
+240       cWelder = ForgeCol(nde, "Welder ID")
+250       cResult = ForgeCol(nde, "Result")
+260       ForgeUsedRange(out).Clear
+270       ForgeWriteRow out, 1, 1, Array("Welder ID", "Seams Inspected", "Repairs", "Repair Rate")
+280       For r = 2 To ForgeLastRow(nde, cSeam)
+290           If ((Not ForgeIsEmpty(nde.Cells(r, cWelder).Value)) And (Not ForgeIsEmpty(nde.Cells(r, cResult).Value))) Then
+300               welderId = ForgeTrim(nde.Cells(r, cWelder).Value)
+310               ForgeDictAdd total, welderId, 1, "count"
+320               If ForgeSame(nde.Cells(r, cResult).Value, "REPAIR") Then ForgeDictAdd repairs, welderId, 1, "count"
               End If
           Next r
-350       outRow = 2
-360       For Each k In total.Keys
-370           inspected = ForgeNum(ForgeDictGet(total, k))
-380           repaired = 0
-390           If ForgeDictExists(repairs, k) Then repaired = ForgeNum(ForgeDictGet(repairs, k))
-400           ForgeSetValue out.Cells(outRow, 1), k
-410           ForgeSetValue out.Cells(outRow, 2), inspected
-420           ForgeSetValue out.Cells(outRow, 3), repaired
-430           ForgeSetValue out.Cells(outRow, 4), (repaired / inspected)
-440           out.Cells(outRow, 4).NumberFormat = "0.0%"
-450           outRow = (outRow + 1)
+330       outRow = 2
+340       For Each k In total.Keys
+350           inspected = ForgeNum(ForgeDictGet(total, k))
+360           repaired = 0
+370           If ForgeDictExists(repairs, k) Then repaired = ForgeNum(ForgeDictGet(repairs, k))
+380           ForgeWriteRow out, outRow, 1, Array(k, inspected, repaired)
+390           ForgeSetValue out.Cells(outRow, 4), (repaired / inspected)
+400           out.Cells(outRow, 4).NumberFormat = "0.0%"
+410           outRow = (outRow + 1)
           Next k
-460       ForgeSort ForgeUsedRange(out), 4, False, True
-470       BuildWelderRepairRate = (outRow - 2)
-471       GoTo CleanExit
+420       ForgeSort ForgeUsedRange(out), 4, False, True
+430       BuildWelderRepairRate = (outRow - 2)
+431       GoTo CleanExit
 CleanExit:
           ForgeRestore forgeScreen, forgeCalc, forgeEvents
           Exit Function
@@ -704,68 +692,64 @@ Public Function BuildNdeSummary(ByVal rt As Worksheet, ByVal ut As Worksheet, By
 277       If Not (ForgeCol(dpt, "Result") > 0) Then ForgeLog "BuildNdeSummary", 0, "PRE failed: (COL($dpt,""Result"")>0)", 270: BuildNdeSummary = -1: GoTo CleanExit
           Application.ScreenUpdating = False
           Application.Calculation = xlCalculationManual
-280       cRtSeam = ForgeCol(rt, "Weld Seam No")
-290       cRtRes = ForgeCol(rt, "Result")
-300       cUtSeam = ForgeCol(ut, "Weld Seam No")
-310       cUtRes = ForgeCol(ut, "Result")
-320       cMptSeam = ForgeCol(mpt, "Weld Seam No")
-330       cMptRes = ForgeCol(mpt, "Result")
-340       cDptSeam = ForgeCol(dpt, "Weld Seam No")
-350       cDptRes = ForgeCol(dpt, "Result")
-360       ForgeUsedRange(out).Clear
-370       ForgeSetValue out.Cells(1, 1), "Weld Seam No"
-380       ForgeSetValue out.Cells(1, 2), "RT"
-390       ForgeSetValue out.Cells(1, 3), "UT"
-400       ForgeSetValue out.Cells(1, 4), "MPT"
-410       ForgeSetValue out.Cells(1, 5), "DPT"
-420       For r = 2 To ForgeLastRow(rt, cRtSeam)
-430           If (Not ForgeIsEmpty(rt.Cells(r, cRtSeam).Value)) Then
-440               ForgeDictAdd seams, ForgeTrim(rt.Cells(r, cRtSeam).Value), 1, "keep"
-450               ForgeDictAdd rtResults, ForgeTrim(rt.Cells(r, cRtSeam).Value), rt.Cells(r, cRtRes).Value, "overwrite"
-              End If
+290       cRtSeam = ForgeCol(rt, "Weld Seam No")
+300       cRtRes = ForgeCol(rt, "Result")
+310       cUtSeam = ForgeCol(ut, "Weld Seam No")
+320       cUtRes = ForgeCol(ut, "Result")
+330       cMptSeam = ForgeCol(mpt, "Weld Seam No")
+340       cMptRes = ForgeCol(mpt, "Result")
+350       cDptSeam = ForgeCol(dpt, "Weld Seam No")
+360       cDptRes = ForgeCol(dpt, "Result")
+370       ForgeUsedRange(out).Clear
+380       ForgeWriteRow out, 1, 1, Array("Weld Seam No", "RT", "UT", "MPT", "DPT")
+390       For r = 2 To ForgeLastRow(rt, cRtSeam)
+400           If ForgeIsEmpty(rt.Cells(r, cRtSeam).Value) Then GoTo Next_39
+410           ForgeDictAdd seams, ForgeTrim(rt.Cells(r, cRtSeam).Value), 1, "keep"
+420           ForgeDictAdd rtResults, ForgeTrim(rt.Cells(r, cRtSeam).Value), rt.Cells(r, cRtRes).Value, "overwrite"
+Next_39:
           Next r
-460       For r = 2 To ForgeLastRow(ut, cUtSeam)
-470           If (Not ForgeIsEmpty(ut.Cells(r, cUtSeam).Value)) Then
-480               ForgeDictAdd seams, ForgeTrim(ut.Cells(r, cUtSeam).Value), 1, "keep"
-490               ForgeDictAdd utResults, ForgeTrim(ut.Cells(r, cUtSeam).Value), ut.Cells(r, cUtRes).Value, "overwrite"
-              End If
+430       For r = 2 To ForgeLastRow(ut, cUtSeam)
+440           If ForgeIsEmpty(ut.Cells(r, cUtSeam).Value) Then GoTo Next_43
+450           ForgeDictAdd seams, ForgeTrim(ut.Cells(r, cUtSeam).Value), 1, "keep"
+460           ForgeDictAdd utResults, ForgeTrim(ut.Cells(r, cUtSeam).Value), ut.Cells(r, cUtRes).Value, "overwrite"
+Next_43:
           Next r
-500       For r = 2 To ForgeLastRow(mpt, cMptSeam)
-510           If (Not ForgeIsEmpty(mpt.Cells(r, cMptSeam).Value)) Then
-520               ForgeDictAdd seams, ForgeTrim(mpt.Cells(r, cMptSeam).Value), 1, "keep"
-530               ForgeDictAdd mptResults, ForgeTrim(mpt.Cells(r, cMptSeam).Value), mpt.Cells(r, cMptRes).Value, "overwrite"
-              End If
+470       For r = 2 To ForgeLastRow(mpt, cMptSeam)
+480           If ForgeIsEmpty(mpt.Cells(r, cMptSeam).Value) Then GoTo Next_47
+490           ForgeDictAdd seams, ForgeTrim(mpt.Cells(r, cMptSeam).Value), 1, "keep"
+500           ForgeDictAdd mptResults, ForgeTrim(mpt.Cells(r, cMptSeam).Value), mpt.Cells(r, cMptRes).Value, "overwrite"
+Next_47:
           Next r
-540       For r = 2 To ForgeLastRow(dpt, cDptSeam)
-550           If (Not ForgeIsEmpty(dpt.Cells(r, cDptSeam).Value)) Then
-560               ForgeDictAdd seams, ForgeTrim(dpt.Cells(r, cDptSeam).Value), 1, "keep"
-570               ForgeDictAdd dptResults, ForgeTrim(dpt.Cells(r, cDptSeam).Value), dpt.Cells(r, cDptRes).Value, "overwrite"
-              End If
+510       For r = 2 To ForgeLastRow(dpt, cDptSeam)
+520           If ForgeIsEmpty(dpt.Cells(r, cDptSeam).Value) Then GoTo Next_51
+530           ForgeDictAdd seams, ForgeTrim(dpt.Cells(r, cDptSeam).Value), 1, "keep"
+540           ForgeDictAdd dptResults, ForgeTrim(dpt.Cells(r, cDptSeam).Value), dpt.Cells(r, cDptRes).Value, "overwrite"
+Next_51:
           Next r
-580       outRow = 2
-590       For Each s In seams.Keys
-600           ForgeSetValue out.Cells(outRow, 1), s
-610           v = ""
-620           If ForgeDictExists(rtResults, s) Then v = ForgeDictGet(rtResults, s)
-630           If ForgeIsEmpty(v) Then v = "Pending"
-640           ForgeSetValue out.Cells(outRow, 2), v
-650           v = ""
-660           If ForgeDictExists(utResults, s) Then v = ForgeDictGet(utResults, s)
-670           If ForgeIsEmpty(v) Then v = "Pending"
-680           ForgeSetValue out.Cells(outRow, 3), v
-690           v = ""
-700           If ForgeDictExists(mptResults, s) Then v = ForgeDictGet(mptResults, s)
-710           If ForgeIsEmpty(v) Then v = "Pending"
-720           ForgeSetValue out.Cells(outRow, 4), v
-730           v = ""
-740           If ForgeDictExists(dptResults, s) Then v = ForgeDictGet(dptResults, s)
-750           If ForgeIsEmpty(v) Then v = "Pending"
-760           ForgeSetValue out.Cells(outRow, 5), v
-770           outRow = (outRow + 1)
+550       outRow = 2
+560       For Each s In seams.Keys
+570           ForgeSetValue out.Cells(outRow, 1), s
+580           v = ""
+590           If ForgeDictExists(rtResults, s) Then v = ForgeDictGet(rtResults, s)
+600           If ForgeIsEmpty(v) Then v = "Pending"
+610           ForgeSetValue out.Cells(outRow, 2), v
+620           v = ""
+630           If ForgeDictExists(utResults, s) Then v = ForgeDictGet(utResults, s)
+640           If ForgeIsEmpty(v) Then v = "Pending"
+650           ForgeSetValue out.Cells(outRow, 3), v
+660           v = ""
+670           If ForgeDictExists(mptResults, s) Then v = ForgeDictGet(mptResults, s)
+680           If ForgeIsEmpty(v) Then v = "Pending"
+690           ForgeSetValue out.Cells(outRow, 4), v
+700           v = ""
+710           If ForgeDictExists(dptResults, s) Then v = ForgeDictGet(dptResults, s)
+720           If ForgeIsEmpty(v) Then v = "Pending"
+730           ForgeSetValue out.Cells(outRow, 5), v
+740           outRow = (outRow + 1)
           Next s
-780       ForgeSort ForgeUsedRange(out), 1, True, True
-790       BuildNdeSummary = (outRow - 2)
-791       GoTo CleanExit
+750       ForgeSort ForgeUsedRange(out), 1, True, True
+760       BuildNdeSummary = (outRow - 2)
+761       GoTo CleanExit
 CleanExit:
           ForgeRestore forgeScreen, forgeCalc, forgeEvents
           Exit Function
@@ -795,23 +779,23 @@ Public Function ListWeldLogExceptions(ByVal weldLog As Worksheet, ByVal out As W
 172       If Not (ForgeCol(weldLog, "Visual") > 0) Then ForgeLog "ListWeldLogExceptions", 0, "PRE failed: (COL($weldLog,""Visual"")>0)", 170: ListWeldLogExceptions = -1: GoTo CleanExit
           Application.ScreenUpdating = False
           Application.Calculation = xlCalculationManual
-180       cSeam = ForgeCol(weldLog, "Weld Seam No")
-190       cFit = ForgeCol(weldLog, "Fit-up")
-200       cVisual = ForgeCol(weldLog, "Visual")
-210       lastCol = ForgeLastCol(weldLog, 1)
-220       ForgeUsedRange(out).Clear
-230       ForgeCopyRow weldLog, 1, out, 1, lastCol
-240       outRow = 2
-250       For r = 2 To ForgeLastRow(weldLog, cSeam)
-260           If (Not ForgeIsEmpty(weldLog.Cells(r, cSeam).Value)) Then
-270               If ((Not (UCase$(ForgeText(ForgeTrim(weldLog.Cells(r, cFit).Value))) = "ACCEPTED")) Or (Not (UCase$(ForgeText(ForgeTrim(weldLog.Cells(r, cVisual).Value))) = "ACCEPTED"))) Then
-280                   ForgeCopyRow weldLog, r, out, outRow, lastCol
-290                   outRow = (outRow + 1)
-                  End If
+190       cSeam = ForgeCol(weldLog, "Weld Seam No")
+200       cFit = ForgeCol(weldLog, "Fit-up")
+210       cVisual = ForgeCol(weldLog, "Visual")
+220       lastCol = ForgeLastCol(weldLog, 1)
+230       ForgeUsedRange(out).Clear
+240       ForgeCopyRow weldLog, 1, out, 1, lastCol
+250       outRow = 2
+260       For r = 2 To ForgeLastRow(weldLog, cSeam)
+270           If ForgeIsEmpty(weldLog.Cells(r, cSeam).Value) Then GoTo Next_26
+280           If ((Not ForgeSame(weldLog.Cells(r, cFit).Value, "ACCEPTED")) Or (Not ForgeSame(weldLog.Cells(r, cVisual).Value, "ACCEPTED"))) Then
+290               ForgeCopyRow weldLog, r, out, outRow, lastCol
+300               outRow = (outRow + 1)
               End If
+Next_26:
           Next r
-300       ListWeldLogExceptions = (outRow - 2)
-301       GoTo CleanExit
+310       ListWeldLogExceptions = (outRow - 2)
+311       GoTo CleanExit
 CleanExit:
           ForgeRestore forgeScreen, forgeCalc, forgeEvents
           Exit Function
@@ -847,35 +831,35 @@ Public Function FlagExpiredWelderQualifications(ByVal weldLog As Worksheet, ByVa
 232       If Not (ForgeCol(qual, "Welder ID") > 0) Then ForgeLog "FlagExpiredWelderQualifications", 0, "PRE failed: (COL($qual,""Welder ID"")>0)", 230: FlagExpiredWelderQualifications = -1: GoTo CleanExit
 233       If Not (ForgeCol(qual, "Expiry Date") > 0) Then ForgeLog "FlagExpiredWelderQualifications", 0, "PRE failed: (COL($qual,""Expiry Date"")>0)", 230: FlagExpiredWelderQualifications = -1: GoTo CleanExit
           Application.ScreenUpdating = False
-240       cSeam = ForgeCol(weldLog, "Weld Seam No")
-250       cWelder = ForgeCol(weldLog, "Welder ID")
-260       cQualId = ForgeCol(qual, "Welder ID")
-270       cExpiry = ForgeCol(qual, "Expiry Date")
-280       For r = 2 To ForgeLastRow(qual, cQualId)
-290           If (Not ForgeIsEmpty(qual.Cells(r, cQualId).Value)) Then ForgeDictAdd expiry, ForgeTrim(qual.Cells(r, cQualId).Value), qual.Cells(r, cExpiry).Value, "overwrite"
+250       cSeam = ForgeCol(weldLog, "Weld Seam No")
+260       cWelder = ForgeCol(weldLog, "Welder ID")
+270       cQualId = ForgeCol(qual, "Welder ID")
+280       cExpiry = ForgeCol(qual, "Expiry Date")
+290       For r = 2 To ForgeLastRow(qual, cQualId)
+300           If (Not ForgeIsEmpty(qual.Cells(r, cQualId).Value)) Then ForgeDictAdd expiry, ForgeTrim(qual.Cells(r, cQualId).Value), qual.Cells(r, cExpiry).Value, "overwrite"
           Next r
-300       lastCol = ForgeLastCol(weldLog, 1)
-310       flagged = 0
-320       For r = 2 To ForgeLastRow(weldLog, cSeam)
-330           If (Not ForgeIsEmpty(weldLog.Cells(r, cSeam).Value)) Then
-340               ForgeNoFill ForgeRowRange(weldLog, r, 1, lastCol)
-350               bad = False
-360               expDate = ""
-370               welderId = ForgeTrim(weldLog.Cells(r, cWelder).Value)
-380               If ForgeIsEmpty(welderId) Then bad = True
-390               If ForgeDictExists(expiry, welderId) Then expDate = ForgeDictGet(expiry, welderId)
-400               If (Not ForgeIsDate(expDate)) Then bad = True
-410               If ForgeIsDate(expDate) Then
-420                   If (expDate < Date) Then bad = True
-                  End If
-430               If bad Then
-440                   ForgeRowRange(weldLog, r, 1, lastCol).Interior.Color = RGB(255, 0, 0)
-450                   flagged = (flagged + 1)
-                  End If
+310       lastCol = ForgeLastCol(weldLog, 1)
+320       flagged = 0
+330       For r = 2 To ForgeLastRow(weldLog, cSeam)
+340           If ForgeIsEmpty(weldLog.Cells(r, cSeam).Value) Then GoTo Next_33
+350           ForgeNoFill ForgeRowRange(weldLog, r, 1, lastCol)
+360           bad = False
+370           expDate = ""
+380           welderId = ForgeTrim(weldLog.Cells(r, cWelder).Value)
+390           If ForgeIsEmpty(welderId) Then bad = True
+400           If ForgeDictExists(expiry, welderId) Then expDate = ForgeDictGet(expiry, welderId)
+410           If (Not ForgeIsDate(expDate)) Then bad = True
+420           If ForgeIsDate(expDate) Then
+430               If (expDate < Date) Then bad = True
               End If
+440           If bad Then
+450               ForgeRowRange(weldLog, r, 1, lastCol).Interior.Color = RGB(255, 0, 0)
+460               flagged = (flagged + 1)
+              End If
+Next_33:
           Next r
-460       FlagExpiredWelderQualifications = flagged
-461       GoTo CleanExit
+470       FlagExpiredWelderQualifications = flagged
+471       GoTo CleanExit
 CleanExit:
           ForgeRestore forgeScreen, forgeCalc, forgeEvents
           Exit Function
@@ -905,24 +889,24 @@ Public Function BuildCallNoticeList(ByVal itp As Worksheet, ByVal out As Workshe
 181       If Not (ForgeCol(itp, "Inspection Status") > 0) Then ForgeLog "BuildCallNoticeList", 0, "PRE failed: (COL($itp,""Inspection Status"")>0)", 180: BuildCallNoticeList = -1: GoTo CleanExit
           Application.ScreenUpdating = False
           Application.Calculation = xlCalculationManual
-190       cType = ForgeCol(itp, "Point Type")
-200       cStatus = ForgeCol(itp, "Inspection Status")
-210       lastCol = ForgeLastCol(itp, 1)
-220       ForgeUsedRange(out).Clear
-230       ForgeCopyRow itp, 1, out, 1, lastCol
-240       outRow = 2
-250       For r = 2 To ForgeLastRow(itp, cStatus)
-260           status = UCase$(ForgeText(ForgeTrim(itp.Cells(r, cStatus).Value)))
-270           pointType = UCase$(ForgeText(ForgeTrim(itp.Cells(r, cType).Value)))
-280           If (status = "READY") Then
-290               If ((pointType = "HOLD") Or (pointType = "WITNESS")) Then
-300                   ForgeCopyRow itp, r, out, outRow, lastCol
-310                   outRow = (outRow + 1)
+200       cType = ForgeCol(itp, "Point Type")
+210       cStatus = ForgeCol(itp, "Inspection Status")
+220       lastCol = ForgeLastCol(itp, 1)
+230       ForgeUsedRange(out).Clear
+240       ForgeCopyRow itp, 1, out, 1, lastCol
+250       outRow = 2
+260       For r = 2 To ForgeLastRow(itp, cStatus)
+270           status = UCase$(ForgeText(ForgeTrim(itp.Cells(r, cStatus).Value)))
+280           pointType = UCase$(ForgeText(ForgeTrim(itp.Cells(r, cType).Value)))
+290           If (status = "READY") Then
+300               If ((pointType = "HOLD") Or (pointType = "WITNESS")) Then
+310                   ForgeCopyRow itp, r, out, outRow, lastCol
+320                   outRow = (outRow + 1)
                   End If
               End If
           Next r
-320       BuildCallNoticeList = (outRow - 2)
-321       GoTo CleanExit
+330       BuildCallNoticeList = (outRow - 2)
+331       GoTo CleanExit
 CleanExit:
           ForgeRestore forgeScreen, forgeCalc, forgeEvents
           Exit Function
@@ -965,42 +949,42 @@ Public Function ReconcileConsumableStock(ByVal issues As Worksheet, ByVal inv As
 256       If Not (ForgeCol(inv, "Remark") > 0) Then ForgeLog "ReconcileConsumableStock", 0, "PRE failed: (COL($inv,""Remark"")>0)", 250: ReconcileConsumableStock = -1: GoTo CleanExit
           Application.ScreenUpdating = False
           Application.Calculation = xlCalculationManual
-260       iBatch = ForgeCol(issues, "Batch No")
-270       iQty = ForgeCol(issues, "Qty Issued")
-280       vBatch = ForgeCol(inv, "Batch No")
-290       vOpen = ForgeCol(inv, "Opening Stock")
-300       vIssued = ForgeCol(inv, "Issued to Date")
-310       vBal = ForgeCol(inv, "Balance")
-320       vRemark = ForgeCol(inv, "Remark")
-330       For r = 2 To ForgeLastRow(inv, vBatch)
-340           If (Not ForgeIsEmpty(inv.Cells(r, vBatch).Value)) Then ForgeDictAdd known, ForgeTrim(inv.Cells(r, vBatch).Value), r, "keep"
+270       iBatch = ForgeCol(issues, "Batch No")
+280       iQty = ForgeCol(issues, "Qty Issued")
+290       vBatch = ForgeCol(inv, "Batch No")
+300       vOpen = ForgeCol(inv, "Opening Stock")
+310       vIssued = ForgeCol(inv, "Issued to Date")
+320       vBal = ForgeCol(inv, "Balance")
+330       vRemark = ForgeCol(inv, "Remark")
+340       For r = 2 To ForgeLastRow(inv, vBatch)
+350           If (Not ForgeIsEmpty(inv.Cells(r, vBatch).Value)) Then ForgeDictAdd known, ForgeTrim(inv.Cells(r, vBatch).Value), r, "keep"
           Next r
-350       unknown = 0
-360       For r = 2 To ForgeLastRow(issues, iBatch)
-370           batch = ForgeTrim(issues.Cells(r, iBatch).Value)
-380           If ((Not ForgeIsEmpty(batch)) And ForgeIsNumber(issues.Cells(r, iQty).Value)) Then
-390               If ForgeDictExists(known, batch) Then ForgeDictAdd issued, batch, issues.Cells(r, iQty).Value, "sum"
-400               If (Not ForgeDictExists(known, batch)) Then unknown = (unknown + 1)
+360       unknown = 0
+370       For r = 2 To ForgeLastRow(issues, iBatch)
+380           batch = ForgeTrim(issues.Cells(r, iBatch).Value)
+390           If ((Not ForgeIsEmpty(batch)) And ForgeIsNumber(issues.Cells(r, iQty).Value)) Then
+400               If ForgeDictExists(known, batch) Then ForgeDictAdd issued, batch, issues.Cells(r, iQty).Value, "sum"
+410               If (Not ForgeDictExists(known, batch)) Then unknown = (unknown + 1)
               End If
           Next r
-410       For r = 2 To ForgeLastRow(inv, vBatch)
-420           If (Not ForgeIsEmpty(inv.Cells(r, vBatch).Value)) Then
-430               batch = ForgeTrim(inv.Cells(r, vBatch).Value)
-440               used = 0
-450               If ForgeDictExists(issued, batch) Then used = ForgeNum(ForgeDictGet(issued, batch))
-460               ForgeSetValue inv.Cells(r, vIssued), used
-470               inv.Cells(r, vRemark).ClearContents
-480               If ForgeIsNumber(inv.Cells(r, vOpen).Value) Then
-490                   ForgeSetValue inv.Cells(r, vBal), (ForgeNum(inv.Cells(r, vOpen).Value) - used)
-500                   If ((ForgeNum(inv.Cells(r, vOpen).Value) - used) < 0) Then ForgeSetValue inv.Cells(r, vRemark), "Negative balance"
-                  Else
-520                   inv.Cells(r, vBal).ClearContents
-530                   ForgeSetValue inv.Cells(r, vRemark), "Opening stock missing"
-                  End If
+420       For r = 2 To ForgeLastRow(inv, vBatch)
+430           If ForgeIsEmpty(inv.Cells(r, vBatch).Value) Then GoTo Next_42
+440           batch = ForgeTrim(inv.Cells(r, vBatch).Value)
+450           used = 0
+460           If ForgeDictExists(issued, batch) Then used = ForgeNum(ForgeDictGet(issued, batch))
+470           ForgeSetValue inv.Cells(r, vIssued), used
+480           inv.Cells(r, vRemark).ClearContents
+490           If ForgeIsNumber(inv.Cells(r, vOpen).Value) Then
+500               ForgeSetValue inv.Cells(r, vBal), (ForgeNum(inv.Cells(r, vOpen).Value) - used)
+510               If ((ForgeNum(inv.Cells(r, vOpen).Value) - used) < 0) Then ForgeSetValue inv.Cells(r, vRemark), "Negative balance"
+              Else
+530               inv.Cells(r, vBal).ClearContents
+540               ForgeSetValue inv.Cells(r, vRemark), "Opening stock missing"
               End If
+Next_42:
           Next r
-540       ReconcileConsumableStock = unknown
-541       GoTo CleanExit
+550       ReconcileConsumableStock = unknown
+551       GoTo CleanExit
 CleanExit:
           ForgeRestore forgeScreen, forgeCalc, forgeEvents
           Exit Function
@@ -1030,25 +1014,25 @@ Public Function BuildOpenNcrSummary(ByVal ncr As Worksheet, ByVal out As Workshe
 172       If Not (ForgeCol(ncr, "Status") > 0) Then ForgeLog "BuildOpenNcrSummary", 0, "PRE failed: (COL($ncr,""Status"")>0)", 170: BuildOpenNcrSummary = -1: GoTo CleanExit
           Application.ScreenUpdating = False
           Application.Calculation = xlCalculationManual
-180       cNcr = ForgeCol(ncr, "NCR No")
-190       cDate = ForgeCol(ncr, "Issue Date")
-200       cStatus = ForgeCol(ncr, "Status")
-210       lastCol = ForgeLastCol(ncr, 1)
-220       ForgeUsedRange(out).Clear
-230       ForgeCopyRow ncr, 1, out, 1, lastCol
-240       ForgeSetValue out.Cells(1, (lastCol + 1)), "Days Open"
-250       outRow = 2
-260       For r = 2 To ForgeLastRow(ncr, cNcr)
-270           If (UCase$(ForgeText(ForgeTrim(ncr.Cells(r, cStatus).Value))) = "OPEN") Then
-280               ForgeCopyRow ncr, r, out, outRow, lastCol
-290               If ForgeIsDate(ncr.Cells(r, cDate).Value) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), (Date - ForgeNum(ncr.Cells(r, cDate).Value))
-300               If (Not ForgeIsDate(ncr.Cells(r, cDate).Value)) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), "Issue date missing"
-310               outRow = (outRow + 1)
+190       cNcr = ForgeCol(ncr, "NCR No")
+200       cDate = ForgeCol(ncr, "Issue Date")
+210       cStatus = ForgeCol(ncr, "Status")
+220       lastCol = ForgeLastCol(ncr, 1)
+230       ForgeUsedRange(out).Clear
+240       ForgeCopyRow ncr, 1, out, 1, lastCol
+250       ForgeSetValue out.Cells(1, (lastCol + 1)), "Days Open"
+260       outRow = 2
+270       For r = 2 To ForgeLastRow(ncr, cNcr)
+280           If ForgeSame(ncr.Cells(r, cStatus).Value, "OPEN") Then
+290               ForgeCopyRow ncr, r, out, outRow, lastCol
+300               If ForgeIsDate(ncr.Cells(r, cDate).Value) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), (Date - ForgeNum(ncr.Cells(r, cDate).Value))
+310               If (Not ForgeIsDate(ncr.Cells(r, cDate).Value)) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), "Issue date missing"
+320               outRow = (outRow + 1)
               End If
           Next r
-320       ForgeSort ForgeUsedRange(out), cDate, True, True
-330       BuildOpenNcrSummary = (outRow - 2)
-331       GoTo CleanExit
+330       ForgeSort ForgeUsedRange(out), cDate, True, True
+340       BuildOpenNcrSummary = (outRow - 2)
+341       GoTo CleanExit
 CleanExit:
           ForgeRestore forgeScreen, forgeCalc, forgeEvents
           Exit Function
@@ -1077,31 +1061,31 @@ Public Function BuildCalibrationDueList(ByVal cal As Worksheet, ByVal out As Wor
 171       If Not (ForgeCol(cal, "Next Calibration Due") > 0) Then ForgeLog "BuildCalibrationDueList", 0, "PRE failed: (COL($cal,""Next Calibration Due"")>0)", 170: BuildCalibrationDueList = -1: GoTo CleanExit
           Application.ScreenUpdating = False
           Application.Calculation = xlCalculationManual
-180       cId = ForgeCol(cal, "Instrument ID")
-190       cDue = ForgeCol(cal, "Next Calibration Due")
-200       lastCol = ForgeLastCol(cal, 1)
-210       ForgeUsedRange(out).Clear
-220       ForgeCopyRow cal, 1, out, 1, lastCol
-230       ForgeSetValue out.Cells(1, (lastCol + 1)), "Status"
-240       outRow = 2
-250       For r = 2 To ForgeLastRow(cal, cId)
-260           If (Not ForgeIsEmpty(cal.Cells(r, cId).Value)) Then
-270               status = ""
-280               If (Not ForgeIsDate(cal.Cells(r, cDue).Value)) Then status = "Due date missing"
-290               If ForgeIsDate(cal.Cells(r, cDue).Value) Then
-300                   If (ForgeNum(cal.Cells(r, cDue).Value) < Date) Then status = "Overdue"
-310                   If ((ForgeNum(cal.Cells(r, cDue).Value) >= Date) And (ForgeNum(cal.Cells(r, cDue).Value) <= (Date + 15))) Then status = "Due within 15 days"
-                  End If
-320               If (Not ForgeIsEmpty(status)) Then
-330                   ForgeCopyRow cal, r, out, outRow, lastCol
-340                   ForgeSetValue out.Cells(outRow, (lastCol + 1)), status
-350                   outRow = (outRow + 1)
-                  End If
+190       cId = ForgeCol(cal, "Instrument ID")
+200       cDue = ForgeCol(cal, "Next Calibration Due")
+210       lastCol = ForgeLastCol(cal, 1)
+220       ForgeUsedRange(out).Clear
+230       ForgeCopyRow cal, 1, out, 1, lastCol
+240       ForgeSetValue out.Cells(1, (lastCol + 1)), "Status"
+250       outRow = 2
+260       For r = 2 To ForgeLastRow(cal, cId)
+270           If ForgeIsEmpty(cal.Cells(r, cId).Value) Then GoTo Next_26
+280           status = ""
+290           If (Not ForgeIsDate(cal.Cells(r, cDue).Value)) Then status = "Due date missing"
+300           If ForgeIsDate(cal.Cells(r, cDue).Value) Then
+310               If (ForgeNum(cal.Cells(r, cDue).Value) < Date) Then status = "Overdue"
+320               If ((ForgeNum(cal.Cells(r, cDue).Value) >= Date) And (ForgeNum(cal.Cells(r, cDue).Value) <= (Date + 15))) Then status = "Due within 15 days"
               End If
+330           If (Not ForgeIsEmpty(status)) Then
+340               ForgeCopyRow cal, r, out, outRow, lastCol
+350               ForgeSetValue out.Cells(outRow, (lastCol + 1)), status
+360               outRow = (outRow + 1)
+              End If
+Next_26:
           Next r
-360       ForgeSort ForgeUsedRange(out), cDue, True, True
-370       BuildCalibrationDueList = (outRow - 2)
-371       GoTo CleanExit
+370       ForgeSort ForgeUsedRange(out), cDue, True, True
+380       BuildCalibrationDueList = (outRow - 2)
+381       GoTo CleanExit
 CleanExit:
           ForgeRestore forgeScreen, forgeCalc, forgeEvents
           Exit Function

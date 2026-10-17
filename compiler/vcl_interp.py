@@ -626,6 +626,25 @@ def modifies_of(spec):
     return out
 
 
+WRITE_OPS = {"SET_VALUE", "WRITE_ROW", "FORMAT", "CLEAR", "COPY_ROW", "INSERT_ROW", "DELETE_ROW", "SORT",
+             "WRITE_ARRAY", "SET_FORMULA", "DEDUPE", "FILTER"}
+
+
+def writes_anything(spec):
+    """True when any op of the spec writes to a sheet. A VCL 0.2 spec that writes nothing gets
+    the UNCHANGED check without MODIFIES lines: it may change nothing (D20)."""
+    def calls(nodes):
+        for n in nodes:
+            stmt = n["stmt"]
+            if n["kind"] == "call":
+                yield str(stmt.children[0])
+            elif n["kind"] == "if_inline" and isinstance(stmt.children[1], Tree) and stmt.children[1].data == "call":
+                yield str(stmt.children[1].children[0])
+            yield from calls(n["children"])
+            yield from calls(n.get("else", []))
+    return any(name in WRITE_OPS for name in calls(spec["ops"]))
+
+
 def _letters(c):
     out = ""
     while c:
@@ -756,7 +775,7 @@ def run_tests(text, today=None):
             if not ok:
                 failed.append(cond)
         modifies = modifies_of(spec)
-        if modifies:
+        if modifies or (spec.get("version") == "VCL 0.2" and not writes_anything(spec)):
             sheet_args = {}
             for pname, v in zip(params, call_vals):
                 if isinstance(v, Token) and v.type == "NAME":

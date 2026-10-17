@@ -1,4 +1,4 @@
-VCL 0.1
+VCL 0.2
 TASK
 # ASSUME: the RT, UT, MPT and DPT sheets each have headers "Weld Seam No" and "Result" in row 1
 # ASSUME: seam numbers are compared as trimmed text, ignoring case
@@ -25,6 +25,7 @@ VAR      cDptRes As Long
 VAR      v As Variant
 VAR      outRow As Long
 PRE      COL($rt, "Weld Seam No") > 0; COL($rt, "Result") > 0; COL($ut, "Weld Seam No") > 0; COL($ut, "Result") > 0; COL($mpt, "Weld Seam No") > 0; COL($mpt, "Result") > 0; COL($dpt, "Weld Seam No") > 0; COL($dpt, "Result") > 0
+MODIFIES $out
 OP       LET(cRtSeam, COL($rt, "Weld Seam No"))
 OP       LET(cRtRes, COL($rt, "Result"))
 OP       LET(cUtSeam, COL($ut, "Weld Seam No"))
@@ -34,27 +35,23 @@ OP       LET(cMptRes, COL($mpt, "Result"))
 OP       LET(cDptSeam, COL($dpt, "Weld Seam No"))
 OP       LET(cDptRes, COL($dpt, "Result"))
 OP       CLEAR(USED_RANGE($out), what=all)
-OP       SET_VALUE(CELL($out, 1, 1), "Weld Seam No")
-OP       SET_VALUE(CELL($out, 1, 2), "RT")
-OP       SET_VALUE(CELL($out, 1, 3), "UT")
-OP       SET_VALUE(CELL($out, 1, 4), "MPT")
-OP       SET_VALUE(CELL($out, 1, 5), "DPT")
+OP       WRITE_ROW($out, 1, "Weld Seam No", "RT", "UT", "MPT", "DPT")
 OP       LOOP_ROWS dir=down from=2 to=LASTROW($rt, cRtSeam) var=r
-OP         IF NOT IS_EMPTY(CELL($rt, r, cRtSeam))
-OP           DICT_ADD(seams, TRIM(CELL($rt, r, cRtSeam)), 1, mode=keep)
-OP           DICT_ADD(rtResults, TRIM(CELL($rt, r, cRtSeam)), CELL($rt, r, cRtRes), mode=overwrite)
+OP         SKIP_IF IS_EMPTY(CELL($rt, r, cRtSeam))
+OP         DICT_ADD(seams, TRIM(CELL($rt, r, cRtSeam)), 1, mode=keep)
+OP         DICT_ADD(rtResults, TRIM(CELL($rt, r, cRtSeam)), CELL($rt, r, cRtRes), mode=overwrite)
 OP       LOOP_ROWS dir=down from=2 to=LASTROW($ut, cUtSeam) var=r
-OP         IF NOT IS_EMPTY(CELL($ut, r, cUtSeam))
-OP           DICT_ADD(seams, TRIM(CELL($ut, r, cUtSeam)), 1, mode=keep)
-OP           DICT_ADD(utResults, TRIM(CELL($ut, r, cUtSeam)), CELL($ut, r, cUtRes), mode=overwrite)
+OP         SKIP_IF IS_EMPTY(CELL($ut, r, cUtSeam))
+OP         DICT_ADD(seams, TRIM(CELL($ut, r, cUtSeam)), 1, mode=keep)
+OP         DICT_ADD(utResults, TRIM(CELL($ut, r, cUtSeam)), CELL($ut, r, cUtRes), mode=overwrite)
 OP       LOOP_ROWS dir=down from=2 to=LASTROW($mpt, cMptSeam) var=r
-OP         IF NOT IS_EMPTY(CELL($mpt, r, cMptSeam))
-OP           DICT_ADD(seams, TRIM(CELL($mpt, r, cMptSeam)), 1, mode=keep)
-OP           DICT_ADD(mptResults, TRIM(CELL($mpt, r, cMptSeam)), CELL($mpt, r, cMptRes), mode=overwrite)
+OP         SKIP_IF IS_EMPTY(CELL($mpt, r, cMptSeam))
+OP         DICT_ADD(seams, TRIM(CELL($mpt, r, cMptSeam)), 1, mode=keep)
+OP         DICT_ADD(mptResults, TRIM(CELL($mpt, r, cMptSeam)), CELL($mpt, r, cMptRes), mode=overwrite)
 OP       LOOP_ROWS dir=down from=2 to=LASTROW($dpt, cDptSeam) var=r
-OP         IF NOT IS_EMPTY(CELL($dpt, r, cDptSeam))
-OP           DICT_ADD(seams, TRIM(CELL($dpt, r, cDptSeam)), 1, mode=keep)
-OP           DICT_ADD(dptResults, TRIM(CELL($dpt, r, cDptSeam)), CELL($dpt, r, cDptRes), mode=overwrite)
+OP         SKIP_IF IS_EMPTY(CELL($dpt, r, cDptSeam))
+OP         DICT_ADD(seams, TRIM(CELL($dpt, r, cDptSeam)), 1, mode=keep)
+OP         DICT_ADD(dptResults, TRIM(CELL($dpt, r, cDptSeam)), CELL($dpt, r, cDptRes), mode=overwrite)
 OP       LET(outRow, 2)
 OP       FOR_EACH var=s in=KEYS(seams)
 OP         SET_VALUE(CELL($out, outRow, 1), s)

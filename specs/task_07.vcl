@@ -1,4 +1,4 @@
-VCL 0.1
+VCL 0.2
 TASK
 # ASSUME: ITP Tracker headers (row 1) include "Point Type" (Hold / Witness / Review) and "Inspection Status"
 # ASSUME: a row is copied when Inspection Status is "Ready" and Point Type is "Hold" or "Witness" (case and spaces ignored)
@@ -16,6 +16,7 @@ VAR      outRow As Long
 VAR      pointType As String
 VAR      status As String
 PRE      COL($itp, "Point Type") > 0; COL($itp, "Inspection Status") > 0
+MODIFIES $out
 OP       LET(cType, COL($itp, "Point Type"))
 OP       LET(cStatus, COL($itp, "Inspection Status"))
 OP       LET(lastCol, LASTCOL($itp, 1))

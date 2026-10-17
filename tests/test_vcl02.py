@@ -160,14 +160,22 @@ class VersionLine(unittest.TestCase):
         self.assertIn("the first line must be 'VCL 0.1' or 'VCL 0.2'", found)
 
     def test_every_vcl_01_spec_stays_valid_under_0_2(self):
-        for path in sorted(glob.glob(os.path.join(ROOT, "specs", "*.vcl"))):
+        # The 10 specs as they were in VCL 0.1, frozen in tests/data/specs_v01 (D20).
+        paths = sorted(glob.glob(os.path.join(ROOT, "tests", "data", "specs_v01", "*.vcl")))
+        self.assertEqual(len(paths), 11)
+        for path in paths:
             text = Path(path).read_text(encoding="utf-8")
             with self.subTest(spec=os.path.basename(path)):
                 self.assertTrue(text.startswith("VCL 0.1\n"))
                 before = [(p.line, p.severity, p.message) for p in validator.validate_text(text)]
                 after = [(p.line, p.severity, p.message)
                          for p in validator.validate_text(text.replace("VCL 0.1", "VCL 0.2", 1))]
-                self.assertEqual(before, after)
+                # the same problems, plus one warning: under 0.2 a spec that writes should say
+                # what it changes with MODIFIES
+                extra = [p for p in after if p not in before]
+                self.assertEqual([p for p in after if p in before], before)
+                self.assertEqual([(sev, msg.split(",")[0]) for _, sev, msg in extra],
+                                 [("warning", "the spec writes to sheets but has no MODIFIES lines")])
                 self.assertEqual([r.passed for r in run_tests(text)],
                                  [r.passed for r in run_tests(text.replace("VCL 0.1", "VCL 0.2", 1))])
 
@@ -302,7 +310,10 @@ class LoopOps(unittest.TestCase):
     """PR B: SKIP_IF, EXIT_LOOP_IF and WRITE_ROW."""
 
     def test_the_example_is_valid_and_passes(self):
-        self.assertEqual([(p.line, p.message) for p in validator.validate_text(LISTER)], [])
+        # LISTER has no MODIFIES on purpose: it writes, so the validator warns
+        self.assertEqual([(p.line, p.severity, p.message) for p in validator.validate_text(LISTER)],
+                         [(15, "warning", "the spec writes to sheets but has no MODIFIES lines, so no TEST checks "
+                                          "that nothing else changed: declare each sheet it changes with MODIFIES")])
         results = run_tests(LISTER)
         self.assertEqual(len(results), 3)
         self.assertTrue(all(r.passed for r in results), [(r.line, r.failed) for r in results])

@@ -516,7 +516,7 @@ class RealSpecs(unittest.TestCase):
                 self.assertEqual([p.message for p in problems if p.severity == "error"], [])
                 found = [(p.line, p.message) for p in problems if p.severity == "warning"]
                 if name == "task_04.vcl":
-                    self.assertEqual(found, [(28, "TASK has 52 OP lines (more than 40): consider splitting it "
+                    self.assertEqual(found, [(29, "TASK has 48 OP lines (more than 40): consider splitting it "
                                                   "into a BUILD (rule 9)")])
                 else:
                     self.assertEqual(found, [])

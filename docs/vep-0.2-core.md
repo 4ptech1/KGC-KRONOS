@@ -187,7 +187,7 @@ which only count cells. Those TESTs stay in the specs, because tests are never r
 room. The Excel batch runner, when it returns, gets the same check from `dist/expected/`.
 
 A spec without MODIFIES gets no automatic check. From PR D the validator warns about that, and
-every migrated spec has MODIFIES.
+every migrated spec has MODIFIES. (D20: a spec that writes nothing gets the check anyway.)
 
 ## Migration (PR D)
 
@@ -206,7 +206,8 @@ The migration counts as done only when, for every spec:
 
 1. the validator reports 0 errors and no new warnings
 2. every TEST passes, and every TEST's final workbook and RESULT are identical before and after
-3. the snapshot mutation score is not lower
+3. the TESTs miss no more mutants than before (built as D20: the percentage can't be compared,
+   because WRITE_ROW merges lines; mutants of the new SKIP_IF lines are reported separately)
 4. the new UNCHANGED check passes on every TEST
 
 The literal in a SAME rewrite keeps its original upper-case text (`SAME(x, "READY")`). Changing
