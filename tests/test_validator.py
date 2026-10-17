@@ -524,13 +524,13 @@ class RealSpecs(unittest.TestCase):
     def test_orchestrator_example_1(self):
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 1"):prompt.index("EXAMPLE 2")]
-        spec = example[example.index("VCL 0.1"):]
+        spec = example[example.index("VCL 0.2"):]
         self.assertEqual(validate_text(spec), [])
 
     def test_example_1_file_is_the_prompts_example_1(self):
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 1"):prompt.index("EXAMPLE 2")]
-        self.assertEqual(read("vcl/examples/example1_rev3.vcl").strip(), example[example.index("VCL 0.1"):].strip())
+        self.assertEqual(read("vcl/examples/example1_rev3.vcl").strip(), example[example.index("VCL 0.2"):].strip())
 
     def test_spec_md_and_prompt_share_the_reference_text(self):
         spec, prompt = read("vcl/spec.md"), read("vcl/orchestrator_prompt.txt")
@@ -540,7 +540,7 @@ class RealSpecs(unittest.TestCase):
             self.assertIsNotNone(match, start)
             return match.group(0)
 
-        for start, end in [("1.  Reply with exactly", "Prefer exact assertions to ranges."),
+        for start, end in [("1.  Reply with exactly", "nothing has no MODIFIES lines."),
                            ("TASK FORMAT", "the same spec always builds the same file.")]:
             self.assertEqual(between(spec, start, end), between(prompt, start, end))
 
