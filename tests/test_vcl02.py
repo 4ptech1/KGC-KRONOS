@@ -1,6 +1,7 @@
-"""VCL 0.2 value functions (docs/vep-0.2-core.md, PR A): SAME, CLEAN_TEXT, IS_ERROR,
-PARSE_DATE, IIF and MOD, through every stage: the version line, the validator, the type
-checker, the interpreter, the compiler and ForgeLib."""
+"""VCL 0.2 (docs/vep-0.2-core.md) through every stage: the version line, the validator, the
+type checker, the interpreter, the compiler and ForgeLib.
+PR A: the value functions SAME, CLEAN_TEXT, IS_ERROR, PARSE_DATE, IIF and MOD.
+PR B: ForgeSetValue (S17), SKIP_IF, EXIT_LOOP_IF and WRITE_ROW."""
 import glob
 import os
 import sys
@@ -16,6 +17,7 @@ import validator  # noqa: E402
 from vba_lint import lint  # noqa: E402
 from vcl_codegen import assemble, compile_text  # noqa: E402
 from vcl_interp import run_tests  # noqa: E402
+from vcl_mutate import mutate_report  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from vcl_types import check_text  # noqa: E402
 
@@ -50,6 +52,41 @@ ERR      standard
 FIXTURE  tidy_01.xlsx sheet=Data cols=A:Status,B:Due,C:Qty rows=6 data=A:values(" ready "x2,"READY"x1,"Closed"x3);B:values("15/10/2026"x2,"31/02/2026"x1,"2026-10-15"x3);C:int(1,9)
 TEST     fixture=tidy_01.xlsx call=TidyRows(Data) runs=2 assert=RESULT = 3 AND ERROR_COUNT = 0 AND COUNTIF(Data!D:D, "ready") = 3 AND COUNTA(Data!E:E) = 2 AND COUNTIF(Data!F:F, "Even") + COUNTIF(Data!F:F, "Odd") = 6
 TEST     fixture=tidy_01.xlsx call=TidyRows(Data) assert=COUNTA(Data![Status]) = PRE_COUNTA(Data![Status]) AND COUNTA(Data![Due]) = PRE_COUNTA(Data![Due])
+"""
+
+# Rows 2 to 6: Ready (no Qty), Ready 3, Closed 9, Ready 4, End. The loop skips row 2 (no
+# number) and row 4 (not Ready), writes rows 3 and 5, and leaves at row 6, so the Ready rows
+# below End are never written.
+LISTER = """VCL 0.2
+TASK
+# ASSUME: Data headers (row 1) include "Status" and "Qty"; a Status of "End" ends the list
+PROC     ListReady
+KIND     Function
+MODULE   modList
+ARGS     ws As Worksheet, out As Worksheet
+RET      Long
+VAR      cStatus As Long
+VAR      cQty As Long
+VAR      outRow As Long
+PRE      COL($ws, "Status") > 0; COL($ws, "Qty") > 0
+OP       LET(cStatus, COL($ws, "Status"))
+OP       LET(cQty, COL($ws, "Qty"))
+OP       CLEAR(USED_RANGE($out), what=all)
+OP       WRITE_ROW($out, 1, "Row", "Status", "Qty")
+OP       LET(outRow, 1)
+OP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, cStatus) var=r
+OP         EXIT_LOOP_IF SAME(CELL($ws, r, cStatus), "End")
+OP         SKIP_IF NOT SAME(CELL($ws, r, cStatus), "Ready")
+OP         SKIP_IF NOT IS_NUMBER(CELL($ws, r, cQty))
+OP         LET(outRow, outRow + 1)
+OP         WRITE_ROW($out, outRow, r, CELL($ws, r, cStatus), CELL($ws, r, cQty) * 2)
+OP       RETURN(outRow - 1)
+ERR      standard
+FIXTURE  list_01.xlsx sheet=Data cols=A:Status,B:Qty rows=8 data=A:values("Ready"x5,"Closed"x2,"End"x1)+boundary("Ready","Ready","Closed","Ready","End");B:int(1,9)+boundary("",3,9,4)
+FIXTURE  list_01.xlsx sheet=Out cols=A:Row rows=0 stale=2
+TEST     fixture=list_01.xlsx call=ListReady(Data, Out) runs=2 assert=RESULT = 2 AND ERROR_COUNT = 0 AND COUNTA(Out!A:A) = 3 AND SUM(Out![Qty]) = 14 AND VALUE(Out!A3) = 5 AND COUNTIF(Out![Status], "Ready") = 2 AND FILL_COUNT(Out!A1:C9, #FF0000) = 0
+TEST     fixture=list_01.xlsx call=ListReady(Data, Out) assert=COUNTA(Data![Status]) = PRE_COUNTA(Data![Status]) AND SUM(Data![Qty]) = PRE_SUM(Data![Qty])
+TEST     fixture=list_01.xlsx call=ListReady(Out, Out) assert=RESULT = -1 AND ERROR_COUNT = 1
 """
 
 HEAD = ["VCL 0.2", "TASK", "PROC     P", "KIND     Function", "MODULE   m",
@@ -217,6 +254,117 @@ class Compiler(unittest.TestCase):
         for banned in ("CDate(", "DateValue("):
             body = lib[lib.index("Public Function ForgeParseDate("):lib.index("End Function", lib.index("Public Function ForgeParseDate("))]
             self.assertNotIn(banned, body)
+
+
+
+class LoopOps(unittest.TestCase):
+    """PR B: SKIP_IF, EXIT_LOOP_IF and WRITE_ROW."""
+
+    def test_the_example_is_valid_and_passes(self):
+        self.assertEqual([(p.line, p.message) for p in validator.validate_text(LISTER)], [])
+        results = run_tests(LISTER)
+        self.assertEqual(len(results), 3)
+        self.assertTrue(all(r.passed for r in results), [(r.line, r.failed) for r in results])
+
+    def test_they_need_the_0_2_version_line(self):
+        found = errors(LISTER.replace("VCL 0.2", "VCL 0.1", 1))
+        for name in ("SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"):
+            self.assertIn(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it", found)
+
+    def test_they_only_live_inside_a_loop(self):
+        for op in ("SKIP_IF", "EXIT_LOOP_IF"):
+            found = errors(LISTER.replace("OP       LET(outRow, 1)", f"OP       {op} outRow = 1"))
+            self.assertIn(f"{op} is only allowed inside LOOP_ROWS, LOOP_COLS or FOR_EACH", found)
+        self.assertIn("SKIP_IF can't have nested steps",
+                      errors(LISTER.replace("OP         LET(outRow, outRow + 1)", "OP           LET(outRow, outRow + 1)")))
+        self.assertIn("IF ... THEN needs exactly one op after THEN, like THEN LET(x, 1)",
+                      errors(LISTER.replace("OP         SKIP_IF NOT IS_NUMBER", "OP         IF TRUE THEN SKIP_IF NOT IS_NUMBER")))
+
+    def test_write_row_arguments(self):
+        self.assertIn("WRITE_ROW takes 3 or more arguments before its options, got 2",
+                      errors(LISTER.replace('WRITE_ROW($out, 1, "Row", "Status", "Qty")', "WRITE_ROW($out, 1)")))
+        self.assertIn("WRITE_ROW has no option to=",
+                      errors(LISTER.replace('"Status", "Qty")', '"Status", "Qty", to=2)')))
+        self.assertEqual(errors(LISTER.replace('"Status", "Qty")', '"Status", "Qty", col=1)')), [])
+
+    def test_write_row_headers_count_for_test_ranges(self):
+        # Out![Qty] is only known because WRITE_ROW writes it in row 1.
+        found = errors(LISTER.replace('"Row", "Status", "Qty")', '"Row", "Status", "Amount")'))
+        self.assertTrue(any("Qty" in m for m in found), found)
+
+    def test_skip_if_guards_the_rest_of_the_pass_only(self):
+        self.assertEqual(check_text(LISTER), [])
+        self.assertTrue(any("arithmetic" in m for _, m in check_text(
+            LISTER.replace("OP         SKIP_IF NOT IS_NUMBER(CELL($ws, r, cQty))\n", ""))))
+        moved = spec(*loop("IF flag", "  SKIP_IF NOT IS_NUMBER(CELL($ws, r, 2))", "LET(n, CELL($ws, r, 2) + 1)"))
+        self.assertTrue(any("arithmetic" in m for _, m in check_text(moved)))
+        inside = spec(*loop("IF flag", "  SKIP_IF NOT IS_NUMBER(CELL($ws, r, 2))", "  LET(n, CELL($ws, r, 2) + 1)"))
+        self.assertEqual(check_text(inside), [])
+
+    def test_write_row_types(self):
+        self.assertTrue(any("arithmetic" in m for _, m in check_text(
+            spec(*loop("WRITE_ROW($ws, r, CELL($ws, r, 2) * 2)")))))
+        self.assertTrue(any("expected Sheet" in m for _, m in check_text(spec("WRITE_ROW(n, 1, 2)"))))
+        self.assertTrue(any("expected a value" in m for _, m in check_text(spec("WRITE_ROW($ws, 1, $ws)"))))
+        self.assertEqual(check_text(spec('WRITE_ROW($ws, 1, "a", n, TODAY, col=n + 1)')), [])
+
+    def test_skip_if_and_exit_loop_if_differ(self):
+        swapped = LISTER.replace("EXIT_LOOP_IF SAME", "SKIP_IF SAME")
+        self.assertFalse(all(r.passed for r in run_tests(swapped)))
+
+    def test_mutants_of_the_new_lines_are_caught(self):
+        killed, total, survivors = mutate_report(LISTER, snapshot=True)
+        self.assertGreater(total, 20)
+        self.assertEqual([s for s in survivors if s[0] in (19, 20, 21, 23)], [])
+
+    def test_compiles_to_goto_next_label_and_exit_for(self):
+        vba = compile_text(LISTER, "lister.vcl")
+        self.assertIn("Then Exit For", vba)
+        self.assertIn("Then GoTo Next_18", vba)   # the LOOP_ROWS line
+        lines = vba.splitlines()
+        label = lines.index("Next_18:")
+        self.assertTrue(lines[label + 1].strip().endswith("Next r"))
+        self.assertIn('ForgeWriteRow out, 1, 1, Array("Row", "Status", "Qty")', vba)
+        self.assertEqual(lint(assemble([vba])), [])
+
+    def test_each_loop_gets_its_own_label(self):
+        text = LISTER.replace("OP       RETURN(outRow - 1)",
+                              "OP       FOR_EACH var=sh in=SHEETS(THIS_BOOK)\n"
+                              "OP         SKIP_IF SAME(outRow, 0)\n"
+                              "OP         LET(outRow, outRow + 0)\n"
+                              "OP       RETURN(outRow - 1)")
+        self.assertEqual(errors(text), [])
+        vba = compile_text(text)
+        self.assertIn("Next_18:", vba.splitlines())
+        self.assertIn("Next_24:", vba.splitlines())
+        self.assertEqual(lint(assemble([vba])), [])
+
+    def test_no_label_without_skip_if(self):
+        vba = compile_text(LISTER.replace("SKIP_IF NOT SAME", "EXIT_LOOP_IF NOT SAME")
+                                 .replace("SKIP_IF NOT IS_NUMBER", "EXIT_LOOP_IF NOT IS_NUMBER"))
+        self.assertNotIn("Next_18", vba)
+
+
+class TextStaysText(unittest.TestCase):
+    """PR B: S17, SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text."""
+
+    def test_writes_go_through_forge_set_value(self):
+        vba = compile_text(TIDY)
+        self.assertIn("ForgeSetValue ws.Cells(r, 4), ForgeCleanText(", vba)
+        self.assertNotIn(".Value = ", vba.split("Public Function TidyRows")[1])
+
+    def test_forgelib_writes_every_cell_through_the_guard(self):
+        lib = (ROOT / "vba" / "ForgeLib.bas").read_text(encoding="utf-8")
+        for proc in ("ForgeWriteRow", "ForgeCopyRow"):
+            body = lib[lib.index(f"Public Sub {proc}("):lib.index("End Sub", lib.index(f"Public Sub {proc}("))]
+            self.assertIn("ForgeSetValue ", body)
+            self.assertNotIn(".Value =", body)
+
+    def test_the_fixture_builder_uses_the_same_rule(self):
+        import vcl_fixtures
+        self.assertIs(vcl_fixtures.needs_text_guard, semantics.needs_text_guard)
+        self.assertEqual(vcl_fixtures.vba_literal("#N/A"), '"\'#N/A"')
+        self.assertEqual(vcl_fixtures.vba_literal("Short"), '"Short"')
 
 
 if __name__ == "__main__":

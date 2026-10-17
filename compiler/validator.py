@@ -34,7 +34,9 @@ FILL_NAMES = ("none", "black", "white", "red", "green", "blue", "yellow", "magen
 YES_NO = ("yes", "no")
 MAX_TASK_OPS = 40
 
-STRUCT = {"LOOP_ROWS", "LOOP_COLS", "FOR_EACH", "IF", "ELSE", "SELECT_CASE", "CASE", "CASE_ELSE", "EXIT_IF"}
+STRUCT = {"LOOP_ROWS", "LOOP_COLS", "FOR_EACH", "IF", "ELSE", "SELECT_CASE", "CASE", "CASE_ELSE", "EXIT_IF",
+          "SKIP_IF", "EXIT_LOOP_IF"}
+LOOPS = {"LOOP_ROWS", "LOOP_COLS", "FOR_EACH"}
 
 # Call ops: (fewest positional args, most (None = any), {option: allowed values or kind}, required options)
 # Option kinds: "expr", "var" (a declared VAR), "string", "fill", "width", "cols".
@@ -66,6 +68,7 @@ OPS = {
     "LOG": (1, 1, {}, ()),
     "MSG": (1, 1, {}, ()),
     "RETURN": (0, 1, {}, ()),
+    "WRITE_ROW": (3, None, {"col": "expr"}, ()),   # VCL 0.2
 }
 # Value functions: (fewest args, most args, {option: allowed values})
 VALUE_FUNCS = {
@@ -82,6 +85,7 @@ VALUE_FUNCS = {
     "IIF": (3, 3, {}), "MOD": (2, 2, {}),
 }
 VCL_02_FUNCS = {"SAME", "CLEAN_TEXT", "IS_ERROR", "PARSE_DATE", "IIF", "MOD"}
+VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
 DATE_FORMATS = ("dd/mm/yyyy", "dd-mm-yyyy", "dd.mm.yyyy", "mm/dd/yyyy", "yyyy-mm-dd")  # as vcl/semantics.py
 # second argument is a "quoted" header, ref, sheet name or date format
 STRING_SECOND = {"COL", "RANGE", "SHEET", "PARSE_DATE"}
@@ -470,6 +474,8 @@ class TaskChecker:
                 self.error("SELECT_CASE can only contain CASE and CASE_ELSE", node.line)
             if name == "CASE" and prev and prev["name"] == "CASE_ELSE":
                 self.error("CASE_ELSE must be the last case", node.line)
+            if name in ("SKIP_IF", "EXIT_LOOP_IF") and not any(a["name"] in LOOPS for a in ancestors):
+                self.error(f"{name} is only allowed inside LOOP_ROWS, LOOP_COLS or FOR_EACH", node.line)
             if "DELETE_ROW" in (name, info.get("action")) and not any(
                     a["name"] == "LOOP_ROWS" and a.get("dir") == "up" for a in ancestors):
                 self.error("DELETE_ROW is only allowed inside LOOP_ROWS dir=up (rule 10)", node.line)
@@ -493,6 +499,8 @@ class TaskChecker:
             self.error(f"an OP step starts with an op name, got '{show(items[:1])}'")
             return info
         info["name"] = name
+        if name in VCL_02_OPS and self.spec.version != "VCL 0.2":
+            self.error(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it")
         if name == "NOTE":
             if not (len(items) == 2 and is_tok(items[1], "string")):
                 self.error('NOTE takes one "<terse technical text>"')
@@ -567,8 +575,8 @@ class TaskChecker:
             info["block"] = True
             for value in split_on(rest, ","):
                 self.check_expr(value, "CASE value")
-        elif name == "EXIT_IF":
-            self.check_expr(rest, "EXIT_IF condition")
+        elif name in ("EXIT_IF", "SKIP_IF", "EXIT_LOOP_IF"):
+            self.check_expr(rest, f"{name} condition")
 
     def struct_options(self, name, rest, allowed):
         opts, key, i = {}, None, 0
@@ -687,6 +695,12 @@ class TaskChecker:
             arg = self.row1_arg(target)
             if arg and len(value) == 1 and is_tok(value[0], "string"):
                 self.header_writes.append((arg, value[0].text[1:-1]))
+        if name == "WRITE_ROW" and len(positional) >= 3:
+            ws, row = positional[:2]
+            if len(ws) == 1 and is_tok(ws[0], "arg") and len(row) == 1 and is_tok(row[0], "number", "1"):
+                for value in positional[2:]:
+                    if len(value) == 1 and is_tok(value[0], "string"):
+                        self.header_writes.append((ws[0].text[1:], value[0].text[1:-1]))
         if name == "COPY_ROW" and len(positional) == 4:
             src, src_row, dst, dst_row = positional
             if all(len(p) == 1 for p in positional) and is_tok(src[0], "arg") and is_tok(dst[0], "arg") \

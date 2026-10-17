@@ -329,7 +329,35 @@ SEMANTICS
               IS_NUMBER, rule 15); a date is not allowed.
 ```
 
-The conformance cases for all six are in `docs/vcl-semantics.md` (S5, S12 to S16).
+```text
+LOOP AND WRITE OPS (VCL 0.2, PR B)
+Structural ops, only inside LOOP_ROWS, LOOP_COLS or FOR_EACH; they act on the innermost loop:
+  SKIP_IF <condition>         go on with the next pass of the loop
+  EXIT_LOOP_IF <condition>    leave the loop (EXIT_IF still leaves the procedure)
+A call op:
+  WRITE_ROW(<ws>, <row>, <expr>, <expr>, ...)            the values go to columns 1, 2, 3, ...
+  WRITE_ROW(<ws>, <row>, <expr>, ..., col=<n>)           starting at column n instead
+
+  SKIP_IF IS_EMPTY(CELL($weldLog, r, cSeam)) replaces a loop body nested inside
+  IF NOT IS_EMPTY(...). Past a SKIP_IF or EXIT_LOOP_IF its condition is known to be FALSE,
+  so SKIP_IF NOT IS_NUMBER(x) guards x for the rest of that pass (rule 15).
+  Each WRITE_ROW value is written as SET_VALUE writes it. A row 1 WRITE_ROW of "quoted"
+  headers makes them usable as [Header] ranges in TESTs.
+
+SEMANTICS
+  Text stays text   SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text, even
+                    text Excel would read as a number, date, TRUE/FALSE, error or formula
+                    ("1001", "1-2", "TRUE", "#N/A", "=A1"). "" empties the cell.
+```
+
+The conformance cases are in `docs/vcl-semantics.md` (S5, S12 to S17).
+
+## Changes for VCL 0.2, PR B (17 Oct 2026)
+
+- SKIP_IF and EXIT_LOOP_IF (E4) and WRITE_ROW (E5), under `VCL 0.2` only, in the section above.
+- S17: SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text. This fixes a real
+  difference between the interpreter and Excel (task_01 and task_04 write keys like "1001"),
+  and changes no VCL 0.1 spec's meaning or results.
 
 ## Changes for VCL 0.2, PR A (17 Oct 2026)
 

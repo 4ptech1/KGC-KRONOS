@@ -40,9 +40,14 @@ with its own PRNG, seeded from "<file>|<sheet>|stale", picks the n data rows; th
 """
 import datetime
 import hashlib
+import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from lark import Token, Tree
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vcl"))
+from semantics import needs_text_guard  # noqa: E402  (S17: text Excel would convert gets a ' prefix)
 
 MASK = (1 << 64) - 1
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -346,14 +351,6 @@ def build_workbooks(fixture_trees, today=None):
 
 
 # ---------------------------------------------------------------- the fixture-builder VBA
-
-def needs_text_guard(text):
-    """True if Excel would turn this text into something else when it is written to a cell:
-    a number, date, time, TRUE/FALSE or formula. Those get a ' prefix so they stay text.
-    Being careful: any text with a digit counts ("W-01" stays safe either way)."""
-    return (any(ch.isdigit() for ch in text) or text[:1] in "=+-@'"
-            or text.strip().upper() in ("TRUE", "FALSE"))
-
 
 def vba_literal(value):
     if value is None:

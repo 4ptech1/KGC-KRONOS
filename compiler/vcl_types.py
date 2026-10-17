@@ -313,6 +313,9 @@ class Checker:
                 self.assign(v, vt, opts["into"], vflow, line)
         elif name in ("SET_VALUE", "CLEAR"):
             drop_sheet_of(pos[0])
+        elif name == "WRITE_ROW" and pos:
+            for k in [k for k in facts if k.startswith("CELL(" + canon(pos[0]) + ",")]:
+                del facts[k]
         elif name in ("COPY_ROW",) and len(pos) >= 3:
             drop_sheet_of(pos[2])
         elif name in ("DELETE_ROW", "INSERT_ROW", "SORT"):
@@ -349,6 +352,18 @@ class Checker:
                 vt = "Num"
             self.dict_values.setdefault(str(pos[0]), set()).add(vt if vt in SCALAR else "Cell")
             self.ty(pos[1], facts, vflow, line)
+        elif name == "WRITE_ROW" and len(pos) >= 3:
+            st = self.ty(pos[0], facts, vflow, line)
+            if st not in ("Sheet", "?"):
+                self.err(line, f"WRITE_ROW: {canon(pos[0])} is {st}, expected Sheet")
+            self.need_num(self.ty(pos[1], facts, vflow, line), pos[1], line)
+            for a in pos[2:]:
+                vt = self.ty(a, facts, vflow, line)
+                if vt not in SCALAR and vt != "?":
+                    self.err(line, f"WRITE_ROW: {canon(a)} is {vt}, expected a value")
+            opts = {str(a.children[0]): a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"}
+            if "col" in opts:
+                self.need_num(self.ty(opts["col"], facts, vflow, line), opts["col"], line)
         elif name == "RETURN" and pos:
             rt = self.ty(pos[0], facts, vflow, line)
             if self.ret and rt not in (self.ret, "?"):
@@ -382,7 +397,8 @@ class Checker:
                 after_then = self.block(n["children"], then_f, vflow)
                 after_else = self.block(n["else"], else_f, vflow)
                 facts = {k: v for k, v in facts.items() if after_then.get(k) == v and after_else.get(k) == v}
-            elif kind == "exit_if":
+            elif kind in ("exit_if", "skip_if", "exit_loop_if"):
+                # past this line the condition was FALSE, for the rest of the block
                 cond = s.children[0]
                 self.need_bool(cond, facts, vflow, line)
                 facts.update(self.facts_if(cond, False))

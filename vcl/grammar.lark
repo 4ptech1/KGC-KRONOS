@@ -51,6 +51,8 @@ flow_value: QUALNAME ("->" QUALNAME)+
           | case_line
           | case_else
           | exit_if
+          | skip_if
+          | exit_loop_if
           | note
           | call
 loop_rows: "LOOP_ROWS" option+
@@ -63,6 +65,8 @@ select_case: "SELECT_CASE" expr
 case_line: "CASE" expr ("," expr)*
 case_else: "CASE_ELSE"
 exit_if: "EXIT_IF" expr
+skip_if: "SKIP_IF" expr            // VCL 0.2: next pass of the innermost loop
+exit_loop_if: "EXIT_LOOP_IF" expr  // VCL 0.2: leave the innermost loop
 note: "NOTE" STRING
 
 // ---------- expressions (VBA precedence: arithmetic > & > comparison > NOT > AND > OR) ----------

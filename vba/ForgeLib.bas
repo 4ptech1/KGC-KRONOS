@@ -366,10 +366,52 @@ Public Function ForgeRowRange(ByVal ws As Worksheet, ByVal rowNo As Long, ByVal 
     Set ForgeRowRange = ws.Range(ws.Cells(rowNo, c1), ws.Cells(rowNo, c2))
 End Function
 
+' ---- S17: SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text ----
+
+Public Function ForgeNeedsTextGuard(ByVal s As String) As Boolean
+    ' True when Excel could turn the text into a number, date, TRUE/FALSE, error or formula.
+    Dim i As Long
+    Dim code As Long
+    Dim t As String
+    If Len(s) = 0 Then Exit Function
+    For i = 1 To Len(s)
+        code = AscW(Mid$(s, i, 1))
+        If (code >= 48 And code <= 57) Or code > 127 Or code < 0 Then
+            ForgeNeedsTextGuard = True
+            Exit Function
+        End If
+    Next i
+    If InStr(1, "=+-@'#", Left$(s, 1), vbBinaryCompare) > 0 Then
+        ForgeNeedsTextGuard = True
+        Exit Function
+    End If
+    t = UCase$(ForgeTrim(s))
+    ForgeNeedsTextGuard = (t = "TRUE" Or t = "FALSE")
+End Function
+
+Public Sub ForgeSetValue(ByVal target As Range, ByVal v As Variant)
+    ' The ' prefix is hidden by Excel: the cell holds the text unchanged.
+    If VarType(v) = vbString Then
+        If ForgeNeedsTextGuard(v) Then
+            target.Value = "'" & v
+            Exit Sub
+        End If
+    End If
+    target.Value = v
+End Sub
+
+Public Sub ForgeWriteRow(ByVal ws As Worksheet, ByVal rowNo As Long, ByVal firstCol As Long, ByVal values As Variant)
+    Dim i As Long
+    For i = LBound(values) To UBound(values)
+        ForgeSetValue ws.Cells(rowNo, firstCol + i - LBound(values)), values(i)
+    Next i
+End Sub
+
 Public Sub ForgeCopyRow(ByVal src As Worksheet, ByVal srcRow As Long, ByVal dst As Worksheet, ByVal dstRow As Long, ByVal nCols As Long)
-    If nCols < 1 Then Exit Sub
-    dst.Range(dst.Cells(dstRow, 1), dst.Cells(dstRow, nCols)).Value = _
-        src.Range(src.Cells(srcRow, 1), src.Cells(srcRow, nCols)).Value
+    Dim c As Long
+    For c = 1 To nCols
+        ForgeSetValue dst.Cells(dstRow, c), src.Cells(srcRow, c).Value
+    Next c
 End Sub
 
 Public Sub ForgeNoFill(ByVal rng As Range)

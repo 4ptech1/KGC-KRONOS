@@ -74,3 +74,6 @@ Dataset count: 0 verified pairs
   cases, validator, type checker, interpreter, compiler, ForgeLib). They work only in specs
   that start with `VCL 0.2`; the 10 specs and the Orchestrator prompt stay `VCL 0.1` until
   the migration PR.
+- **2026-10-17:** VCL 0.2, PR B: SKIP_IF, EXIT_LOOP_IF and WRITE_ROW. SET_VALUE, WRITE_ROW and
+  COPY_ROW now keep text as text in Excel (`ForgeSetValue`), closing a gap between the
+  interpreter and Excel for keys like "1001".

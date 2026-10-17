@@ -24,6 +24,7 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S14 (VCL 0.2) | `parse_date` | PARSE_DATE(x, format) gives a real date, or empty when x is not a date in that format. A real date passes through (time of day dropped). Text is TRIMmed and must match the format exactly: day and month 1 or 2 digits, year 4 digits from 1900 to 9999, and the date must exist (31/02/2026 gives empty). Numbers and everything else give empty. The format is required, because "03/04/2026" means a different day on different PCs. |
 | S15 (VCL 0.2) | `iif` | IIF(cond, a, b) gives a when cond is TRUE, else b. Both a and b are always evaluated (as VBA's IIf), so an IIF branch is never a guard. |
 | S16 (VCL 0.2) | `mod` | MOD(a, b) is a - b * INT(a / b), as Excel's MOD: the result has the sign of b, and decimals are kept. VBA's Mod operator rounds both sides first and gives the sign of a, so it is not used. MOD(a, 0) is a run-time error. |
+| S17 (VCL 0.2) | `needs_text_guard` | SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text. Excel would turn some text into something else when it is written to a cell: a number, date, time, TRUE/FALSE, error value or formula. Such text is written with a ' prefix, which Excel hides, so the cell holds the text unchanged. Being careful, the prefix goes on any text with a digit or a character above code 127, any text starting with = + - @ ' or #, and TRUE or FALSE after TRIM in any case. "" is never prefixed: it empties the cell. |
 
 ## Conformance cases
 
@@ -240,3 +241,21 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | 7.5, 2 | 1.5 | decimals kept (VBA's Mod rounds them away) |
 | 6, 3 | 0 | divides exactly |
 | 0, 5 | 0 | zero |
+
+### Text written by SET_VALUE, WRITE_ROW and COPY_ROW (VCL 0.2)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| "Short" | False | plain words are stored as typed |
+| "Days Open" | False | spaces are fine |
+| "" | False | empty text empties the cell |
+| "1001" | True | Excel would store the number 1001 |
+| "1-2" | True | Excel would store a date |
+| "W-01" | True | any digit counts, to be safe |
+| "TRUE" | True | Excel would store the logical TRUE |
+| " false " | True | after TRIM, in any case |
+| "=A1" | True | Excel would store a formula |
+| "-" | True | a leading minus could start a formula |
+| "#N/A" | True | Excel would store the error value |
+| "'quoted" | True | a leading ' would be hidden |
+| "café" | True | a character above code 127 counts, to be safe |
