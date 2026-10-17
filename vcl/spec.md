@@ -350,7 +350,39 @@ SEMANTICS
                     ("1001", "1-2", "TRUE", "#N/A", "=A1"). "" empties the cell.
 ```
 
+```text
+MODIFIES (VCL 0.2, PR C)   a key after PRE, one line per sheet or per kind of change
+  MODIFIES  $<arg>                         anything on that sheet: values, fills, formats, rows
+  MODIFIES  $<arg>["<header>", ...]        values in those columns, row 2 down
+  MODIFIES  $<arg> fills                   fills anywhere on that sheet
+An argument has either one whole-sheet line, or at most one [headers] line and one fills line.
+
+Checked before any TEST runs (validator):
+  every write op (SET_VALUE, WRITE_ROW, FORMAT, CLEAR, COPY_ROW target, INSERT_ROW,
+  DELETE_ROW, SORT, WRITE_ARRAY, SET_FORMULA, DEDUPE, FILTER) writes through a $sheet
+  argument that a MODIFIES line allows to change that way:
+    values (SET_VALUE, WRITE_ROW, COPY_ROW, WRITE_ARRAY, SET_FORMULA, CLEAR what=contents)
+                                     need [headers] or the whole sheet
+    fills (FORMAT with only fill=)   need fills or the whole sheet
+    formats (any other FORMAT, CLEAR what=all or formats) and rows (INSERT_ROW,
+    DELETE_ROW, SORT, DEDUPE, FILTER)  need the whole sheet
+  a declared sheet that no op writes to is a warning
+
+UNCHANGED, checked on every TEST of a spec with MODIFIES (interpreter):
+  the workbook before the first run is compared with the workbook after the last run.
+  Outside what MODIFIES allows, every cell's value, fill and number format must be the same
+  (a number that became text counts as a change). The header row is always compared, and so
+  are rows moved by inserts or deletes. A TEST whose every run stops at PRE must change
+  nothing at all. A difference fails the TEST: UNCHANGED: Stock!A2 was 1, now 2
+A spec without MODIFIES gets no automatic check.
+```
+
 The conformance cases are in `docs/vcl-semantics.md` (S5, S12 to S17).
+
+## Changes for VCL 0.2, PR C (17 Oct 2026)
+
+- MODIFIES, a new TASK key after PRE (E6), under `VCL 0.2` only, and the automatic UNCHANGED
+  check on every TEST of a spec that has it (E7). The section above has the rules.
 
 ## Changes for VCL 0.2, PR B (17 Oct 2026)
 

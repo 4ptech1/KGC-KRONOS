@@ -164,6 +164,9 @@ MODIFIES  $<arg> fills                   fills only
   - **Nothing is declared but never written.** A declared sheet no op writes to is a warning.
 - Columns can't be checked statically, because COL() finds them at run time. The UNCHANGED
   check below covers them.
+- Built with three additions (D19): SET_FORMULA, DEDUPE and FILTER are write ops too; the kind
+  of change must match the kind of line (fills need `fills`, formats and rows need the whole
+  sheet); and a write that doesn't go through a `$sheet` argument is an error.
 
 ### UNCHANGED (automatic, no syntax)
 
