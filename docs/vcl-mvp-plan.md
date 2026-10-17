@@ -64,8 +64,8 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    UNCHANGED, PARSE_DATE, IS_ERROR and CLEAN_TEXT (plus IIF and MOD). Then migrate the 10 specs
    with a migration tool. Design: `docs/vep-0.2-core.md` (four PRs, A to D).
    **PR A (the six value functions), PR B (SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, ForgeSetValue),
-   PR C (MODIFIES with UNCHANGED) and PR D1 (the 10 specs migrated) are done; PR D2 switches the
-   Orchestrator prompt.**
+   PR C (MODIFIES with UNCHANGED), PR D1 (the 10 specs migrated) and PR D2 (spec.md and the
+   Orchestrator prompt) are done: VCL 0.2 core is complete.**
 4. **The rest of rev 3** in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 5. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives

@@ -1,4 +1,4 @@
-VCL 0.1
+VCL 0.2
 TASK
 # ASSUME: Orders headers in row 1 include "Status" and "Order Date"
 # ASSUME: "Cancelled" is matched ignoring case and extra spaces
@@ -12,11 +12,12 @@ VAR      cStatus As Long
 VAR      cDate As Long
 VAR      removed As Long
 PRE      COL($ws, "Status") > 0; COL($ws, "Order Date") > 0
+MODIFIES $ws
 OP       LET(cStatus, COL($ws, "Status"))
 OP       LET(cDate, COL($ws, "Order Date"))
 OP       LET(removed, 0)
 OP       LOOP_ROWS dir=up from=LASTROW($ws, cStatus) to=2 var=r
-OP         IF UPPER(TRIM(CELL($ws, r, cStatus))) = "CANCELLED"
+OP         IF SAME(CELL($ws, r, cStatus), "CANCELLED")
 OP           DELETE_ROW($ws, r)
 OP           LET(removed, removed + 1)
 OP       SORT(USED_RANGE($ws), key=cDate, order=desc, header=yes)

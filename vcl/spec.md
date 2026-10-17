@@ -1,4 +1,4 @@
-# VCL 0.1: VBA Command Language (revision 5, 17 Oct 2026)
+# VCL 0.2: VBA Command Language (17 Oct 2026)
 
 VCL is the contract between Claude (which writes specs) and VBA Forge (which turns them into
 tested VBA). This file is the reference that `validator.py` and the training data follow.
@@ -6,6 +6,9 @@ The Orchestrator prompt contains the same reference text, so update both togethe
 The formal syntax is `vcl/grammar.lark`; the reference meaning of the value functions is
 `vcl/semantics.py` (tables in `docs/vcl-semantics.md`); the reasons behind each decision are
 in `DECISIONS.md`.
+
+Specs start with `VCL 0.2`. The validator still reads `VCL 0.1` specs (every one is also valid
+as 0.2), and `compiler/vcl_migrate.py` rewrites them into 0.2.
 
 Target: Excel 2016 desktop. Specs never rely on Microsoft 365 functions such as XLOOKUP or
 dynamic arrays; every op compiles to plain VBA. (`FILTER` here means AutoFilter, which
@@ -42,9 +45,9 @@ Excel 2016 has.)
     spec), answer in at most two plain sentences, then reissue the spec if it changed.
 14. Find input columns by header name with COL(), never by fixed position, and check
     every header you use with a PRE line.
-15. Assume data is typed by hand: trim IDs before matching, and guard every calculation
-    and date comparison with IS_NUMBER or IS_DATE in a nested IF. Guard with the check
-    itself (IF IS_DATE(x)), never with a flag variable set earlier.
+15. Assume data is typed by hand: trim IDs before matching, compare typed text with SAME,
+    and guard every calculation and date comparison with IS_NUMBER or IS_DATE in a nested
+    IF. Guard with the check itself (IF IS_DATE(x)), never with a flag variable set earlier.
 16. Make re-runs safe: rebuild output sheets from scratch, and recalculate totals from
     source data instead of adding to or subtracting from stored values. The goal TEST
     uses runs=2 to prove it.
@@ -56,13 +59,17 @@ Excel 2016 has.)
     or >= comparison in the first rows with +boundary(...), repeat dictionary keys with
     +dupes(<n>) or values() counts of 2 or more, and use reldates(lo, hi) when the spec
     uses TODAY. Prefer exact assertions to ranges.
+20. Declare every sheet the macro changes with MODIFIES: the whole sheet when it is
+    rebuilt, cleared, sorted or has rows added or removed; ["<header>", ...] when only
+    those columns' values change; fills when only fills change. A spec that changes
+    nothing has no MODIFIES lines.
 ```
 
 ## Reference
 
 ```text
 TASK FORMAT  (keys in this order; (opt) = optional)
-VCL 0.1
+VCL 0.2
 TASK
 # ASSUME: <assumption>                        (opt, one line each)
 PROC     <PascalCase name>
@@ -72,6 +79,7 @@ ARGS     <name> As <Type>, ...                (opt)
 RET      <Type>                               (Function only)
 VAR      <name> As <Type>                     (opt, one line per local variable)
 PRE      <condition>; <condition>             (opt, checked before any change)
+MODIFIES $<arg> | $<arg>["<header>", ...] | $<arg> fills   (opt, one line each; see MODIFIES)
 OP       <step>                               (one or more)
 PERF     screen_off calc_manual events_off    (opt, any of these)
 ERR      standard
@@ -87,7 +95,7 @@ automatically; never repeat them in VAR.
 For form events: MODULE is the form, PROC is <control>_<Event> (btnRun_Click).
 
 BUILD FORMAT
-VCL 0.1
+VCL 0.2
 BUILD
 # ASSUME: <assumption>                        (opt)
 NAME     <PascalCase tool name>
@@ -100,7 +108,7 @@ FLOW     <caller> -> <callee> -> ...          (call order)
 FIXTURE  ...                                  (opt)
 TEST     fixture=<name>.xlsx call=modMain.RunHeadless(<args>) assert=...   (two or more)
 ---
-<one complete TASK spec per SIG, each starting with VCL 0.1, separated by lines
+<one complete TASK spec per SIG, each starting with VCL 0.2, separated by lines
 containing only --->
 
 BUILD rules: modMain always has RunHeadless (runs the whole tool without the form, so the
@@ -119,6 +127,8 @@ Structural ops begin an OP line:
   CASE <value>, <value>
   CASE_ELSE
   EXIT_IF <condition>                (leaves the procedure when the condition is true)
+  SKIP_IF <condition>                (inside a loop: goes on with its next pass)
+  EXIT_LOOP_IF <condition>           (inside a loop: leaves that loop)
 
 Every other op is a call, NAME(arguments, key=value):
   Assign  LET(<var>, <expr>)
@@ -130,6 +140,8 @@ Every other op is a call, NAME(arguments, key=value):
           FILTER(<range>, col=<n>, crit=<expr>)
           DEDUPE(<range>, cols=<n>|<n,n>, header=yes|no)
   Cells   SET_VALUE(<target>, <expr>)
+          WRITE_ROW(<ws>, <row>, <expr>, <expr>, ..., col=<n>)
+                  (the values go to columns n, n+1, ...; without col= they start at column 1)
           SET_FORMULA(<target>, "<formula>", style=a1|r1c1)
           FORMAT(<target>, numfmt="<format>", bold=yes|no, fill=<name>|#RRGGBB, width=auto|<n>)
           CLEAR(<target>, what=all|contents|formats)
@@ -160,7 +172,12 @@ Value functions:
   ROWS(<array>)  COLS(<array>)  ARR(<array>, <row>, <col>)
   COUNT(<dict or collection>)  EXISTS(<dict>, <key>)
   LEN  TRIM  UPPER  LOWER  LEFT(<expr>, <n>)  RIGHT(<expr>, <n>)
-  IS_EMPTY  IS_NUMBER  IS_DATE  IS_NOTHING  TODAY  NOW  FILE_NAME(<path>)
+  IS_EMPTY  IS_NUMBER  IS_DATE  IS_ERROR  IS_NOTHING  TODAY  NOW  FILE_NAME(<path>)
+  SAME(<expr>, <expr>)   TRUE when TRIM(a) and TRIM(b) are the same text, ignoring case
+  CLEAN_TEXT(<expr>)   TRIM, and every inner run of whitespace becomes one space
+  PARSE_DATE(<expr>, "<format>")   a real date, or empty when it isn't one in that format;
+                       formats: "dd/mm/yyyy" "dd-mm-yyyy" "dd.mm.yyyy" "mm/dd/yyyy" "yyyy-mm-dd"
+  IIF(<condition>, <expr>, <expr>)  MOD(<expr>, <expr>)
 Arguments are written $name. Variables and loop variables are bare names.
 Text uses "double quotes"; write a quote inside text as two quotes: "Say ""hi""".
 Also numbers, TRUE, FALSE, NOTHING.
@@ -186,6 +203,23 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   = and <>    with text on either side they compare that text exactly (case and spaces
               count), so a cell holding 25 equals "25"; compare numbers or dates only after
               IS_NUMBER or IS_DATE
+  SAME        compares TRIM(a) and TRIM(b) as text, ignoring case: SAME(" ready ", "READY")
+              and SAME(25, "25") are TRUE, SAME(25, "25.0") is FALSE; an error is SAME as its
+              text, so check IS_ERROR first when that matters
+  CLEAN_TEXT  also removes characters below code 32; case is kept
+  IS_ERROR    true for Excel error values (#N/A, #DIV/0!, ...); the text "#N/A" is not one
+  PARSE_DATE  a real date passes through; text is TRIMmed and must match the format exactly
+              (day and month 1 or 2 digits, year 4 digits from 1900, a date that exists);
+              anything else gives empty, so guard the result with IS_DATE. VCL never guesses
+              whether 03/04/2026 is March or April
+  IIF         both values are always evaluated, so the condition never guards them; values
+              only, never a Range, Worksheet, Workbook or Dictionary
+  MOD         a - b * INT(a / b), as Excel: MOD(-7, 3) = 2, MOD(7.5, 2) = 1.5; MOD(a, 0) is a
+              run-time error; numbers only, guarded like any calculation
+  SKIP_IF     past a SKIP_IF or EXIT_LOOP_IF line its condition is FALSE, so
+              SKIP_IF NOT IS_NUMBER(x) guards x for the rest of that pass
+  Writes      SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text, even text
+              Excel would read as a number, date, TRUE/FALSE, error or formula ("1001", "1-2")
   LEFT RIGHT  a count below 0 gives ""; a count beyond the length gives the whole text
   COL         matches the row-1 header ignoring case, extra spaces and line breaks; the first
               match wins; 0 if not found
@@ -199,6 +233,19 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               RETURN(<value>) to return something else)
   AND / OR    both sides are always evaluated, so a guard on the left does not protect the
               right: guard risky comparisons with a nested IF on the check itself
+
+MODIFIES  (one line per sheet the macro changes, or per kind of change)
+  MODIFIES $<arg>                     anything on that sheet: values, fills, formats, rows
+  MODIFIES $<arg>["<header>", ...]    values in those columns, row 2 down
+  MODIFIES $<arg> fills               fills anywhere on that sheet
+  An argument has one whole-sheet line, or at most one [headers] line and one fills line.
+  Every write op must go through a $sheet argument whose lines allow that change: values
+  need [headers] or the whole sheet, fill-only FORMATs need fills, and anything else
+  (other FORMATs, CLEAR what=all or formats, SORT, INSERT_ROW, DELETE_ROW, DEDUPE, FILTER)
+  needs the whole sheet. Write through CELL, ROW_RANGE, USED_RANGE or RANGE of a $sheet.
+  Every TEST then checks that nothing else changed: each other cell keeps its value, fill
+  and number format, and the header row never changes. A spec that changes nothing has no
+  MODIFIES lines and gets the same check.
 
 TEST ASSERTIONS  (checked on the test workbook after the run)
   COUNTIF(<Sheet>!<range>, <criteria>)  COUNTA(<Sheet>!<range>)  SUM(<Sheet>!<range>)
@@ -289,121 +336,19 @@ stale=n    a red (#FF0000) fill across the header's columns. rows=0: n new rows 
 
 A values() entry of `""` is a blank cell, and so is a column without a data rule.
 
-## VCL 0.2 additions (being built)
+## Changes in VCL 0.2 (17 Oct 2026)
 
-VCL 0.2 is designed in `docs/vep-0.2-core.md` and lands in four PRs. This section lists what
-has landed so far. It sits outside the reference text shared with the Orchestrator prompt, so
-the Orchestrator keeps writing `VCL 0.1` until the migration PR moves it all in at once.
+Designed in `docs/vep-0.2-core.md` and built in five PRs (A, B, C, D1, D2). Every VCL 0.1 spec
+stays valid. Details and reasons: `DECISIONS.md` (E3 to E7, S5, S12 to S17, T3, D17 to D20).
 
-A spec uses these only when its first line is `VCL 0.2` (and in a BUILD, every section's first
-line too); under `VCL 0.1` the validator reports them. Every `VCL 0.1` spec is also valid as
-`VCL 0.2`.
-
-```text
-VALUE FUNCTIONS (VCL 0.2, PR A)
-  SAME(<expr>, <expr>)          TRUE when TRIM(a) and TRIM(b) are the same text, ignoring case
-  CLEAN_TEXT(<expr>)            TRIM, every inner run of whitespace becomes one space, and
-                                characters below code 32 are removed; case is kept
-  IS_ERROR(<expr>)              TRUE for an Excel error value (#N/A, #DIV/0!, ...)
-  PARSE_DATE(<expr>, "<format>")  a real date, or empty when x is not a date in that format
-                                formats: "dd/mm/yyyy" "dd-mm-yyyy" "dd.mm.yyyy" "mm/dd/yyyy" "yyyy-mm-dd"
-  IIF(<condition>, <expr>, <expr>)  the first value when the condition is TRUE, else the second
-  MOD(<expr>, <expr>)           a - b * INT(a / b), as Excel's MOD
-
-SEMANTICS
-  SAME        both sides become canonical text, then TRIM, then compare letter by letter
-              ignoring case: SAME(25, "25") is TRUE, SAME(25, "25.0") is FALSE, an empty cell
-              is SAME as "", and an error is SAME as its text (use IS_ERROR first)
-  CLEAN_TEXT  "  W-01 " & non-breaking space & line break & "  A " gives "W-01 A"
-  IS_ERROR    the text "#N/A" is not an error
-  PARSE_DATE  a real date passes through (time of day dropped); text is TRIMmed and must
-              match the format exactly: day and month 1 or 2 digits, year 4 digits from 1900;
-              the date must exist (31/02/2026 gives empty); numbers give empty. The format
-              is required: "03/04/2026" is a different day on different PCs, so VCL never
-              guesses. The result needs IF IS_DATE(d) before any date comparison.
-  IIF         both values are always worked out, as with AND / OR, so the condition never
-              guards them: IIF(IS_NUMBER(x), x * 2, 0) is rejected. Values only, never a
-              Range, Worksheet, Workbook or Dictionary.
-  MOD         the sign of b, decimals kept: MOD(7, 3) = 1, MOD(-7, 3) = 2, MOD(7.5, 2) = 1.5.
-              MOD(a, 0) is a run-time error. Its arguments are numbers (guard cells with
-              IS_NUMBER, rule 15); a date is not allowed.
-```
-
-```text
-LOOP AND WRITE OPS (VCL 0.2, PR B)
-Structural ops, only inside LOOP_ROWS, LOOP_COLS or FOR_EACH; they act on the innermost loop:
-  SKIP_IF <condition>         go on with the next pass of the loop
-  EXIT_LOOP_IF <condition>    leave the loop (EXIT_IF still leaves the procedure)
-A call op:
-  WRITE_ROW(<ws>, <row>, <expr>, <expr>, ...)            the values go to columns 1, 2, 3, ...
-  WRITE_ROW(<ws>, <row>, <expr>, ..., col=<n>)           starting at column n instead
-
-  SKIP_IF IS_EMPTY(CELL($weldLog, r, cSeam)) replaces a loop body nested inside
-  IF NOT IS_EMPTY(...). Past a SKIP_IF or EXIT_LOOP_IF its condition is known to be FALSE,
-  so SKIP_IF NOT IS_NUMBER(x) guards x for the rest of that pass (rule 15).
-  Each WRITE_ROW value is written as SET_VALUE writes it. A row 1 WRITE_ROW of "quoted"
-  headers makes them usable as [Header] ranges in TESTs.
-
-SEMANTICS
-  Text stays text   SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text, even
-                    text Excel would read as a number, date, TRUE/FALSE, error or formula
-                    ("1001", "1-2", "TRUE", "#N/A", "=A1"). "" empties the cell.
-```
-
-```text
-MODIFIES (VCL 0.2, PR C)   a key after PRE, one line per sheet or per kind of change
-  MODIFIES  $<arg>                         anything on that sheet: values, fills, formats, rows
-  MODIFIES  $<arg>["<header>", ...]        values in those columns, row 2 down
-  MODIFIES  $<arg> fills                   fills anywhere on that sheet
-An argument has either one whole-sheet line, or at most one [headers] line and one fills line.
-
-Checked before any TEST runs (validator):
-  every write op (SET_VALUE, WRITE_ROW, FORMAT, CLEAR, COPY_ROW target, INSERT_ROW,
-  DELETE_ROW, SORT, WRITE_ARRAY, SET_FORMULA, DEDUPE, FILTER) writes through a $sheet
-  argument that a MODIFIES line allows to change that way:
-    values (SET_VALUE, WRITE_ROW, COPY_ROW, WRITE_ARRAY, SET_FORMULA, CLEAR what=contents)
-                                     need [headers] or the whole sheet
-    fills (FORMAT with only fill=)   need fills or the whole sheet
-    formats (any other FORMAT, CLEAR what=all or formats) and rows (INSERT_ROW,
-    DELETE_ROW, SORT, DEDUPE, FILTER)  need the whole sheet
-  a declared sheet that no op writes to is a warning
-
-UNCHANGED, checked on every TEST of a spec with MODIFIES (interpreter):
-  the workbook before the first run is compared with the workbook after the last run.
-  Outside what MODIFIES allows, every cell's value, fill and number format must be the same
-  (a number that became text counts as a change). The header row is always compared, and so
-  are rows moved by inserts or deletes. A TEST whose every run stops at PRE must change
-  nothing at all. A difference fails the TEST: UNCHANGED: Stock!A2 was 1, now 2
-A VCL 0.2 spec that writes but has no MODIFIES lines gets a validator warning and no automatic
-check. A spec that writes nothing needs no MODIFIES lines: every TEST checks it changed nothing.
-```
-
-The conformance cases are in `docs/vcl-semantics.md` (S5, S12 to S17).
-
-## Changes for VCL 0.2, PR D1 (17 Oct 2026)
-
-- The 10 specs are VCL 0.2, rewritten by `compiler/vcl_migrate.py` with proven rewrites only
-  (SAME, SKIP_IF, WRITE_ROW, MODIFIES); every TEST gives the same RESULT and final workbook.
-- A VCL 0.2 spec that writes without MODIFIES gets a warning; one that writes nothing gets the
-  UNCHANGED check (D20).
-
-## Changes for VCL 0.2, PR C (17 Oct 2026)
-
-- MODIFIES, a new TASK key after PRE (E6), under `VCL 0.2` only, and the automatic UNCHANGED
-  check on every TEST of a spec that has it (E7). The section above has the rules.
-
-## Changes for VCL 0.2, PR B (17 Oct 2026)
-
-- SKIP_IF and EXIT_LOOP_IF (E4) and WRITE_ROW (E5), under `VCL 0.2` only, in the section above.
-- S17: SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text. This fixes a real
-  difference between the interpreter and Excel (task_01 and task_04 write keys like "1001"),
-  and changes no VCL 0.1 spec's meaning or results.
-
-## Changes for VCL 0.2, PR A (17 Oct 2026)
-
-- The first line may be `VCL 0.2` (E3). Nothing else changes for `VCL 0.1` specs.
-- Six value functions, under `VCL 0.2` only: SAME, CLEAN_TEXT, IS_ERROR, PARSE_DATE, IIF and
-  MOD (S5, S12 to S16, T3), in the section above. Details: `DECISIONS.md`.
+- The version line is `VCL 0.2` (E3).
+- Value functions SAME, CLEAN_TEXT, IS_ERROR, PARSE_DATE, IIF and MOD (S5, S12 to S16, T3).
+- SKIP_IF and EXIT_LOOP_IF inside loops (E4), and WRITE_ROW (E5).
+- SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text (S17).
+- MODIFIES, a key after PRE, and the automatic UNCHANGED check on every TEST (E6, E7, D20);
+  hard rule 20.
+- The 10 specs and Example 1 were moved to 0.2 by `compiler/vcl_migrate.py`, with proven
+  rewrites only (D20).
 
 ## Changes in revision 5
 

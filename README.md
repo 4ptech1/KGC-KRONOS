@@ -85,3 +85,6 @@ Dataset count: 0 verified pairs
   and final workbook, and the TESTs miss no more mutants than before (15). The new SKIP_IF
   lines expose 22 mutants no TEST catches, because no fixture has blank key rows; with them
   the snapshot score reads 90.9%. The Orchestrator prompt switches in PR D2.
+- **2026-10-17:** VCL 0.2, PR D2: spec.md and the Orchestrator prompt teach VCL 0.2 (the new
+  functions, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, MODIFIES and hard rule 20); Example 1 migrated.
+  The Orchestrator Project on claude.ai needs the new prompt.

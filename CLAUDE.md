@@ -47,7 +47,7 @@ the VBA. Until then, the goal is a verified dataset of spec-to-VBA pairs.
 
 ## Sources of truth
 
-- `vcl/spec.md`: VCL 0.1 revision 5, the language reference.
+- `vcl/spec.md`: VCL 0.2, the language reference.
 - `vcl/orchestrator_prompt.txt`: the claude.ai prompt that writes specs. It contains the same
   reference text (a unit test keeps them identical), so the two always change together.
 - `vcl/grammar.lark`: the formal syntax. `vcl/semantics.py`: the reference meaning of the value
@@ -146,7 +146,7 @@ The Excel batch runner (`harness/ForgeTest.bas`, PR #4) is deferred; nothing dep
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, type-check, pass their
 TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
 
-Done: 10 specs, VCL 0.1 revision 5, the Orchestrator prompt, the parser and validator, and the
+Done: 10 specs, VCL 0.2 (specs, spec.md and the Orchestrator prompt), the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,
 `vclc`), with one fixture generator. Fixtures from the mutation evidence (revision 5:
 `stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). The 10 specs are VCL 0.2 (PR D1):
@@ -161,9 +161,10 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    automatic UNCHANGED, PARSE_DATE, IS_ERROR, IIF, MOD; then migrate the 10 specs. Designed in
    `docs/vep-0.2-core.md`. PR A (SAME, CLEAN_TEXT, IS_ERROR, PARSE_DATE, IIF, MOD, under a
    `VCL 0.2` first line), PR B (ForgeSetValue, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW) and PR C
-   (MODIFIES with the automatic UNCHANGED check) and PR D1 (`vcl_migrate.py`, the 10 specs to
-   VCL 0.2) are done; next is PR D2 (spec.md's shared text, the Orchestrator prompt and Example 1
-   to VCL 0.2; Boss then updates the Orchestrator Project).
+   (MODIFIES with the automatic UNCHANGED check), PR D1 (`vcl_migrate.py`, the 10 specs to
+   VCL 0.2) and PR D2 (spec.md, the Orchestrator prompt and Example 1 to VCL 0.2) are done.
+   Waiting for Boss: update the Orchestrator Project; decide on blank key rows in the fixtures
+   (D20); rename the repo to KGC-KRONOS (he does it in GitHub Settings).
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 
