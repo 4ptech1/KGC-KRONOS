@@ -149,22 +149,18 @@ TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
 Done: 10 specs, VCL 0.2 (specs, spec.md and the Orchestrator prompt), the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,
 `vclc`), with one fixture generator. Fixtures from the mutation evidence (revision 5:
-`stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). The 10 specs are VCL 0.2 (PR D1):
-snapshot mutation score 90.9%, from the 15 equivalent survivors (D14) plus 22 on the new SKIP_IF
-lines, which need blank key rows in the fixtures (D20; waiting for Boss). PR #4 (Excel pilot) is open with the `deferred`
+`stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). The 10 specs are VCL 0.2, with blank
+key rows for every SKIP_IF (D22): snapshot mutation score 96.1%, and the 15 survivors are the
+D14 equivalents. The repo is KGC-KRONOS (renamed 17 Oct 2026). PR #4 (Excel pilot) is open with the `deferred`
 label.
 
 Known: task_04 exceeds the ~60-line TASK guideline; accepted for now, revisit in March.
 
 Next, in order (`docs/vcl-mvp-plan.md`):
-1. VCL 0.2 core as VEPs: SAME, CLEAN_TEXT, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, MODIFIES with
-   automatic UNCHANGED, PARSE_DATE, IS_ERROR, IIF, MOD; then migrate the 10 specs. Designed in
-   `docs/vep-0.2-core.md`. PR A (SAME, CLEAN_TEXT, IS_ERROR, PARSE_DATE, IIF, MOD, under a
-   `VCL 0.2` first line), PR B (ForgeSetValue, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW) and PR C
-   (MODIFIES with the automatic UNCHANGED check), PR D1 (`vcl_migrate.py`, the 10 specs to
-   VCL 0.2) and PR D2 (spec.md, the Orchestrator prompt and Example 1 to VCL 0.2) are done.
-   Waiting for Boss: update the Orchestrator Project; decide on blank key rows in the fixtures
-   (D20); rename the repo to KGC-KRONOS (he does it in GitHub Settings).
+1. The Job-Pack Router MVP, `docs/vep-0.3-file-ops.md` (approved by Boss): sandbox only, COPY_FILE
+   first (no MOVE), VCL 0.3. Phase 0 (blank key rows) is done; next is Phase 1 (the language
+   surface: VCL 0.3, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS, MAKE_FOLDER, COPY_FILE, MODIFIES files,
+   folder FIXTUREs). Boss paused after Phase 0: wait for his go before starting Phase 1.
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 

@@ -102,7 +102,7 @@ class ParseTask(unittest.TestCase):
         self.assertEqual((bom.file, bom.sheet, bom.rows), ("bom_grn_01.xlsx", "BOM", 40))
         self.assertEqual(bom.headers, [("A", "Part No"), ("B", "Description"), ("C", "Required Qty")])
         self.assertEqual([(r.col, r.kind, r.args, r.blank) for r in bom.rules],
-                         [("A", "seq", ["1001", "1"], 0), ("B", "text", ["12"], 0), ("C", "int", ["1", "50"], 3)])
+                         [("A", "seq", ["1001", "1"], 2), ("B", "text", ["12"], 0), ("C", "int", ["1", "50"], 3)])
         self.assertEqual((short.rows, short.rules), (0, []))
 
     def test_tests(self):

@@ -101,7 +101,9 @@ class CountsMatchTheRules(unittest.TestCase):
 
     def test_seq_dates_and_columns_without_rules(self):
         book = build_workbooks(spec_trees("task_01.vcl"))["bom_grn_01.xlsx"]
-        self.assertEqual(column(book["BOM"], "Part No"), list(range(1001, 1041)))
+        part = column(book["BOM"], "Part No")
+        self.assertEqual(part.count(None), 2)          # +blank(2) (D22)
+        self.assertEqual(part, [n if v is not None else None for n, v in zip(range(1001, 1041), part)])
         weld = build_workbooks(spec_trees("task_05.vcl"))["weld_log_01.xlsx"]["WeldLog"]
         dates = column(weld, "Weld Date")
         self.assertEqual(dates[0], None)              # +boundary("")

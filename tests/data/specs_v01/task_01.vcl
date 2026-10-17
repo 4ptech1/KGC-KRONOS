@@ -54,7 +54,7 @@ OP               LET(outRow, outRow + 1)
 OP       RETURN(outRow - 2)
 PERF     screen_off calc_manual
 ERR      standard
-FIXTURE  bom_grn_01.xlsx sheet=BOM cols=A:Part No,B:Description,C:Required Qty rows=40 data=A:seq(1001,1);B:text(12);C:int(1,50)+boundary(30,7)+blank(3)
+FIXTURE  bom_grn_01.xlsx sheet=BOM cols=A:Part No,B:Description,C:Required Qty rows=40 data=A:seq(1001,1)+blank(2);B:text(12);C:int(1,50)+boundary(30,7)+blank(3)
 FIXTURE  bom_grn_01.xlsx sheet=GRN cols=A:Part No,B:Received Qty rows=35 data=A:seq(1001,1)+boundary(1001,1002)+dupes(4);B:int(1,50)+boundary(1,7)+blank(4)
 FIXTURE  bom_grn_01.xlsx sheet=Shortages cols=A:Part No,B:Required,C:Received,D:Shortage,E:Remark rows=0 stale=40
 TEST     fixture=bom_grn_01.xlsx call=BuildShortageList(BOM, GRN, Shortages) runs=2 assert=RESULT >= 5 AND COUNTA(Shortages![Part No]) = RESULT + 1 AND COUNTIF(Shortages![Part No], "stale") = 0 AND COUNTIF(Shortages![Shortage], "<0") = 0 AND ERROR_COUNT = 0

@@ -21,9 +21,9 @@ Running the generated VBA in Excel is optional and never blocks work.
 | Type checker (every calculation and date comparison guarded) | 11 of 11 pass |
 | Interpreter: the specs' own TESTs | 39 of 39 pass |
 | Mutation score, TEST assertions only | 87% of 417 deliberate bugs caught (was 68%) |
-| Mutation score, whole-workbook comparison | 90.9% since the VCL 0.2 migration (96.4% before): the same 15 equivalent survivors (`DECISIONS.md` D14), plus 22 on the new SKIP_IF lines, which need blank key rows in the fixtures (D20) |
+| Mutation score, whole-workbook comparison | 96.1% (370 of 385); the 15 survivors are the equivalent mutants of `DECISIONS.md` D14 (blank key rows added in D22) |
 | VBA lint (the compile errors Excel would raise) | 0 problems in 974 lines; 7 of 7 planted errors caught |
-| Unit tests | 209 pass |
+| Unit tests | 211 pass |
 
 ## Honest limits
 
@@ -66,13 +66,15 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    **PR A (the six value functions), PR B (SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, ForgeSetValue),
    PR C (MODIFIES with UNCHANGED), PR D1 (the 10 specs migrated) and PR D2 (spec.md and the
    Orchestrator prompt) are done: VCL 0.2 core is complete.**
-4. **The rest of rev 3** in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
+4. **The Job-Pack Router MVP (VCL 0.3 file ops), approved 17 Oct 2026:** `docs/vep-0.3-file-ops.md`,
+   Phases 0 to 5. Phase 0 (blank key rows, D22) is done. It comes before the rest of item 5.
+5. **The rest of rev 3** in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
-5. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
+6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
    VCL 0.2 packs.
-6. **Dataset generator:** spec-to-VBA pairs straight from the compiler. The mutation engine
+7. **Dataset generator:** spec-to-VBA pairs straight from the compiler. The mutation engine
    doubles as a contrast-pair generator: every valid mutant is a near-identical spec with
    different behaviour, compiled to its own correct VBA. That is exactly the "read carefully"
    training data the Phase 2 plan wanted.
-7. **March:** train the local model on the dataset; the compiler stays as the fallback and the
+8. **March:** train the local model on the dataset; the compiler stays as the fallback and the
    reference. Excel conformance runs whenever Boss chooses.

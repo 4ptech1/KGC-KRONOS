@@ -88,3 +88,6 @@ Dataset count: 0 verified pairs
 - **2026-10-17:** VCL 0.2, PR D2: spec.md and the Orchestrator prompt teach VCL 0.2 (the new
   functions, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, MODIFIES and hard rule 20); Example 1 migrated.
   The Orchestrator Project on claude.ai needs the new prompt.
+- **2026-10-17:** Repo renamed KGC-KRONOS. Phase 0 of the Job-Pack Router plan
+  (`docs/vep-0.3-file-ops.md`): blank key rows in the fixtures, so every SKIP_IF is proven by a
+  TEST. Snapshot mutation score 96.1% (370 of 385); the 15 left are the D14 equivalents.
