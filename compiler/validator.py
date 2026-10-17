@@ -336,6 +336,40 @@ class TaskChecker:
         if any(re.search(r"<=|>=|(?<![<>])[<>](?![<>=])", t) for t in texts) and not any(r.boundary for r in rules):
             self.warning("the spec compares with <, <=, > or >=, but no FIXTURE column has +boundary(...): "
                          "put the values that sit exactly on each comparison in the first rows (rule 19)", first)
+        self.check_skip_if_has_blanks()
+
+    def check_skip_if_has_blanks(self):
+        """Rule 19 (warning): SKIP_IF IS_EMPTY(CELL($x, r, c)) needs a blank cell in that FIXTURE column,
+        or no TEST shows the skip matters (D22)."""
+        spec = self.spec
+        raw = [node.text for node in spec.all_ops()]
+        headers = {}  # column variable -> (arg, header), from LET(c, COL($x, "Header"))
+        for text in raw:
+            m = re.fullmatch(r'LET\((\w+),\s*COL\(\$(\w+),\s*"((?:[^"]|"")*)"\)\)', text)
+            if m:
+                headers[m.group(1)] = (m.group(2), m.group(3).replace('""', '"'))
+        params = [d.name for d in spec.args]
+        warned = set()
+        for text in raw:
+            m = re.fullmatch(r"SKIP_IF IS_EMPTY\(CELL\(\$(\w+),\s*\w+,\s*(\w+)\)\)", text)
+            if not m or headers.get(m.group(2), (None,))[0] != m.group(1):
+                continue
+            arg, header = headers[m.group(2)]
+            for test in spec.tests:
+                if not self.passes_pre(test):
+                    continue
+                sheet = dict(zip(params, test.args)).get(arg)
+                fx = next((f for f in spec.fixtures if f.file == test.fixture and f.sheet == sheet), None)
+                letter = next((c for c, h in fx.headers if norm(h) == norm(header)), None) if fx else None
+                if letter is None or (fx.sheet, letter) in warned:
+                    continue
+                rule = next((r for r in fx.rules if r.col == letter), None)
+                has_blank = (rule is None or rule.blank or any(v == "" for _, v in rule.boundary)
+                             or (rule.kind == "values" and any(t == "" for t, _ in rule.args)))
+                if not has_blank and fx.rows > 0:
+                    warned.add((fx.sheet, letter))
+                    self.warning(f'SKIP_IF skips blank "{header}" cells, but FIXTURE sheet {fx.sheet} has none, '
+                                 "so no TEST shows the skip matters: add +blank(<n>) (rule 19)", fx.line)
 
     def passes_pre(self, test):
         """False only when PRE is a list of COL(...) > 0 checks and this TEST's sheets miss a header."""

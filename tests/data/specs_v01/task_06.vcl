@@ -47,7 +47,7 @@ OP       RETURN(flagged)
 PERF     screen_off
 ERR      standard
 FIXTURE  welder_qual_01.xlsx sheet=WelderQual cols=A:Welder ID,B:Name,C:Expiry Date rows=7 data=A:values("W-01"x2,"W-02"x1,"W-03"x1,"W-04"x1,"W-05"x1,"W-06"x1)+boundary("W-02","W-01","W-03","W-01","W-04");B:text(10);C:reldates(-400,800)+boundary(0,-1,1,30,"")
-FIXTURE  welder_qual_01.xlsx sheet=WeldLog cols=A:Weld Seam No,B:Welder ID,C:Fit-up,D:Visual rows=40 stale=5 data=A:seq(1,1);B:values("W-01"x8,"W-02"x8,"W-03"x8,"W-04"x8,"W-07"x6,""x2)+boundary("W-07");C:values("Accepted"x40);D:values("Accepted"x39,""x1)+boundary("")
-TEST     fixture=welder_qual_01.xlsx call=FlagExpiredWelderQualifications(WeldLog, WelderQual) runs=2 assert=RESULT = 16 AND FILL_COUNT(WeldLog![Weld Seam No], #FF0000) = 16 AND FILL_COUNT(WeldLog![Visual], #FF0000) = 16 AND FILL_COUNT(WeldLog![Welder ID]2, #FF0000) = 1 AND ERROR_COUNT = 0
+FIXTURE  welder_qual_01.xlsx sheet=WeldLog cols=A:Weld Seam No,B:Welder ID,C:Fit-up,D:Visual rows=40 stale=5 data=A:seq(1,1)+blank(2);B:values("W-01"x8,"W-02"x8,"W-03"x8,"W-04"x8,"W-07"x6,""x2)+boundary("W-07");C:values("Accepted"x40);D:values("Accepted"x39,""x1)+boundary("")
+TEST     fixture=welder_qual_01.xlsx call=FlagExpiredWelderQualifications(WeldLog, WelderQual) runs=2 assert=RESULT = 15 AND FILL_COUNT(WeldLog![Weld Seam No], #FF0000) = 15 AND FILL_COUNT(WeldLog![Visual], #FF0000) = 15 AND FILL_COUNT(WeldLog![Welder ID]2, #FF0000) = 1 AND ERROR_COUNT = 0
 TEST     fixture=welder_qual_01.xlsx call=FlagExpiredWelderQualifications(WeldLog, WelderQual) assert=COUNTA(WeldLog![Welder ID]) = PRE_COUNTA(WeldLog![Welder ID]) AND COUNTA(WelderQual![Expiry Date]) = PRE_COUNTA(WelderQual![Expiry Date])
 TEST     fixture=welder_qual_01.xlsx call=FlagExpiredWelderQualifications(WelderQual, WelderQual) assert=RESULT = -1 AND ERROR_COUNT = 1 AND FILL_COUNT(WelderQual![Welder ID], #FF0000) = 0

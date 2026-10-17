@@ -505,6 +505,21 @@ class Rule19(unittest.TestCase):
         self.assertNotIn(message, warnings(edit(text, "A:seq(1,1)", "A:seq(1,1)+dupes(2)")))
 
 
+class SkipIfNeedsBlanks(unittest.TestCase):
+    """Rule 19 (D22): a SKIP_IF IS_EMPTY on a column needs a blank cell in that FIXTURE column."""
+
+    def test_warns_without_blanks_and_not_with_them(self):
+        text = read("specs/task_04.vcl")
+        message = ('SKIP_IF skips blank "Weld Seam No" cells, but FIXTURE sheet DPT has none, so no TEST '
+                   "shows the skip matters: add +blank(<n>) (rule 19)")
+        self.assertNotIn(message, warnings(text))
+        no_blank = text.replace("+boundary(104,114,114)+blank(1)", "+boundary(104,114,114)")
+        self.assertNotEqual(no_blank, text)
+        self.assertIn(message, warnings(no_blank))
+        # a "" boundary value is a blank cell too
+        self.assertNotIn(message, warnings(no_blank.replace("+boundary(104,114,114)", '+boundary(104,114,"")')))
+
+
 class RealSpecs(unittest.TestCase):
     def test_all_ten_specs(self):
         paths = sorted(glob.glob(os.path.join(ROOT, "specs", "task_*.vcl")))
