@@ -1,4 +1,4 @@
-"""Prototype type checker for VCL 0.1 revision 3 with flow-sensitive narrowing (milestone M2).
+"""Prototype type checker for VCL 0.1 and 0.2 with flow-sensitive narrowing (milestone M2).
 
 Types: Num, Text, Date, Bool, Cell (a raw cell value: empty, number, text, date or error),
 Sheet, Book, Range, Dict, Coll, Arr, Iter.
@@ -8,6 +8,7 @@ Key rules
   number. It must first be narrowed by IS_NUMBER or IS_DATE in an enclosing IF (or the
   condition of a one-line IF, or an earlier EXIT_IF).
 - Both sides of AND / OR are evaluated, so a guard on the left does NOT protect the right.
+  The same holds for both values of IIF: its condition never guards them.
 - Facts are keyed by the exact text of an expression, for example CELL($bom,r,bomReq). A write
   to that exact cell, or a whole-sheet change (CLEAR of a range, COPY_ROW, SORT, DELETE_ROW),
   removes the facts it could affect. Assigning a variable removes facts that mention it.
@@ -28,7 +29,8 @@ TEXTLIKE = {"Text", "Cell", "Num"}
 CONSTANTS = {"TODAY": "Date", "NOW": "Date", "TRUE": "Bool", "FALSE": "Bool",
              "THIS_BOOK": "Book", "ACTIVE_BOOK": "Book", "ACTIVE_SHEET": "Sheet",
              "NOTHING": "Range"}
-# value functions: name -> (parameter types, return type); "S" = any scalar
+# value functions: name -> (parameter types, return type); "S" = any scalar, "T" = text-like,
+# "Num!" = a number and not a date; IIF's return type is worked out from its two values
 FUNCS = {
     "LASTROW": (["Sheet", "Num"], "Num"), "LASTCOL": (["Sheet", "Num"], "Num"),
     "USED_RANGE": (["Sheet"], "Range"), "COL": (["Sheet", "Text"], "Num"),
@@ -42,6 +44,10 @@ FUNCS = {
     "IS_DATE": (["S"], "Bool"), "IS_NOTHING": (["Range"], "Bool"), "FILE_NAME": (["Text"], "Text"),
     "KEYS": (["Dict"], "Iter"), "ITEMS": (["Coll"], "Iter"), "SHEETS": (["Book"], "Iter"),
     "CELLS": (["Range"], "Iter"),
+    # VCL 0.2
+    "SAME": (["S", "S"], "Bool"), "CLEAN_TEXT": (["T"], "Text"), "IS_ERROR": (["S"], "Bool"),
+    "PARSE_DATE": (["S", "Text"], "Cell"), "IIF": (["Bool", "S", "S"], None),
+    "MOD": (["Num!", "Num!"], "Num"),
 }
 
 
@@ -226,16 +232,27 @@ class Checker:
         pos = [a for a in args if not (isinstance(a, Tree) and a.data == "option")]
         if len(pos) != len(params):
             self.err(line, f"{name} takes {len(params)} arguments, got {len(pos)}")
+        types = []
         for p, a in zip(params, pos):
             at = self.ty(a, facts, vflow, line)
+            types.append(at)
             if at == "?":
                 continue
-            if p == "S" and at not in SCALAR:
+            if p in ("Num", "Num!") and at == "Cell":
+                self.err(line, f"{name}: raw cell value {canon(a)} used as a number: guard it with IS_NUMBER first")
+            elif p == "Num!" and at != "Num":
+                self.err(line, f"{name}: {canon(a)} is {at}, expected a number")
+            elif p == "Num!":
+                pass
+            elif p == "S" and at not in SCALAR:
                 self.err(line, f"{name}: {canon(a)} is {at}, expected a value")
             elif p == "T" and at not in TEXTLIKE:
                 self.err(line, f"{name}: {canon(a)} is {at}, expected text")
             elif p not in ("S", "T") and at != p and not (p == "Num" and at == "Date"):
                 self.err(line, f"{name}: {canon(a)} is {at}, expected {p}")
+        if name == "IIF":   # one type when both values have it, else a raw value that needs a guard
+            values = types[1:3]
+            return "?" if "?" in values or len(values) < 2 else values[0] if values[0] == values[1] else "Cell"
         return ret
 
     # ---------- narrowing ----------

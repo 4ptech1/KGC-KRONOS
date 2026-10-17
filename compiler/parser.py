@@ -1,4 +1,4 @@
-"""Parse VCL 0.1 (revision 3) specs into Python objects.
+"""Parse VCL 0.1 and VCL 0.2 specs into Python objects.
 
     from parser import parse_spec
     spec = parse_spec(text)
@@ -12,6 +12,7 @@ import re
 from dataclasses import dataclass, field
 
 VERSION = "VCL 0.1"
+VERSIONS = ("VCL 0.1", "VCL 0.2")  # a VCL 0.1 spec stays valid under 0.2
 TASK_KEYS = ["PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "OP", "PERF", "ERR", "ALLOW",
              "FIXTURE", "TEST"]
 BUILD_KEYS = ["NAME", "TARGET", "ENTRY", "MODULE", "FORM", "SIG", "FLOW", "FIXTURE", "TEST"]
@@ -105,6 +106,7 @@ class Form:
 @dataclass
 class Spec:
     kind: str = None    # "TASK", "BUILD", "QUESTION", or None if the header is unreadable
+    version: str = VERSION  # the version line: "VCL 0.1" or "VCL 0.2"
     line: int = 1       # line of the TASK / BUILD header (or of the # QUESTION: line)
     assumes: list = field(default_factory=list)   # [(line, text)]
     question: str = ""
@@ -241,8 +243,10 @@ def _parse(spec, lines):
         if others:
             spec.error(others[0], "a QUESTION reply contains only its '# QUESTION: <question>' line")
         return
-    if body[0][1] != VERSION:
-        spec.error(body[0][0], f"the first line must be '{VERSION}'")
+    if body[0][1] in VERSIONS:
+        spec.version = body[0][1]
+    else:
+        spec.error(body[0][0], f"the first line must be '{VERSIONS[0]}' or '{VERSIONS[1]}'")
     if len(body) < 2 or body[1][1] not in ("TASK", "BUILD"):
         spec.error(body[1][0] if len(body) > 1 else body[0][0], "the second line must be TASK or BUILD")
         return
@@ -265,10 +269,10 @@ def _parse_build(spec, body):
     if not separators:
         spec.error(spec.line, "a BUILD needs one TASK spec per SIG, each after a '---' line")
     for sep_line, section in zip(separators, sections[1:]):
-        task = Spec(kind="TASK", line=sep_line)
-        if len(section) < 2 or section[0][1] != VERSION or section[1][1] != "TASK":
+        task = Spec(kind="TASK", line=sep_line, version=spec.version)
+        if len(section) < 2 or section[0][1] != spec.version or section[1][1] != "TASK":
             spec.error(section[0][0] if section else sep_line,
-                       f"each section after '---' starts with '{VERSION}' and 'TASK'")
+                       f"each section after '---' starts with '{spec.version}' and 'TASK'")
             continue
         task.line = section[1][0]
         _parse_keys(task, section[2:], TASK_KEYS)

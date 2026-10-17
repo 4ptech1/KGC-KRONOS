@@ -219,6 +219,102 @@ Public Function ForgeEq(ByVal a As Variant, ByVal b As Variant) As Boolean
     End If
 End Function
 
+' ---- VCL 0.2 value functions: S5 and S12 to S16 ----
+
+Public Function ForgeIsError(ByVal v As Variant) As Boolean
+    ForgeIsError = IsError(v)
+End Function
+
+Public Function ForgeSame(ByVal a As Variant, ByVal b As Variant) As Boolean
+    ' Binary compare of the lower-case texts: vbTextCompare would follow the PC's locale.
+    ForgeSame = (StrComp(LCase$(ForgeTrim(a)), LCase$(ForgeTrim(b)), vbBinaryCompare) = 0)
+End Function
+
+Public Function ForgeCleanText(ByVal v As Variant) As String
+    Dim s As String
+    Dim ch As String
+    Dim code As Long
+    Dim i As Long
+    Dim pending As Boolean
+    Dim out As String
+    s = ForgeText(v)
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        code = AscW(ch)
+        If ForgeIsSpaceChar(code) Then
+            pending = True
+        ElseIf code >= 32 Or code < 0 Then
+            ' AscW is below 0 for characters above &H7FFF, which are kept
+            If pending And Len(out) > 0 Then out = out & " "
+            pending = False
+            out = out & ch
+        End If
+    Next i
+    ForgeCleanText = out
+End Function
+
+Private Function ForgeAllDigits(ByVal s As String, ByVal fewest As Long, ByVal most As Long) As Boolean
+    Dim i As Long
+    Dim ch As String
+    If Len(s) < fewest Or Len(s) > most Then Exit Function
+    For i = 1 To Len(s)
+        ch = Mid$(s, i, 1)
+        If ch < "0" Or ch > "9" Then Exit Function
+    Next i
+    ForgeAllDigits = True
+End Function
+
+Public Function ForgeParseDate(ByVal v As Variant, ByVal fmt As String) As Variant
+    ' Never CDate or DateValue: those read the text by the PC's regional settings.
+    Dim sep As String
+    Dim parts As Variant
+    Dim names As Variant
+    Dim i As Long
+    Dim dd As String
+    Dim mm As String
+    Dim yyyy As String
+    Dim result As Date
+    ForgeParseDate = Empty
+    If IsError(v) Then Exit Function
+    If VarType(v) = vbDate Then
+        ForgeParseDate = DateSerial(Year(v), Month(v), Day(v))
+        Exit Function
+    End If
+    If VarType(v) <> vbString Then Exit Function
+    If Left$(fmt, 4) = "yyyy" Then sep = Mid$(fmt, 5, 1) Else sep = Mid$(fmt, 3, 1)
+    parts = Split(ForgeTrim(v), sep)
+    names = Split(fmt, sep)
+    If UBound(parts) <> 2 Or UBound(names) <> 2 Then Exit Function
+    For i = 0 To 2
+        If names(i) = "dd" Then
+            dd = parts(i)
+        ElseIf names(i) = "mm" Then
+            mm = parts(i)
+        ElseIf names(i) = "yyyy" Then
+            yyyy = parts(i)
+        End If
+    Next i
+    If Not ForgeAllDigits(dd, 1, 2) Then Exit Function
+    If Not ForgeAllDigits(mm, 1, 2) Then Exit Function
+    If Not ForgeAllDigits(yyyy, 4, 4) Then Exit Function
+    If CLng(yyyy) < 1900 Then Exit Function
+    If CLng(mm) < 1 Or CLng(mm) > 12 Or CLng(dd) < 1 Then Exit Function
+    ' DateSerial rolls 31/02 over into March, so the day must come back unchanged
+    result = DateSerial(CLng(yyyy), CLng(mm), CLng(dd))
+    If Day(result) <> CLng(dd) Then Exit Function
+    ForgeParseDate = result
+End Function
+
+Public Function ForgeIif(ByVal cond As Boolean, ByVal a As Variant, ByVal b As Variant) As Variant
+    ' Both values were worked out by the caller already, as with VBA's IIf.
+    If cond Then ForgeIif = a Else ForgeIif = b
+End Function
+
+Public Function ForgeMod(ByVal a As Double, ByVal b As Double) As Double
+    ' Excel's MOD: the sign of b, decimals kept. VBA's Mod rounds first. b = 0 raises error 11.
+    ForgeMod = a - b * Int(a / b)
+End Function
+
 ' ---- S9: COL matches headers ignoring case, extra spaces and line breaks ----
 
 Public Function ForgeHeaderKey(ByVal v As Variant) As String

@@ -70,7 +70,7 @@ formats: "dd/mm/yyyy"  "dd-mm-yyyy"  "dd.mm.yyyy"  "mm/dd/yyyy"  "yyyy-mm-dd"
 
 - A real date value passes through unchanged (time of day dropped).
 - Text is TRIMmed, then must match the format exactly. Day and month take 1 or 2 digits, and
-  the year takes 4. The date must exist, so 31/02/2026 gives empty.
+  the year takes 4, from 1900 (D17). The date must exist, so 31/02/2026 gives empty.
 - The format is required. "03/04/2026" means 3 April or 4 March depending on the PC, so VCL
   never guesses (S4).
 - The result is a Variant, so the type checker requires the usual guard:

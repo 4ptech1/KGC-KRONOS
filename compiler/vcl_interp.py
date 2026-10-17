@@ -1,4 +1,4 @@
-"""Reference interpreter for VCL 0.1 rev 3 (milestone M3).
+"""Reference interpreter for VCL 0.1 and the VCL 0.2 value functions (milestone M3).
 
 run_tests(text) -> list of TestResult. Executes the spec's OP tree on fixture workbooks built by
 vcl_fixtures, with the meanings defined in vcl/semantics.py, and evaluates every TEST.
@@ -246,6 +246,22 @@ class Machine:
             return S.is_number(e(pos[0]))
         if name == "IS_DATE":
             return S.is_date(e(pos[0]))
+        if name == "SAME":
+            return S.same(e(pos[0]), e(pos[1]))
+        if name == "CLEAN_TEXT":
+            return S.clean_text(e(pos[0]))
+        if name == "IS_ERROR":
+            return S.is_error(e(pos[0]))
+        if name == "PARSE_DATE":
+            return S.parse_date(e(pos[0]), e(pos[1]))
+        if name == "IIF":
+            cond, a, b = e(pos[0]), e(pos[1]), e(pos[2])   # VBA's IIf evaluates both values
+            return S.iif(cond, a, b)
+        if name == "MOD":
+            a, b = self.num(e(pos[0])), self.num(e(pos[1]))
+            if b == 0:
+                raise VclError("division by zero")
+            return S.mod(a, b)
         if name == "EXISTS":
             return e(pos[0]).exists(e(pos[1]))
         if name == "COUNT":

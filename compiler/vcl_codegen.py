@@ -1,4 +1,4 @@
-"""Compile a VCL 0.1 rev 3 TASK spec to an Excel 2016 VBA procedure (MVP compiler).
+"""Compile a VCL 0.1 or 0.2 TASK spec to an Excel 2016 VBA procedure (MVP compiler).
 
 House style: Option Explicit at module level; every VCL meaning goes through ForgeLib; line
 labels are spec_line * 10 + k, so Erl \\ 10 is the spec line; Excel state is saved first and
@@ -247,6 +247,19 @@ class Gen:
             return f"ForgeIsDate({e(0)})", "bool"
         if name == "IS_NOTHING":
             return f"({e(0)} Is Nothing)", "bool"
+        if name == "SAME":
+            return f"ForgeSame({e(0)}, {e(1)})", "bool"
+        if name == "CLEAN_TEXT":
+            return f"ForgeCleanText({e(0)})", "text"
+        if name == "IS_ERROR":
+            return f"ForgeIsError({e(0)})", "bool"
+        if name == "PARSE_DATE":
+            return f"ForgeParseDate({e(0)}, {e(1)})", "raw"
+        if name == "IIF":
+            (ac, ak), (bc, bk) = self.ex(pos[1]), self.ex(pos[2])
+            return f"ForgeIif({e(0)}, {ac}, {bc})", ak if ak == bk else "raw"
+        if name == "MOD":
+            return f"ForgeMod({n(0)}, {n(1)})", "num"
         if name == "EXISTS":
             return f"ForgeDictExists({e(0)}, {e(1)})", "bool"
         if name == "COUNT":
