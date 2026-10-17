@@ -55,6 +55,13 @@ class Interpreter(unittest.TestCase):
         self.assertTrue(run_tests(text)[0].passed)
         self.assertIn("If (r = 3) Then GoTo CleanExit", compile_text(text))
 
+    def test_fill_names_are_their_colours(self):
+        # fill=red is the same fill as fill=#FF0000, so FILL_COUNT(..., #FF0000) counts it.
+        text = mini(["FORMAT(CELL($ws, 2, 1), fill=red)", "FORMAT(CELL($ws, 3, 1), fill=#FF0000)",
+                     "FORMAT(CELL($ws, 4, 1), fill=yellow)", "RETURN(1)"],
+                    ["fixture=t_01.xlsx call=P(S) assert=FILL_COUNT(S!A:A, #FF0000) = 2 AND FILL_COUNT(S!A4, #FFFF00) = 1"])
+        self.assertTrue(run_tests(text)[0].passed)
+
 
 class Compiler(unittest.TestCase):
     def test_compiles_what_type_checks_and_refuses_the_rest(self):
@@ -69,6 +76,18 @@ class Compiler(unittest.TestCase):
                         compile_text(text)
                 else:
                     self.assertIn("End Function", compile_text(text))
+
+    def test_fill_names_compile_to_their_colours(self):
+        vba = compile_text(mini(["FORMAT(CELL($ws, 2, 1), fill=red)", "FORMAT(CELL($ws, 3, 1), fill=cyan)",
+                                 "RETURN(1)"], ["fixture=t_01.xlsx call=P(S) assert=RESULT = 1"]))
+        self.assertIn("ws.Cells(2, 1).Interior.Color = RGB(255, 0, 0)", vba)
+        self.assertIn("ws.Cells(3, 1).Interior.Color = RGB(0, 255, 255)", vba)
+
+    def test_every_fill_name_has_a_colour(self):
+        sys.path.insert(0, str(ROOT / "vcl"))
+        import semantics
+        from validator import FILL_NAMES
+        self.assertEqual(FILL_NAMES, ("none",) + tuple(semantics.FILL_COLORS))
 
     def test_module_lints_clean(self):
         procs = []
