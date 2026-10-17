@@ -69,3 +69,8 @@ Dataset count: 0 verified pairs
   warnings). All 10 specs' fixtures and goal TESTs upgraded (no OP line changed); the
   whole-workbook mutation score rose from 84% to 96.4%, and every surviving mutant is
   equivalent.
+- **2026-10-17:** VCL 0.2, PR A: the six value functions SAME, CLEAN_TEXT, IS_ERROR,
+  PARSE_DATE, IIF and MOD, through the whole toolchain (semantics and 52 new conformance
+  cases, validator, type checker, interpreter, compiler, ForgeLib). They work only in specs
+  that start with `VCL 0.2`; the 10 specs and the Orchestrator prompt stay `VCL 0.1` until
+  the migration PR.

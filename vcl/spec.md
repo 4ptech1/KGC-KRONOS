@@ -289,6 +289,54 @@ stale=n    a red (#FF0000) fill across the header's columns. rows=0: n new rows 
 
 A values() entry of `""` is a blank cell, and so is a column without a data rule.
 
+## VCL 0.2 additions (being built)
+
+VCL 0.2 is designed in `docs/vep-0.2-core.md` and lands in four PRs. This section lists what
+has landed so far. It sits outside the reference text shared with the Orchestrator prompt, so
+the Orchestrator keeps writing `VCL 0.1` until the migration PR moves it all in at once.
+
+A spec uses these only when its first line is `VCL 0.2` (and in a BUILD, every section's first
+line too); under `VCL 0.1` the validator reports them. Every `VCL 0.1` spec is also valid as
+`VCL 0.2`.
+
+```text
+VALUE FUNCTIONS (VCL 0.2, PR A)
+  SAME(<expr>, <expr>)          TRUE when TRIM(a) and TRIM(b) are the same text, ignoring case
+  CLEAN_TEXT(<expr>)            TRIM, every inner run of whitespace becomes one space, and
+                                characters below code 32 are removed; case is kept
+  IS_ERROR(<expr>)              TRUE for an Excel error value (#N/A, #DIV/0!, ...)
+  PARSE_DATE(<expr>, "<format>")  a real date, or empty when x is not a date in that format
+                                formats: "dd/mm/yyyy" "dd-mm-yyyy" "dd.mm.yyyy" "mm/dd/yyyy" "yyyy-mm-dd"
+  IIF(<condition>, <expr>, <expr>)  the first value when the condition is TRUE, else the second
+  MOD(<expr>, <expr>)           a - b * INT(a / b), as Excel's MOD
+
+SEMANTICS
+  SAME        both sides become canonical text, then TRIM, then compare letter by letter
+              ignoring case: SAME(25, "25") is TRUE, SAME(25, "25.0") is FALSE, an empty cell
+              is SAME as "", and an error is SAME as its text (use IS_ERROR first)
+  CLEAN_TEXT  "  W-01 " & non-breaking space & line break & "  A " gives "W-01 A"
+  IS_ERROR    the text "#N/A" is not an error
+  PARSE_DATE  a real date passes through (time of day dropped); text is TRIMmed and must
+              match the format exactly: day and month 1 or 2 digits, year 4 digits from 1900;
+              the date must exist (31/02/2026 gives empty); numbers give empty. The format
+              is required: "03/04/2026" is a different day on different PCs, so VCL never
+              guesses. The result needs IF IS_DATE(d) before any date comparison.
+  IIF         both values are always worked out, as with AND / OR, so the condition never
+              guards them: IIF(IS_NUMBER(x), x * 2, 0) is rejected. Values only, never a
+              Range, Worksheet, Workbook or Dictionary.
+  MOD         the sign of b, decimals kept: MOD(7, 3) = 1, MOD(-7, 3) = 2, MOD(7.5, 2) = 1.5.
+              MOD(a, 0) is a run-time error. Its arguments are numbers (guard cells with
+              IS_NUMBER, rule 15); a date is not allowed.
+```
+
+The conformance cases for all six are in `docs/vcl-semantics.md` (S5, S12 to S16).
+
+## Changes for VCL 0.2, PR A (17 Oct 2026)
+
+- The first line may be `VCL 0.2` (E3). Nothing else changes for `VCL 0.1` specs.
+- Six value functions, under `VCL 0.2` only: SAME, CLEAN_TEXT, IS_ERROR, PARSE_DATE, IIF and
+  MOD (S5, S12 to S16, T3), in the section above. Details: `DECISIONS.md`.
+
 ## Changes in revision 5
 
 Fixtures that can tell a right macro from a wrong one, from the mutation evidence in

@@ -1,4 +1,4 @@
-"""Reference semantics for VCL 0.1 core value functions (milestone M3 seed).
+"""Reference semantics for the VCL core value functions (VCL 0.1, plus the VCL 0.2 value functions).
 
 These functions ARE the meaning of VCL. ForgeLib (VBA) must behave identically; the
 conformance table in tests/test_semantics.py is shared by both and is the contract.
@@ -6,6 +6,7 @@ conformance table in tests/test_semantics.py is shared by both and is the contra
 Cell values in the model: None (empty), str, int/float (numbers), bool, datetime.date, XlError.
 """
 import datetime as _dt
+import math as _math
 import re as _re
 
 WHITESPACE = " \u00a0\t\r\n"        # space, non-breaking space, tab, CR, LF
@@ -66,7 +67,8 @@ def is_date(v):
 
 
 def is_error(v):
-    """S5 (VCL 0.2 candidate): true for Excel error values (#N/A, #DIV/0!, ...)."""
+    """S5 (VCL 0.2): true for Excel error values (#N/A, #DIV/0!, ...); false for everything else,
+    including the text "#N/A"."""
     return isinstance(v, XlError)
 
 
@@ -160,3 +162,79 @@ def last_row(column_values):
         if column_values[i - 1] is not None:
             return i
     return 1
+
+
+# ---------------------------------------------------------------- VCL 0.2 value functions
+
+DATE_FORMATS = ("dd/mm/yyyy", "dd-mm-yyyy", "dd.mm.yyyy", "mm/dd/yyyy", "yyyy-mm-dd")
+
+
+def same(a, b):
+    """S12 (VCL 0.2): SAME(a, b) is true when TRIM(a) and TRIM(b) are the same text, ignoring
+    case (letter by letter, as LOWER: "ß" is not "ss"). Numbers are compared as text, so 25 and
+    "25" are the same but 25 and "25.0" are not."""
+    return trim(a).lower() == trim(b).lower()
+
+
+def clean_text(v):
+    """S13 (VCL 0.2): CLEAN_TEXT removes characters below code 32 (other than tabs and line
+    breaks), turns every run of spaces, non-breaking spaces, tabs and line breaks into one
+    space, and trims both ends. Case is kept."""
+    out, pending = [], False
+    for ch in text_of(v):
+        if ch in WHITESPACE:
+            pending = True
+        elif ord(ch) >= 32:
+            if pending and out:
+                out.append(" ")
+            pending = False
+            out.append(ch)
+    return "".join(out)
+
+
+def _digits(s, fewest, most):
+    return fewest <= len(s) <= most and all("0" <= ch <= "9" for ch in s)
+
+
+def parse_date(v, fmt):
+    """S14 (VCL 0.2): PARSE_DATE(x, format) gives a real date, or empty when x is not a date in
+    that format. A real date passes through (time of day dropped). Text is TRIMmed and must
+    match the format exactly: day and month 1 or 2 digits, year 4 digits from 1900 to 9999,
+    and the date must exist (31/02/2026 gives empty). Numbers and everything else give empty.
+    The format is required, because "03/04/2026" means a different day on different PCs."""
+    if fmt not in DATE_FORMATS:
+        raise ValueError(f"unknown date format {fmt!r}")
+    if isinstance(v, _dt.datetime):
+        return v.date()
+    if isinstance(v, _dt.date):
+        return v
+    if not isinstance(v, str):
+        return None
+    sep = fmt[4] if fmt.startswith("yyyy") else fmt[2]
+    parts = trim(v).split(sep)
+    if len(parts) != 3:
+        return None
+    order = fmt.split(sep)
+    found = dict(zip(order, parts))
+    if not (_digits(found["dd"], 1, 2) and _digits(found["mm"], 1, 2) and _digits(found["yyyy"], 4, 4)):
+        return None
+    y, m, d = int(found["yyyy"]), int(found["mm"]), int(found["dd"])
+    if y < 1900:
+        return None
+    try:
+        return _dt.date(y, m, d)
+    except ValueError:
+        return None
+
+
+def iif(cond, a, b):
+    """S15 (VCL 0.2): IIF(cond, a, b) gives a when cond is TRUE, else b. Both a and b are always
+    evaluated (as VBA's IIf), so an IIF branch is never a guard."""
+    return a if cond else b
+
+
+def mod(a, b):
+    """S16 (VCL 0.2): MOD(a, b) is a - b * INT(a / b), as Excel's MOD: the result has the sign
+    of b, and decimals are kept. VBA's Mod operator rounds both sides first and gives the sign
+    of a, so it is not used. MOD(a, 0) is a run-time error."""
+    return a - b * _math.floor(a / b)

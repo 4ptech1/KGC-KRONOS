@@ -1,4 +1,4 @@
-"""Validate VCL 0.1 specs against vcl/spec.md.
+"""Validate VCL 0.1 and VCL 0.2 specs against vcl/spec.md.
 
 Usage:  python compiler/validator.py specs/*.vcl
 
@@ -77,8 +77,14 @@ VALUE_FUNCS = {
     "IS_EMPTY": (1, 1, {}), "IS_NUMBER": (1, 1, {}), "IS_DATE": (1, 1, {}), "IS_NOTHING": (1, 1, {}),
     "FILE_NAME": (1, 1, {}), "SHEETS": (1, 1, {}), "CELLS": (1, 1, {}), "KEYS": (1, 1, {}),
     "ITEMS": (1, 1, {}),
+    # VCL 0.2 (docs/vep-0.2-core.md, PR A)
+    "SAME": (2, 2, {}), "CLEAN_TEXT": (1, 1, {}), "IS_ERROR": (1, 1, {}), "PARSE_DATE": (2, 2, {}),
+    "IIF": (3, 3, {}), "MOD": (2, 2, {}),
 }
-STRING_SECOND = {"COL", "RANGE", "SHEET"}  # second argument is a "quoted" header, ref or sheet name
+VCL_02_FUNCS = {"SAME", "CLEAN_TEXT", "IS_ERROR", "PARSE_DATE", "IIF", "MOD"}
+DATE_FORMATS = ("dd/mm/yyyy", "dd-mm-yyyy", "dd.mm.yyyy", "mm/dd/yyyy", "yyyy-mm-dd")  # as vcl/semantics.py
+# second argument is a "quoted" header, ref, sheet name or date format
+STRING_SECOND = {"COL", "RANGE", "SHEET", "PARSE_DATE"}
 CONSTANTS = {"THIS_BOOK", "ACTIVE_BOOK", "ACTIVE_SHEET", "TODAY", "NOW", "TRUE", "FALSE", "NOTHING"}
 FOR_EACH_IN = {"SHEETS", "CELLS", "KEYS", "ITEMS"}
 BINARY = {"=", "<>", "<", ">", "<=", ">=", "+", "-", "*", "/", "&"}
@@ -799,6 +805,8 @@ class TaskChecker:
             for items in call.positional:
                 self.check_expr(items, f"{name} argument")
             return
+        if name in VCL_02_FUNCS and self.spec.version != "VCL 0.2":
+            self.error(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it")
         fewest, most, allowed = VALUE_FUNCS[name]
         positional, options = self.call_parts(call)
         if not fewest <= len(positional) <= most:
@@ -812,6 +820,9 @@ class TaskChecker:
             if name in STRING_SECOND and i == 1:
                 if not (len(items) == 1 and is_tok(items[0], "string")):
                     self.error(f'{name} needs a "quoted" text as its second argument')
+                elif name == "PARSE_DATE" and items[0].text[1:-1] not in DATE_FORMATS:
+                    self.error(f"PARSE_DATE format {items[0].text} is not one of "
+                               + ", ".join(f'"{f}"' for f in DATE_FORMATS))
             else:
                 self.check_expr(items, f"{name} argument")
         if name == "COL" and len(positional) == 2:

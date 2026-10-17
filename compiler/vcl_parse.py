@@ -1,8 +1,8 @@
-"""Grammar-based parser for VCL 0.1 revision 3 (prototype for milestone M2).
+"""Grammar-based parser for VCL 0.1 and VCL 0.2 (prototype for milestone M2).
 
 parse(text) -> (spec, problems)
-  spec: dict with kind (TASK, BUILD, QUESTION), assumes, keys, ops (a nested tree) and the
-        parsed Lark trees for every line.
+  spec: dict with kind (TASK, BUILD, QUESTION), version ("VCL 0.1" or "VCL 0.2"), assumes,
+        keys, ops (a nested tree) and the parsed Lark trees for every line.
   problems: list of (line_no, message). Parsing never raises on bad input.
 """
 import re
@@ -22,6 +22,7 @@ START = {"PROC": "proc_value", "KIND": "kind_value", "MODULE": "module_value",
          "FIXTURE": "fixture_value", "TEST": "test_value", "NAME": "name_value",
          "TARGET": "target_value", "ENTRY": "entry_value", "FORM": "form_value",
          "SIG": "sig_value", "FLOW": "flow_value"}
+VERSIONS = ("VCL 0.1", "VCL 0.2")
 OPENERS = {"loop_rows", "loop_cols", "for_each", "if_block", "select_case", "case_line",
            "case_else"}
 # G2: option names are reserved words, read from the grammar's OPTKEY terminal so there is one list.
@@ -52,8 +53,8 @@ def _parse_value(start, value, line_no, problems):
     return None
 
 
-def _parse_task(lines, first_no, problems):
-    spec = {"kind": "TASK", "assumes": [], "keys": [], "ops": []}
+def _parse_task(lines, first_no, problems, version):
+    spec = {"kind": "TASK", "version": version, "assumes": [], "keys": [], "ops": []}
     seen_key = False
     order_idx = -1
     op_base = None
@@ -119,8 +120,9 @@ def _parse_task(lines, first_no, problems):
     return spec
 
 
-def _parse_lines(lines, first_no, problems, allow_build=True):
-    """Parse one spec held in lines; first_no is the file line number of lines[0]."""
+def _parse_lines(lines, first_no, problems, allow_build=True, want=None):
+    """Parse one spec held in lines; first_no is the file line number of lines[0]. want is the
+    version line a TASK inside a BUILD must repeat (the BUILD's own)."""
     nonblank = [(i, l) for i, l in enumerate(lines) if l.strip()]
     if not nonblank:
         problems.append((first_no, "empty spec"))
@@ -130,14 +132,18 @@ def _parse_lines(lines, first_no, problems, allow_build=True):
         if len(nonblank) > 1:
             problems.append((first_no + nonblank[1][0], "a QUESTION reply must be the only line"))
         return {"kind": "QUESTION", "text": head[len("# QUESTION:"):].strip()}
-    if head.strip() != "VCL 0.1":
-        problems.append((first_no + head_i, "line 1 must be 'VCL 0.1'"))
+    version = head.strip()
+    if want and version != want:
+        problems.append((first_no + head_i, f"line 1 must be '{want}', as in the BUILD"))
+    elif version not in VERSIONS:
+        problems.append((first_no + head_i, "line 1 must be 'VCL 0.1' or 'VCL 0.2'"))
+        version = VERSIONS[0]
     kind_i = nonblank[1][0] if len(nonblank) > 1 else head_i + 1
     kind = lines[kind_i].strip() if kind_i < len(lines) else ""
     if kind == "TASK":
-        return _parse_task(lines[kind_i + 1:], first_no + kind_i + 1, problems)
+        return _parse_task(lines[kind_i + 1:], first_no + kind_i + 1, problems, want or version)
     if kind == "BUILD" and allow_build:
-        head = {"kind": "BUILD", "keys": [], "tasks": []}
+        head = {"kind": "BUILD", "version": version, "keys": [], "tasks": []}
         seps = [i for i in range(kind_i + 1, len(lines)) if lines[i].strip() == "---"]
         for i in range(kind_i + 1, seps[0] if seps else len(lines)):
             raw, line_no = lines[i], first_no + i
@@ -150,7 +156,8 @@ def _parse_lines(lines, first_no, problems, allow_build=True):
                     tree = _parse_value(START[key], value, line_no, problems)
                     head["keys"].append({"key": key, "line": line_no, "tree": tree})
         for a, b in zip(seps, seps[1:] + [len(lines)]):
-            head["tasks"].append(_parse_lines(lines[a + 1:b], first_no + a + 1, problems, allow_build=False))
+            head["tasks"].append(_parse_lines(lines[a + 1:b], first_no + a + 1, problems,
+                                              allow_build=False, want=version))
         return head
     problems.append((first_no + kind_i, "line 2 must be TASK" + (" or BUILD" if allow_build else "")))
     return None
