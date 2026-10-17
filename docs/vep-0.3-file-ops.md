@@ -34,7 +34,7 @@ Boss's answers to my questions:
 | 11 | The brief's file list is off. `catalog.yaml` doesn't exist, and a new YAML dependency breaks "standard library first". The file-system mock doesn't belong in `vcl/semantics.py`. | The op catalogue is the existing tables (`validator.py` OPS and VALUE_FUNCS, `vcl_types.py` FUNCS). `semantics.py` gets only the pure functions (`safe_name`, `path_join`) and their conformance cases. The mock file system lives in `vcl_fixtures.py` and `vcl_interp.py`. |
 | 12 | Nothing proves that "nothing else changed" on disk. | **`MODIFIES $jobs files`**: files and folders may be added below `$jobs`, and nothing else on disk may change. This extends UNCHANGED to the mock file system: existing files keep their bytes, and nothing is ever removed. |
 | 13 | Version and sync. | The new features need **`VCL 0.3`** on the first line, as 0.2 did. The shared reference text and the prompt switch once, in Phase 4. |
-| 14 | The spec's file name. | `specs/task_11.vcl` (PROC `RouteJobPacks`), not `job_router.vcl`, to follow the repo's naming. |
+| 14 | The spec's file name. | `specs/task_12.vcl` (PROC `RouteJobPacks`), not `job_router.vcl`, to follow the repo's naming. (Was task_11; Boss's weld-log spec took that number first, D24.) |
 | 15 | "Prove ForgeLib in Excel" has no deliverable. | Add **Phase 5: the Excel pilot kit**. A sandbox builder, a ForgeLib self-test that runs the conformance cases in VBA, and a 5-step guide for Boss. It is optional and runs when Boss chooses. |
 
 Excel and FSO notes: always `CreateObject("Scripting.FileSystemObject")`, late-bound with no References, which works in Excel 2016. If it is blocked, the ops return `Failed` and log it. The lint bans `DeleteFile`, `DeleteFolder`, `MoveFile` and `Kill`.
@@ -71,7 +71,7 @@ Each phase is one or two PRs: CI green, merge, then the next phase. Every PR run
 - **Fixture builder (`vcl_fixtures.vba_for_file`):** emits a sandbox builder that creates `Environ$("TEMP")\KGC_KRONOS_SANDBOX_<yyyymmdd_hhnnss>` and writes dummy `.pdf` text files with `Open ... For Output`. It never deletes anything, and a new timestamped folder means it never collides.
 
 ### Phase 4: the MVP spec
-- **`specs/task_11.vcl`** (`RouteJobPacks`, Function returning the number copied). For each tracker row it takes `SAFE_NAME` of the Job ID and of the Report File, skips bad names (status `Bad name`), runs MAKE_FOLDER on `PATH_JOIN($jobs, id)` and COPY_FILE from `PATH_JOIN($dump, file)`, and writes the status. It declares `MODIFIES $tracker["Status"]` and `MODIFIES $jobs files`.
+- **`specs/task_12.vcl`** (`RouteJobPacks`, Function returning the number copied). For each tracker row it takes `SAFE_NAME` of the Job ID and of the Report File, skips bad names (status `Bad name`), runs MAKE_FOLDER on `PATH_JOIN($jobs, id)` and COPY_FILE from `PATH_JOIN($dump, file)`, and writes the status. It declares `MODIFIES $tracker["Status"]` and `MODIFIES $jobs files`.
 - **Fixtures:** the cases Copied, Missing, Conflict, Locked, an unsafe ID, and a re-run with `runs=2` (Already there).
 - **Run:** `vclc all` and rebuild `dist/forge_module.bas`.
 - **Language switch:** the shared reference text and the prompt move to VCL 0.3, then Boss updates the Orchestrator a second time (exact clicks given).
@@ -79,7 +79,7 @@ Each phase is one or two PRs: CI green, merge, then the next phase. Every PR run
 ### Phase 5: Excel pilot kit (optional; Boss runs it when he chooses)
 - **`dist/forge_selftest.bas`:** runs every conformance case through ForgeLib in Excel and writes PASS or FAIL to a new sheet. This is the actual "ForgeLib runs in Excel 2016" proof.
 - **A guide for Boss** (`docs/excel-pilot.md`): open a blank .xlsm, import 3 modules, run `ForgeSandboxBuild`, run `RouteJobPacks`, then paste the results back.
-- **`dist/expected/task_11*.json`:** what the run should show. Claude compares the pasted results automatically.
+- **`dist/expected/task_12*.json`:** what the run should show. Claude compares the pasted results automatically.
 
 ## Verification (every phase)
 
