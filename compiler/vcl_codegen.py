@@ -79,6 +79,7 @@ class Gen:
         self.lines = []
         self.label_k = {}
         self.facts = {}
+        self.loops = []   # innermost last: [SKIP_IF label, whether a SKIP_IF jumps to it]
         self.checker = Checker(spec)
 
     # ---------- output ----------
@@ -302,7 +303,11 @@ class Gen:
             if isinstance(pos[0], Tree) and pos[0].data == "call" and str(pos[0].children[0]) == "ARR":
                 ap, _ = pos_opts(pos[0])
                 return [f"{e(ap[0])}({self.as_num(ap[1])[0]}, {self.as_num(ap[2])[0]}) = {e(pos[1])}"]
-            return [f"{self.rng(pos[0])}.Value = {e(pos[1])}"]
+            return [f"ForgeSetValue {self.rng(pos[0])}, {e(pos[1])}"]   # S17: text stays text
+        if name == "WRITE_ROW":
+            col = self.as_num(opts["col"])[0] if "col" in opts else "1"
+            values = ", ".join(e(v) for v in pos[2:])
+            return [f"ForgeWriteRow {e(pos[0])}, {self.as_num(pos[1])[0]}, {col}, Array({values})"]
         if name == "CLEAR":
             what = str(opts.get("what", "all"))
             method = {"all": "Clear", "contents": "ClearContents", "formats": "ClearFormats"}[what]
@@ -435,9 +440,16 @@ class Gen:
                     self.block(n["else"], depth + 1)
                     self.facts = saved
                 self.emit("End If", depth)
-            elif kind == "exit_if":
+            elif kind in ("exit_if", "skip_if", "exit_loop_if"):
                 cond = s.children[0]
-                self.emit(f"If {self.ex(cond)[0]} Then GoTo CleanExit", depth, line)
+                if kind == "exit_if":
+                    jump = "GoTo CleanExit"
+                elif kind == "exit_loop_if":
+                    jump = "Exit For"
+                else:   # VBA has no Continue: jump to a label just before the loop's Next
+                    self.loops[-1][1] = True
+                    jump = f"GoTo {self.loops[-1][0]}"
+                self.emit(f"If {self.ex(cond)[0]} Then {jump}", depth, line)
                 for k, v in self.checker.facts_if(cond, False).items():
                     self.facts[k] = "date" if v == "Date" else "num"
             elif kind in ("loop_rows", "loop_cols"):
@@ -448,7 +460,7 @@ class Gen:
                 self.emit(f"For {vba_name(var)} = {self.as_num(o['from'])[0]} To {self.as_num(o['to'])[0]}{step}", depth, line)
                 saved = {k: v for k, v in self.facts.items()}
                 self.facts = {k: v for k, v in self.facts.items() if not mentions(k, var)}
-                self.block(n["children"], depth + 1)
+                self.loop_body(n["children"], depth + 1, line)
                 self.facts = {k: v for k, v in saved.items() if not mentions(k, var)}
                 self.emit(f"Next {vba_name(var)}", depth)
             elif kind == "for_each":
@@ -469,7 +481,10 @@ class Gen:
                     raise CompileError(f"line {line}: FOR_EACH over {fn} is not supported")
                 self.loopvars[var] = "text" if fn == "KEYS" else "raw"
                 self.emit(f"For Each {vba_name(var)} In {coll}", depth, line)
-                self.block(n["children"], depth + 1)
+                saved = dict(self.facts)
+                self.facts = {k: v for k, v in self.facts.items() if not mentions(k, var)}
+                self.loop_body(n["children"], depth + 1, line)
+                self.facts = {k: v for k, v in saved.items() if not mentions(k, var)}
                 self.emit(f"Next {vba_name(var)}", depth)
             elif kind == "select_case":
                 self.emit(f"Select Case {self.ex(s.children[0])[0]}", depth, line)
@@ -485,6 +500,14 @@ class Gen:
                 raise CompileError(f"line {line}: NOTE steps need the local model; the MVP compiler can't translate them")
             else:
                 raise CompileError(f"line {line}: {kind} is not supported by the MVP compiler")
+
+    def loop_body(self, nodes, depth, line):
+        """A loop's body, with the label SKIP_IF jumps to (Next_<spec line>) when it is used."""
+        self.loops.append([f"Next_{line}", False])
+        self.block(nodes, depth)
+        label, used = self.loops.pop()
+        if used:
+            self.lines.append(f"{label}:")
 
     def compile(self):
         body_start = len(self.lines)

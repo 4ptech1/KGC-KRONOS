@@ -34,6 +34,14 @@ class _Exit(Exception):
     pass
 
 
+class _Skip(Exception):
+    """SKIP_IF: go on with the next pass of the innermost loop."""
+
+
+class _Break(Exception):
+    """EXIT_LOOP_IF: leave the innermost loop."""
+
+
 @dataclass
 class Rng:
     sheet: Sheet
@@ -314,6 +322,11 @@ class Machine:
                         rng.sheet.fills[(r, c)] = str(f).upper()
                 if "numfmt" in opts:
                     rng.sheet.formats[(r, c)] = e(opts["numfmt"])
+        elif name == "WRITE_ROW":
+            sh, r = e(pos[0]), self.index(e(pos[1]))
+            c = self.index(e(opts["col"])) if "col" in opts else 1
+            for i, v in enumerate([e(a) for a in pos[2:]]):
+                sh.set(r, c + i, v)
         elif name == "COPY_ROW":
             src, r, dst, r2 = e(pos[0]), self.index(e(pos[1])), e(pos[2]), self.index(e(pos[3]))
             n = self.index(e(opts["cols"]))
@@ -391,6 +404,12 @@ class Machine:
             elif kind == "exit_if":
                 if self.ev(s.children[0]):
                     raise _Exit()
+            elif kind == "skip_if":
+                if self.ev(s.children[0]):
+                    raise _Skip()
+            elif kind == "exit_loop_if":
+                if self.ev(s.children[0]):
+                    raise _Break()
             elif kind in ("loop_rows", "loop_cols"):
                 o = {str(x.children[0]): x.children[1] for x in s.children}
                 a, b = int(self.num(self.ev(o["from"]))), int(self.num(self.ev(o["to"])))
@@ -398,15 +417,27 @@ class Machine:
                 var = str(o["var"])
                 for i in range(a, b + step, step) if (b - a) * step >= 0 else []:
                     self.vars[var] = i
-                    self.block(n["children"])
+                    if not self.loop_pass(n["children"]):
+                        break
             elif kind == "for_each":
                 o = {str(x.children[0]): x.children[1] for x in s.children}
                 var = str(o["var"])
                 for item in list(self.ev(o["in"])):
                     self.vars[var] = item
-                    self.block(n["children"])
+                    if not self.loop_pass(n["children"]):
+                        break
             else:
                 raise VclError(f"{kind} is not supported by the MVP interpreter")
+
+    def loop_pass(self, body):
+        """One pass of a loop body. False when EXIT_LOOP_IF leaves the loop."""
+        try:
+            self.block(body)
+        except _Skip:
+            pass
+        except _Break:
+            return False
+        return True
 
     def run(self):
         for k in self.spec["keys"]:

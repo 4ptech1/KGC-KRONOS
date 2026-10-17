@@ -369,10 +369,52 @@ Public Function ForgeRowRange(ByVal ws As Worksheet, ByVal rowNo As Long, ByVal 
     Set ForgeRowRange = ws.Range(ws.Cells(rowNo, c1), ws.Cells(rowNo, c2))
 End Function
 
+' ---- S17: SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text ----
+
+Public Function ForgeNeedsTextGuard(ByVal s As String) As Boolean
+    ' True when Excel could turn the text into a number, date, TRUE/FALSE, error or formula.
+    Dim i As Long
+    Dim code As Long
+    Dim t As String
+    If Len(s) = 0 Then Exit Function
+    For i = 1 To Len(s)
+        code = AscW(Mid$(s, i, 1))
+        If (code >= 48 And code <= 57) Or code > 127 Or code < 0 Then
+            ForgeNeedsTextGuard = True
+            Exit Function
+        End If
+    Next i
+    If InStr(1, "=+-@'#", Left$(s, 1), vbBinaryCompare) > 0 Then
+        ForgeNeedsTextGuard = True
+        Exit Function
+    End If
+    t = UCase$(ForgeTrim(s))
+    ForgeNeedsTextGuard = (t = "TRUE" Or t = "FALSE")
+End Function
+
+Public Sub ForgeSetValue(ByVal target As Range, ByVal v As Variant)
+    ' The ' prefix is hidden by Excel: the cell holds the text unchanged.
+    If VarType(v) = vbString Then
+        If ForgeNeedsTextGuard(v) Then
+            target.Value = "'" & v
+            Exit Sub
+        End If
+    End If
+    target.Value = v
+End Sub
+
+Public Sub ForgeWriteRow(ByVal ws As Worksheet, ByVal rowNo As Long, ByVal firstCol As Long, ByVal values As Variant)
+    Dim i As Long
+    For i = LBound(values) To UBound(values)
+        ForgeSetValue ws.Cells(rowNo, firstCol + i - LBound(values)), values(i)
+    Next i
+End Sub
+
 Public Sub ForgeCopyRow(ByVal src As Worksheet, ByVal srcRow As Long, ByVal dst As Worksheet, ByVal dstRow As Long, ByVal nCols As Long)
-    If nCols < 1 Then Exit Sub
-    dst.Range(dst.Cells(dstRow, 1), dst.Cells(dstRow, nCols)).Value = _
-        src.Range(src.Cells(srcRow, 1), src.Cells(srcRow, nCols)).Value
+    Dim c As Long
+    For c = 1 To nCols
+        ForgeSetValue dst.Cells(dstRow, c), src.Cells(srcRow, c).Value
+    Next c
 End Sub
 
 Public Sub ForgeNoFill(ByVal rng As Range)
@@ -468,11 +510,11 @@ Public Function BuildShortageList(ByVal bom As Worksheet, ByVal grn As Worksheet
 240       grnPart = ForgeCol(grn, "Part No")
 250       grnQty = ForgeCol(grn, "Received Qty")
 260       ForgeUsedRange(out).Clear
-270       out.Cells(1, 1).Value = "Part No"
-280       out.Cells(1, 2).Value = "Required"
-290       out.Cells(1, 3).Value = "Received"
-300       out.Cells(1, 4).Value = "Shortage"
-310       out.Cells(1, 5).Value = "Remark"
+270       ForgeSetValue out.Cells(1, 1), "Part No"
+280       ForgeSetValue out.Cells(1, 2), "Required"
+290       ForgeSetValue out.Cells(1, 3), "Received"
+300       ForgeSetValue out.Cells(1, 4), "Shortage"
+310       ForgeSetValue out.Cells(1, 5), "Remark"
 320       For r = 2 To ForgeLastRow(grn, grnPart)
 330           If ((Not ForgeIsEmpty(grn.Cells(r, grnPart).Value)) And ForgeIsNumber(grn.Cells(r, grnQty).Value)) Then ForgeDictAdd received, ForgeTrim(grn.Cells(r, grnPart).Value), grn.Cells(r, grnQty).Value, "sum"
           Next r
@@ -483,18 +525,18 @@ Public Function BuildShortageList(ByVal bom As Worksheet, ByVal grn As Worksheet
 380               got = 0
 390               If ForgeDictExists(received, partNo) Then got = ForgeNum(ForgeDictGet(received, partNo))
 400               If (Not ForgeIsNumber(bom.Cells(r, bomReq).Value)) Then
-410                   out.Cells(outRow, 1).Value = partNo
-420                   out.Cells(outRow, 3).Value = got
-430                   out.Cells(outRow, 5).Value = "Required qty missing"
+410                   ForgeSetValue out.Cells(outRow, 1), partNo
+420                   ForgeSetValue out.Cells(outRow, 3), got
+430                   ForgeSetValue out.Cells(outRow, 5), "Required qty missing"
 440                   outRow = (outRow + 1)
                   Else
 460                   If (got < ForgeNum(bom.Cells(r, bomReq).Value)) Then
-470                       out.Cells(outRow, 1).Value = partNo
-480                       out.Cells(outRow, 2).Value = bom.Cells(r, bomReq).Value
-490                       out.Cells(outRow, 3).Value = got
-500                       out.Cells(outRow, 4).Value = (ForgeNum(bom.Cells(r, bomReq).Value) - got)
-510                       If (got = 0) Then out.Cells(outRow, 5).Value = "Not received"
-520                       If (got > 0) Then out.Cells(outRow, 5).Value = "Short"
+470                       ForgeSetValue out.Cells(outRow, 1), partNo
+480                       ForgeSetValue out.Cells(outRow, 2), bom.Cells(r, bomReq).Value
+490                       ForgeSetValue out.Cells(outRow, 3), got
+500                       ForgeSetValue out.Cells(outRow, 4), (ForgeNum(bom.Cells(r, bomReq).Value) - got)
+510                       If (got = 0) Then ForgeSetValue out.Cells(outRow, 5), "Not received"
+520                       If (got > 0) Then ForgeSetValue out.Cells(outRow, 5), "Short"
 530                       outRow = (outRow + 1)
                       End If
                   End If
@@ -586,10 +628,10 @@ Public Function BuildWelderRepairRate(ByVal nde As Worksheet, ByVal out As Works
 230       cWelder = ForgeCol(nde, "Welder ID")
 240       cResult = ForgeCol(nde, "Result")
 250       ForgeUsedRange(out).Clear
-260       out.Cells(1, 1).Value = "Welder ID"
-270       out.Cells(1, 2).Value = "Seams Inspected"
-280       out.Cells(1, 3).Value = "Repairs"
-290       out.Cells(1, 4).Value = "Repair Rate"
+260       ForgeSetValue out.Cells(1, 1), "Welder ID"
+270       ForgeSetValue out.Cells(1, 2), "Seams Inspected"
+280       ForgeSetValue out.Cells(1, 3), "Repairs"
+290       ForgeSetValue out.Cells(1, 4), "Repair Rate"
 300       For r = 2 To ForgeLastRow(nde, cSeam)
 310           If ((Not ForgeIsEmpty(nde.Cells(r, cWelder).Value)) And (Not ForgeIsEmpty(nde.Cells(r, cResult).Value))) Then
 320               welderId = ForgeTrim(nde.Cells(r, cWelder).Value)
@@ -602,10 +644,10 @@ Public Function BuildWelderRepairRate(ByVal nde As Worksheet, ByVal out As Works
 370           inspected = ForgeNum(ForgeDictGet(total, k))
 380           repaired = 0
 390           If ForgeDictExists(repairs, k) Then repaired = ForgeNum(ForgeDictGet(repairs, k))
-400           out.Cells(outRow, 1).Value = k
-410           out.Cells(outRow, 2).Value = inspected
-420           out.Cells(outRow, 3).Value = repaired
-430           out.Cells(outRow, 4).Value = (repaired / inspected)
+400           ForgeSetValue out.Cells(outRow, 1), k
+410           ForgeSetValue out.Cells(outRow, 2), inspected
+420           ForgeSetValue out.Cells(outRow, 3), repaired
+430           ForgeSetValue out.Cells(outRow, 4), (repaired / inspected)
 440           out.Cells(outRow, 4).NumberFormat = "0.0%"
 450           outRow = (outRow + 1)
           Next k
@@ -671,11 +713,11 @@ Public Function BuildNdeSummary(ByVal rt As Worksheet, ByVal ut As Worksheet, By
 340       cDptSeam = ForgeCol(dpt, "Weld Seam No")
 350       cDptRes = ForgeCol(dpt, "Result")
 360       ForgeUsedRange(out).Clear
-370       out.Cells(1, 1).Value = "Weld Seam No"
-380       out.Cells(1, 2).Value = "RT"
-390       out.Cells(1, 3).Value = "UT"
-400       out.Cells(1, 4).Value = "MPT"
-410       out.Cells(1, 5).Value = "DPT"
+370       ForgeSetValue out.Cells(1, 1), "Weld Seam No"
+380       ForgeSetValue out.Cells(1, 2), "RT"
+390       ForgeSetValue out.Cells(1, 3), "UT"
+400       ForgeSetValue out.Cells(1, 4), "MPT"
+410       ForgeSetValue out.Cells(1, 5), "DPT"
 420       For r = 2 To ForgeLastRow(rt, cRtSeam)
 430           If (Not ForgeIsEmpty(rt.Cells(r, cRtSeam).Value)) Then
 440               ForgeDictAdd seams, ForgeTrim(rt.Cells(r, cRtSeam).Value), 1, "keep"
@@ -702,23 +744,23 @@ Public Function BuildNdeSummary(ByVal rt As Worksheet, ByVal ut As Worksheet, By
           Next r
 580       outRow = 2
 590       For Each s In seams.Keys
-600           out.Cells(outRow, 1).Value = s
+600           ForgeSetValue out.Cells(outRow, 1), s
 610           v = ""
 620           If ForgeDictExists(rtResults, s) Then v = ForgeDictGet(rtResults, s)
 630           If ForgeIsEmpty(v) Then v = "Pending"
-640           out.Cells(outRow, 2).Value = v
+640           ForgeSetValue out.Cells(outRow, 2), v
 650           v = ""
 660           If ForgeDictExists(utResults, s) Then v = ForgeDictGet(utResults, s)
 670           If ForgeIsEmpty(v) Then v = "Pending"
-680           out.Cells(outRow, 3).Value = v
+680           ForgeSetValue out.Cells(outRow, 3), v
 690           v = ""
 700           If ForgeDictExists(mptResults, s) Then v = ForgeDictGet(mptResults, s)
 710           If ForgeIsEmpty(v) Then v = "Pending"
-720           out.Cells(outRow, 4).Value = v
+720           ForgeSetValue out.Cells(outRow, 4), v
 730           v = ""
 740           If ForgeDictExists(dptResults, s) Then v = ForgeDictGet(dptResults, s)
 750           If ForgeIsEmpty(v) Then v = "Pending"
-760           out.Cells(outRow, 5).Value = v
+760           ForgeSetValue out.Cells(outRow, 5), v
 770           outRow = (outRow + 1)
           Next s
 780       ForgeSort ForgeUsedRange(out), 1, True, True
@@ -946,14 +988,14 @@ Public Function ReconcileConsumableStock(ByVal issues As Worksheet, ByVal inv As
 430               batch = ForgeTrim(inv.Cells(r, vBatch).Value)
 440               used = 0
 450               If ForgeDictExists(issued, batch) Then used = ForgeNum(ForgeDictGet(issued, batch))
-460               inv.Cells(r, vIssued).Value = used
+460               ForgeSetValue inv.Cells(r, vIssued), used
 470               inv.Cells(r, vRemark).ClearContents
 480               If ForgeIsNumber(inv.Cells(r, vOpen).Value) Then
-490                   inv.Cells(r, vBal).Value = (ForgeNum(inv.Cells(r, vOpen).Value) - used)
-500                   If ((ForgeNum(inv.Cells(r, vOpen).Value) - used) < 0) Then inv.Cells(r, vRemark).Value = "Negative balance"
+490                   ForgeSetValue inv.Cells(r, vBal), (ForgeNum(inv.Cells(r, vOpen).Value) - used)
+500                   If ((ForgeNum(inv.Cells(r, vOpen).Value) - used) < 0) Then ForgeSetValue inv.Cells(r, vRemark), "Negative balance"
                   Else
 520                   inv.Cells(r, vBal).ClearContents
-530                   inv.Cells(r, vRemark).Value = "Opening stock missing"
+530                   ForgeSetValue inv.Cells(r, vRemark), "Opening stock missing"
                   End If
               End If
           Next r
@@ -994,13 +1036,13 @@ Public Function BuildOpenNcrSummary(ByVal ncr As Worksheet, ByVal out As Workshe
 210       lastCol = ForgeLastCol(ncr, 1)
 220       ForgeUsedRange(out).Clear
 230       ForgeCopyRow ncr, 1, out, 1, lastCol
-240       out.Cells(1, (lastCol + 1)).Value = "Days Open"
+240       ForgeSetValue out.Cells(1, (lastCol + 1)), "Days Open"
 250       outRow = 2
 260       For r = 2 To ForgeLastRow(ncr, cNcr)
 270           If (UCase$(ForgeText(ForgeTrim(ncr.Cells(r, cStatus).Value))) = "OPEN") Then
 280               ForgeCopyRow ncr, r, out, outRow, lastCol
-290               If ForgeIsDate(ncr.Cells(r, cDate).Value) Then out.Cells(outRow, (lastCol + 1)).Value = (Date - ForgeNum(ncr.Cells(r, cDate).Value))
-300               If (Not ForgeIsDate(ncr.Cells(r, cDate).Value)) Then out.Cells(outRow, (lastCol + 1)).Value = "Issue date missing"
+290               If ForgeIsDate(ncr.Cells(r, cDate).Value) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), (Date - ForgeNum(ncr.Cells(r, cDate).Value))
+300               If (Not ForgeIsDate(ncr.Cells(r, cDate).Value)) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), "Issue date missing"
 310               outRow = (outRow + 1)
               End If
           Next r
@@ -1040,7 +1082,7 @@ Public Function BuildCalibrationDueList(ByVal cal As Worksheet, ByVal out As Wor
 200       lastCol = ForgeLastCol(cal, 1)
 210       ForgeUsedRange(out).Clear
 220       ForgeCopyRow cal, 1, out, 1, lastCol
-230       out.Cells(1, (lastCol + 1)).Value = "Status"
+230       ForgeSetValue out.Cells(1, (lastCol + 1)), "Status"
 240       outRow = 2
 250       For r = 2 To ForgeLastRow(cal, cId)
 260           If (Not ForgeIsEmpty(cal.Cells(r, cId).Value)) Then
@@ -1052,7 +1094,7 @@ Public Function BuildCalibrationDueList(ByVal cal As Worksheet, ByVal out As Wor
                   End If
 320               If (Not ForgeIsEmpty(status)) Then
 330                   ForgeCopyRow cal, r, out, outRow, lastCol
-340                   out.Cells(outRow, (lastCol + 1)).Value = status
+340                   ForgeSetValue out.Cells(outRow, (lastCol + 1)), status
 350                   outRow = (outRow + 1)
                   End If
               End If

@@ -238,3 +238,16 @@ def mod(a, b):
     of b, and decimals are kept. VBA's Mod operator rounds both sides first and gives the sign
     of a, so it is not used. MOD(a, 0) is a run-time error."""
     return a - b * _math.floor(a / b)
+
+
+def needs_text_guard(text):
+    """S17 (VCL 0.2): SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text. Excel
+    would turn some text into something else when it is written to a cell: a number, date,
+    time, TRUE/FALSE, error value or formula. Such text is written with a ' prefix, which Excel
+    hides, so the cell holds the text unchanged. Being careful, the prefix goes on any text with
+    a digit or a character above code 127, any text starting with = + - @ ' or #, and TRUE or
+    FALSE after TRIM in any case. "" is never prefixed: it empties the cell."""
+    if text == "":
+        return False
+    return (any("0" <= ch <= "9" or ord(ch) > 127 for ch in text) or text[0] in "=+-@'#"
+            or text.strip(WHITESPACE).upper() in ("TRUE", "FALSE"))

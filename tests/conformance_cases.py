@@ -146,4 +146,18 @@ CASES = [
     ("mod", [7.5, 2], 1.5, "decimals kept (VBA's Mod rounds them away)"),
     ("mod", [6, 3], 0, "divides exactly"),
     ("mod", [0, 5], 0, "zero"),
+    # Text guard for SET_VALUE, WRITE_ROW and COPY_ROW (VCL 0.2)
+    ("needs_text_guard", ["Short"], False, "plain words are stored as typed"),
+    ("needs_text_guard", ["Days Open"], False, "spaces are fine"),
+    ("needs_text_guard", [""], False, "empty text empties the cell"),
+    ("needs_text_guard", ["1001"], True, "Excel would store the number 1001"),
+    ("needs_text_guard", ["1-2"], True, "Excel would store a date"),
+    ("needs_text_guard", ["W-01"], True, "any digit counts, to be safe"),
+    ("needs_text_guard", ["TRUE"], True, "Excel would store the logical TRUE"),
+    ("needs_text_guard", [" false "], True, "after TRIM, in any case"),
+    ("needs_text_guard", ["=A1"], True, "Excel would store a formula"),
+    ("needs_text_guard", ["-"], True, "a leading minus could start a formula"),
+    ("needs_text_guard", ["#N/A"], True, "Excel would store the error value"),
+    ("needs_text_guard", ["'quoted"], True, "a leading ' would be hidden"),
+    ("needs_text_guard", ["café"], True, "a character above code 127 counts, to be safe"),
 ]

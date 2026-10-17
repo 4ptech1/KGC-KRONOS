@@ -159,7 +159,8 @@ Next, in order (`docs/vcl-mvp-plan.md`):
 1. VCL 0.2 core as VEPs: SAME, CLEAN_TEXT, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, MODIFIES with
    automatic UNCHANGED, PARSE_DATE, IS_ERROR, IIF, MOD; then migrate the 10 specs. Designed in
    `docs/vep-0.2-core.md`. PR A (SAME, CLEAN_TEXT, IS_ERROR, PARSE_DATE, IIF, MOD, under a
-   `VCL 0.2` first line) is done; next is PR B (ForgeSetValue, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW).
+   `VCL 0.2` first line) and PR B (ForgeSetValue, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW) are done;
+   next is PR C (MODIFIES and the automatic UNCHANGED check).
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 

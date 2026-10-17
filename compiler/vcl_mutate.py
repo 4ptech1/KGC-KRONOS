@@ -2,7 +2,7 @@
 
 mutate_report(text) -> (killed, total, survivors). Each mutant changes one OP line: a flipped
 comparison, AND/OR swap, number +1, changed text literal, deleted step, reversed sort, sum
-changed to overwrite, or a reversed loop. Mutants that no longer parse or type-check are
+changed to overwrite, a reversed loop, or SKIP_IF and EXIT_LOOP_IF swapped. Mutants that no longer parse or type-check are
 discarded. A surviving mutant means the TESTs can't tell that behaviour apart from the real one:
 add a test case or fixture rows that tell them apart.
 """
@@ -42,8 +42,12 @@ def mutants(text):
         for m in re.finditer(r'"((?:[^"]|"")+)"', body):
             yield i, f'"{m.group(1)}" -> changed', body[:m.start()] + '"zz' + m.group(1) + '"' + body[m.end():]
         stripped = body.strip()
-        if re.match(r"^[A-Z_]+\(", stripped) and not stripped.startswith(("RETURN(",)):
+        loop_jump = stripped.startswith(("SKIP_IF ", "EXIT_LOOP_IF "))
+        if (re.match(r"^[A-Z_]+\(", stripped) or loop_jump) and not stripped.startswith(("RETURN(",)):
             yield i, "step deleted", None
+        for old, new in (("SKIP_IF ", "EXIT_LOOP_IF "), ("EXIT_LOOP_IF ", "SKIP_IF ")):
+            if stripped.startswith(old):
+                yield i, f"'{old.strip()}' -> '{new.strip()}'", body.replace(old, new, 1)
         if "dir=down" in body:
             yield i, "loop reversed", body.replace("dir=down", "dir=up")
 

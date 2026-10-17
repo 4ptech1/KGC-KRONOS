@@ -141,8 +141,9 @@ WRITE_ROW(<ws>, <row>, <expr>, ..., col=<n>)  starts at column n instead of 1
 - It replaces runs of `SET_VALUE(CELL($out, 1, 1), "...")`, `SET_VALUE(CELL($out, 1, 2), "...")`
   and so on. For example, task_04's header goes from 5 lines to 1.
 - `col` is already a reserved option word.
-- VBA: one assignment per value, exactly as SET_VALUE compiles. It is not a single array
-  write, so each cell gets exactly what SET_VALUE would give it.
+- VBA: each value goes through `ForgeSetValue`, exactly as SET_VALUE compiles. It is not a
+  single array write, so each cell gets exactly what SET_VALUE would give it. (Built as one
+  `ForgeWriteRow` line that loops over the values; D18.)
 
 ## MODIFIES and the automatic UNCHANGED check (PR C)
 
@@ -208,7 +209,7 @@ The migration counts as done only when, for every spec:
 The literal in a SAME rewrite keeps its original upper-case text (`SAME(x, "READY")`). Changing
 the case would be a cosmetic edit beyond what was proven.
 
-## Found while writing this
+## Found while writing this (fixed in PR B: S17, `ForgeSetValue`)
 
 SET_VALUE compiles to a plain `.Value = <expr>`. When the value is text that Excel would read as
 something else ("1-2", "25", "TRUE", "=A1"), Excel converts it. The interpreter keeps it as
