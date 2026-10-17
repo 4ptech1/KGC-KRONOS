@@ -20,19 +20,18 @@ Running the generated VBA in Excel is optional and never blocks work.
 | Grammar (LALR, proven unambiguous) | 11 of 11 specs parse |
 | Type checker (every calculation and date comparison guarded) | 11 of 11 pass |
 | Interpreter: the specs' own TESTs | 39 of 39 pass |
-| Mutation score, TEST assertions only | 68% of 417 deliberate bugs caught |
-| Mutation score, whole-workbook comparison | 84% |
-| VBA lint (the compile errors Excel would raise) | 0 problems in 1,012 lines; 7 of 7 planted errors caught |
-| Unit tests | 39 pass |
+| Mutation score, TEST assertions only | 87% of 417 deliberate bugs caught (was 68%) |
+| Mutation score, whole-workbook comparison | 96.4% (was 84%); the 15 survivors are equivalent mutants (`DECISIONS.md` D14) |
+| VBA lint (the compile errors Excel would raise) | 0 problems in 974 lines; 7 of 7 planted errors caught |
+| Unit tests | 146 pass |
 
 ## Honest limits
 
 - **The generated VBA is never executed.** Lint catches compile-time errors, not runtime
   behaviour. The main unproven risk is ForgeLib's behaviour in real Excel, for example comparing
   error values or Range.Sort edge cases.
-- **Two fixture generators exist.** The repo's `harness/fixtures.py` (pilot) and
-  `compiler/vcl_fixtures.py` seed differently, so the same spec builds different data. They must
-  become one.
+- **One fixture generator** (item 1): `compiler/vcl_fixtures.py` builds the pilot's data
+  bit for bit (`DECISIONS.md` D1).
 - **The MVP compiler covers** every op the 10 specs use, plus loops, SELECT_CASE, arrays, CALL,
   LOG and MSG. Not yet covered: file ops, ADD_SHEET, COPY_SHEET, FIND, DEDUPE, FILTER,
   SET_FORMULA, OPEN_BOOK, SAVE_AS. `NOTE` steps need the local model.
@@ -50,7 +49,9 @@ Every surviving mutant is missing test data, not missing assertions:
 | `<` vs `<=` goes unnoticed | no rows exactly on the boundary | `+boundary` rows (equal values) |
 | task_10's 15-day window goes unnoticed | fixed dates don't move with TODAY | relative dates, `reldates(-30, 30)` |
 
-Target after these: at least 95% with whole-workbook comparison.
+Target after these: at least 95% with whole-workbook comparison. **Done in item 2 (VCL 0.1
+revision 5):** `stale=<n>`, `+dupes(n)`, `+boundary(...)` and `reldates(lo, hi)` are in the
+language, rule 19 warns when a spec doesn't use them, and the whole-workbook score is 96.4%.
 
 ## Build sequence (Claude Code works through it without waiting; merges itself when CI is green)
 

@@ -116,7 +116,26 @@ class ParseTask(unittest.TestCase):
     def test_values_rule(self):
         spec = parse_spec(read("specs/task_03.vcl"))
         rule = spec.fixtures[0].rules[1]
-        self.assertEqual(rule.args, [("W-01", 20), ("W-02", 20), ("W-03", 15), ("", 5)])
+        self.assertEqual(rule.args, [("W-01", 20), ("W-02", 19), ("W-03", 15), ("W-04", 1), ("", 5)])
+        self.assertEqual(rule.boundary, [("text", "W-01"), ("text", "W-04")])
+        self.assertEqual(rule.mods, ["boundary"])
+
+    def test_modifiers_and_stale(self):
+        spec = parse_spec(read("specs/task_01.vcl"))
+        grn = spec.fixtures[1]
+        part, received = grn.rules
+        self.assertEqual((part.kind, part.boundary, part.dupes, part.mods),
+                         ("seq", [("number", "1001"), ("number", "1002")], 4, ["boundary", "dupes"]))
+        self.assertEqual((received.blank, received.mods), (4, ["boundary", "blank"]))
+        self.assertEqual((spec.fixtures[2].rows, spec.fixtures[2].stale), (0, 40))
+        self.assertEqual(spec.fixtures[0].stale, 0)
+
+    def test_reldates_rule(self):
+        spec = parse_spec(read("specs/task_10.vcl"))
+        due = spec.fixtures[0].rules[3]
+        self.assertEqual((due.kind, due.args, due.blank), ("reldates", ["-500", "990"], 2))
+        self.assertEqual(due.boundary, [("text", ""), ("number", "0"), ("number", "15"), ("number", "16"),
+                                        ("number", "-1")])
 
 
 class ParseOtherKinds(unittest.TestCase):

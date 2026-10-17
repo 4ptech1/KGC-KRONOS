@@ -1,4 +1,4 @@
-# VCL 0.1: VBA Command Language (revision 4, 16 Oct 2026)
+# VCL 0.1: VBA Command Language (revision 5, 17 Oct 2026)
 
 VCL is the contract between Claude (which writes specs) and VBA Forge (which turns them into
 tested VBA). This file is the reference that `validator.py` and the training data follow.
@@ -51,6 +51,11 @@ Excel 2016 has.)
 17. Prefer KIND Function returning a count (rows written, flagged or removed), so TESTs
     can check RESULT.
 18. Always test with a named synthetic FIXTURE. Never use fixture=target or real workbooks.
+19. Make the FIXTURE able to catch a wrong macro: give each sheet the macro rebuilds (or
+    whose fills it owns) stale=<n> rows, put the values that sit exactly on each <, <=, >
+    or >= comparison in the first rows with +boundary(...), repeat dictionary keys with
+    +dupes(<n>) or values() counts of 2 or more, and use reldates(lo, hi) when the spec
+    uses TODAY. Prefer exact assertions to ranges.
 ```
 
 ## Reference
@@ -220,10 +225,20 @@ fixture=<name>.xlsx names a FIXTURE file from this spec; the harness builds it f
 every TEST. fixture=target and real workbooks are not allowed.
 
 FIXTURE SPEC
-  FIXTURE <name>.xlsx sheet=<name> cols=<A:Header,B:Header,...> rows=<n> data=<col>:<rule>;<col>:<rule>
+  FIXTURE <name>.xlsx sheet=<name> cols=<A:Header,B:Header,...> rows=<n> [stale=<n>] data=<col>:<rule>;<col>:<rule>
   Rules: values("a"x<n>,"b"x<n>)  seq(<start>,<step>)  int(<lo>,<hi>)  num(<lo>,<hi>)
-         dates(<yyyy-mm-dd>,<yyyy-mm-dd>)  text(<length>)
-  Add +blank(<n>) to any rule to leave n random cells of that column blank.
+         dates(<yyyy-mm-dd>,<yyyy-mm-dd>)  reldates(<lo>,<hi>)  text(<length>)
+  reldates(lo, hi) gives dates from TODAY + lo to TODAY + hi days, worked out when the
+  file is built, so TESTs that use TODAY give the same results on every day.
+  Modifiers, after the rule, in this order, each at most once:
+    +boundary(v1,v2,...)  the first data rows hold exactly these values ("" is a blank
+                          cell; numbers of days for reldates). For values(...) the values
+                          move up, so the counts stay the same.
+    +blank(<n>)           leave n random cells below the boundary rows blank.
+    +dupes(<n>)           give n random rows the value of another row (repeated keys).
+  stale=<n> marks n rows as leftovers of an earlier run, with a red fill: on a rows=0
+  sheet, n rows of the text "stale"; on a sheet with data, n random data rows, whose
+  values stay.
   values(...) counts add up to rows. rows=0 creates the sheet with its header row only.
   Repeat FIXTURE lines with the same file name to add more sheets.
   Sheet names have no spaces, so TEST calls can use them bare. They may be short forms of
@@ -231,8 +246,9 @@ FIXTURE SPEC
   real workbook.
   Each column has its own fixed seed, made from file name + sheet + column. The builder
   uses it for everything random in that column: the shuffled order of values(...), the
-  int, num, dates and text values, and which cells +blank(<n>) leaves blank. Columns are
-  not correlated, and the same spec always builds the same file.
+  int, num, dates, reldates and text values, and which cells +blank(<n>) leaves blank;
+  +dupes(<n>) and stale=<n> have seeds of their own. Columns are not correlated,
+  and the same spec always builds the same file.
 ```
 
 ## Fixture generation (exact algorithm)
@@ -252,12 +268,42 @@ seq()      start + i * step, no randomness
 int()      lo + below(hi - lo + 1), row by row
 num()      lo + (hi - lo) * next() / 2^64, rounded to 2 decimals, row by row
 dates()    first date + below(days + 1) days, row by row
+reldates() TODAY + lo + below(hi - lo + 1) days, row by row; TODAY is the day the file is
+           built (the fixture-builder VBA writes Date + n)
 text(n)    n letters A-Z, each "ABC...Z"[below(26)], row by row
-+blank(n)  after the values, a partial Fisher-Yates over the row numbers picks the n rows
-           to blank
+
+Then the modifiers, always in this order:
++boundary(v1..vk)  rows 2 to k+1 hold exactly v1 to vk. For values() each vi is moved up
+           (swapped with the first later row that holds it), so the counts stay the same;
+           for the other rules vi replaces the generated value. No PRNG draws.
++blank(n)  a partial Fisher-Yates over the rows below the boundary rows (all rows when
+           there are none) picks the n rows to blank, drawing from the column's PRNG
++dupes(n)  its own PRNG, seeded from "<file>|<sheet>|<column letter>|dupes": a partial
+           Fisher-Yates over the non-blank rows below the boundary rows picks n targets;
+           each target, in pick order, takes the value of source[below(len(source))],
+           where source is the other non-blank rows below the boundary rows
+stale=n    a red (#FF0000) fill across the header's columns. rows=0: n new rows of the
+           text "stale". With data: a partial Fisher-Yates with its own PRNG, seeded from
+           "<file>|<sheet>|stale", picks the n data rows; their values stay
 ```
 
 A values() entry of `""` is a blank cell, and so is a column without a data rule.
+
+## Changes in revision 5
+
+Fixtures that can tell a right macro from a wrong one, from the mutation evidence in
+`docs/vcl-mvp-plan.md`. Valid revision 4 specs stay valid and build the same data, because
+a FIXTURE line without the new parts is generated exactly as before. Details: `DECISIONS.md`
+(F1 to F5).
+
+- `stale=<n>` on a FIXTURE line: leftover rows of an earlier run (F1).
+- `+boundary(v1,...)`: exact values in the first data rows (F2).
+- `+dupes(<n>)`: repeated values, for dictionary keys (F3).
+- `reldates(lo, hi)`: dates relative to TODAY (F4).
+- Modifiers go in the order +boundary, +blank, +dupes, each at most once (F5).
+- Rule 19: fixtures able to catch a wrong macro. The validator warns when a rebuilt sheet
+  has no stale rows, a spec with TODAY has no reldates, a spec with a dictionary never
+  repeats a key, or a spec with `<`, `<=`, `>` or `>=` has no +boundary.
 
 ## Changes in revision 4
 

@@ -33,9 +33,9 @@ OP       SORT(USED_RANGE($out), key=cDate, order=asc, header=yes)
 OP       RETURN(outRow - 2)
 PERF     screen_off calc_manual
 ERR      standard
-FIXTURE  ncr_01.xlsx sheet=NCR cols=A:NCR No,B:Issue Date,C:Description,D:Owner,E:Status rows=30 data=A:seq(1,1);B:dates(2026-01-01,2026-09-30)+blank(2);C:text(20);D:values("QA"x10,"Production"x10,"Stores"x10);E:values("Open"x12,"Closed"x15,""x3)
-FIXTURE  ncr_01.xlsx sheet=NcrSummary cols=A:NCR No rows=0
-TEST     fixture=ncr_01.xlsx call=BuildOpenNcrSummary(NCR, NcrSummary) runs=2 assert=RESULT = 12 AND COUNTA(NcrSummary![NCR No]) = 13 AND ERROR_COUNT = 0
+FIXTURE  ncr_01.xlsx sheet=NCR cols=A:NCR No,B:Issue Date,C:Description,D:Owner,E:Status,F:Remarks rows=30 data=A:seq(1,1);B:reldates(-290,-1)+boundary(0,"")+blank(1);C:text(20);D:values("QA"x10,"Production"x10,"Stores"x10);E:values("Open"x12,"Closed"x15,""x3)+boundary("Open","Open");F:values("See report"x6,""x24)+boundary("")
+FIXTURE  ncr_01.xlsx sheet=NcrSummary cols=A:NCR No rows=0 stale=10
+TEST     fixture=ncr_01.xlsx call=BuildOpenNcrSummary(NCR, NcrSummary) runs=2 assert=RESULT = 12 AND COUNTA(NcrSummary![NCR No]) = 13 AND COUNTIF(NcrSummary![NCR No], "stale") = 0 AND COUNTIF(NcrSummary![Days Open], "Issue date missing") = 1 AND COUNTIF(NcrSummary![Days Open], 0) = 1 AND COUNTA(NcrSummary![Remarks]) = 3 AND ERROR_COUNT = 0
 TEST     fixture=ncr_01.xlsx call=BuildOpenNcrSummary(NCR, NcrSummary) assert=COUNTIF(NcrSummary![Status], "Closed") = 0 AND VALUE(NcrSummary![Issue Date]2) <= VALUE(NcrSummary![Issue Date]3)
 TEST     fixture=ncr_01.xlsx call=BuildOpenNcrSummary(NCR, NcrSummary) assert=COUNTA(NCR![Status]) = PRE_COUNTA(NCR![Status]) AND COUNTA(NCR![Issue Date]) = PRE_COUNTA(NCR![Issue Date])
 TEST     fixture=ncr_01.xlsx call=BuildOpenNcrSummary(NcrSummary, NcrSummary) assert=RESULT = -1 AND ERROR_COUNT = 1 AND COUNTA(NcrSummary![NCR No]) = PRE_COUNTA(NcrSummary![NCR No])

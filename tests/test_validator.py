@@ -63,7 +63,7 @@ OP           LET(outRow, outRow + 1)
 OP       RETURN(outRow - 2)
 ERR      standard
 FIXTURE  demo_02.xlsx sheet=Data cols=A:ID,B:Status rows=10 data=A:seq(1,1);B:values("Open"x6,"Closed"x4)
-FIXTURE  demo_02.xlsx sheet=Report cols=A:Note rows=0
+FIXTURE  demo_02.xlsx sheet=Report cols=A:Note rows=0 stale=3
 TEST     fixture=demo_02.xlsx call=ListOpenRows(Data, Report) runs=2 assert=RESULT = PRE_COUNTIF(Data![Status], "Open") AND COUNTIF(Report![Status], "Open") = RESULT AND COUNTA(Report![Checked]) = RESULT + 1 AND ERROR_COUNT = 0
 TEST     fixture=demo_02.xlsx call=ListOpenRows(Data, Report) assert=COUNTA(Data![Status]) = PRE_COUNTA(Data![Status])
 TEST     fixture=demo_02.xlsx call=ListOpenRows(Report, Report) assert=RESULT = -1 AND ERROR_COUNT = 1
@@ -437,6 +437,74 @@ class OtherRules(unittest.TestCase):
                       errors(edit(MINIMAL, "VAR      found As Long", "VAR      found As Long\nVAR      r As Long")))
 
 
+class FixtureModifiers(unittest.TestCase):
+    """+boundary, +blank, +dupes, reldates and stale=<n> (revision 5)."""
+
+    def fixture(self, data, extra=""):
+        return edit(MINIMAL, 'rows=10 data=A:seq(1,1);B:values(\"Open\"x6,\"Closed\"x4)', f"rows=10{extra} data={data}")
+
+    def test_good_modifiers_are_valid(self):
+        good = self.fixture('A:seq(1,1)+boundary(5,6)+blank(2)+dupes(1);B:values("Open"x6,"Closed"x4)+boundary("Closed","")'
+                            .replace('"Closed"x4', '"Closed"x3,""x1'), extra=" stale=2")
+        self.assertEqual(errors(good), [])
+
+    def test_modifier_order_and_repeats(self):
+        self.assertIn("A: write the modifiers in this order: +boundary, +blank, +dupes",
+                      errors(self.fixture('A:seq(1,1)+blank(1)+boundary(5);B:values("Open"x6,"Closed"x4)')))
+        self.assertIn("A: +blank() is written twice",
+                      errors(self.fixture('A:seq(1,1)+blank(1)+blank(2);B:values("Open"x6,"Closed"x4)')))
+
+    def test_boundary_must_fit_the_rule_and_rows(self):
+        self.assertIn("A: +boundary value 'x' doesn't fit seq() (use numbers)",
+                      errors(self.fixture('A:seq(1,1)+boundary("x");B:values("Open"x6,"Closed"x4)')))
+        found = errors(self.fixture('A:seq(1,1)+boundary(1,2,3,4,5,6,7,8,9,10,11);B:values("Open"x6,"Closed"x4)'))
+        self.assertIn("A: +boundary has 11 values, but rows=10", found)
+        self.assertIn("A: +blank(9) is more than the 8 rows below the boundary rows",
+                      errors(self.fixture('A:seq(1,1)+boundary(1,2)+blank(9);B:values("Open"x6,"Closed"x4)')))
+
+    def test_stale_cannot_exceed_rows(self):
+        self.assertTrue(any("stale=11" in e for e in errors(self.fixture(
+            'A:seq(1,1);B:values("Open"x6,"Closed"x4)', extra=" stale=11"))))
+
+
+class Rule19(unittest.TestCase):
+    """Warnings for fixtures that can't tell a right macro from a wrong one."""
+
+    def test_rebuilt_sheet_needs_stale_rows(self):
+        text = edit(WITH_OUTPUT, "rows=0 stale=3", "rows=0")
+        self.assertEqual(warnings(text), ["FIXTURE sheet Report has no stale=<n> rows, so no TEST proves old rows "
+                                          "are cleared (rule 19)"])
+
+    def test_wrong_sheet_test_needs_no_stale_rows(self):
+        # the third TEST passes Report as ws; PRE stops it, so only the Report-as-out TESTs count
+        text = edit(WITH_OUTPUT, "rows=0 stale=3", "rows=0")
+        self.assertEqual(len(warnings(text)), 1)
+
+    def test_today_needs_reldates(self):
+        text = with_op('IF TODAY > 0 THEN LET(found, found)')
+        self.assertIn("the spec uses TODAY, but no FIXTURE column uses reldates(lo, hi): fixed dates drift as "
+                      "TODAY moves (rule 19)", warnings(text))
+
+    def test_comparison_needs_boundary(self):
+        text = with_op('IF found > 3 THEN LET(found, 3)')
+        message = ("the spec compares with <, <=, > or >=, but no FIXTURE column has +boundary(...): put the "
+                   "values that sit exactly on each comparison in the first rows (rule 19)")
+        self.assertIn(message, warnings(text))
+        fixed = edit(text, '"Closed"x4)', '"Closed"x4)+boundary("Open")')
+        self.assertNotIn(message, warnings(fixed))
+
+    def test_dictionary_needs_repeated_keys(self):
+        text = edit(with_op('DICT_ADD(seen, CELL($ws, 2, 1), 1, mode=count)'), "VAR      found As Long",
+                    "VAR      found As Long\nVAR      seen As Dictionary")
+        text = edit(text, 'B:values("Open"x6,"Closed"x4)', 'B:values("Open"x1,"Closed"x1,"Hold"x1,"x"x1,"y"x1,'
+                    '"z"x1,"p"x1,"q"x1,"r"x1,"s"x1)')
+        message = ("the spec adds to a dictionary, but no FIXTURE column repeats a key: add +dupes(n) so the "
+                   "TESTs see repeated keys (rule 19)")
+        self.assertEqual(errors(text), [])
+        self.assertIn(message, warnings(text))
+        self.assertNotIn(message, warnings(edit(text, "A:seq(1,1)", "A:seq(1,1)+dupes(2)")))
+
+
 class RealSpecs(unittest.TestCase):
     def test_all_ten_specs(self):
         paths = sorted(glob.glob(os.path.join(ROOT, "specs", "task_*.vcl")))
@@ -472,7 +540,7 @@ class RealSpecs(unittest.TestCase):
             self.assertIsNotNone(match, start)
             return match.group(0)
 
-        for start, end in [("1.  Reply with exactly", "real workbooks."),
+        for start, end in [("1.  Reply with exactly", "Prefer exact assertions to ranges."),
                            ("TASK FORMAT", "the same spec always builds the same file.")]:
             self.assertEqual(between(spec, start, end), between(prompt, start, end))
 

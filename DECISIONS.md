@@ -2,7 +2,7 @@
 
 One line per decision: what was decided, why, and where it is enforced. Boss can overturn any
 of them. Ids: **G** grammar, **S** semantics, **T** types (from `docs/vcl-m2-findings.md`),
-**E** language rules, **D** decisions Claude made on its own under the rule "pick the more
+**E** language rules, **F** fixtures, **D** decisions Claude made on its own under the rule "pick the more
 conservative option, record it here, and carry on".
 
 ## Language (VCL 0.1 revision 4, 16 Oct 2026)
@@ -29,6 +29,21 @@ Orchestrator prompt state them in the reference text.
 | T2 | Guard a calculation or date comparison with the check itself (`IF IS_DATE(x)`), never with a flag set earlier (`IF NOT bad`). task_06 was rewritten this way; the rewrite was proved equivalent over all 20 input combinations. | No checker can follow a flag. | rule 15, FINAL CHECK, type checker |
 | E1 | `EXIT_IF <condition>` leaves the procedure when the condition is true. A Function then returns its RET type's default (0, "" or FALSE), as VBA does; to return something else write `IF <condition> THEN RETURN(<value>)`. VCL 0.2 adds EXIT_LOOP_IF to leave only a loop. | Revision 3 never defined EXIT_IF. | interpreter, compiler (`GoTo CleanExit`) |
 
+## Language (VCL 0.1 revision 5, 17 Oct 2026)
+
+Fixture syntax from the mutation evidence (`docs/vcl-mvp-plan.md`). A FIXTURE line without the
+new parts builds exactly the same data as before. spec.md and the Orchestrator prompt state
+them in the reference text; spec.md has the exact algorithm.
+
+| Id | Decision | Why | Enforced by |
+| --- | --- | --- | --- |
+| F1 | `stale=<n>` after `rows=<n>`: on a rows=0 sheet, n rows of the text "stale" with a red fill; on a sheet with data, a red fill on n data rows picked by their own PRNG ("<file>\|<sheet>\|stale"), values unchanged. stale may not exceed rows when rows > 0. | Without leftovers, a macro that forgets to clear its output sheet or old fills passes every TEST. | grammar (`stale_opt`), `vcl_fixtures.py`, validator |
+| F2 | `+boundary(v1,...)` puts exactly these values in the first data rows. For `values()` the values are moved up, so the counts in the rule stay true; `""` is a blank cell; values must fit the rule (text, numbers, yyyy-mm-dd dates, whole days for reldates). No PRNG draws. | Random data almost never sits exactly on a `<` or `<=` edge, or puts the interesting row in row 2 where `from=2` vs `from=3` shows. | grammar, `vcl_fixtures.py`, validator (`check_modifiers`) |
+| F3 | `+dupes(<n>)` gives n non-blank rows below the boundary rows the value of another such row, with its own PRNG ("<file>\|<sheet>\|<col>\|dupes"). | `mode=keep` and `mode=overwrite` only differ when a key repeats. | grammar, `vcl_fixtures.py`, validator |
+| F4 | `reldates(lo, hi)`: TODAY + lo to TODAY + hi days. The generator keeps the offset; the interpreter resolves it with the run's TODAY and the fixture-builder VBA writes `Date + n`. | Fixed dates drift past TODAY, so a TEST that is exact today fails next month. With offsets, every result is the same on any day. | `vcl_fixtures.py` (`RelDate`), interpreter, `vba_literal` |
+| F5 | Modifiers go in the order +boundary, +blank, +dupes, each at most once. +blank and +dupes only touch rows below the boundary rows. | One order means one algorithm, and the boundary rows stay exactly as written. | validator |
+| E2 | Rule 19: a FIXTURE should be able to catch a wrong macro. The validator warns (not errors) when a sheet the macro rebuilds or whose fills it owns has no stale rows in a TEST that gets past PRE, a spec with TODAY has no reldates, a spec with DICT_ADD never repeats a key, or a spec with `<`, `<=`, `>` or `>=` has no +boundary. | Warnings, so every revision 4 spec stays valid; the 10 specs now have none. | validator (`check_fixtures_can_catch_mistakes`) |
+
 ## Decisions Claude made on its own
 
 | Id | Date | Decision | Why it is the conservative choice |
@@ -44,3 +59,7 @@ Orchestrator prompt state them in the reference text.
 | D9 | 16 Oct 2026 | PRs #5 and #6 (Phase 1 and Phase 2 plans) stay open and untouched. No M0, M1 or M2-research PRs exist; the M2 research arrived inside the MVP zip. | They are proposals waiting for Boss, and nothing depends on them. |
 | D10 | 16 Oct 2026 | A RETURN value is converted to the Function's RET type, as VBA does (a Long rounds half to even). | Matches the generated VBA; no spec's results change. |
 | D11 | 16 Oct 2026 | Removed `pyflakes-4.0.3-py2.py3-none-any.whl` from the repo root. | It was committed by accident in 7c8e5fe; nothing uses it. |
+| D12 | 17 Oct 2026 | task_01 as the pilot ran it is frozen in `tests/data/task_01_pilot.vcl`. The seed-stability test and the pilot-model test (26 shortages, sums 986 and 661) run on that copy instead of being rewritten for the new task_01. | Keeps both pinned tests exactly as strong as before; changing their numbers would have weakened them. |
+| D13 | 17 Oct 2026 | Only the FIXTURE and TEST lines of the 10 specs changed for item 2 of the MVP plan, never an OP line. Where a column had to be told apart from its neighbour, a column was added (task_09 NCR gets `F:Remarks`) or given old values (task_08 Inventory `Balance` and `Remark`). Goal TESTs now assert exact results, worked out by the reference interpreter. | The specs' logic is untouched; only the test data and assertions got stronger. |
+| D14 | 17 Oct 2026 | The 15 mutants that still survive are equivalent: they can't change any result. They are `LET(flagged, 0)` or `LET(unknown, 0)` on a Long that starts at 0 (task_02, task_06, task_08); the value or mode of a dictionary only used through KEYS or EXISTS (task_04 `seams` x8, task_08 `known`); the value of `mode=count`, which ignores it (task_03 x2); and task_10's `<` vs `<=` TODAY, which the next line overrides. They still count as survivors in the score. | Excluding them would make the score look better than the evidence; the score is 96.4% with them. |
+| D15 | 17 Oct 2026 | The interpreter now moves fills and number formats with their rows on SORT and DELETE_ROW, and the expected results include number formats. | That is what Excel does; with stale fills on data sheets the old behaviour would have hidden real differences. |

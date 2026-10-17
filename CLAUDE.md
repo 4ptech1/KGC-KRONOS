@@ -47,7 +47,7 @@ the VBA. Until then, the goal is a verified dataset of spec-to-VBA pairs.
 
 ## Sources of truth
 
-- `vcl/spec.md`: VCL 0.1 revision 4, the language reference.
+- `vcl/spec.md`: VCL 0.1 revision 5, the language reference.
 - `vcl/orchestrator_prompt.txt`: the claude.ai prompt that writes specs. It contains the same
   reference text (a unit test keeps them identical), so the two always change together.
 - `vcl/grammar.lark`: the formal syntax. `vcl/semantics.py`: the reference meaning of the value
@@ -146,18 +146,19 @@ The Excel batch runner (`harness/ForgeTest.bas`, PR #4) is deferred; nothing dep
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, type-check, pass their
 TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
 
-Done: 10 specs, VCL 0.1 revision 4, the Orchestrator prompt, the parser and validator, and the
+Done: 10 specs, VCL 0.1 revision 5, the Orchestrator prompt, the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,
-`vclc`), with one fixture generator. PR #4 (Excel pilot) is open with the `deferred` label.
+`vclc`), with one fixture generator. Fixtures from the mutation evidence (revision 5:
+`stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19): snapshot mutation score 96.4%, and
+every survivor is an equivalent mutant (D14). PR #4 (Excel pilot) is open with the `deferred`
+label.
 
 Known: task_04 exceeds the ~60-line TASK guideline; accepted for now, revisit in March.
 
 Next, in order (`docs/vcl-mvp-plan.md`):
-1. Fixtures from the mutation evidence: stale rows in output sheets, `+dupes(n)`, boundary
-   rows, `reldates(lo, hi)`; snapshot mutation score of at least 95%.
-2. VCL 0.2 core as VEPs: SAME, CLEAN_TEXT, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, MODIFIES with
+1. VCL 0.2 core as VEPs: SAME, CLEAN_TEXT, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, MODIFIES with
    automatic UNCHANGED, PARSE_DATE, IS_ERROR, IIF, MOD; then migrate the 10 specs.
-3. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
+2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 
 Update this section at the end of every session.

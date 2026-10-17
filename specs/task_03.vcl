@@ -47,9 +47,9 @@ OP       SORT(USED_RANGE($out), key=4, order=desc, header=yes)
 OP       RETURN(outRow - 2)
 PERF     screen_off calc_manual
 ERR      standard
-FIXTURE  nde_repair_01.xlsx sheet=NDE cols=A:Weld Seam No,B:Welder ID,C:Result rows=60 data=A:seq(1,1);B:values("W-01"x20,"W-02"x20,"W-03"x15,""x5);C:values("Accepted"x48,"Repair"x8,""x4)
-FIXTURE  nde_repair_01.xlsx sheet=WelderPerf cols=A:Welder ID,B:Seams Inspected,C:Repairs,D:Repair Rate rows=0
-TEST     fixture=nde_repair_01.xlsx call=BuildWelderRepairRate(NDE, WelderPerf) runs=2 assert=RESULT >= 2 AND RESULT <= 3 AND COUNTA(WelderPerf![Welder ID]) = RESULT + 1 AND ERROR_COUNT = 0
-TEST     fixture=nde_repair_01.xlsx call=BuildWelderRepairRate(NDE, WelderPerf) assert=SUM(WelderPerf![Repairs]) <= 8 AND SUM(WelderPerf![Seams Inspected]) <= 55
+FIXTURE  nde_repair_01.xlsx sheet=NDE cols=A:Weld Seam No,B:Welder ID,C:Result rows=60 data=A:seq(1,1);B:values("W-01"x20,"W-02"x19,"W-03"x15,"W-04"x1,""x5)+boundary("W-01","W-04");C:values("Accepted"x48,"Repair"x8,""x4)+boundary("Repair","Accepted")
+FIXTURE  nde_repair_01.xlsx sheet=WelderPerf cols=A:Welder ID,B:Seams Inspected,C:Repairs,D:Repair Rate rows=0 stale=10
+TEST     fixture=nde_repair_01.xlsx call=BuildWelderRepairRate(NDE, WelderPerf) runs=2 assert=RESULT = 4 AND COUNTA(WelderPerf![Welder ID]) = RESULT + 1 AND ERROR_COUNT = 0
+TEST     fixture=nde_repair_01.xlsx call=BuildWelderRepairRate(NDE, WelderPerf) assert=SUM(WelderPerf![Repairs]) = PRE_COUNTIFS(NDE![Result], "Repair", NDE![Welder ID], "<>") AND SUM(WelderPerf![Seams Inspected]) = PRE_COUNTIFS(NDE![Result], "<>", NDE![Welder ID], "<>") - 1 AND COUNTIFS(WelderPerf![Welder ID], "W-04", WelderPerf![Repairs], 0) = 1 AND VALUE(WelderPerf![Repair Rate]2) >= VALUE(WelderPerf![Repair Rate]3)
 TEST     fixture=nde_repair_01.xlsx call=BuildWelderRepairRate(NDE, WelderPerf) assert=COUNTA(NDE![Welder ID]) = PRE_COUNTA(NDE![Welder ID]) AND COUNTA(NDE![Result]) = PRE_COUNTA(NDE![Result])
 TEST     fixture=nde_repair_01.xlsx call=BuildWelderRepairRate(WelderPerf, WelderPerf) assert=RESULT = -1 AND ERROR_COUNT = 1 AND COUNTA(WelderPerf![Welder ID]) = PRE_COUNTA(WelderPerf![Welder ID])

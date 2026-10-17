@@ -64,3 +64,8 @@ Dataset count: 0 verified pairs
   generator for everything. VCL 0.1 revision 4 records the M2 decisions (`DECISIONS.md`);
   task_06 rewritten so its date check is provably guarded. The validator also runs the grammar
   and the type checker. All 10 specs check, pass their 39 TESTs and compile to lint-clean VBA.
+- **2026-10-17:** VCL 0.1 revision 5: fixtures that catch wrong macros. New FIXTURE parts
+  `stale=<n>`, `+boundary(...)`, `+dupes(n)` and `reldates(lo, hi)`, and rule 19 (validator
+  warnings). All 10 specs' fixtures and goal TESTs upgraded (no OP line changed); the
+  whole-workbook mutation score rose from 84% to 96.4%, and every surviving mutant is
+  equivalent.

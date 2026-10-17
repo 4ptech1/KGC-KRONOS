@@ -49,8 +49,8 @@ def mutants(text):
 
 
 def mutate_report(text, snapshot=False, today=None):
-    """snapshot=True also counts a mutant as caught when any test's final workbook (values and
-    fills) or RESULT differs from the original spec's: the check generated VBA will face.
+    """snapshot=True also counts a mutant as caught when any test's final workbook (values, fills
+    and number formats) or RESULT differs from the original spec's: the check generated VBA will face.
     today pins TODAY for every run (default: the real date)."""
     lines = text.splitlines()
     killed, total, survivors = 0, 0, []
