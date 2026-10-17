@@ -61,8 +61,8 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    is at least 95%.
 3. **VCL 0.2 core, end to end:** grammar, types, semantics, interpreter, compiler, ForgeLib and
    conformance cases for SAME, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, MODIFIES with automatic
-   UNCHANGED, PARSE_DATE, IS_ERROR and CLEAN_TEXT. Then migrate the 10 specs with a migration
-   tool.
+   UNCHANGED, PARSE_DATE, IS_ERROR and CLEAN_TEXT (plus IIF and MOD). Then migrate the 10 specs
+   with a migration tool. Design: `docs/vep-0.2-core.md` (four PRs, A to D).
 4. **The rest of rev 3** in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 5. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives

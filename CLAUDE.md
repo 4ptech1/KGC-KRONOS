@@ -157,7 +157,8 @@ Known: task_04 exceeds the ~60-line TASK guideline; accepted for now, revisit in
 
 Next, in order (`docs/vcl-mvp-plan.md`):
 1. VCL 0.2 core as VEPs: SAME, CLEAN_TEXT, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW, MODIFIES with
-   automatic UNCHANGED, PARSE_DATE, IS_ERROR, IIF, MOD; then migrate the 10 specs.
+   automatic UNCHANGED, PARSE_DATE, IS_ERROR, IIF, MOD; then migrate the 10 specs. Designed in
+   `docs/vep-0.2-core.md`; next is PR A (the value functions).
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 
