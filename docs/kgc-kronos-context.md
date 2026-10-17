@@ -257,15 +257,15 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 
 | Measure | Now |
 | --- | --- |
-| Specs | 10 (task_01 to task_10), all VCL 0.2 |
-| Unit tests | 211 pass |
+| Specs | 11 (task_01 to task_11), all VCL 0.2 |
+| Unit tests | 214 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the ~40 guideline; accepted until March) |
-| Mutation score (snapshot) | 96.1% (370 of 385); the 15 survivors are equivalent mutants (D14) that no test can ever catch |
+| Mutation score (snapshot) | 95.1% (389 of 409); 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
 | Verified pairs | 0 (none has been run in Excel yet) |
 | Orchestrator Project | updated to the VCL 0.2 prompt; its replies start with `VCL 0.2` and use MODIFIES and SAME |
 
-The 10 specs:
+The 11 specs:
 
 | Spec | Procedure | Sheets (ARGS) |
 | --- | --- | --- |
@@ -279,6 +279,7 @@ The 10 specs:
 | task_08 | ReconcileConsumableStock | issues, inv |
 | task_09 | BuildOpenNcrSummary | ncr, out |
 | task_10 | BuildCalibrationDueList | cal, out |
+| task_11 | HighlightRejectedWelds | ws |
 
 **History in one line each** (PRs on KGC-KRONOS; #1 to #15 were made under the old name):
 - #1: repo skeleton and the 10 specs.
@@ -293,6 +294,9 @@ The 10 specs:
 - #14: the 10 specs migrated by `vcl_migrate.py`.
 - #15: spec.md and the prompt teach 0.2.
 - #16: blank key rows (score 90.9% to 96.1%).
+- #17: this context file.
+- #18: FORMAT fill names (`fill=red`) work in the interpreter and compiler.
+- #19: task_11 HighlightRejectedWelds, Boss's weld-log spec from the Orchestrator.
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -321,7 +325,7 @@ Boss's decisions:
 | 1 | Language surface: `VCL 0.3`; SAFE_NAME, PATH_JOIN, FOLDER_EXISTS; MAKE_FOLDER and COPY_FILE returning a status into a VAR; Path and Name types; `MODIFIES $jobs files`; folder FIXTUREs | **Waiting for Boss: "go Phase 1"** |
 | 2 | `safe_name` and `path_join` semantics with conformance cases; a mock file system in fixtures and the interpreter; FILE_EXISTS and FILE_COUNT assertions; UNCHANGED for files | Planned |
 | 3 | Compiler and ForgeLib: late-bound FSO wrappers that never overwrite, delete or move; lint bans DeleteFile, MoveFile and Kill; a sandbox builder in `%TEMP%` | Planned |
-| 4 | `specs/task_11.vcl` RouteJobPacks; the prompt switches to 0.3, and Boss updates the Orchestrator again | Planned |
+| 4 | `specs/task_12.vcl` RouteJobPacks; the prompt switches to 0.3, and Boss updates the Orchestrator again | Planned |
 | 5 | Excel pilot kit: a ForgeLib self-test of the conformance cases, a sandbox, and a 5-step guide for Boss | Planned, optional |
 
 The key safety design for files:

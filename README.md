@@ -91,3 +91,8 @@ Dataset count: 0 verified pairs
 - **2026-10-17:** Repo renamed KGC-KRONOS. Phase 0 of the Job-Pack Router plan
   (`docs/vep-0.3-file-ops.md`): blank key rows in the fixtures, so every SKIP_IF is proven by a
   TEST. Snapshot mutation score 96.1% (370 of 385); the 15 left are the D14 equivalents.
+- **2026-10-17:** FORMAT fill names (`fill=red` and the rest) now work in the interpreter and
+  the compiler (PR #18). task_11 HighlightRejectedWelds added: Boss's weld-log spec from the
+  Orchestrator, unchanged. It checks, passes its 5 TESTs and compiles to lint-clean VBA. Snapshot
+  mutation score 95.1% (389 of 409); task_11 catches 19 of 24, and its 5 survivors are
+  explained in D24.
