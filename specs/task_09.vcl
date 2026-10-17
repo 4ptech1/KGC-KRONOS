@@ -1,4 +1,4 @@
-VCL 0.1
+VCL 0.2
 TASK
 # ASSUME: NCR Register headers (row 1) include "NCR No", "Issue Date" and "Status"
 # ASSUME: a row is copied when Status is "Open" (case and spaces ignored); blank Status rows are ignored
@@ -15,6 +15,7 @@ VAR      cStatus As Long
 VAR      lastCol As Long
 VAR      outRow As Long
 PRE      COL($ncr, "NCR No") > 0; COL($ncr, "Issue Date") > 0; COL($ncr, "Status") > 0
+MODIFIES $out
 OP       LET(cNcr, COL($ncr, "NCR No"))
 OP       LET(cDate, COL($ncr, "Issue Date"))
 OP       LET(cStatus, COL($ncr, "Status"))
@@ -24,7 +25,7 @@ OP       COPY_ROW($ncr, 1, $out, 1, cols=lastCol)
 OP       SET_VALUE(CELL($out, 1, lastCol + 1), "Days Open")
 OP       LET(outRow, 2)
 OP       LOOP_ROWS dir=down from=2 to=LASTROW($ncr, cNcr) var=r
-OP         IF UPPER(TRIM(CELL($ncr, r, cStatus))) = "OPEN"
+OP         IF SAME(CELL($ncr, r, cStatus), "OPEN")
 OP           COPY_ROW($ncr, r, $out, outRow, cols=lastCol)
 OP           IF IS_DATE(CELL($ncr, r, cDate)) THEN SET_VALUE(CELL($out, outRow, lastCol + 1), TODAY - CELL($ncr, r, cDate))
 OP           IF NOT IS_DATE(CELL($ncr, r, cDate)) THEN SET_VALUE(CELL($out, outRow, lastCol + 1), "Issue date missing")

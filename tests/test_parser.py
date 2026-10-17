@@ -69,8 +69,9 @@ ERR      standard
 
 
 class ParseTask(unittest.TestCase):
+    # task_01 as it was in VCL 0.1 (tests/data/specs_v01), so the tree below keeps its shape (D20)
     def setUp(self):
-        self.spec = parse_spec(read("specs/task_01.vcl"))
+        self.spec = parse_spec(read("tests/data/specs_v01/task_01.vcl"))
 
     def test_header_and_assumptions(self):
         self.assertEqual(self.spec.kind, "TASK")
@@ -165,7 +166,7 @@ class ParseBadInput(unittest.TestCase):
         self.assertIn("expected '<name> As <Type>'", spec.problems[0].message)
 
     def test_bad_nesting_is_reported(self):
-        text = read("specs/task_02.vcl").replace("OP         IF NOT IS_EMPTY", "OP           IF NOT IS_EMPTY")
+        text = read("tests/data/specs_v01/task_02.vcl").replace("OP         IF NOT IS_EMPTY", "OP           IF NOT IS_EMPTY")
         spec = parse_spec(text)
         self.assertTrue(any("bad nesting" in p.message and p.line == 24 for p in spec.problems))
 

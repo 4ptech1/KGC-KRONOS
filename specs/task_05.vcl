@@ -1,4 +1,4 @@
-VCL 0.1
+VCL 0.2
 TASK
 # ASSUME: Weld Log headers (row 1) include "Weld Seam No", "Fit-up" and "Visual"; column order does not matter
 # ASSUME: rows are NOT deleted; seams not yet accepted are copied to the Weld Log Exceptions sheet instead
@@ -15,6 +15,7 @@ VAR      cVisual As Long
 VAR      lastCol As Long
 VAR      outRow As Long
 PRE      COL($weldLog, "Weld Seam No") > 0; COL($weldLog, "Fit-up") > 0; COL($weldLog, "Visual") > 0
+MODIFIES $out
 OP       LET(cSeam, COL($weldLog, "Weld Seam No"))
 OP       LET(cFit, COL($weldLog, "Fit-up"))
 OP       LET(cVisual, COL($weldLog, "Visual"))
@@ -23,10 +24,10 @@ OP       CLEAR(USED_RANGE($out), what=all)
 OP       COPY_ROW($weldLog, 1, $out, 1, cols=lastCol)
 OP       LET(outRow, 2)
 OP       LOOP_ROWS dir=down from=2 to=LASTROW($weldLog, cSeam) var=r
-OP         IF NOT IS_EMPTY(CELL($weldLog, r, cSeam))
-OP           IF UPPER(TRIM(CELL($weldLog, r, cFit))) <> "ACCEPTED" OR UPPER(TRIM(CELL($weldLog, r, cVisual))) <> "ACCEPTED"
-OP             COPY_ROW($weldLog, r, $out, outRow, cols=lastCol)
-OP             LET(outRow, outRow + 1)
+OP         SKIP_IF IS_EMPTY(CELL($weldLog, r, cSeam))
+OP         IF NOT SAME(CELL($weldLog, r, cFit), "ACCEPTED") OR NOT SAME(CELL($weldLog, r, cVisual), "ACCEPTED")
+OP           COPY_ROW($weldLog, r, $out, outRow, cols=lastCol)
+OP           LET(outRow, outRow + 1)
 OP       RETURN(outRow - 2)
 PERF     screen_off calc_manual
 ERR      standard

@@ -1,4 +1,4 @@
-VCL 0.1
+VCL 0.2
 TASK
 # ASSUME: Calibration Tracker headers (row 1) include "Instrument ID" and "Next Calibration Due"
 # ASSUME: an instrument is listed when its due date is blank or invalid, already passed, or within the next 15 days
@@ -15,6 +15,7 @@ VAR      lastCol As Long
 VAR      outRow As Long
 VAR      status As String
 PRE      COL($cal, "Instrument ID") > 0; COL($cal, "Next Calibration Due") > 0
+MODIFIES $out
 OP       LET(cId, COL($cal, "Instrument ID"))
 OP       LET(cDue, COL($cal, "Next Calibration Due"))
 OP       LET(lastCol, LASTCOL($cal, 1))
@@ -23,16 +24,16 @@ OP       COPY_ROW($cal, 1, $out, 1, cols=lastCol)
 OP       SET_VALUE(CELL($out, 1, lastCol + 1), "Status")
 OP       LET(outRow, 2)
 OP       LOOP_ROWS dir=down from=2 to=LASTROW($cal, cId) var=r
-OP         IF NOT IS_EMPTY(CELL($cal, r, cId))
-OP           LET(status, "")
-OP           IF NOT IS_DATE(CELL($cal, r, cDue)) THEN LET(status, "Due date missing")
-OP           IF IS_DATE(CELL($cal, r, cDue))
-OP             IF CELL($cal, r, cDue) < TODAY THEN LET(status, "Overdue")
-OP             IF CELL($cal, r, cDue) >= TODAY AND CELL($cal, r, cDue) <= TODAY + 15 THEN LET(status, "Due within 15 days")
-OP           IF NOT IS_EMPTY(status)
-OP             COPY_ROW($cal, r, $out, outRow, cols=lastCol)
-OP             SET_VALUE(CELL($out, outRow, lastCol + 1), status)
-OP             LET(outRow, outRow + 1)
+OP         SKIP_IF IS_EMPTY(CELL($cal, r, cId))
+OP         LET(status, "")
+OP         IF NOT IS_DATE(CELL($cal, r, cDue)) THEN LET(status, "Due date missing")
+OP         IF IS_DATE(CELL($cal, r, cDue))
+OP           IF CELL($cal, r, cDue) < TODAY THEN LET(status, "Overdue")
+OP           IF CELL($cal, r, cDue) >= TODAY AND CELL($cal, r, cDue) <= TODAY + 15 THEN LET(status, "Due within 15 days")
+OP         IF NOT IS_EMPTY(status)
+OP           COPY_ROW($cal, r, $out, outRow, cols=lastCol)
+OP           SET_VALUE(CELL($out, outRow, lastCol + 1), status)
+OP           LET(outRow, outRow + 1)
 OP       SORT(USED_RANGE($out), key=cDue, order=asc, header=yes)
 OP       RETURN(outRow - 2)
 PERF     screen_off calc_manual

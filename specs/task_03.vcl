@@ -1,4 +1,4 @@
-VCL 0.1
+VCL 0.2
 TASK
 # ASSUME: NDE Report headers (row 1) include "Weld Seam No", "Welder ID" and "Result" (Accepted / Repair); one row per seam
 # ASSUME: rows with a blank Welder ID or a blank Result are skipped; a blank Result means not inspected yet
@@ -19,27 +19,23 @@ VAR      inspected As Long
 VAR      repaired As Long
 VAR      outRow As Long
 PRE      COL($nde, "Weld Seam No") > 0; COL($nde, "Welder ID") > 0; COL($nde, "Result") > 0
+MODIFIES $out
 OP       LET(cSeam, COL($nde, "Weld Seam No"))
 OP       LET(cWelder, COL($nde, "Welder ID"))
 OP       LET(cResult, COL($nde, "Result"))
 OP       CLEAR(USED_RANGE($out), what=all)
-OP       SET_VALUE(CELL($out, 1, 1), "Welder ID")
-OP       SET_VALUE(CELL($out, 1, 2), "Seams Inspected")
-OP       SET_VALUE(CELL($out, 1, 3), "Repairs")
-OP       SET_VALUE(CELL($out, 1, 4), "Repair Rate")
+OP       WRITE_ROW($out, 1, "Welder ID", "Seams Inspected", "Repairs", "Repair Rate")
 OP       LOOP_ROWS dir=down from=2 to=LASTROW($nde, cSeam) var=r
 OP         IF NOT IS_EMPTY(CELL($nde, r, cWelder)) AND NOT IS_EMPTY(CELL($nde, r, cResult))
 OP           LET(welderId, TRIM(CELL($nde, r, cWelder)))
 OP           DICT_ADD(total, welderId, 1, mode=count)
-OP           IF UPPER(TRIM(CELL($nde, r, cResult))) = "REPAIR" THEN DICT_ADD(repairs, welderId, 1, mode=count)
+OP           IF SAME(CELL($nde, r, cResult), "REPAIR") THEN DICT_ADD(repairs, welderId, 1, mode=count)
 OP       LET(outRow, 2)
 OP       FOR_EACH var=k in=KEYS(total)
 OP         DICT_GET(total, k, into=inspected)
 OP         LET(repaired, 0)
 OP         IF EXISTS(repairs, k) THEN DICT_GET(repairs, k, into=repaired)
-OP         SET_VALUE(CELL($out, outRow, 1), k)
-OP         SET_VALUE(CELL($out, outRow, 2), inspected)
-OP         SET_VALUE(CELL($out, outRow, 3), repaired)
+OP         WRITE_ROW($out, outRow, k, inspected, repaired)
 OP         SET_VALUE(CELL($out, outRow, 4), repaired / inspected)
 OP         FORMAT(CELL($out, outRow, 4), numfmt="0.0%")
 OP         LET(outRow, outRow + 1)

@@ -280,6 +280,9 @@ class TaskChecker:
         self.walk(spec.ops, None, [])
         if spec.lines("MODIFIES"):
             self.check_writes_are_declared()
+        elif spec.version == "VCL 0.2" and self.writes and not self.in_build:
+            self.warning("the spec writes to sheets but has no MODIFIES lines, so no TEST checks that nothing "
+                         "else changed: declare each sheet it changes with MODIFIES", self.writes[0][0])
         for line, arg, header in self.op_cols:
             if (arg, norm(header)) not in self.pre_cols:
                 self.error(f'header "{header}" on ${arg} is used but not checked in PRE (rule 14)', line)

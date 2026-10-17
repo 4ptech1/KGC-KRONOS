@@ -149,8 +149,9 @@ TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
 Done: 10 specs, VCL 0.1 revision 5, the Orchestrator prompt, the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,
 `vclc`), with one fixture generator. Fixtures from the mutation evidence (revision 5:
-`stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19): snapshot mutation score 96.4%, and
-every survivor is an equivalent mutant (D14). PR #4 (Excel pilot) is open with the `deferred`
+`stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). The 10 specs are VCL 0.2 (PR D1):
+snapshot mutation score 90.9%, from the 15 equivalent survivors (D14) plus 22 on the new SKIP_IF
+lines, which need blank key rows in the fixtures (D20; waiting for Boss). PR #4 (Excel pilot) is open with the `deferred`
 label.
 
 Known: task_04 exceeds the ~60-line TASK guideline; accepted for now, revisit in March.
@@ -160,8 +161,9 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    automatic UNCHANGED, PARSE_DATE, IS_ERROR, IIF, MOD; then migrate the 10 specs. Designed in
    `docs/vep-0.2-core.md`. PR A (SAME, CLEAN_TEXT, IS_ERROR, PARSE_DATE, IIF, MOD, under a
    `VCL 0.2` first line), PR B (ForgeSetValue, SKIP_IF, EXIT_LOOP_IF, WRITE_ROW) and PR C
-   (MODIFIES with the automatic UNCHANGED check) are done; next is PR D (`vcl_migrate.py`, the
-   10 specs and the Orchestrator prompt to VCL 0.2).
+   (MODIFIES with the automatic UNCHANGED check) and PR D1 (`vcl_migrate.py`, the 10 specs to
+   VCL 0.2) are done; next is PR D2 (spec.md's shared text, the Orchestrator prompt and Example 1
+   to VCL 0.2; Boss then updates the Orchestrator Project).
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 

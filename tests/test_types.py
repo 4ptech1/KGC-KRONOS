@@ -102,7 +102,7 @@ class Accepts(unittest.TestCase):
 
     def test_task_06_before_the_t2_rewrite_is_rejected(self):
         # T2: the original task_06 guarded the date comparison with a flag (IF NOT bad).
-        text = (ROOT / "specs" / "task_06.vcl").read_text()
+        text = (ROOT / "tests" / "data" / "specs_v01" / "task_06.vcl").read_text()   # as in VCL 0.1 (D20)
         self.assertIn("OP           IF IS_DATE(expDate)\n", text)
         found = check_text(text.replace("OP           IF IS_DATE(expDate)\n", "OP           IF NOT bad\n"))
         self.assertEqual(len(found), 1, found)
