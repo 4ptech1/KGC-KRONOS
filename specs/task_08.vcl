@@ -54,9 +54,9 @@ OP             SET_VALUE(CELL($inv, r, vRemark), "Opening stock missing")
 OP       RETURN(unknown)
 PERF     screen_off calc_manual
 ERR      standard
-FIXTURE  consumables_01.xlsx sheet=Inventory cols=A:Batch No,B:Opening Stock,C:Issued to Date,D:Balance,E:Remark rows=8 data=A:values("B-101"x1,"B-102"x1,"B-103"x1,"B-104"x1,"B-105"x1,"B-106"x1,"B-107"x1,"B-108"x1);B:int(200,500)+blank(1)
+FIXTURE  consumables_01.xlsx sheet=Inventory cols=A:Batch No,B:Opening Stock,C:Issued to Date,D:Balance,E:Remark rows=8 data=A:values("B-101"x1,"B-102"x1,"B-103"x1,"B-104"x1,"B-105"x1,"B-106"x1,"B-107"x1,"B-108"x1)+boundary("B-101","B-106");B:int(200,500)+boundary(1,0)+blank(1);D:int(1,99);E:values("Old remark"x4,""x4)
 FIXTURE  consumables_01.xlsx sheet=Issues cols=A:Issue Date,B:Batch No,C:Qty Issued rows=60 data=A:dates(2026-06-01,2026-09-30);B:values("B-101"x10,"B-102"x10,"B-103"x10,"B-104"x10,"B-105"x10,"B-109"x5,""x5);C:int(1,20)+blank(6)
 TEST     fixture=consumables_01.xlsx call=ReconcileConsumableStock(Issues, Inventory) runs=2 assert=RESULT = PRE_COUNTIFS(Issues![Batch No], "B-109", Issues![Qty Issued], "<>") AND SUM(Inventory![Issued to Date]) = PRE_SUMIFS(Issues![Qty Issued], Issues![Batch No], "<>B-109", Issues![Batch No], "<>") AND ERROR_COUNT = 0
-TEST     fixture=consumables_01.xlsx call=ReconcileConsumableStock(Issues, Inventory) assert=COUNTIF(Inventory![Remark], "Opening stock missing") = 1
+TEST     fixture=consumables_01.xlsx call=ReconcileConsumableStock(Issues, Inventory) assert=COUNTIF(Inventory![Remark], "Opening stock missing") = 1 AND COUNTIF(Inventory![Remark], "Negative balance") = 1 AND COUNTIF(Inventory![Remark], "Old remark") = 0 AND VALUE(Inventory![Balance]3) = 0 AND COUNTA(Inventory![Balance]) = 8
 TEST     fixture=consumables_01.xlsx call=ReconcileConsumableStock(Issues, Inventory) assert=SUM(Inventory![Opening Stock]) = PRE_SUM(Inventory![Opening Stock]) AND SUM(Issues![Qty Issued]) = PRE_SUM(Issues![Qty Issued])
 TEST     fixture=consumables_01.xlsx call=ReconcileConsumableStock(Inventory, Inventory) assert=RESULT = -1 AND ERROR_COUNT = 1 AND COUNTA(Inventory![Balance]) = PRE_COUNTA(Inventory![Balance])

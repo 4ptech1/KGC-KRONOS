@@ -30,8 +30,8 @@ OP             LET(outRow, outRow + 1)
 OP       RETURN(outRow - 2)
 PERF     screen_off calc_manual
 ERR      standard
-FIXTURE  weld_log_01.xlsx sheet=WeldLog cols=A:Weld Seam No,B:Welder ID,C:Fit-up,D:Visual,E:Weld Date rows=50 data=A:seq(1,1);B:values("W-01"x25,"W-02"x25);C:values("Accepted"x44,"Rejected"x2,""x4);D:values("Accepted"x43,"Hold"x3,""x4);E:dates(2026-01-01,2026-09-30)
-FIXTURE  weld_log_01.xlsx sheet=Exceptions cols=A:Weld Seam No rows=0
-TEST     fixture=weld_log_01.xlsx call=ListWeldLogExceptions(WeldLog, Exceptions) runs=2 assert=RESULT >= 7 AND RESULT <= 13 AND COUNTA(Exceptions![Weld Seam No]) = RESULT + 1 AND ERROR_COUNT = 0
+FIXTURE  weld_log_01.xlsx sheet=WeldLog cols=A:Weld Seam No,B:Welder ID,C:Fit-up,D:Visual,E:Weld Date rows=50 data=A:seq(1,1);B:values("W-01"x25,"W-02"x25);C:values("Accepted"x44,"Rejected"x2,""x4);D:values("Accepted"x43,"Hold"x3,""x4);E:dates(2026-01-01,2026-09-30)+boundary("")
+FIXTURE  weld_log_01.xlsx sheet=Exceptions cols=A:Weld Seam No rows=0 stale=10
+TEST     fixture=weld_log_01.xlsx call=ListWeldLogExceptions(WeldLog, Exceptions) runs=2 assert=RESULT = 13 AND COUNTA(Exceptions![Weld Seam No]) = 14 AND COUNTIF(Exceptions![Weld Seam No], "stale") = 0 AND COUNTA(Exceptions![Weld Date]) = 13 AND ERROR_COUNT = 0
 TEST     fixture=weld_log_01.xlsx call=ListWeldLogExceptions(WeldLog, Exceptions) assert=COUNTA(WeldLog![Weld Seam No]) = PRE_COUNTA(WeldLog![Weld Seam No]) AND COUNTA(WeldLog![Fit-up]) = PRE_COUNTA(WeldLog![Fit-up])
 TEST     fixture=weld_log_01.xlsx call=ListWeldLogExceptions(Exceptions, Exceptions) assert=RESULT = -1 AND ERROR_COUNT = 1 AND COUNTA(Exceptions![Weld Seam No]) = PRE_COUNTA(Exceptions![Weld Seam No])

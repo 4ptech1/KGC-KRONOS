@@ -307,6 +307,7 @@ class Machine:
             sh, row = e(pos[0]), int(e(pos[1]))
             sh.cells = {(r - (r > row), c): v for (r, c), v in sh.cells.items() if r != row}
             sh.fills = {(r - (r > row), c): v for (r, c), v in sh.fills.items() if r != row}
+            sh.formats = {(r - (r > row), c): v for (r, c), v in sh.formats.items() if r != row}
         elif name == "DICT_ADD":
             d, k, v = e(pos[0]), e(pos[1]), e(pos[2])
             mode = str(opts["mode"])
@@ -334,6 +335,7 @@ class Machine:
         first = rng.r1 + (1 if header else 0)
         rows = [{c: sh.get(r, c) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
         fills = [{c: sh.fills.get((r, c)) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
+        formats = [{c: sh.formats.get((r, c)) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
 
         def rank(v):  # Excel: numbers and dates < text < booleans; blanks always last
             if isinstance(v, bool):
@@ -350,12 +352,13 @@ class Machine:
         filled.sort(key=lambda i: rank(rows[i][key]), reverse=not ascending)
         for offset, i in enumerate(filled + empty):
             r = first + offset
-            for c in range(rng.c1, rng.c2 + 1):
+            for c in range(rng.c1, rng.c2 + 1):   # Range.Sort moves values and cell formats
                 sh.set(r, c, rows[i][c])
-                if fills[i][c]:
-                    sh.fills[(r, c)] = fills[i][c]
-                else:
-                    sh.fills.pop((r, c), None)
+                for store, saved in ((sh.fills, fills), (sh.formats, formats)):
+                    if saved[i][c]:
+                        store[(r, c)] = saved[i][c]
+                    else:
+                        store.pop((r, c), None)
 
     def block(self, nodes):
         for n in nodes:
@@ -572,7 +575,8 @@ def run_tests(text, today=None):
     spec, problems = parse(text)
     if problems or not spec or spec["kind"] != "TASK":
         raise VclError(f"spec doesn't parse: {problems[:3]}")
-    books = build_workbooks([k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"])
+    today = today or dt.date.today()
+    books = build_workbooks([k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"], today)
     results = []
     for k in spec["keys"]:
         if k["key"] != "TEST":
@@ -616,7 +620,8 @@ def run_tests(text, today=None):
                 ok = False
             if not ok:
                 failed.append(cond)
-        state = {name: (sorted((rc, S.text_of(v)) for rc, v in sh.cells.items()), sorted(sh.fills.items()))
+        state = {name: (sorted((rc, S.text_of(v)) for rc, v in sh.cells.items()), sorted(sh.fills.items()),
+                        sorted(sh.formats.items()))
                  for name, sh in book.items()}
         results.append(TestResult(k["line"], not failed, result, len(log), failed, list(log), state))
     return results

@@ -27,7 +27,8 @@ op_value: statement
 perf_value: PERF_FLAG+
 err_value: ERR_WORD
 allow_value: ALLOW_WORD+
-fixture_value: FILENAME "sheet=" NAME "cols=" col_list "rows=" INT ("data=" data_list)?
+fixture_value: FILENAME "sheet=" NAME "cols=" col_list "rows=" INT stale_opt? ("data=" data_list)?
+stale_opt: "stale=" INT
 test_value: "fixture=" FILENAME "call=" call_target "(" [call_arg ("," call_arg)*] ")" ("runs=" INT)? "assert=" assertion
 
 // ---------- BUILD key values ----------
@@ -112,16 +113,22 @@ sheet_ref: NAME "!" (HEADER_REF | A1_REF)
 col_list: col_def ("," col_def)*
 col_def: COLLETTER ":" HEADER_TEXT
 data_list: data_def (";" data_def)*
-data_def: COLLETTER ":" rule ("+" blank_mod)?
-?rule: values_rule | seq_rule | int_rule | num_rule | dates_rule | text_rule
+data_def: COLLETTER ":" rule ("+" modifier)*
+?rule: values_rule | seq_rule | int_rule | num_rule | dates_rule | reldates_rule | text_rule
 values_rule: "values(" value_item ("," value_item)* ")"
 value_item: STRING "x" INT
 seq_rule: "seq(" SIGNED_NUM "," SIGNED_NUM ")"
 int_rule: "int(" SIGNED_NUM "," SIGNED_NUM ")"
 num_rule: "num(" SIGNED_NUM "," SIGNED_NUM ")"
 dates_rule: "dates(" ISO_DATE "," ISO_DATE ")"
+reldates_rule: "reldates(" SIGNED_NUM "," SIGNED_NUM ")"
 text_rule: "text(" INT ")"
+// Modifiers, written (and applied) in this order: +boundary, +blank, +dupes.
+?modifier: boundary_mod | blank_mod | dupes_mod
+boundary_mod: "boundary(" boundary_value ("," boundary_value)* ")"
+?boundary_value: STRING | ISO_DATE | SIGNED_NUM
 blank_mod: "blank(" INT ")"
+dupes_mod: "dupes(" INT ")"
 
 // ---------- terminals ----------
 // Option keys are reserved words. That resolves "name=value" (an option) versus
@@ -148,7 +155,7 @@ COLOR: /#[0-9A-Fa-f]{6}/
 FILENAME: /[a-z0-9_]+\.xlsx/
 COLLETTER: /[A-Z]{1,3}/
 HEADER_TEXT: /[^,\r\n]+?(?=,[A-Z]{1,3}:| rows=|$)/
-ISO_DATE: /\d{4}-\d{2}-\d{2}/
+ISO_DATE.2: /\d{4}-\d{2}-\d{2}/
 HEADER_REF: /\[[^\]]+\]\d*/
 A1_REF: /\$?[A-Z]{1,3}\$?\d*(:\$?[A-Z]{1,3}\$?\d*)?/
 

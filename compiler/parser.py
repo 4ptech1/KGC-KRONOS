@@ -54,11 +54,14 @@ class OpNode:
 
 @dataclass
 class Rule:
-    """One FIXTURE data rule, e.g. C:int(1,50)+blank(3)."""
+    """One FIXTURE data rule with its modifiers, e.g. C:int(1,50)+boundary(0)+blank(3)."""
     col: str
-    kind: str   # values, seq, int, num, dates or text
+    kind: str   # values, seq, int, num, dates, reldates or text
     args: list  # values: [(text, count)]; the others: their numbers or dates as text
     blank: int = 0
+    boundary: list = field(default_factory=list)  # [(kind, value)]: kind is text, number or date
+    dupes: int = 0
+    mods: list = field(default_factory=list)      # modifier names in the order written
 
 
 @dataclass
@@ -69,6 +72,7 @@ class Fixture:
     headers: list  # [(column letter, header)]
     rows: int
     rules: list    # [Rule]
+    stale: int = 0
 
 
 @dataclass
@@ -199,8 +203,8 @@ def split_top(text, sep):
 # ---------------------------------------------------------------- spec structure
 
 FIXTURE_RE = re.compile(r"(?P<file>\S+)\s+sheet=(?P<sheet>\S+)\s+cols=(?P<cols>.+?)\s+rows=(?P<rows>\S+)"
-                        r"(?:\s+data=(?P<data>.*))?")
-RULE_RE = re.compile(r"(?P<col>[A-Z]{1,3}):(?P<kind>\w+)\((?P<args>.*?)\)(?:\+blank\((?P<blank>\d+)\))?")
+                        r"(?:\s+stale=(?P<stale>\S+))?(?:\s+data=(?P<data>.*))?")
+CALL_HEAD_RE = re.compile(r"(\w+)\(")
 TEST_RE = re.compile(r"fixture=(?P<fixture>\S+)\s+call=(?P<proc>[A-Za-z_][\w.]*)\((?P<args>[^()]*)\)"
                      r"(?:\s+runs=(?P<runs>\S+))?\s+assert=(?P<assertion>.+)")
 SIG_RE = re.compile(r"(?P<module>[A-Za-z_]\w*)\.(?P<proc>[A-Za-z_]\w*)\((?P<params>[^()]*)\)"
@@ -374,22 +378,89 @@ def _fixture(spec, n, value):
         rows = int(m["rows"])
     else:
         spec.error(n, f"FIXTURE rows= must be a whole number, got '{m['rows']}'")
+    stale = 0
+    if m["stale"] is not None:
+        if m["stale"].isdigit() and int(m["stale"]) > 0:
+            stale = int(m["stale"])
+        else:
+            spec.error(n, f"FIXTURE stale= must be a whole number of 1 or more, got '{m['stale']}'")
     rules = []
     if m["data"] is not None:
         for item in split_top(m["data"], ";"):
             rule = _rule(spec, n, item.strip())
             if rule:
                 rules.append(rule)
-    spec.fixtures.append(Fixture(n, m["file"], m["sheet"], headers, rows, rules))
+    spec.fixtures.append(Fixture(n, m["file"], m["sheet"], headers, rows, rules, stale))
+
+
+def _calls(text):
+    """'kind(args)+mod(args)+...' -> [(name, args)], or None if the text doesn't read that way."""
+    out, pos = [], 0
+    while pos < len(text):
+        m = CALL_HEAD_RE.match(text, pos)
+        if not m:
+            return None
+        depth, quoted, i = 1, False, m.end()
+        while i < len(text) and depth:
+            if text[i] == '"':
+                quoted = not quoted
+            elif not quoted and text[i] in "()":
+                depth += 1 if text[i] == "(" else -1
+            i += 1
+        if depth:
+            return None
+        out.append((m.group(1), text[m.end():i - 1]))
+        pos = i
+        if pos < len(text):
+            if text[pos] != "+" or pos + 1 == len(text):
+                return None
+            pos += 1
+    return out
+
+
+def _boundary_values(text):
+    """The values of +boundary(...): [(kind, value)], or None if one can't be read."""
+    out = []
+    for part in (p.strip() for p in split_top(text, ",")):
+        if re.fullmatch(r'"(?:[^"]|"")*"', part):
+            out.append(("text", part[1:-1].replace('""', '"')))
+        elif re.fullmatch(r"\d{4}-\d{2}-\d{2}", part):
+            try:
+                datetime.date.fromisoformat(part)
+            except ValueError:
+                return None
+            out.append(("date", part))
+        elif NUMBER_RE.fullmatch(part):
+            out.append(("number", part))
+        else:
+            return None
+    return out
 
 
 def _rule(spec, n, item):
-    m = RULE_RE.fullmatch(item)
-    if not m:
-        spec.error(n, f"FIXTURE data: expected <col>:<rule>, got '{item}'")
+    m = re.fullmatch(r"(?P<col>[A-Z]{1,3}):(?P<rest>.+)", item)
+    calls = _calls(m["rest"]) if m else None
+    if not calls:
+        spec.error(n, f"FIXTURE data: expected <col>:<rule>[+<modifier>...], got '{item}'")
         return None
-    kind, args = m["kind"], m["args"]
-    rule = Rule(m["col"], kind, [], int(m["blank"] or 0))
+    (kind, args), modifiers = calls[0], calls[1:]
+    rule = Rule(m["col"], kind, [])
+    for name, margs in modifiers:
+        rule.mods.append(name)
+        if name in ("blank", "dupes"):
+            if not margs.strip().isdigit():
+                spec.error(n, f"FIXTURE data: +{name}() takes one whole number, got '{margs}'")
+                return None
+            setattr(rule, name, int(margs))
+        elif name == "boundary":
+            values = _boundary_values(margs)
+            if not values:
+                spec.error(n, f'FIXTURE data: +boundary() takes "text", numbers or yyyy-mm-dd dates, got \'{margs}\'')
+                return None
+            rule.boundary = values
+        else:
+            spec.error(n, f"FIXTURE data: unknown modifier +{name}() (use +boundary, +blank or +dupes)")
+            return None
     parts = [a.strip() for a in args.split(",")]
     if kind == "values":
         if not re.fullmatch(r'"(?:[^"]|"")*"x\d+(?:,"(?:[^"]|"")*"x\d+)*', args):
@@ -397,10 +468,10 @@ def _rule(spec, n, item):
             return None
         rule.args = [(text.replace('""', '"'), int(count))
                      for text, count in re.findall(r'"((?:[^"]|"")*)"x(\d+)', args)]
-    elif kind in ("seq", "int", "num"):
-        pattern = r"-?\d+" if kind == "int" else NUMBER_RE.pattern
+    elif kind in ("seq", "int", "num", "reldates"):
+        pattern = r"-?\d+" if kind in ("int", "reldates") else NUMBER_RE.pattern
         if len(parts) != 2 or not all(re.fullmatch(pattern, p) for p in parts):
-            what = "two whole numbers" if kind == "int" else "two numbers"
+            what = "two whole numbers" if kind in ("int", "reldates") else "two numbers"
             spec.error(n, f"FIXTURE data: {kind}() takes {what}, got '{args}'")
             return None
         rule.args = parts
@@ -422,7 +493,7 @@ def _rule(spec, n, item):
             return None
         rule.args = parts
     else:
-        spec.error(n, f"FIXTURE data: unknown rule {kind}() (use values, seq, int, num, dates or text)")
+        spec.error(n, f"FIXTURE data: unknown rule {kind}() (use values, seq, int, num, dates, reldates or text)")
         return None
     return rule
 

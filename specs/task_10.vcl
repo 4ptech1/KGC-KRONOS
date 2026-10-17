@@ -37,9 +37,9 @@ OP       SORT(USED_RANGE($out), key=cDue, order=asc, header=yes)
 OP       RETURN(outRow - 2)
 PERF     screen_off calc_manual
 ERR      standard
-FIXTURE  calibration_01.xlsx sheet=Calibration cols=A:Instrument ID,B:Description,C:Last Calibrated,D:Next Calibration Due rows=30 data=A:seq(1,1);B:text(15);C:dates(2025-01-01,2026-09-30);D:dates(2025-06-01,2028-06-30)+blank(3)
-FIXTURE  calibration_01.xlsx sheet=Overdue cols=A:Instrument ID rows=0
-TEST     fixture=calibration_01.xlsx call=BuildCalibrationDueList(Calibration, Overdue) runs=2 assert=RESULT >= 3 AND COUNTA(Overdue![Instrument ID]) = RESULT + 1 AND ERROR_COUNT = 0
+FIXTURE  calibration_01.xlsx sheet=Calibration cols=A:Instrument ID,B:Description,C:Last Calibrated,D:Next Calibration Due rows=30 data=A:seq(1,1);B:text(15);C:dates(2025-01-01,2026-09-30);D:reldates(-500,990)+boundary("",0,15,16,-1)+blank(2)
+FIXTURE  calibration_01.xlsx sheet=Overdue cols=A:Instrument ID rows=0 stale=10
+TEST     fixture=calibration_01.xlsx call=BuildCalibrationDueList(Calibration, Overdue) runs=2 assert=RESULT = 12 AND COUNTA(Overdue![Instrument ID]) = 13 AND COUNTIF(Overdue![Instrument ID], "stale") = 0 AND COUNTIF(Overdue![Status], "Overdue") = 7 AND COUNTIF(Overdue![Status], "Due within 15 days") = 2 AND ERROR_COUNT = 0
 TEST     fixture=calibration_01.xlsx call=BuildCalibrationDueList(Calibration, Overdue) assert=COUNTIF(Overdue![Status], "Due date missing") = 3
 TEST     fixture=calibration_01.xlsx call=BuildCalibrationDueList(Calibration, Overdue) assert=COUNTA(Calibration![Next Calibration Due]) = PRE_COUNTA(Calibration![Next Calibration Due]) AND COUNTA(Calibration![Instrument ID]) = PRE_COUNTA(Calibration![Instrument ID])
 TEST     fixture=calibration_01.xlsx call=BuildCalibrationDueList(Overdue, Overdue) assert=RESULT = -1 AND ERROR_COUNT = 1 AND COUNTA(Overdue![Instrument ID]) = PRE_COUNTA(Overdue![Instrument ID])

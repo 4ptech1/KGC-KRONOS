@@ -14,7 +14,8 @@ build writes into DIR:
   forge_fixtures.bas    the fixture builders: ForgeFixture_<file>(wb) rebuilds each synthetic
                         test workbook with exactly the data the interpreter tested on
   procedures/*.bas      each procedure on its own
-  expected/*.json       for every TEST: RESULT, ERROR_COUNT and the final workbook state
+  expected/*.json       for every TEST: RESULT, ERROR_COUNT and the final workbook state (values,
+                        fills, and the number formats set by FORMAT)
 
 Exit code 0 when everything passes, 1 otherwise. Nothing here needs Excel.
 """
@@ -95,8 +96,9 @@ def cmd_build(files, out_dir, today):
                     "tests": [{"test_line": r.line, "passed": r.passed, "result": r.result,
                                "error_count": r.errors,
                                "final_state": {sheet: {"cells": [[rc[0], rc[1], v] for rc, v in cells],
-                                                       "fills": [[rc[0], rc[1], f] for rc, f in fills]}
-                                               for sheet, (cells, fills) in r.state.items()}}
+                                                       "fills": [[rc[0], rc[1], f] for rc, f in fills],
+                                                       "number_formats": [[rc[0], rc[1], f] for rc, f in formats]}
+                                               for sheet, (cells, fills, formats) in r.state.items()}}
                               for r in run_tests(text, run_day)]}
         (out / "expected" / (path.stem + ".json")).write_text(json.dumps(expected, indent=1, default=str),
                                                                encoding="utf-8")

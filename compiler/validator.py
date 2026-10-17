@@ -20,6 +20,7 @@ import sys
 from collections import Counter
 
 from parser import Problem, Token, parse_spec, tokenize
+from vcl_fixtures import parse_fixture, sheet_rows, stale_rows
 from vcl_parse import OPTION_WORDS
 from vcl_parse import parse as grammar_parse
 from vcl_types import Checker as TypeChecker
@@ -269,7 +270,60 @@ class TaskChecker:
                          "into a BUILD (rule 9)", first)
         check_fixtures(self, spec.fixtures)
         self.check_tests()
+        if not self.in_build:
+            self.check_fixtures_can_catch_mistakes()
         return self.problems
+
+    def check_fixtures_can_catch_mistakes(self):
+        """Rule 19 (warnings): fixtures that let the TESTs tell a right macro from a wrong one."""
+        spec = self.spec
+        if not spec.tests or not spec.fixtures:
+            return
+        first = spec.tests[0].line
+        texts = [blank_strings(node.text) for node in spec.all_ops()]
+        rules = [rule for fx in spec.fixtures for rule in fx.rules]
+        # stale rows: sheets the macro rebuilds (CLEAR of the used range) or whose fill it owns
+        owned = {}
+        for text in texts:
+            for arg in re.findall(r"CLEAR\(USED_RANGE\(\$(\w+)\)", text):
+                owned.setdefault(arg, "rows")
+            if re.search(r"\bfill=none\b", text):
+                for arg in re.findall(r"FORMAT\((?:ROW_RANGE|CELL|USED_RANGE)\(\$(\w+)", text):
+                    owned.setdefault(arg, "fills")
+        params = [d.name for d in spec.args]
+        warned = set()
+        for test in spec.tests:
+            if not self.passes_pre(test):
+                continue  # a wrong-sheet TEST changes nothing, so its sheets need no stale rows
+            for name, value in zip(params, test.args):
+                fx = next((f for f in spec.fixtures if f.file == test.fixture and f.sheet == value), None)
+                if name in owned and fx is not None and not fx.stale and fx.sheet not in warned:
+                    warned.add(fx.sheet)
+                    what = "old rows are cleared" if owned[name] == "rows" else "old fills are cleared"
+                    self.warning(f"FIXTURE sheet {fx.sheet} has no stale=<n> rows, so no TEST proves {what} "
+                                 "(rule 19)", fx.line)
+        if any(re.search(r"\bTODAY\b", t) for t in texts) and not any(r.kind == "reldates" for r in rules):
+            self.warning("the spec uses TODAY, but no FIXTURE column uses reldates(lo, hi): fixed dates drift "
+                         "as TODAY moves (rule 19)", first)
+        repeats = any(r.dupes for r in rules) or any(
+            count >= 2 for r in rules if r.kind == "values" for text, count in r.args if text)
+        if any("DICT_ADD(" in t for t in texts) and not repeats:
+            self.warning("the spec adds to a dictionary, but no FIXTURE column repeats a key: add +dupes(n) "
+                         "so the TESTs see repeated keys (rule 19)", first)
+        if any(re.search(r"<=|>=|(?<![<>])[<>](?![<>=])", t) for t in texts) and not any(r.boundary for r in rules):
+            self.warning("the spec compares with <, <=, > or >=, but no FIXTURE column has +boundary(...): "
+                         "put the values that sit exactly on each comparison in the first rows (rule 19)", first)
+
+    def passes_pre(self, test):
+        """False only when PRE is a list of COL(...) > 0 checks and this TEST's sheets miss a header."""
+        if not (self.pre_evaluable and self.pre_conditions):
+            return True
+        argmap = dict(zip([d.name for d in self.spec.args], test.args))
+        for arg, header in self.pre_conditions:
+            fx = next((f for f in self.fixtures if f.file == test.fixture and f.sheet == argmap.get(arg)), None)
+            if fx is not None and norm(header) not in {norm(h) for _, h in fx.headers}:
+                return False
+        return True
 
     # -- keys and declarations
 
@@ -1029,18 +1083,62 @@ def check_fixtures(checker, fixtures):
         for rule in fx.rules:
             if rule.col not in letters:
                 checker.error(f"FIXTURE data uses column {rule.col}, which is not in cols=", line)
-            if rule.blank > fx.rows:
-                checker.error(f"{rule.col}: +blank({rule.blank}) is more than rows={fx.rows}", line)
+            check_modifiers(checker, rule, fx.rows, line)
             if rule.kind == "values":
                 total = sum(count for _, count in rule.args)
                 if total != fx.rows:
                     checker.error(f"{rule.col}: values(...) counts add up to {total}, but rows={fx.rows}", line)
-            elif rule.kind in ("int", "num", "dates"):
+            elif rule.kind in ("int", "num", "dates", "reldates"):
                 lo, hi = rule.args
                 if (lo > hi) if rule.kind == "dates" else (float(lo) > float(hi)):
                     checker.error(f"{rule.col}: {rule.kind}() starts after it ends", line)
             elif rule.kind == "text" and int(rule.args[0]) < 1:
                 checker.error(f"{rule.col}: text() needs a length of 1 or more", line)
+        if fx.stale and fx.rows and fx.stale > fx.rows:
+            checker.error(f"stale={fx.stale} is more than rows={fx.rows}", line)
+
+
+MODIFIER_ORDER = ["boundary", "blank", "dupes"]
+BOUNDARY_KIND = {"values": "text", "text": "text", "seq": "number", "int": "number", "num": "number",
+                 "reldates": "number", "dates": "date"}
+
+
+def check_modifiers(checker, rule, rows, line):
+    """+boundary, +blank and +dupes: each at most once, in that order, with values the rule can hold."""
+    col = rule.col
+    for name in sorted(set(rule.mods)):
+        if rule.mods.count(name) > 1:
+            checker.error(f"{col}: +{name}() is written twice", line)
+    positions = [MODIFIER_ORDER.index(name) for name in rule.mods]
+    if positions != sorted(positions):
+        checker.error(f"{col}: write the modifiers in this order: +boundary, +blank, +dupes", line)
+    top = len(rule.boundary)
+    if top > rows:
+        checker.error(f"{col}: +boundary has {top} values, but rows={rows}", line)
+    if rule.blank > max(rows - top, 0):
+        checker.error(f"{col}: +blank({rule.blank}) is more than the {max(rows - top, 0)} rows below the "
+                      "boundary rows", line)
+    if "dupes" in rule.mods and rule.dupes < 1:
+        checker.error(f"{col}: +dupes() needs 1 or more", line)
+    want = BOUNDARY_KIND.get(rule.kind)
+    for kind, value in rule.boundary:
+        if kind == "text" and value == "":
+            continue  # "" is a blank cell, allowed for every rule
+        if want and kind != want:
+            checker.error(f"{col}: +boundary value {value!r} doesn't fit {rule.kind}() (use "
+                          f"{ {'text': 'quoted text', 'number': 'numbers', 'date': 'yyyy-mm-dd dates'}[want] })",
+                          line)
+        elif rule.kind == "reldates" and not re.fullmatch(r"-?\d+", value):
+            checker.error(f"{col}: reldates() +boundary values are whole numbers of days, got {value}", line)
+    if rule.kind == "values":
+        listed = Counter()
+        for text, count in rule.args:
+            listed[text] += count
+        wanted = Counter(value for kind, value in rule.boundary if kind == "text")
+        for value, n in wanted.items():
+            if n > listed[value]:
+                checker.error(f'{col}: +boundary uses "{value}" {n} times, but values(...) has it '
+                              f"{listed[value]} times", line)
 
 
 # ---------------------------------------------------------------- BUILD checks
@@ -1199,14 +1297,22 @@ def validate(spec):
 
 
 def grammar_and_type_problems(text, known):
-    """Stages 2 and 3: the formal grammar, then the type checker on every TASK it parsed.
-    Problems on lines that already have a stage 1 error are left out."""
+    """Stages 2 and 3: the formal grammar (and building every FIXTURE from it), then the type
+    checker on every TASK it parsed. Problems on lines that already have a stage 1 error are left out."""
     bad_lines = {p.line for p in known if p.severity == "error"}
     spec, found = grammar_parse(text)
     out = [Problem(line, "error", f"grammar: {msg}") for line, msg in found if line not in bad_lines]
     if found or spec is None:
         return out
     tasks = [spec] if spec["kind"] == "TASK" else spec.get("tasks", []) if spec["kind"] == "BUILD" else []
+    for k in spec.get("keys", []) + [k for t in tasks if t and t is not spec for k in t.get("keys", [])]:
+        if k["key"] == "FIXTURE" and k["line"] not in bad_lines:
+            try:
+                fx = parse_fixture(k["tree"])
+                sheet_rows(fx)
+                stale_rows(fx)
+            except ValueError as exc:
+                out.append(Problem(k["line"], "error", f"fixture: {exc}"))
     for task in tasks:
         if not task or task.get("kind") != "TASK":
             continue

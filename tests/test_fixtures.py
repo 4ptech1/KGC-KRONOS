@@ -9,7 +9,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 from vba_lint import lint  # noqa: E402
-from vcl_fixtures import build_workbooks, fixtures_module, parse_fixture, vba_for_file, vba_literal  # noqa: E402
+from vcl_fixtures import (RelDate, build_workbooks, fixtures_module, parse_fixture, vba_for_file,  # noqa: E402
+                          vba_literal)
 from vcl_interp import run_tests  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 
@@ -22,6 +23,10 @@ def trees_of(text):
 
 def spec_trees(name):
     return trees_of((ROOT / "specs" / name).read_text(encoding="utf-8"))
+
+
+# task_01 as the pilot (PR #4) ran it, before revision 5 added +boundary, +dupes and stale rows.
+PILOT_TASK_01 = (ROOT / "tests" / "data" / "task_01_pilot.vcl").read_text(encoding="utf-8")
 
 
 def synthetic(*fixture_lines):
@@ -58,16 +63,29 @@ class SameSpecSameData(unittest.TestCase):
     def test_seed_rule_is_stable(self):
         # The dataset and the expected results depend on this exact output: never change it.
         # The same values come out of the pilot's harness/fixtures.py (PR #4).
-        bom = build_workbooks(spec_trees("task_01.vcl"))["bom_grn_01.xlsx"]["BOM"]
+        bom = build_workbooks(trees_of(PILOT_TASK_01))["bom_grn_01.xlsx"]["BOM"]
         self.assertEqual(column(bom, "Required Qty")[:5], [3, 9, 32, 23, 3])
         self.assertEqual(column(bom, "Description")[:2], ["NCHWIRSNKCMU", "BXDERLKKKNUG"])
+
+    def test_boundary_overwrites_without_drawing(self):
+        # +boundary(30,7) replaces the first two values and draws nothing, so row 4 onwards
+        # (the rows +blank leaves alone) still hold the pilot's values.
+        pilot = column(build_workbooks(trees_of(PILOT_TASK_01))["bom_grn_01.xlsx"]["BOM"], "Required Qty")
+        now = column(build_workbooks(spec_trees("task_01.vcl"))["bom_grn_01.xlsx"]["BOM"], "Required Qty")
+        self.assertEqual(now[:2], [30, 7])
+        same = [a == b for a, b in zip(pilot[2:], now[2:]) if a is not None and b is not None]
+        self.assertTrue(all(same))
 
 
 class CountsMatchTheRules(unittest.TestCase):
     def test_values_counts(self):
         nde = build_workbooks(spec_trees("task_03.vcl"))["nde_repair_01.xlsx"]["NDE"]
-        self.assertEqual(Counter(column(nde, "Welder ID")), Counter({"W-01": 20, "W-02": 20, "W-03": 15, None: 5}))
-        self.assertEqual(Counter(column(nde, "Result")), Counter({"Accepted": 48, "Repair": 8, None: 4}))
+        welders, results = column(nde, "Welder ID"), column(nde, "Result")
+        self.assertEqual(Counter(welders), Counter({"W-01": 20, "W-02": 19, "W-03": 15, "W-04": 1, None: 5}))
+        self.assertEqual(Counter(results), Counter({"Accepted": 48, "Repair": 8, None: 4}))
+        # +boundary moves values() up: same counts, the listed values first
+        self.assertEqual(welders[:2], ["W-01", "W-04"])
+        self.assertEqual(results[:2], ["Repair", "Accepted"])
 
     def test_blank_counts(self):
         book = build_workbooks(spec_trees("task_01.vcl"))["bom_grn_01.xlsx"]
@@ -77,21 +95,68 @@ class CountsMatchTheRules(unittest.TestCase):
         self.assertEqual(column(book["GRN"], "Received Qty").count(None), 4)
         trace = build_workbooks(spec_trees("task_02.vcl"))["traceability_01.xlsx"]["Traceability"]
         heat = column(trace, "Plate/Heat No")
-        self.assertEqual(heat.count(None), 4)
+        self.assertEqual(heat[0], None)               # +boundary("") is a blank first row
+        self.assertEqual(heat.count(None), 5)         # ... and +blank(4) blanks 4 rows below it
         self.assertTrue(all(len(v) == 8 and v.isalpha() for v in heat if v is not None))
 
     def test_seq_dates_and_columns_without_rules(self):
         book = build_workbooks(spec_trees("task_01.vcl"))["bom_grn_01.xlsx"]
         self.assertEqual(column(book["BOM"], "Part No"), list(range(1001, 1041)))
         weld = build_workbooks(spec_trees("task_05.vcl"))["weld_log_01.xlsx"]["WeldLog"]
-        self.assertTrue(all(datetime.date(2026, 1, 1) <= d <= datetime.date(2026, 9, 30)
-                            for d in column(weld, "Weld Date")))
+        dates = column(weld, "Weld Date")
+        self.assertEqual(dates[0], None)              # +boundary("")
+        self.assertTrue(all(datetime.date(2026, 1, 1) <= d <= datetime.date(2026, 9, 30) for d in dates[1:]))
         inventory = build_workbooks(spec_trees("task_08.vcl"))["consumables_01.xlsx"]["Inventory"]
-        self.assertEqual([inventory.get(r, 4) for r in range(2, 10)], [None] * 8)   # Balance has no rule
+        self.assertEqual([inventory.get(r, 3) for r in range(2, 10)], [None] * 8)   # Issued to Date has no rule
 
     def test_values_counts_must_match_rows(self):
         with self.assertRaises(ValueError):
             build_workbooks(synthetic('bad_01.xlsx sheet=S cols=A:X rows=5 data=A:values("a"x4)'))
+
+    def test_boundary_values_must_exist_in_values(self):
+        with self.assertRaises(ValueError):
+            build_workbooks(synthetic('bad_01.xlsx sheet=S cols=A:X rows=3 data=A:values("a"x3)+boundary("b")'))
+        with self.assertRaises(ValueError):
+            build_workbooks(synthetic('bad_01.xlsx sheet=S cols=A:X rows=2 data=A:int(1,9)+boundary(1,2,3)'))
+
+    def test_blank_never_touches_boundary_rows(self):
+        books = build_workbooks(synthetic('b_01.xlsx sheet=S cols=A:X rows=6 data=A:int(5,9)+boundary(1,2)+blank(4)'))
+        self.assertEqual([books["b_01.xlsx"]["S"].get(r, 1) for r in range(2, 8)], [1, 2, None, None, None, None])
+
+    def test_dupes_copy_values_from_other_rows(self):
+        books = build_workbooks(synthetic('d_01.xlsx sheet=S cols=A:X rows=20 data=A:seq(1,1)+boundary(500)+dupes(5)'))
+        x = column(books["d_01.xlsx"]["S"], "X")
+        self.assertEqual(x[0], 500)                   # +dupes leaves boundary rows alone
+        self.assertEqual(len(x) - len(set(x)), 5)     # 5 rows repeat a value of another row
+        self.assertTrue(set(x[1:]) <= set(range(2, 21)))
+        repeated = Counter(column(build_workbooks(spec_trees("task_01.vcl"))["bom_grn_01.xlsx"]["GRN"], "Part No"))
+        self.assertEqual(sum(n - 1 for n in repeated.values()), 4)   # task_01 GRN: +dupes(4)
+        with self.assertRaises(ValueError):
+            build_workbooks(synthetic('d_01.xlsx sheet=S cols=A:X rows=3 data=A:seq(1,1)+dupes(3)'))
+
+    def test_reldates_follow_today(self):
+        line = 'r_01.xlsx sheet=S cols=A:X rows=12 data=A:reldates(-5,5)+boundary(0,-1,15)'
+        one = column(build_workbooks(synthetic(line), today=datetime.date(2026, 10, 16))["r_01.xlsx"]["S"], "X")
+        two = column(build_workbooks(synthetic(line), today=datetime.date(2027, 3, 1))["r_01.xlsx"]["S"], "X")
+        self.assertEqual(one[:3], [datetime.date(2026, 10, 16), datetime.date(2026, 10, 15),
+                                   datetime.date(2026, 10, 31)])
+        self.assertEqual([d - datetime.date(2026, 10, 16) for d in one],
+                         [d - datetime.date(2027, 3, 1) for d in two])     # same offsets, any day
+        self.assertTrue(all(-5 <= (d - datetime.date(2026, 10, 16)).days <= 5 for d in one[3:]))
+
+    def test_stale_rows(self):
+        books = build_workbooks(synthetic('s_01.xlsx sheet=Out cols=A:X,B:Y rows=0 stale=3',
+                                          's_01.xlsx sheet=Data cols=A:X rows=10 stale=4 data=A:seq(1,1)'))
+        out, data = books["s_01.xlsx"]["Out"], books["s_01.xlsx"]["Data"]
+        self.assertEqual(column(out, "X"), ["stale"] * 3)
+        self.assertEqual(column(out, "Y"), ["stale"] * 3)
+        self.assertEqual(sorted(out.fills), [(r, c) for r in (2, 3, 4) for c in (1, 2)])
+        self.assertEqual(set(out.fills.values()), {"#FF0000"})
+        self.assertEqual(column(data, "X"), list(range(1, 11)))        # stale fills keep the values
+        self.assertEqual(len(data.fills), 4)
+        self.assertTrue(all(1 < r <= 11 for r, _ in data.fills))
+        with self.assertRaises(ValueError):
+            build_workbooks(synthetic('s_01.xlsx sheet=Data cols=A:X rows=2 stale=3 data=A:seq(1,1)'))
 
     def test_doubled_quotes_in_values(self):
         book = build_workbooks(synthetic('q_01.xlsx sheet=S cols=A:X rows=2 data=A:values("say ""hi"""x2)'))
@@ -102,13 +167,13 @@ class InterpreterUsesTheSameData(unittest.TestCase):
     def test_task_01_matches_the_pilots_independent_model(self):
         # batches/batch_000_pilot.expected.csv on PR #4 came from a separate Python model of
         # task_01 on the pilot generator's data. The interpreter must reach the same numbers.
-        results = run_tests((ROOT / "specs" / "task_01.vcl").read_text(encoding="utf-8"))
+        results = run_tests(PILOT_TASK_01)
         self.assertEqual([r.result for r in results], [26, 26, 26, -1])
         cells = dict(((r, c), v) for (r, c), v in results[0].state["Shortages"][0])
         remarks = Counter(v for (r, c), v in cells.items() if c == 5 and r > 1)
         self.assertEqual(remarks, Counter({"Short": 16, "Not received": 7, "Required qty missing": 3}))
         self.assertEqual(sum(1 for (r, c) in cells if c == 1), 27)    # COUNTA(Shortages![Part No])
-        book = build_workbooks(spec_trees("task_01.vcl"))["bom_grn_01.xlsx"]
+        book = build_workbooks(trees_of(PILOT_TASK_01))["bom_grn_01.xlsx"]
         self.assertEqual(sum(v for v in column(book["BOM"], "Required Qty") if v), 986)
         self.assertEqual(sum(v for v in column(book["GRN"], "Received Qty") if v), 661)
 
@@ -128,8 +193,22 @@ class GeneratedVba(unittest.TestCase):
         self.assertEqual([int(n) for n, _ in rows], list(range(1, 42)))
 
     def test_rows_0_gives_headers_only(self):
-        self.assertEqual(self.writes("ForgeFixture_bom_grn_01_Shortages"),
-                         [("1", '"Part No", "Required", "Received", "Shortage", "Remark"')])
+        fixtures = [parse_fixture(t) for t in synthetic("e_01.xlsx sheet=Out cols=A:X,B:Y rows=0")]
+        vba = vba_for_file("e_01.xlsx", fixtures)
+        self.assertEqual(re.findall(r"FixtureWriteRow ws, (\d+), Array\((.*)\)", vba), [("1", '"X", "Y"')])
+        self.assertNotIn("FixtureStaleFill ws", vba)
+
+    def test_stale_rows_are_written_and_filled(self):
+        rows = self.writes("ForgeFixture_bom_grn_01_Shortages")
+        self.assertEqual(rows[0], ("1", '"Part No", "Required", "Received", "Shortage", "Remark"'))
+        self.assertEqual(rows[1:], [(str(r), ", ".join(['"stale"'] * 5)) for r in range(2, 42)])
+        body = self.vba.split("Private Sub ForgeFixture_bom_grn_01_Shortages(")[1].split("End Sub")[0]
+        self.assertEqual(re.findall(r"FixtureStaleFill ws, (\d+), 5", body), [str(r) for r in range(2, 42)])
+
+    def test_reldates_become_date_offsets(self):
+        self.assertEqual(vba_literal(RelDate(0)), "Date")
+        self.assertEqual(vba_literal(RelDate(15)), "Date + 15")
+        self.assertEqual(vba_literal(RelDate(-30)), "Date - 30")
 
     def test_blank_cells_are_empty(self):
         values = [args for _, args in self.writes("ForgeFixture_bom_grn_01_BOM")[1:]]
