@@ -1,6 +1,6 @@
 # KGC KRONOS: AI context file
 
-**Snapshot: 17 Oct 2026, `main` at 542e706.** Hand this file to any Claude chat or claude.ai
+**Snapshot: 18 Oct 2026, `main` at ed5a793.** Hand this file to any Claude chat or claude.ai
 Project that needs to understand the project. The repo is always the source of truth: if this
 file and the repo disagree, the repo wins, and the repo's `CLAUDE.md` has the current status.
 
@@ -80,7 +80,7 @@ Boss's working policy (from `CLAUDE.md`):
 
 ```
 CLAUDE.md                 standing brief for Claude Code (rules, status, next steps)
-DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D22)
+DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D24)
 README.md                 overview, how to run the checks, progress log, dataset count
 requirements.txt          one pinned dependency: lark==1.3.1 (with hash)
 vcl/spec.md               THE language reference (VCL 0.2)
@@ -133,7 +133,7 @@ Before every commit Claude Code runs: the unit tests, the validator, `vclc all`,
 `gen_semantics_doc.py --check`. CI runs the same, and fails if `dist/forge_module.bas` or
 `docs/vcl-semantics.md` is stale.
 
-## 6. VCL 0.2 cheat sheet (summary only; `vcl/spec.md` is authoritative)
+## 6. VCL 0.2 cheat sheet (summary only; the full text is in Appendix A)
 
 **TASK keys, in this order:** `VCL 0.2`, `TASK`, `# ASSUME:` lines, PROC, KIND (Sub or
 Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW, FIXTURE, TEST.
@@ -245,10 +245,9 @@ of it. A spec outside this subset passes the validator but fails at test or buil
 | --- | --- | --- |
 | LET, SET_VALUE, WRITE_ROW, CLEAR, FORMAT, COPY_ROW, DELETE_ROW, DICT_ADD, DICT_GET, SORT, RETURN; LOOP_ROWS, LOOP_COLS, FOR_EACH over KEYS(...), IF/ELSE, EXIT_IF, SKIP_IF, EXIT_LOOP_IF; CELL, COL, LASTROW, LASTCOL, ROW_RANGE, USED_RANGE, TRIM, UPPER, LOWER, LEN, LEFT, RIGHT, IS_EMPTY, IS_NUMBER, IS_DATE, IS_ERROR, SAME, CLEAN_TEXT, PARSE_DATE, IIF, MOD, COUNT, EXISTS, KEYS; MODIFIES | INSERT_ROW, READ_ARRAY, WRITE_ARRAY, CALL, LOG, MSG, SELECT_CASE, ARR, ROWS, COLS, SHEET, RANGE, IS_NOTHING, FILE_NAME; FOR_EACH over SHEETS, CELLS or ITEMS | FILTER, DEDUPE, SET_FORMULA, ADD_SHEET, COPY_SHEET, OPEN_BOOK, SAVE_AS, CLOSE_BOOK, LIST_FILES, READ_TEXT, WRITE_TEXT, FIND, NOTE; assertions SHEET_EXISTS, FILE_EXISTS; BUILD specs |
 
-**Known bug (waiting for Boss's "fix colours"):** `FORMAT(..., fill=red)` and the other colour
-names pass the validator. But the interpreter doesn't turn them into a colour, so `FILL_COUNT`
-doesn't count them, and the compiler refuses them. Until it is fixed, write fills as `#RRGGBB`
-(red is `#FF0000`) or `fill=none`.
+**Fill colours:** `fill=` takes `none`, a name (black, white, red, green, blue, yellow, magenta,
+cyan) or `#RRGGBB`. Each name is the colour of the VBA constant of that name (red = `#FF0000`), so
+`fill=red` and `fill=#FF0000` give the same result (D23, fixed in PR #18).
 
 ## 8. Status (17 Oct 2026)
 
@@ -344,10 +343,10 @@ The key safety design for files:
 4. **March 2027:** the new PC; train the local model; Excel conformance runs.
 
 **Pending Boss decisions right now:**
-1. "go Phase 1" for the router.
-2. "fix colours", for the fill colour-name bug above.
-3. Whether the Orchestrator's weld-highlight spec (HighlightRejectedWelds) becomes a repo spec.
-   It needs `stale=10` instead of `stale=30` and `#FF0000` fills first.
+1. "go Phase 1" for the router. Claude Code is paused until then.
+2. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
+   skipped column A, no TEST would notice. Closing it needs a FIXTURE whose last row has a value
+   only in column A. That is a spec change, so it waits for Boss.
 
 ## 10. Decisions worth knowing (full list in `DECISIONS.md`)
 
@@ -367,6 +366,8 @@ The key safety design for files:
   isn't through a `$sheet` argument is an error.
 - **D20:** mutation proofs compare missed mutants, not percentages.
 - **D22:** blank key rows for SKIP_IF, plus the matching rule 19 warning.
+- **D23:** FORMAT fill names work: each name is the VBA colour constant of that name.
+- **D24:** Boss's weld-log spec is task_11, unchanged. The router spec becomes task_12.
 
 ## 11. How to help (rules for the AI reading this)
 
@@ -412,3 +413,293 @@ The key safety design for files:
 | VEP | A design document for a language change, written before any code (`docs/vep-*.md`). |
 | Verified pair | A spec plus its VBA, proven by the toolchain; the training data for March 2027. |
 | Gate 0 | The Phase 0 exit test: everything validates, passes, compiles and lints, in CI. |
+
+## Appendix A: the full VCL 0.2 reference
+
+Copied word for word from `vcl/spec.md`, the same text the Orchestrator prompt contains. A unit
+test fails if this copy ever differs from spec.md. The parts of spec.md not copied here are the
+exact fixture algorithm and the changelogs.
+
+### Hard rules
+
+```text
+1.  Reply with exactly one code block tagged vcl. No text before or after it.
+2.  Never write VBA. Express all logic with VCL keys, ops and expressions only.
+3.  Use only the keys, ops, functions and syntax defined here. Never invent new ones.
+4.  If a step truly cannot be expressed with ops, write it as NOTE "<terse technical text>".
+    Use NOTE rarely.
+5.  Every spec has at least two TEST lines: one proves the goal was met, one proves nothing
+    else changed (for read-only work: proves the source data is unchanged). At least one
+    TEST includes ERROR_COUNT = 0. When the test workbook has another sheet, add a
+    wrong-sheet TEST that passes it and expects RESULT = -1 AND ERROR_COUNT = 1.
+6.  Put every assumption at the top of the spec as a line starting with # ASSUME:
+    Prefer a sensible assumption over a question.
+7.  Ask only when a wrong guess could destroy or overwrite data, or the request cannot be
+    specified at all. Then the code block contains only: # QUESTION: <one short question>
+8.  Use ALLOW only for risky actions the user explicitly asked for: file_delete,
+    file_overwrite, shell, http. Otherwise design around them.
+9.  Choose TASK for one procedure of up to about 60 lines of VBA. Choose BUILD when the
+    request needs several procedures, a UserForm, or more than about 60 lines.
+10. Delete rows only inside LOOP_ROWS dir=up, and only rows the user explicitly wants
+    removed. Never delete rows because data is missing or pending: copy them to an
+    exceptions sheet instead.
+11. For more than about 1,000 rows: READ_ARRAY, process the array, WRITE_ARRAY, and add
+    PERF screen_off calc_manual.
+12. Naming: procedures PascalCase and verb-first (DeleteRowsByValue); modules mod +
+    PascalCase (modCleanup); variables camelCase; fixtures snake_case_01.xlsx.
+13. If the user's message is not a new request (for example a question about your last
+    spec), answer in at most two plain sentences, then reissue the spec if it changed.
+14. Find input columns by header name with COL(), never by fixed position, and check
+    every header you use with a PRE line.
+15. Assume data is typed by hand: trim IDs before matching, compare typed text with SAME,
+    and guard every calculation and date comparison with IS_NUMBER or IS_DATE in a nested
+    IF. Guard with the check itself (IF IS_DATE(x)), never with a flag variable set earlier.
+16. Make re-runs safe: rebuild output sheets from scratch, and recalculate totals from
+    source data instead of adding to or subtracting from stored values. The goal TEST
+    uses runs=2 to prove it.
+17. Prefer KIND Function returning a count (rows written, flagged or removed), so TESTs
+    can check RESULT.
+18. Always test with a named synthetic FIXTURE. Never use fixture=target or real workbooks.
+19. Make the FIXTURE able to catch a wrong macro: give each sheet the macro rebuilds (or
+    whose fills it owns) stale=<n> rows, put the values that sit exactly on each <, <=, >
+    or >= comparison in the first rows with +boundary(...), repeat dictionary keys with
+    +dupes(<n>) or values() counts of 2 or more, and use reldates(lo, hi) when the spec
+    uses TODAY. Prefer exact assertions to ranges.
+20. Declare every sheet the macro changes with MODIFIES: the whole sheet when it is
+    rebuilt, cleared, sorted or has rows added or removed; ["<header>", ...] when only
+    those columns' values change; fills when only fills change. A spec that changes
+    nothing has no MODIFIES lines.
+```
+
+### Reference
+
+```text
+TASK FORMAT  (keys in this order; (opt) = optional)
+VCL 0.2
+TASK
+# ASSUME: <assumption>                        (opt, one line each)
+PROC     <PascalCase name>
+KIND     Sub | Function
+MODULE   <modName>
+ARGS     <name> As <Type>, ...                (opt)
+RET      <Type>                               (Function only)
+VAR      <name> As <Type>                     (opt, one line per local variable)
+PRE      <condition>; <condition>             (opt, checked before any change)
+MODIFIES $<arg> | $<arg>["<header>", ...] | $<arg> fills   (opt, one line each; see MODIFIES)
+OP       <step>                               (one or more)
+PERF     screen_off calc_manual events_off    (opt, any of these)
+ERR      standard
+ALLOW    file_delete file_overwrite shell http  (opt)
+FIXTURE  <name>.xlsx <fixture spec>           (opt)
+TEST     fixture=<name>.xlsx call=<Proc>(<args>) [runs=<n>] assert=<assertion>   (two or more)
+
+Layout: pad keys with spaces so values line up. Nesting = 2 extra spaces after the key,
+relative to the enclosing OP line.
+Types: Long, Double, String, Boolean, Date, Variant, Range, Worksheet, Workbook,
+Dictionary, Collection. Loop variables from LOOP_ROWS, LOOP_COLS and FOR_EACH are declared
+automatically; never repeat them in VAR.
+For form events: MODULE is the form, PROC is <control>_<Event> (btnRun_Click).
+
+BUILD FORMAT
+VCL 0.2
+BUILD
+# ASSUME: <assumption>                        (opt)
+NAME     <PascalCase tool name>
+TARGET   xlsm | xlam
+ENTRY    modMain.Run
+MODULE   <modName>                            (one line per module; always modMain)
+FORM     <frmName> CONTROLS <name>:<ControlType> ...   (opt)
+SIG      <module>.<Proc>(<name> As <Type>, ...) [As <Type>]   (one per procedure)
+FLOW     <caller> -> <callee> -> ...          (call order)
+FIXTURE  ...                                  (opt)
+TEST     fixture=<name>.xlsx call=modMain.RunHeadless(<args>) assert=...   (two or more)
+---
+<one complete TASK spec per SIG, each starting with VCL 0.2, separated by lines
+containing only --->
+
+BUILD rules: modMain always has RunHeadless (runs the whole tool without the form, so the
+harness can test it) and Run (shows the form, or calls RunHeadless if there is no form).
+Control types: TextBox, CommandButton, Label, ListBox, ComboBox, CheckBox, OptionButton.
+
+OP SYNTAX
+Structural ops begin an OP line:
+  LOOP_ROWS dir=up|down from=<expr> to=<expr> var=<name>
+  LOOP_COLS dir=left|right from=<expr> to=<expr> var=<name>
+  FOR_EACH var=<name> in=SHEETS(<book>)|CELLS(<range>)|KEYS(<dict>)|ITEMS(<collection>)
+  IF <condition> THEN <action>       (one-line form)
+  IF <condition>                     (block form; steps below are nested)
+  ELSE
+  SELECT_CASE <expr>                 (block form)
+  CASE <value>, <value>
+  CASE_ELSE
+  EXIT_IF <condition>                (leaves the procedure when the condition is true)
+  SKIP_IF <condition>                (inside a loop: goes on with its next pass)
+  EXIT_LOOP_IF <condition>           (inside a loop: leaves that loop)
+
+Every other op is a call, NAME(arguments, key=value):
+  Assign  LET(<var>, <expr>)
+  Data    READ_ARRAY(<range>, into=<var>)
+          WRITE_ARRAY(<var>, to=<range>)
+          DICT_ADD(<dict>, <key>, <value>, mode=overwrite|keep|sum|count)
+          DICT_GET(<dict>, <key>, into=<var>)
+          SORT(<range>, key=<col>, order=asc|desc, header=yes|no)
+          FILTER(<range>, col=<n>, crit=<expr>)
+          DEDUPE(<range>, cols=<n>|<n,n>, header=yes|no)
+  Cells   SET_VALUE(<target>, <expr>)
+          WRITE_ROW(<ws>, <row>, <expr>, <expr>, ..., col=<n>)
+                  (the values go to columns n, n+1, ...; without col= they start at column 1)
+          SET_FORMULA(<target>, "<formula>", style=a1|r1c1)
+          FORMAT(<target>, numfmt="<format>", bold=yes|no, fill=<name>|#RRGGBB, width=auto|<n>)
+          CLEAR(<target>, what=all|contents|formats)
+          COPY_ROW(<fromWs>, <fromRow>, <toWs>, <toRow>, cols=<n>)   (values of columns 1 to n)
+          INSERT_ROW(<ws>, <row>)
+          DELETE_ROW(<ws>, <row>)
+  Sheets  ADD_SHEET(<book>, name=<expr>, after=<sheet>, into=<var>)
+          COPY_SHEET(<sheet>, after=<sheet>, into=<var>)
+          OPEN_BOOK(<path>, readonly=yes|no, into=<var>)
+          SAVE_AS(<book>, <path>, format=xlsx|xlsm|csv)
+          CLOSE_BOOK(<book>, save=yes|no)
+  Files   LIST_FILES(<folder>, "<pattern>", into=<var>)
+          READ_TEXT(<path>, into=<var>)
+          WRITE_TEXT(<path>, <expr>, mode=new|append)
+  Calls   CALL(<module>.<Proc>, <args>)
+  Output  LOG(<expr>)   MSG(<expr>)   RETURN(<expr>)
+  Escape  NOTE "<terse technical text>"
+FORMAT fill names: none (removes the fill), black, white, red, green, blue, yellow, magenta,
+cyan. Write any other colour as #RRGGBB.
+
+EXPRESSIONS
+Value functions:
+  LASTROW(<ws>, <col>)  LASTCOL(<ws>, <row>)  USED_RANGE(<ws>)
+  COL(<ws>, "<header>")   column number of a row-1 header, or 0 if it is missing
+  CELL(<ws>, <row>, <col>)  ROW_RANGE(<ws>, <row>, <fromCol>, <toCol>)  RANGE(<ws>, "<A1 ref>")
+  SHEET(<book>, "<name>")  THIS_BOOK  ACTIVE_BOOK  ACTIVE_SHEET
+  FIND(<range>, <expr>, match=whole|part)   returns a Range or NOTHING
+  ROWS(<array>)  COLS(<array>)  ARR(<array>, <row>, <col>)
+  COUNT(<dict or collection>)  EXISTS(<dict>, <key>)
+  LEN  TRIM  UPPER  LOWER  LEFT(<expr>, <n>)  RIGHT(<expr>, <n>)
+  IS_EMPTY  IS_NUMBER  IS_DATE  IS_ERROR  IS_NOTHING  TODAY  NOW  FILE_NAME(<path>)
+  SAME(<expr>, <expr>)   TRUE when TRIM(a) and TRIM(b) are the same text, ignoring case
+  CLEAN_TEXT(<expr>)   TRIM, and every inner run of whitespace becomes one space
+  PARSE_DATE(<expr>, "<format>")   a real date, or empty when it isn't one in that format;
+                       formats: "dd/mm/yyyy" "dd-mm-yyyy" "dd.mm.yyyy" "mm/dd/yyyy" "yyyy-mm-dd"
+  IIF(<condition>, <expr>, <expr>)  MOD(<expr>, <expr>)
+Arguments are written $name. Variables and loop variables are bare names.
+Text uses "double quotes"; write a quote inside text as two quotes: "Say ""hi""".
+Also numbers, TRUE, FALSE, NOTHING.
+Operators: = <> < > <= >= AND OR NOT + - * / &
+Precedence, tightest first: - (negation), * /, + -, &, comparisons, NOT, AND, OR.
+Comparisons don't chain: write a < b AND b < c, never a < b < c.
+Option names are reserved words: dir from to var in mode into key order header what fill
+numfmt bold width style cols col crit readonly format save after name match. Write an
+option as name=value with no space before "="; never use these words as names.
+Columns are numbers (1 = A) everywhere except inside "A1 ref" strings.
+An array element can be a SET_VALUE target: SET_VALUE(ARR(data, r, 3), 0).
+
+SEMANTICS  (the same on every PC, whatever its regional settings)
+  IS_EMPTY    true for empty cells and for text made only of spaces, non-breaking spaces,
+              tabs or line breaks; an error cell (#N/A) is not empty
+  TRIM        removes spaces, non-breaking spaces, tabs and line breaks at both ends
+  IS_NUMBER   true for numbers and for text that is a plain number after TRIM ("25",
+              " -3.5 "); false for blanks, TRUE/FALSE, dates, errors, "1,250", "1e3", "25%"
+  IS_DATE     true only for real Excel date values; text that looks like a date is false
+  Text        a value becomes text the same way everywhere (TRIM, UPPER, LOWER, LEN, LEFT,
+              RIGHT, &, keys): whole numbers without ".0", "." as the decimal point, dates
+              as yyyy-mm-dd, TRUE/FALSE, errors as their Excel text (#N/A)
+  = and <>    with text on either side they compare that text exactly (case and spaces
+              count), so a cell holding 25 equals "25"; compare numbers or dates only after
+              IS_NUMBER or IS_DATE
+  SAME        compares TRIM(a) and TRIM(b) as text, ignoring case: SAME(" ready ", "READY")
+              and SAME(25, "25") are TRUE, SAME(25, "25.0") is FALSE; an error is SAME as its
+              text, so check IS_ERROR first when that matters
+  CLEAN_TEXT  also removes characters below code 32; case is kept
+  IS_ERROR    true for Excel error values (#N/A, #DIV/0!, ...); the text "#N/A" is not one
+  PARSE_DATE  a real date passes through; text is TRIMmed and must match the format exactly
+              (day and month 1 or 2 digits, year 4 digits from 1900, a date that exists);
+              anything else gives empty, so guard the result with IS_DATE. VCL never guesses
+              whether 03/04/2026 is March or April
+  IIF         both values are always evaluated, so the condition never guards them; values
+              only, never a Range, Worksheet, Workbook or Dictionary
+  MOD         a - b * INT(a / b), as Excel: MOD(-7, 3) = 2, MOD(7.5, 2) = 1.5; MOD(a, 0) is a
+              run-time error; numbers only, guarded like any calculation
+  SKIP_IF     past a SKIP_IF or EXIT_LOOP_IF line its condition is FALSE, so
+              SKIP_IF NOT IS_NUMBER(x) guards x for the rest of that pass
+  Writes      SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text, even text
+              Excel would read as a number, date, TRUE/FALSE, error or formula ("1001", "1-2")
+  LEFT RIGHT  a count below 0 gives ""; a count beyond the length gives the whole text
+  COL         matches the row-1 header ignoring case, extra spaces and line breaks; the first
+              match wins; 0 if not found
+  LASTROW     the last row holding any value (spaces too), like End(xlUp); 1 if the column
+              is empty. LASTCOL works the same along a row
+  Dictionary  keys are compared as text ignoring case, so 1001 and "1001" are one key;
+              Dictionary and Collection VARs start empty
+  PRE         if a condition is false: one ForgeLog entry, nothing changes, and a Function
+              returns -1
+  EXIT_IF     leaves the procedure; a Function then returns 0, "" or FALSE (use IF ... THEN
+              RETURN(<value>) to return something else)
+  AND / OR    both sides are always evaluated, so a guard on the left does not protect the
+              right: guard risky comparisons with a nested IF on the check itself
+
+MODIFIES  (one line per sheet the macro changes, or per kind of change)
+  MODIFIES $<arg>                     anything on that sheet: values, fills, formats, rows
+  MODIFIES $<arg>["<header>", ...]    values in those columns, row 2 down
+  MODIFIES $<arg> fills               fills anywhere on that sheet
+  An argument has one whole-sheet line, or at most one [headers] line and one fills line.
+  Every write op must go through a $sheet argument whose lines allow that change: values
+  need [headers] or the whole sheet, fill-only FORMATs need fills, and anything else
+  (other FORMATs, CLEAR what=all or formats, SORT, INSERT_ROW, DELETE_ROW, DEDUPE, FILTER)
+  needs the whole sheet. Write through CELL, ROW_RANGE, USED_RANGE or RANGE of a $sheet.
+  Every TEST then checks that nothing else changed: each other cell keeps its value, fill
+  and number format, and the header row never changes. A spec that changes nothing has no
+  MODIFIES lines and gets the same check.
+
+TEST ASSERTIONS  (checked on the test workbook after the run)
+  COUNTIF(<Sheet>!<range>, <criteria>)  COUNTA(<Sheet>!<range>)  SUM(<Sheet>!<range>)
+  COUNTIFS(<Sheet>!<range>, <criteria>, <Sheet>!<range>, <criteria>, ...)
+                 rows where every range meets its criteria
+  SUMIFS(<Sheet>!<sumRange>, <Sheet>!<range>, <criteria>, ...)
+                 sum of sumRange over the rows where every range meets its criteria
+  VALUE(<Sheet>!<cell>)  ROWS_USED(<Sheet>)  SHEET_EXISTS("<name>")  FILE_EXISTS("<path>")
+  FILL_COUNT(<Sheet>!<range>, #RRGGBB)   cells in the range with that fill colour
+  RESULT         the Function's return value (from the last run)
+  ERROR_COUNT    errors written to ForgeLog during the run
+  PRE_<measure>  the same measurement taken before the first run, e.g. PRE_COUNTA(Data!A:A)
+                 or PRE_COUNTIFS(Data![Status], "Open", Data![Owner], "QA")
+COUNTIF, COUNTIFS and SUMIFS work as in Excel 2016: criteria such as "Ready", "<>" (not
+blank), "<>B-109" or ">=5"; text matching ignores case. COUNTIFS and SUMIFS ranges must be
+the same size, so use [Header] ranges from the same sheet.
+Ranges by header: <Sheet>![Header] is the whole column under that row-1 header;
+<Sheet>![Header]<n> is that column's cell in row n. Prefer them to column letters.
+runs=<n> calls the procedure n times on the same test workbook before checking
+(default 1).
+Combine assertions with AND. In TEST call arguments, a bare sheet name (Orders) means that
+worksheet in the test workbook.
+fixture=<name>.xlsx names a FIXTURE file from this spec; the harness builds it fresh for
+every TEST. fixture=target and real workbooks are not allowed.
+
+FIXTURE SPEC
+  FIXTURE <name>.xlsx sheet=<name> cols=<A:Header,B:Header,...> rows=<n> [stale=<n>] data=<col>:<rule>;<col>:<rule>
+  Rules: values("a"x<n>,"b"x<n>)  seq(<start>,<step>)  int(<lo>,<hi>)  num(<lo>,<hi>)
+         dates(<yyyy-mm-dd>,<yyyy-mm-dd>)  reldates(<lo>,<hi>)  text(<length>)
+  reldates(lo, hi) gives dates from TODAY + lo to TODAY + hi days, worked out when the
+  file is built, so TESTs that use TODAY give the same results on every day.
+  Modifiers, after the rule, in this order, each at most once:
+    +boundary(v1,v2,...)  the first data rows hold exactly these values ("" is a blank
+                          cell; numbers of days for reldates). For values(...) the values
+                          move up, so the counts stay the same.
+    +blank(<n>)           leave n random cells below the boundary rows blank.
+    +dupes(<n>)           give n random rows the value of another row (repeated keys).
+  stale=<n> marks n rows as leftovers of an earlier run, with a red fill: on a rows=0
+  sheet, n rows of the text "stale"; on a sheet with data, n random data rows, whose
+  values stay.
+  values(...) counts add up to rows. rows=0 creates the sheet with its header row only.
+  Repeat FIXTURE lines with the same file name to add more sheets.
+  Sheet names have no spaces, so TEST calls can use them bare. They may be short forms of
+  the real sheet names (WelderPerf for "Welder Performance"); ASSUME lines describe the
+  real workbook.
+  Each column has its own fixed seed, made from file name + sheet + column. The builder
+  uses it for everything random in that column: the shuffled order of values(...), the
+  int, num, dates, reldates and text values, and which cells +blank(<n>) leaves blank;
+  +dupes(<n>) and stale=<n> have seeds of their own. Columns are not correlated,
+  and the same spec always builds the same file.
+```
