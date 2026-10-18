@@ -113,7 +113,7 @@ tests/                    211 unit tests; conformance_cases.py is shared with th
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
-docs/vep-0.3-file-ops.md  file ops and Job-Pack Router design and roadmap (approved, Phase 0 done)
+docs/vep-0.3-file-ops.md  file ops and Job-Pack Router design and roadmap (approved, Phases 0 and 1a done)
 docs/vcl-semantics.md     generated conformance tables   docs/vcl-m2-findings.md  M2 research
 docs/VBA_Forge_Project_Roadmap.docx  the full roadmap (phases, gates)
 harness/, batches/        Excel batch runner, deferred (PR #4)
@@ -330,8 +330,9 @@ Boss's decisions:
 | Router phase | Content | State |
 | --- | --- | --- |
 | 0 | Blank key rows so every SKIP_IF is proven | **Done** (PR #16) |
-| 1 | Language surface: `VCL 0.3`; SAFE_NAME, PATH_JOIN, FOLDER_EXISTS; MAKE_FOLDER and COPY_FILE returning a status into a VAR; Path and Name types; `MODIFIES $jobs files`; folder FIXTUREs | **Waiting for Boss: "go Phase 1"** |
-| 2 | `safe_name` and `path_join` semantics with conformance cases; a mock file system in fixtures and the interpreter; FILE_EXISTS and FILE_COUNT assertions; UNCHANGED for files | Planned |
+| 1a | Language surface, part 1: the `VCL 0.3` line; SAFE_NAME, PATH_JOIN, FOLDER_EXISTS; the Name and Path types (T4); the meaning of SAFE_NAME and PATH_JOIN with conformance cases (S18, S19, moved here from Phase 2, D26) | **Done** (PR #22) |
+| 1b | Language surface, part 2: MAKE_FOLDER and COPY_FILE returning a status into a VAR; `MODIFIES $jobs files`; folder FIXTUREs | Next (Boss's go, 18 Oct) |
+| 2 | A mock file system in fixtures and the interpreter; FOLDER_EXISTS and the file ops run on it; FILE_EXISTS and FILE_COUNT assertions; UNCHANGED for files | Planned (Boss's go, 18 Oct) |
 | 3 | Compiler and ForgeLib: late-bound FSO wrappers that never overwrite, delete or move; lint bans DeleteFile, MoveFile and Kill; a sandbox builder in `%TEMP%` | Planned |
 | 4 | `specs/task_12.vcl` RouteJobPacks; the prompt switches to 0.3, and Boss updates the Orchestrator again | Planned |
 | 5 | Excel pilot kit: a ForgeLib self-test of the conformance cases, a sandbox, and a 5-step guide for Boss | Planned, optional |
@@ -353,7 +354,8 @@ The key safety design for files:
    conformance runs.
 
 **Pending Boss decisions right now:**
-1. "go Phase 1" for the router. Claude Code is paused until then.
+1. "go Phase 3" for the router. Boss gave the go for Phases 1 and 2 on 18 Oct 2026;
+   Claude Code stops after Phase 2 and waits.
 2. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
    skipped column A, no TEST would notice. Closing it needs a FIXTURE whose last row has a value
    only in column A. That is a spec change, so it waits for Boss.
@@ -411,7 +413,7 @@ The key safety design for files:
 
 | Term | Meaning |
 | --- | --- |
-| VCL | VBA Command Language: the spec language (`vcl/spec.md`). Current version 0.2; 0.3 is being designed. |
+| VCL | VBA Command Language: the spec language (`vcl/spec.md`). Current version 0.2; 0.3 is being built (router Phases 1 to 4). |
 | Spec | One `.vcl` file: one TASK (a procedure) or one BUILD (several procedures). |
 | Orchestrator | The claude.ai Project that writes specs from plain requests. |
 | ForgeLib | `vba/ForgeLib.bas`, the VBA runtime. Every VCL meaning is a Forge* helper. |

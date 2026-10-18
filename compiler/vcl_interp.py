@@ -271,6 +271,10 @@ class Machine:
             if b == 0:
                 raise VclError("division by zero")
             return S.mod(a, b)
+        if name == "SAFE_NAME":
+            return S.safe_name(e(pos[0]))
+        if name == "PATH_JOIN":
+            return S.path_join(*[e(a) for a in pos])
         if name == "EXISTS":
             return e(pos[0]).exists(e(pos[1]))
         if name == "COUNT":
@@ -777,7 +781,7 @@ def run_tests(text, today=None):
             if not ok:
                 failed.append(cond)
         modifies = modifies_of(spec)
-        if modifies or (spec.get("version") == "VCL 0.2" and not writes_anything(spec)):
+        if modifies or (spec.get("version") in ("VCL 0.2", "VCL 0.3") and not writes_anything(spec)):
             sheet_args = {}
             for pname, v in zip(params, call_vals):
                 if isinstance(v, Token) and v.type == "NAME":

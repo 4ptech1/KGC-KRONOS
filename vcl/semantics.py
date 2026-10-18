@@ -256,3 +256,38 @@ def needs_text_guard(text):
         return False
     return (any("0" <= ch <= "9" or ord(ch) > 127 for ch in text) or text[0] in "=+-@'#"
             or text.strip(WHITESPACE).upper() in ("TRUE", "FALSE"))
+
+
+# ---------------------------------------------------------------- VCL 0.3 path functions
+
+NAME_FORBIDDEN = '\\/:*?"<>|'
+RESERVED_NAMES = {"CON", "PRN", "AUX", "NUL"} | {f"COM{i}" for i in range(1, 10)} | {f"LPT{i}" for i in range(1, 10)}
+MAX_NAME = 100
+
+
+def safe_name(v):
+    """S18 (VCL 0.3): SAFE_NAME(x) is CLEAN_TEXT(x) when that is a safe Windows file or folder name,
+    else "" (empty). Unsafe: empty, longer than 100 characters, any of \\ / : * ? " < > |, the
+    names . and .., a trailing dot, or a reserved device name (CON, PRN, AUX, NUL, COM1 to COM9,
+    LPT1 to LPT9), ignoring case and any extension (con.txt is reserved). A name can never climb out
+    of its folder, because it can't contain a separator or be .."""
+    s = clean_text(v)
+    if not s or len(s) > MAX_NAME or any(ch in NAME_FORBIDDEN for ch in s):
+        return ""
+    if s in (".", "..") or s.endswith("."):
+        return ""
+    if s.split(".")[0].rstrip(" ").upper() in RESERVED_NAMES:
+        return ""
+    return s
+
+
+def path_join(base, *names):
+    """S19 (VCL 0.3): PATH_JOIN(base, name, ...) is base, then each name, separated by \\ (a
+    trailing \\ characters on base are dropped). It is "" (empty) when base is empty or any name is not
+    already a safe name (SAFE_NAME(name) = name), so an empty or unsafe part can never become a
+    path; a file op given "" reports Bad name."""
+    root = text_of(base).rstrip("\\")
+    parts = [text_of(n) for n in names]
+    if not root or not parts or any(not n or safe_name(n) != n for n in parts):
+        return ""
+    return "\\".join([root] + parts)

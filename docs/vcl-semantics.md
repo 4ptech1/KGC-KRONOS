@@ -25,6 +25,8 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S15 (VCL 0.2) | `iif` | IIF(cond, a, b) gives a when cond is TRUE, else b. Both a and b are always evaluated (as VBA's IIf), so an IIF branch is never a guard. |
 | S16 (VCL 0.2) | `mod` | MOD(a, b) is a - b * INT(a / b), as Excel's MOD: the result has the sign of b, and decimals are kept. VBA's Mod operator rounds both sides first and gives the sign of a, so it is not used. MOD(a, 0) is a run-time error. |
 | S17 (VCL 0.2) | `needs_text_guard` | SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text. Excel would turn some text into something else when it is written to a cell: a number, date, time, TRUE/FALSE, error value or formula. Such text is written with a ' prefix, which Excel hides, so the cell holds the text unchanged. Being careful, the prefix goes on any text with a digit or a character above code 127, any text starting with = + - @ ' or #, and TRUE or FALSE after TRIM in any case. "" is never prefixed: it empties the cell. |
+| S18 (VCL 0.3) | `safe_name` | SAFE_NAME(x) is CLEAN_TEXT(x) when that is a safe Windows file or folder name, else "" (empty). Unsafe: empty, longer than 100 characters, any of \ / : * ? " < > /, the names . and .., a trailing dot, or a reserved device name (CON, PRN, AUX, NUL, COM1 to COM9, LPT1 to LPT9), ignoring case and any extension (con.txt is reserved). A name can never climb out of its folder, because it can't contain a separator or be .. |
+| S19 (VCL 0.3) | `path_join` | PATH_JOIN(base, name, ...) is base, then each name, separated by \ (a trailing \ characters on base are dropped). It is "" (empty) when base is empty or any name is not already a safe name (SAFE_NAME(name) = name), so an empty or unsafe part can never become a path; a file op given "" reports Bad name. |
 
 ## Conformance cases
 
@@ -259,3 +261,45 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | "#N/A" | True | Excel would store the error value |
 | "'quoted" | True | a leading ' would be hidden |
 | "café" | True | a character above code 127 counts, to be safe |
+
+### SAFE_NAME (VCL 0.3)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| "J-101" | "J-101" | an ordinary job number |
+| "  J-101 ⍽" | "J-101" | tidied like CLEAN_TEXT |
+| "Report  2026.pdf" | "Report 2026.pdf" | inner spaces joined, extension kept |
+| 1001 | "1001" | a number becomes its text |
+| (empty) | "" | empty |
+| ".." | "" | can't climb out of the folder |
+| "." | "" | the folder itself |
+| "..\..\Windows" | "" | a separator is never allowed |
+| "A/B" | "" | neither is / |
+| "J*1" | "" | wildcards are refused |
+| "J?1" | "" | wildcards are refused |
+| "C:x" | "" | a drive colon is refused |
+| "J"1" | "" | quotes are refused |
+| "J<1>" | "" | angle brackets are refused |
+| "J|1" | "" | a pipe is refused |
+| "J-1." | "" | Windows drops a trailing dot, so it is refused |
+| "CON" | "" | a reserved device name |
+| "con.txt" | "" | reserved with any extension and any case |
+| "COM1" | "" | COM1 to COM9 are reserved |
+| "LPT9.pdf" | "" | LPT1 to LPT9 are reserved |
+| "CONSOLE" | "CONSOLE" | only the exact device names are reserved |
+| "COM10" | "COM10" | COM10 is an ordinary name |
+| "J\x01-1" | "J-1" | control characters are removed, as CLEAN_TEXT |
+| "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" | "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" | 100 characters is the limit |
+| "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" | "" | over 100 characters is refused |
+
+### PATH_JOIN (VCL 0.3)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| "C:\Jobs", "J-101", "r1.pdf" | "C:\Jobs\J-101\r1.pdf" | base, then each name |
+| "C:\Jobs\", "J-101" | "C:\Jobs\J-101" | a trailing separator on base is dropped |
+| "\\server\share", "J-101" | "\\server\share\J-101" | a network (UNC) root works |
+| "C:\Jobs", "" | "" | an empty part gives an empty path |
+| "C:\Jobs", ".." | "" | an unsafe part gives an empty path |
+| "C:\Jobs", "A\B" | "" | a part may not hide a separator |
+| "", "J-101" | "" | no root, no path |

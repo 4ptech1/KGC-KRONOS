@@ -1,4 +1,4 @@
-"""Validate VCL 0.1 and VCL 0.2 specs against vcl/spec.md.
+"""Validate VCL 0.1, 0.2 and 0.3 specs against vcl/spec.md.
 
 Usage:  python compiler/validator.py specs/*.vcl
 
@@ -83,9 +83,13 @@ VALUE_FUNCS = {
     # VCL 0.2 (docs/vep-0.2-core.md, PR A)
     "SAME": (2, 2, {}), "CLEAN_TEXT": (1, 1, {}), "IS_ERROR": (1, 1, {}), "PARSE_DATE": (2, 2, {}),
     "IIF": (3, 3, {}), "MOD": (2, 2, {}),
+    # VCL 0.3 (docs/vep-0.3-file-ops.md, Phase 1)
+    "SAFE_NAME": (1, 1, {}), "PATH_JOIN": (2, None, {}), "FOLDER_EXISTS": (1, 1, {}),
 }
 VCL_02_FUNCS = {"SAME", "CLEAN_TEXT", "IS_ERROR", "PARSE_DATE", "IIF", "MOD"}
 VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
+VCL_03_FUNCS = {"SAFE_NAME", "PATH_JOIN", "FOLDER_EXISTS"}
+VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3}
 # MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
 SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE"}
 ROW_OPS = {"INSERT_ROW", "DELETE_ROW", "SORT", "DEDUPE", "FILTER"}   # these move or hide rows
@@ -264,6 +268,10 @@ class TaskChecker:
     def error(self, message, line=None):
         self.problems.append(Problem(line or self.line, "error", message))
 
+    def at_least(self, version):
+        """True when the spec's version line is this version or a later one."""
+        return VERSION_RANK.get(self.spec.version, 1) >= VERSION_RANK[version]
+
     def warning(self, message, line=None):
         self.problems.append(Problem(line or self.line, "warning", message))
 
@@ -280,7 +288,7 @@ class TaskChecker:
         self.walk(spec.ops, None, [])
         if spec.lines("MODIFIES"):
             self.check_writes_are_declared()
-        elif spec.version == "VCL 0.2" and self.writes and not self.in_build:
+        elif self.at_least("VCL 0.2") and self.writes and not self.in_build:
             self.warning("the spec writes to sheets but has no MODIFIES lines, so no TEST checks that nothing "
                          "else changed: declare each sheet it changes with MODIFIES", self.writes[0][0])
         for line, arg, header in self.op_cols:
@@ -465,7 +473,7 @@ class TaskChecker:
 
     def check_modifies(self, mod):
         self.line = mod.line
-        if self.spec.version != "VCL 0.2":
+        if not self.at_least("VCL 0.2"):
             self.error("MODIFIES is VCL 0.2: start the spec with 'VCL 0.2' to use it")
         m = MODIFIES_RE.fullmatch(mod.value)
         if not m:
@@ -638,7 +646,7 @@ class TaskChecker:
             self.error(f"an OP step starts with an op name, got '{show(items[:1])}'")
             return info
         info["name"] = name
-        if name in VCL_02_OPS and self.spec.version != "VCL 0.2":
+        if name in VCL_02_OPS and not self.at_least("VCL 0.2"):
             self.error(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it")
         if name == "NOTE":
             if not (len(items) == 2 and is_tok(items[1], "string")):
@@ -959,12 +967,15 @@ class TaskChecker:
             for items in call.positional:
                 self.check_expr(items, f"{name} argument")
             return
-        if name in VCL_02_FUNCS and self.spec.version != "VCL 0.2":
+        if name in VCL_02_FUNCS and not self.at_least("VCL 0.2"):
             self.error(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it")
+        if name in VCL_03_FUNCS and not self.at_least("VCL 0.3"):
+            self.error(f"{name} is VCL 0.3: start the spec with 'VCL 0.3' to use it")
         fewest, most, allowed = VALUE_FUNCS[name]
         positional, options = self.call_parts(call)
-        if not fewest <= len(positional) <= most:
-            self.error(f"{name} takes {fewest} argument{'s' if fewest > 1 else ''}, got {len(positional)}")
+        if len(positional) < fewest or (most is not None and len(positional) > most):
+            want = f"{fewest} or more" if most is None else str(fewest)
+            self.error(f"{name} takes {want} argument{'s' if fewest > 1 or most is None else ''}, got {len(positional)}")
         for key, items in options:
             if key.text not in allowed:
                 self.error(f"{name} has no option {key.text}=")

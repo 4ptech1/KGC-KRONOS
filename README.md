@@ -100,3 +100,7 @@ Dataset count: 0 verified pairs
 - **2026-10-18:** Standing rule D25, "Original model and context data": the March 2027 model is
   designed and trained from zero on in-house data only (no pre-trained weights, no outside
   code, datasets, prompts or retrieval). The roadmap .docx, CLAUDE.md and the context file say so.
+- **2026-10-18:** Job-Pack Router Phase 1a: the `VCL 0.3` line and SAFE_NAME, PATH_JOIN and
+  FOLDER_EXISTS. The type checker accepts a path only when it starts from a String `$argument`
+  and every part is SAFE_NAME(...) or a safe literal, so no path can climb out of its root.
+  Every VCL 0.2 spec gives the same results under 0.3. Snapshot mutation score unchanged (95.1%).

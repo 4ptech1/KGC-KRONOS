@@ -1,4 +1,4 @@
-"""Parse VCL 0.1 and VCL 0.2 specs into Python objects.
+"""Parse VCL 0.1, 0.2 and 0.3 specs into Python objects.
 
     from parser import parse_spec
     spec = parse_spec(text)
@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass, field
 
 VERSION = "VCL 0.1"
-VERSIONS = ("VCL 0.1", "VCL 0.2")  # a VCL 0.1 spec stays valid under 0.2
+VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3")  # each version keeps every spec of the one before valid
 TASK_KEYS = ["PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
              "ALLOW", "FIXTURE", "TEST"]
 BUILD_KEYS = ["NAME", "TARGET", "ENTRY", "MODULE", "FORM", "SIG", "FLOW", "FIXTURE", "TEST"]
@@ -106,7 +106,7 @@ class Form:
 @dataclass
 class Spec:
     kind: str = None    # "TASK", "BUILD", "QUESTION", or None if the header is unreadable
-    version: str = VERSION  # the version line: "VCL 0.1" or "VCL 0.2"
+    version: str = VERSION  # the version line: "VCL 0.1", "VCL 0.2" or "VCL 0.3"
     line: int = 1       # line of the TASK / BUILD header (or of the # QUESTION: line)
     assumes: list = field(default_factory=list)   # [(line, text)]
     question: str = ""
@@ -246,7 +246,7 @@ def _parse(spec, lines):
     if body[0][1] in VERSIONS:
         spec.version = body[0][1]
     else:
-        spec.error(body[0][0], f"the first line must be '{VERSIONS[0]}' or '{VERSIONS[1]}'")
+        spec.error(body[0][0], f"the first line must be '{VERSIONS[0]}', '{VERSIONS[1]}' or '{VERSIONS[2]}'")
     if len(body) < 2 or body[1][1] not in ("TASK", "BUILD"):
         spec.error(body[1][0] if len(body) > 1 else body[0][0], "the second line must be TASK or BUILD")
         return

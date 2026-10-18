@@ -1,7 +1,7 @@
-"""Grammar-based parser for VCL 0.1 and VCL 0.2 (prototype for milestone M2).
+"""Grammar-based parser for VCL 0.1, 0.2 and 0.3 (prototype for milestone M2).
 
 parse(text) -> (spec, problems)
-  spec: dict with kind (TASK, BUILD, QUESTION), version ("VCL 0.1" or "VCL 0.2"), assumes,
+  spec: dict with kind (TASK, BUILD, QUESTION), version ("VCL 0.1", "VCL 0.2" or "VCL 0.3"), assumes,
         keys, ops (a nested tree) and the parsed Lark trees for every line.
   problems: list of (line_no, message). Parsing never raises on bad input.
 """
@@ -23,7 +23,7 @@ START = {"PROC": "proc_value", "KIND": "kind_value", "MODULE": "module_value",
          "FIXTURE": "fixture_value", "TEST": "test_value", "NAME": "name_value",
          "TARGET": "target_value", "ENTRY": "entry_value", "FORM": "form_value",
          "SIG": "sig_value", "FLOW": "flow_value"}
-VERSIONS = ("VCL 0.1", "VCL 0.2")
+VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3")
 OPENERS = {"loop_rows", "loop_cols", "for_each", "if_block", "select_case", "case_line",
            "case_else"}
 # G2: option names are reserved words, read from the grammar's OPTKEY terminal so there is one list.
@@ -137,7 +137,7 @@ def _parse_lines(lines, first_no, problems, allow_build=True, want=None):
     if want and version != want:
         problems.append((first_no + head_i, f"line 1 must be '{want}', as in the BUILD"))
     elif version not in VERSIONS:
-        problems.append((first_no + head_i, "line 1 must be 'VCL 0.1' or 'VCL 0.2'"))
+        problems.append((first_no + head_i, "line 1 must be 'VCL 0.1', 'VCL 0.2' or 'VCL 0.3'"))
         version = VERSIONS[0]
     kind_i = nonblank[1][0] if len(nonblank) > 1 else head_i + 1
     kind = lines[kind_i].strip() if kind_i < len(lines) else ""

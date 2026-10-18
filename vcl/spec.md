@@ -8,7 +8,9 @@ The formal syntax is `vcl/grammar.lark`; the reference meaning of the value func
 in `DECISIONS.md`.
 
 Specs start with `VCL 0.2`. The validator still reads `VCL 0.1` specs (every one is also valid
-as 0.2), and `compiler/vcl_migrate.py` rewrites them into 0.2.
+as 0.2), and `compiler/vcl_migrate.py` rewrites them into 0.2. VCL 0.3, the file ops of the
+Job-Pack Router, is being built: see "VCL 0.3 additions" below. Until it is finished the
+Orchestrator keeps writing 0.2.
 
 Target: Excel 2016 desktop. Specs never rely on Microsoft 365 functions such as XLOOKUP or
 dynamic arrays; every op compiles to plain VBA. (`FILTER` here means AutoFilter, which
@@ -335,6 +337,37 @@ stale=n    a red (#FF0000) fill across the header's columns. rows=0: n new rows 
 ```
 
 A values() entry of `""` is a blank cell, and so is a column without a data rule.
+
+## VCL 0.3 additions (being built, 18 Oct 2026)
+
+Designed in `docs/vep-0.3-file-ops.md` (the Job-Pack Router). These are not in the text this
+file shares with the Orchestrator prompt yet: that text moves to 0.3 in one step, at router
+Phase 4. Details and reasons: `DECISIONS.md` (E8, S18, S19, T4, D26).
+
+Built so far (router Phase 1a): the version line and three value functions. Every VCL 0.2 spec
+is also valid as 0.3 and gives the same results (E8).
+
+```text
+VCL 0.3                         the first line; the functions below are errors under 0.1 or 0.2
+SAFE_NAME(x)                    CLEAN_TEXT(x), or "" when that is not safe as one file or folder
+                                name: empty, over 100 characters, any of \ / : * ? " < > |,
+                                "." or "..", a trailing dot, or a reserved device name (CON,
+                                PRN, AUX, NUL, COM1-COM9, LPT1-LPT9, any case, any extension) (S18)
+PATH_JOIN($root, part, ...)     $root, a backslash, then the parts joined by backslashes;
+                                trailing backslashes on $root are dropped. "" when $root is empty
+                                or any part is empty or not exactly its own SAFE_NAME (S19)
+FOLDER_EXISTS(<path>)           TRUE when the folder exists (runs from router Phase 2)
+```
+
+Paths are checked by their shape (T4). A path is a String `$argument` (the root) or
+`PATH_JOIN($root, ...)`. Every part after the root is `SAFE_NAME(...)` or a quoted literal
+that is its own safe name, written in place: a variable, a cell or another function is
+rejected, so every part is checked where it is used. FOLDER_EXISTS takes only a path. A
+SAFE_NAME result or a path is text everywhere text is read.
+
+Still to come: MAKE_FOLDER and COPY_FILE with a status variable, `MODIFIES $<arg> files`,
+folder FIXTUREs (router Phase 1b), then their meaning on a mock file system (Phase 2). The
+compiler can't translate the new functions until Phase 3.
 
 ## Changes in VCL 0.2 (17 Oct 2026)
 

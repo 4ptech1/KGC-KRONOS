@@ -156,8 +156,8 @@ class VersionLine(unittest.TestCase):
         self.assertEqual(validator.parse_spec(old).version, "VCL 0.1")
 
     def test_unknown_version_is_an_error(self):
-        found = errors(TIDY.replace("VCL 0.2", "VCL 0.3", 1))
-        self.assertIn("the first line must be 'VCL 0.1' or 'VCL 0.2'", found)
+        found = errors(TIDY.replace("VCL 0.2", "VCL 0.9", 1))
+        self.assertIn("the first line must be 'VCL 0.1', 'VCL 0.2' or 'VCL 0.3'", found)
 
     def test_every_vcl_01_spec_stays_valid_under_0_2(self):
         # The 10 specs as they were in VCL 0.1, frozen in tests/data/specs_v01 (D20).

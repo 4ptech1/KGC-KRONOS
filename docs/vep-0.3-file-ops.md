@@ -50,6 +50,7 @@ Each phase is one or two PRs: CI green, merge, then the next phase. Every PR run
 - **Done when:** the SKIP_IF probes are killed and the snapshot score is at least 96% again. D22 is recorded in `DECISIONS.md`, and CLAUDE.md, the README and the plan are updated.
 
 ### Phase 1: language surface (VCL 0.3, no run-time code yet)
+Two PRs (D26). **1a (done):** the version line, the three value functions, the Name and Path types, and the meaning of SAFE_NAME and PATH_JOIN (moved here from Phase 2, because the type checker uses `safe_name` for quoted parts). **1b:** the ops, MODIFIES `files`, folder FIXTUREs and the validator rules.
 - **Version line:** `VCL 0.3` in `parser.py`, `vcl_parse.py` and the validator gate, reusing the VCL_02 pattern.
 - **Value functions:** SAFE_NAME(x), PATH_JOIN(base, name, ...) and FOLDER_EXISTS(path).
 - **Ops:** `MAKE_FOLDER(<path>, into=<var>)` and `COPY_FILE(<from>, <to>, into=<var>)`. The status VAR must be a String.
@@ -59,9 +60,9 @@ Each phase is one or two PRs: CI green, merge, then the next phase. Every PR run
 - **Docs:** spec.md gets a "VCL 0.3 additions (being built)" section outside the shared text; `DECISIONS.md` gets E8 and above.
 
 ### Phase 2: semantics and mock file system
-- **`vcl/semantics.py`:** `safe_name` and `path_join`, with conformance cases. Path traversal, reserved names, trailing dots, wildcards and UNC paths are all covered, and `docs/vcl-semantics.md` is regenerated.
+- **`vcl/semantics.py`:** `safe_name` and `path_join` are done in Phase 1a (D26), with their conformance cases (path traversal, reserved names, trailing dots, wildcards, UNC roots).
 - **`vcl_fixtures.py`:** builds folder fixtures as an in-memory tree of path to file record (size, locked), with the same seed rules.
-- **`vcl_interp.py`:** runs MAKE_FOLDER and COPY_FILE on the mock with the status rules above. Adds the FILE_EXISTS assertion (already in the validator) and a new `FILE_COUNT("<folder>")`. The UNCHANGED check covers the mock file system.
+- **`vcl_interp.py`:** runs FOLDER_EXISTS, MAKE_FOLDER and COPY_FILE on the mock with the status rules above. Adds the FILE_EXISTS assertion (already in the validator) and a new `FILE_COUNT("<folder>")`. The UNCHANGED check covers the mock file system.
 - **Tests:** a unit test for each status, including locked, conflict, too long and bad name.
 
 ### Phase 3: VBA emitter and runtime
