@@ -3,8 +3,9 @@
 VBA Forge is an offline, VBA-only code generator for Excel automation in pressure-vessel
 fabrication registers (BOM, weld log, NDE, NCR, calibration and similar). Claude writes each task
 as a spec in VCL (VBA Command Language), and VBA Forge turns the spec into VBA and proves the
-macro works with tests. The verified spec-to-VBA pairs become the dataset for a fine-tuned local
-model that takes over generation from March 2027.
+macro works with tests. The verified spec-to-VBA pairs become the dataset for our own model,
+designed and trained from zero on in-house data only (`DECISIONS.md` D25), which takes over the
+parts the compiler can't do from March 2027.
 
 ## Current phase
 
@@ -96,3 +97,6 @@ Dataset count: 0 verified pairs
   Orchestrator, unchanged. It checks, passes its 5 TESTs and compiles to lint-clean VBA. Snapshot
   mutation score 95.1% (389 of 409); task_11 catches 19 of 24, and its 5 survivors are
   explained in D24.
+- **2026-10-18:** Standing rule D25, "Original model and context data": the March 2027 model is
+  designed and trained from zero on in-house data only (no pre-trained weights, no outside
+  code, datasets, prompts or retrieval). The roadmap .docx, CLAUDE.md and the context file say so.

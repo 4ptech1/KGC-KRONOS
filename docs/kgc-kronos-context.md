@@ -25,7 +25,8 @@ How it works:
    synthetic data in a reference interpreter, and compiles it to Excel 2016 VBA that calls a
    shared runtime, **ForgeLib**.
 3. Every spec plus its proven VBA is a **verified spec-to-VBA pair**. From March 2027 those
-   pairs train a fine-tuned local model that takes over code generation, with the compiler
+   pairs train **our own model, designed and trained from zero** (D25), which takes over the code
+   generation the compiler can't do, with the compiler
    kept as the fallback and the reference.
 
 The goal until March 2027: a large, verified dataset of spec-to-VBA pairs, and a toolchain
@@ -64,7 +65,15 @@ Boss's working policy (from `CLAUDE.md`):
   tests or prompts. Excel workbooks are git-ignored on purpose.
 - **Synthetic fixtures only.** Every TEST names a FIXTURE file; `fixture=target` is banned, and
   nothing generated ever touches real workbooks or real folders.
-- **No local-model work** (llama.cpp, fine-tuning, GGUF) until the new PC arrives in March 2027.
+- **No model training or local-model work** until the new PC arrives in March 2027.
+- **Original model and context data (D25, standing rule).** The VBA Forge model is designed and
+  trained from zero by us: no pre-trained weights (Llama, Qwen, ...), no fine-tuning of someone
+  else's model, no scraped or downloaded code, datasets or prompts (GitHub, Stack Overflow, public
+  VBA collections), no retrieval over outside sources. In-house means made by this repo's tools, by
+  Boss, or by Claude through our pipeline, and verified by our toolchain. General tools (Python,
+  PyTorch) are allowed; Claude stays the design and build tool. Design: compiler first, own model
+  second, shipped only where it beats the compiler on VBA-Bench. Never suggest a base model or
+  outside data.
 - **Generated VBA rules:**
   - `Option Explicit`, and late-bound `Scripting.Dictionary` (no References).
   - The standard error handler, which logs to ForgeLog and restores ScreenUpdating and
@@ -80,7 +89,7 @@ Boss's working policy (from `CLAUDE.md`):
 
 ```
 CLAUDE.md                 standing brief for Claude Code (rules, status, next steps)
-DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D24)
+DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D25)
 README.md                 overview, how to run the checks, progress log, dataset count
 requirements.txt          one pinned dependency: lark==1.3.1 (with hash)
 vcl/spec.md               THE language reference (VCL 0.2)
@@ -340,7 +349,8 @@ The key safety design for files:
 2. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
 3. A dataset generator: spec-to-VBA pairs from the compiler. Mutants double as "read
    carefully" contrast pairs.
-4. **March 2027:** the new PC; train the local model; Excel conformance runs.
+4. **March 2027:** the new PC; train our own model from zero on in-house data (D25); Excel
+   conformance runs.
 
 **Pending Boss decisions right now:**
 1. "go Phase 1" for the router. Claude Code is paused until then.
@@ -368,6 +378,7 @@ The key safety design for files:
 - **D22:** blank key rows for SKIP_IF, plus the matching rule 19 warning.
 - **D23:** FORMAT fill names work: each name is the VBA colour constant of that name.
 - **D24:** Boss's weld-log spec is task_11, unchanged. The router spec becomes task_12.
+- **D25:** original model and context data: the model is trained from zero, on in-house data only.
 
 ## 11. How to help (rules for the AI reading this)
 
