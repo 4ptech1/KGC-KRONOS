@@ -76,5 +76,6 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    doubles as a contrast-pair generator: every valid mutant is a near-identical spec with
    different behaviour, compiled to its own correct VBA. That is exactly the "read carefully"
    training data the Phase 2 plan wanted.
-8. **March:** train the local model on the dataset; the compiler stays as the fallback and the
+8. **March:** train our own model from zero on the in-house dataset (D25: no pre-trained weights,
+   no outside data); the compiler stays as the fallback and the
    reference. Excel conformance runs whenever Boss chooses.

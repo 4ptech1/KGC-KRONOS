@@ -8,8 +8,9 @@ has the full plan and `docs/vcl-mvp-plan.md` the current build sequence.
 VBA Forge is an offline, VBA-only code generator for Excel automation at KGC Engineering Projects
 (pressure-vessel fabrication paper trail: BOM, weld log, NDE, NCR, calibration and similar
 registers). Claude writes task specs in VCL (VBA Command Language); VBA Forge turns each spec into
-VBA and proves the macro works with tests. From March 2027 a fine-tuned local model will generate
-the VBA. Until then, the goal is a verified dataset of spec-to-VBA pairs.
+VBA and proves the macro works with tests. From March 2027 our own model, trained from zero on our
+data (D25), will generate the VBA where the compiler can't. Until then, the goal is a verified
+dataset of spec-to-VBA pairs.
 
 ## Working policy
 
@@ -43,7 +44,13 @@ the VBA. Until then, the goal is a verified dataset of spec-to-VBA pairs.
   tests or prompts. Excel workbooks are git-ignored on purpose.
 - Synthetic fixtures only: every TEST uses a named FIXTURE file. `fixture=target` is banned
   until March 2027, and nothing we generate ever touches real workbooks.
-- No local-model work (llama.cpp, fine-tuning, GGUF) until the new PC arrives in March 2027.
+- No model training or local-model work until the new PC arrives in March 2027.
+- **Original model and context data (D25, standing rule).** The VBA Forge model is designed and
+  trained from zero by us: no pre-trained weights, no fine-tuning of someone else's model, no
+  scraped or downloaded code, datasets or prompts, no retrieval over outside sources. Everything it
+  learns from or reads is in-house: made by this repo's tools, by me, or by Claude through our
+  pipeline, and verified by our toolchain. General tools (Python, PyTorch) are allowed, and Claude
+  stays the design and build tool (Orchestrator, Claude Code). Compiler first, own model second.
 
 ## Sources of truth
 
@@ -161,7 +168,8 @@ Next, in order (`docs/vcl-mvp-plan.md`):
 1. The Job-Pack Router MVP, `docs/vep-0.3-file-ops.md` (approved by Boss): sandbox only, COPY_FILE
    first (no MOVE), VCL 0.3. Phase 0 (blank key rows) is done; next is Phase 1 (the language
    surface: VCL 0.3, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS, MAKE_FOLDER, COPY_FILE, MODIFIES files,
-   folder FIXTUREs). Boss paused after Phase 0: wait for his go before starting Phase 1.
+   folder FIXTUREs). Boss gave the go for Phases 1 and 2 on 18 Oct 2026 (one PR each); stop
+   after Phase 2 and wait for his go on Phase 3.
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 
