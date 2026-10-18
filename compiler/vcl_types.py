@@ -1,4 +1,4 @@
-"""Prototype type checker for VCL 0.1 and 0.2 with flow-sensitive narrowing (milestone M2).
+"""Prototype type checker for VCL 0.1, 0.2 and 0.3 with flow-sensitive narrowing (milestone M2).
 
 Types: Num, Text, Date, Bool, Cell (a raw cell value: empty, number, text, date or error),
 Sheet, Book, Range, Dict, Coll, Arr, Iter.
@@ -12,6 +12,9 @@ Key rules
 - Facts are keyed by the exact text of an expression, for example CELL($bom,r,bomReq). A write
   to that exact cell, or a whole-sheet change (CLEAR of a range, COPY_ROW, SORT, DELETE_ROW),
   removes the facts it could affect. Assigning a variable removes facts that mention it.
+- Paths (VCL 0.3, T4) are checked by their shape, not by flow: a path is a String $argument (a
+  root) or PATH_JOIN($root, part, ...), where every part is SAFE_NAME(...) or a quoted safe name,
+  written in place. So no path can climb out of its root, whatever the data holds.
 """
 import sys
 from pathlib import Path
@@ -19,13 +22,16 @@ from pathlib import Path
 from lark import Token, Tree
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vcl"))
+from semantics import safe_name  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 
 VBA_TO_TYPE = {"Long": "Num", "Double": "Num", "String": "Text", "Date": "Date",
                "Boolean": "Bool", "Variant": "Variant", "Range": "Range", "Worksheet": "Sheet",
                "Workbook": "Book", "Dictionary": "Dict", "Collection": "Coll"}
-SCALAR = {"Num", "Text", "Date", "Bool", "Cell"}
-TEXTLIKE = {"Text", "Cell", "Num"}
+SCALAR = {"Num", "Text", "Date", "Bool", "Cell", "Name", "Path"}
+TEXTLIKE = {"Text", "Cell", "Num", "Name", "Path"}
+STRINGS = {"Text", "Name", "Path"}   # a Name or a Path is text everywhere text is read
 CONSTANTS = {"TODAY": "Date", "NOW": "Date", "TRUE": "Bool", "FALSE": "Bool",
              "THIS_BOOK": "Book", "ACTIVE_BOOK": "Book", "ACTIVE_SHEET": "Sheet",
              "NOTHING": "Range"}
@@ -48,6 +54,8 @@ FUNCS = {
     "SAME": (["S", "S"], "Bool"), "CLEAN_TEXT": (["T"], "Text"), "IS_ERROR": (["S"], "Bool"),
     "PARSE_DATE": (["S", "Text"], "Cell"), "IIF": (["Bool", "S", "S"], None),
     "MOD": (["Num!", "Num!"], "Num"),
+    # VCL 0.3; PATH_JOIN and FOLDER_EXISTS are checked by shape in ty_call (T4)
+    "SAFE_NAME": (["T"], "Name"), "PATH_JOIN": (None, "Path"), "FOLDER_EXISTS": (None, "Bool"),
 }
 
 
@@ -212,13 +220,13 @@ class Checker:
                 if x == "Cell":
                     self.err(line, f"raw cell value {canon(side)} compared with {op}: guard it with IS_NUMBER or IS_DATE first")
                     return "Bool"
-            if not ({a, b} <= {"Num"} or {a, b} <= {"Date"} or {a, b} <= {"Text"}):
+            if not ({a, b} <= {"Num"} or {a, b} <= {"Date"} or {a, b} <= STRINGS):
                 self.err(line, f"can't compare {a} with {b} using {op}")
         else:  # = and <>
             if "Cell" in (a, b) and ("Num" in (a, b) or "Date" in (a, b)):
                 side = a_t if a == "Cell" else b_t
                 self.err(line, f"raw cell value {canon(side)} compared with a number or date: guard it first (a text cell would cause a type mismatch)")
-            elif a != b and not ({a, b} <= {"Text", "Cell"}) and "Word" not in (a, b):
+            elif a != b and not ({a, b} <= STRINGS | {"Cell"}) and "Word" not in (a, b):
                 self.err(line, f"can't compare {a} with {b}")
         return "Bool"
 
@@ -230,6 +238,9 @@ class Checker:
             return "?"
         params, ret = FUNCS[name]
         pos = [a for a in args if not (isinstance(a, Tree) and a.data == "option")]
+        if params is None:   # PATH_JOIN, FOLDER_EXISTS: paths by shape
+            self.check_path_call(name, pos, facts, vflow, line)
+            return ret
         if len(pos) != len(params):
             self.err(line, f"{name} takes {len(params)} arguments, got {len(pos)}")
         types = []
@@ -248,12 +259,50 @@ class Checker:
                 self.err(line, f"{name}: {canon(a)} is {at}, expected a value")
             elif p == "T" and at not in TEXTLIKE:
                 self.err(line, f"{name}: {canon(a)} is {at}, expected text")
-            elif p not in ("S", "T") and at != p and not (p == "Num" and at == "Date"):
+            elif (p not in ("S", "T") and at != p and not (p == "Num" and at == "Date")
+                  and not (p == "Text" and at in STRINGS)):
                 self.err(line, f"{name}: {canon(a)} is {at}, expected {p}")
         if name == "IIF":   # one type when both values have it, else a raw value that needs a guard
             values = types[1:3]
             return "?" if "?" in values or len(values) < 2 else values[0] if values[0] == values[1] else "Cell"
         return ret
+
+    def is_root(self, t):
+        """A String $argument: the only thing a path may start from."""
+        return tok(t) and t.type == "ARG" and self.args.get(str(t)[1:]) == "Text"
+
+    def path_problem(self, t):
+        """None when t is a path by shape (a String $argument or PATH_JOIN(...)), else why not."""
+        if self.is_root(t) or (isinstance(t, Tree) and t.data == "call" and str(t.children[0]) == "PATH_JOIN"):
+            return None
+        return f"{canon(t)} is not a path: write a String $argument or PATH_JOIN($root, ...)"
+
+    def check_path_call(self, name, pos, facts, vflow, line):
+        if name == "FOLDER_EXISTS":
+            if len(pos) != 1:
+                self.err(line, f"FOLDER_EXISTS takes 1 argument, got {len(pos)}")
+                return
+            problem = self.path_problem(pos[0])
+            if problem:
+                self.err(line, f"FOLDER_EXISTS: {problem}")
+            else:
+                self.ty(pos[0], facts, vflow, line)
+            return
+        if len(pos) < 2:   # PATH_JOIN
+            self.err(line, f"PATH_JOIN takes 2 or more arguments, got {len(pos)}")
+            return
+        if not self.is_root(pos[0]):
+            self.err(line, f"PATH_JOIN must start from a String $argument (the root), got {canon(pos[0])}")
+        for part in pos[1:]:
+            if isinstance(part, Tree) and part.data == "call" and str(part.children[0]) == "SAFE_NAME":
+                self.ty(part, facts, vflow, line)
+            elif tok(part) and part.type == "STRING":
+                text = str(part)[1:-1].replace('""', '"')
+                if safe_name(text) != text:
+                    self.err(line, f"PATH_JOIN: {part} is not a safe name (see SAFE_NAME)")
+            else:
+                self.err(line, f"PATH_JOIN: {canon(part)} must be SAFE_NAME(...) or a \"quoted\" safe name, "
+                               "written in place so every part is checked where it is used")
 
     # ---------- narrowing ----------
     def facts_if(self, t, truth):
@@ -330,7 +379,7 @@ class Checker:
         if declared == "Variant":
             vflow[v] = vt if vt in SCALAR | {"Arr"} else "Cell"
             return
-        ok = (vt == declared or vt == "?" or (declared == "Text" and vt in ("Cell", "Num"))
+        ok = (vt == declared or vt == "?" or (declared == "Text" and vt in ("Cell", "Num", "Name", "Path"))
               or (declared == "Num" and vt == "Num"))
         if vt == "Cell" and declared in ("Num", "Date"):
             self.err(line, f"assigning raw cell value {canon(src)} to {declared} variable {v}: guard it first")
