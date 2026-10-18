@@ -37,6 +37,10 @@ stale=<n> on a FIXTURE line marks n rows as leftovers of an earlier run, with a 
 fill across the header's columns. On a header-only sheet (rows=0) they are new rows below the
 header, every cell holding the text "stale". On a sheet with data, a partial Fisher-Yates
 with its own PRNG, seeded from "<file>|<sheet>|stale", picks the n data rows; their values stay.
+
+Folder FIXTUREs (VCL 0.3) build a mock file system, not a workbook (MockFS below). Each
+folder sits right below the sandbox root C:\\KRONOS_SANDBOX; a file without :<bytes> gets
+    size      100 + below(900) bytes, from the PRNG seeded with "<file>|<folder>|<path>|size"
 """
 import datetime
 import hashlib
@@ -328,6 +332,86 @@ def _boundary_token(tok):
     if tok.type == "ISO_DATE":
         return datetime.date.fromisoformat(str(tok))
     return _number(tok)
+
+
+# ---------------------------------------------------------------- VCL 0.3: the mock file system
+
+SANDBOX = "C:\\KRONOS_SANDBOX"   # the interpreter's sandbox root: every FIXTURE folder sits right below it
+
+
+class MockFS:
+    """An in-memory file system for folder FIXTUREs (F6). Paths compare ignoring case, as on
+    Windows; each entry keeps the spelling it was made with. Nothing is ever deleted."""
+
+    def __init__(self):
+        self.entries = {}   # casefolded path -> {"path": path, "kind": "file"/"folder", "size", "locked"}
+        self.add_folder(SANDBOX)
+
+    def get(self, path):
+        return self.entries.get(path.casefold()) if path else None
+
+    def is_folder(self, path):
+        entry = self.get(path)
+        return entry is not None and entry["kind"] == "folder"
+
+    def is_file(self, path):
+        entry = self.get(path)
+        return entry is not None and entry["kind"] == "file"
+
+    def add_folder(self, path):
+        self.entries.setdefault(path.casefold(), {"path": path, "kind": "folder", "size": None, "locked": False})
+
+    def add_file(self, path, size, locked=False):
+        self.entries[path.casefold()] = {"path": path, "kind": "file", "size": size, "locked": locked}
+
+    def files_below(self, folder):
+        """Files in the folder and in every folder below it."""
+        prefix = folder.casefold() + "\\"
+        return sum(1 for k, e in self.entries.items() if e["kind"] == "file" and k.startswith(prefix))
+
+    def snapshot(self):
+        copy = MockFS.__new__(MockFS)
+        copy.entries = {k: dict(e) for k, e in self.entries.items()}
+        return copy
+
+
+def parse_folder(tree):
+    """A folder_fixture tree -> (file, folder, [(path, size or None)], [locked path])."""
+    file, folder = str(tree.children[0]), str(tree.children[1])
+    files, locked = [], []
+    for item in tree.children[2:]:
+        if item.data == "folder_files":
+            for entry in item.children:
+                size = entry.children[1] if len(entry.children) > 1 else None
+                files.append((str(entry.children[0]), int(size) if size is not None else None))
+        else:
+            locked = [str(t) for t in item.children]
+    return file, folder, files, locked
+
+
+def default_size(file, folder, path):
+    return 100 + ColumnRandom(file, folder, path + "|size").below(900)
+
+
+def build_folders(fixture_trees):
+    """The folder FIXTUREs of a spec -> {file: MockFS}. A fixture file without folders gets an
+    empty sandbox, so FOLDER_EXISTS and the file ops still run (and find nothing)."""
+    systems = {}
+    for tree in fixture_trees:
+        fs = systems.setdefault(str(tree.children[0]), MockFS())
+        if tree.data != "folder_fixture":
+            continue
+        file, folder, files, locked = parse_folder(tree)
+        base = SANDBOX + "\\" + folder
+        fs.add_folder(base)
+        locked = {p.casefold() for p in locked}
+        for path, size in files:
+            parts = path.split("\\")
+            for i in range(1, len(parts)):
+                fs.add_folder(base + "\\" + "\\".join(parts[:i]))
+            fs.add_file(base + "\\" + path, default_size(file, folder, path) if size is None else size,
+                        path.casefold() in locked)
+    return systems
 
 
 def build_workbooks(fixture_trees, today=None):

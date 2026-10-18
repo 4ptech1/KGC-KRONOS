@@ -338,15 +338,20 @@ stale=n    a red (#FF0000) fill across the header's columns. rows=0: n new rows 
 
 A values() entry of `""` is a blank cell, and so is a column without a data rule.
 
+VCL 0.3 folder FIXTUREs: a file without `:<bytes>` gets 100 + below(900) bytes, from the
+PRNG seeded with "<file>|<folder>|<path as written>|size", for example
+"router_01.xlsx|Dump|r3.pdf|size".
+
 ## VCL 0.3 additions (being built, 18 Oct 2026)
 
 Designed in `docs/vep-0.3-file-ops.md` (the Job-Pack Router). These are not in the text this
 file shares with the Orchestrator prompt yet: that text moves to 0.3 in one step, at router
 Phase 4.
 
-Built so far (router Phases 1a and 1b): the version line, three value functions, two file ops,
-`MODIFIES $<root> files` and folder FIXTUREs. Every VCL 0.2 spec is also valid as 0.3 and gives
-the same results (E8). Details: `DECISIONS.md` (E8 to E10, S18, S19, T4, F6, D26, D27).
+Built so far (router Phases 1 and 2): the version line, three value functions, two file ops,
+`MODIFIES $<root> files`, folder FIXTUREs and two assertions, all checked by the validator and
+run by the interpreter on a mock file system. Every VCL 0.2 spec is also valid as 0.3 and gives
+the same results (E8). Details: `DECISIONS.md` (E8 to E11, S18, S19, T4, F6, F7, D26 to D28).
 
 ```text
 VCL 0.3                         the first line; everything below is an error under 0.1 or 0.2
@@ -357,7 +362,7 @@ SAFE_NAME(x)                    CLEAN_TEXT(x), or "" when that is not safe as on
 PATH_JOIN($root, part, ...)     $root, a backslash, then the parts joined by backslashes;
                                 trailing backslashes on $root are dropped. "" when $root is empty
                                 or any part is empty or not exactly its own SAFE_NAME (S19)
-FOLDER_EXISTS(<path>)           TRUE when the folder exists (runs from router Phase 2)
+FOLDER_EXISTS(<path>)           TRUE when that folder exists (FALSE for a file or "")
 
 MAKE_FOLDER(<path>, into=<status>)          make the folder, and any missing folders between
                                             it and its root; never the root itself (E9)
@@ -366,6 +371,8 @@ MODIFIES $<root> files          folders and files may be added below this String
                                 nothing else on disk may change (E10)
 FIXTURE <name>.xlsx folder=<Name> [files=<path>[:<bytes>],...] [locked=<path>,...]
                                 a synthetic folder in the same fixture as the sheets (F6)
+FILE_EXISTS("<Folder>\<path>")  TEST assertion: that file exists (F7)
+FILE_COUNT("<Folder>[\<path>]") TEST assertion: files in that folder and below it (F7)
 ```
 
 Paths are checked by their shape (T4). A path is a String `$argument` (the root) or
@@ -378,10 +385,32 @@ The file ops (E9, E10):
 - Each path is `PATH_JOIN($root, ...)`, never a bare root. MAKE_FOLDER's folder and
   COPY_FILE's `<to>` must be below a root declared with `MODIFIES $<root> files`; COPY_FILE's
   `<from>` may be below any String argument. Adding below an undeclared root is an error.
-- `into=` is required and names a String VAR. The op writes a status there (Phase 2 defines
-  the statuses: `Copied`, `Already there`, `Conflict`, `Missing`, `Locked`, ...) instead of
+- `into=` is required and names a String VAR. The op writes a status there instead of
   raising an error, so one bad file never stops the run.
 - Every root a file op uses must be checked with `FOLDER_EXISTS($<root>)` in PRE (rule 14).
+
+The statuses (E11), checked in this order. A path with `*` or `?` is a bad name too; a file
+path may have 258 characters, a folder path 247.
+
+```text
+MAKE_FOLDER   Bad name         the path is "" (PATH_JOIN found an unsafe part)
+              Too long         the path is longer than 247 characters
+              Exists           the folder is already there (a re-run is safe)
+              Blocked by file  a file has the folder's name, or the name of a folder on the way
+              No folder        the root itself is missing
+              Created          the folder, and every missing folder between it and the root
+COPY_FILE     Bad name         <from> or <to> is ""
+              Too long         <from> or <to> is longer than 258 characters
+              Missing          there is no file at <from>
+              No folder        the folder <to> goes in is missing (MAKE_FOLDER first)
+              Already there    <to> exists with the same size (a re-run is safe)
+              Conflict         <to> exists with another size, or is a folder: never overwritten
+              Locked           <from> is open in another program
+              Copied           <to> is a copy of <from>, the same size; <from> stays
+```
+In Excel (from router Phase 3) COPY_FILE can also give `Check copy` (the copy came out a
+different size; it is never deleted) and both ops `Failed` (any other error, logged to
+ForgeLog). The mock file system never gives them.
 
 Folder FIXTUREs (F6):
 - `<Name>` is one word, unique in the fixture file and not the name of one of its sheets.
@@ -392,10 +421,18 @@ Folder FIXTUREs (F6):
   the size (Phase 2 picks a default). `locked=` files must be in `files=`: they behave as if
   another program has them open.
 - Rule 19: a spec that copies files should have a `locked=` file in some FIXTURE folder.
+- The interpreter puts every FIXTURE folder right below a sandbox root, `C:\KRONOS_SANDBOX`,
+  so a TEST that passes `Dump` passes `C:\KRONOS_SANDBOX\Dump`. It is a mock: nothing on a
+  real disk is read or written.
+- `FILE_EXISTS` and `FILE_COUNT` paths start with one of the TEST's FIXTURE folders, and each
+  part is a safe name. `PRE_FILE_COUNT(...)` counts before the first run.
+- Every TEST also checks that nothing else on disk changed (E10): no folder or file was
+  removed or changed, and new ones appear only below a root the TEST passed for a
+  `MODIFIES $<root> files` argument. Each difference fails the TEST with, for example,
+  `UNCHANGED: file Dump\copy.pdf was added`.
 
-Still to come: the meaning of FOLDER_EXISTS and the file ops on a mock file system, the
-FILE_EXISTS and FILE_COUNT assertions, and the UNCHANGED check for files (Phase 2). The
-compiler can't translate the new functions and ops until Phase 3.
+Still to come: the compiler and ForgeLib (router Phase 3), then the first router spec and the
+switch of the shared reference text to 0.3 (Phase 4).
 
 ## Changes in VCL 0.2 (17 Oct 2026)
 

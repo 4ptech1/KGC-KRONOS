@@ -59,7 +59,7 @@ Two PRs (D26). **1a (done):** the version line, the three value functions, the N
 - **Validator:** every file op path is rooted in an ARG declared by MODIFIES `files` (the copy source may be any rooted Path); the status VAR is declared; a fixture with missing, conflict, locked or unsafe cases gets the rule 19 extension.
 - **Docs:** spec.md gets a "VCL 0.3 additions (being built)" section outside the shared text; `DECISIONS.md` gets E8 and above.
 
-### Phase 2: semantics and mock file system
+### Phase 2: semantics and mock file system (done: E11, F7, D28)
 - **`vcl/semantics.py`:** `safe_name` and `path_join` are done in Phase 1a (D26), with their conformance cases (path traversal, reserved names, trailing dots, wildcards, UNC roots).
 - **`vcl_fixtures.py`:** builds folder fixtures as an in-memory tree of path to file record (size, locked), with the same seed rules.
 - **`vcl_interp.py`:** runs FOLDER_EXISTS, MAKE_FOLDER and COPY_FILE on the mock with the status rules above. Adds the FILE_EXISTS assertion (already in the validator) and a new `FILE_COUNT("<folder>")`. The UNCHANGED check covers the mock file system.

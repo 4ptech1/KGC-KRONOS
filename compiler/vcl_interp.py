@@ -17,7 +17,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "vcl"))
 import semantics as S  # noqa: E402
-from vcl_fixtures import Sheet, build_workbooks  # noqa: E402
+from vcl_fixtures import SANDBOX, MockFS, Sheet, build_folders, build_workbooks  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 
 
@@ -91,10 +91,62 @@ def call_args(call):
     return call.children[1].children if len(call.children) > 1 else []
 
 
+# ---------- VCL 0.3 file ops on the mock file system (E11, router Phase 2) ----------
+MAX_FILE_PATH = 258     # Windows' MAX_PATH is 260 with the closing null; one spare
+MAX_FOLDER_PATH = 247   # a folder path leaves room for an 8.3 file name inside it (CreateDirectory)
+WILDCARDS = "*?"        # FSO reads them as patterns, so a path with one is never used
+
+
+def make_folder(fs, root, path):
+    """MAKE_FOLDER's status (E11). It makes the folder and every missing folder between it and its
+    root, never the root itself, and checks the whole way down before making anything."""
+    if not path or not root or any(ch in path for ch in WILDCARDS):
+        return "Bad name"
+    if len(path) > MAX_FOLDER_PATH:
+        return "Too long"
+    entry = fs.get(path)
+    if entry is not None:
+        return "Exists" if entry["kind"] == "folder" else "Blocked by file"
+    if not path.casefold().startswith(root.casefold() + "\\"):
+        return "Bad name"
+    if not fs.is_folder(root):
+        return "No folder"
+    levels, cur = [], root
+    for part in path[len(root) + 1:].split("\\"):
+        cur += "\\" + part
+        levels.append(cur)
+        if fs.is_file(cur):
+            return "Blocked by file"
+    for level in levels:
+        fs.add_folder(level)
+    return "Created"
+
+
+def copy_file(fs, src, dst):
+    """COPY_FILE's status (E11). One attempt; it never overwrites, deletes or makes folders."""
+    if not src or not dst or any(ch in src + dst for ch in WILDCARDS):
+        return "Bad name"
+    if len(src) > MAX_FILE_PATH or len(dst) > MAX_FILE_PATH:
+        return "Too long"
+    source = fs.get(src)
+    if source is None or source["kind"] != "file":
+        return "Missing"
+    if "\\" not in dst or not fs.is_folder(dst.rsplit("\\", 1)[0]):
+        return "No folder"
+    target = fs.get(dst)
+    if target is not None:
+        return "Already there" if target["kind"] == "file" and target["size"] == source["size"] else "Conflict"
+    if source["locked"]:
+        return "Locked"
+    fs.add_file(dst, source["size"])
+    return "Copied"
+
+
 class Machine:
-    def __init__(self, spec, bound_args, log, today=None):
+    def __init__(self, spec, bound_args, log, today=None, fs=None):
         self.spec = spec
         self.log = log
+        self.fs = fs if fs is not None else MockFS()
         self.args = bound_args
         self.today = today or dt.date.today()
         self.vars = {}
@@ -275,6 +327,8 @@ class Machine:
             return S.safe_name(e(pos[0]))
         if name == "PATH_JOIN":
             return S.path_join(*[e(a) for a in pos])
+        if name == "FOLDER_EXISTS":
+            return self.fs.is_folder(S.text_of(e(pos[0])))
         if name == "EXISTS":
             return e(pos[0]).exists(e(pos[1]))
         if name == "COUNT":
@@ -361,6 +415,13 @@ class Machine:
         elif name == "SORT":
             self.sort(self.target(pos[0]), int(self.num(e(opts["key"]))),
                       str(opts.get("order", "asc")) == "asc", str(opts.get("header", "yes")) == "yes")
+        elif name == "MAKE_FOLDER":
+            target = pos[0]
+            is_join = isinstance(target, Tree) and target.data == "call" and str(target.children[0]) == "PATH_JOIN"
+            root = S.text_of(e(pos_of(call_args(target))[0] if is_join else target)).rstrip("\\")
+            self.assign(str(opts["into"]), make_folder(self.fs, root, S.text_of(e(target))))
+        elif name == "COPY_FILE":
+            self.assign(str(opts["into"]), copy_file(self.fs, S.text_of(e(pos[0])), S.text_of(e(pos[1]))))
         elif name == "RETURN":
             raise _Return(e(pos[0]) if pos else None)
         else:
@@ -517,8 +578,10 @@ def _crit_match(v, crit):
 
 
 class Asserter:
-    def __init__(self, books_after, books_before, result, errors):
+    def __init__(self, books_after, books_before, result, errors, fs_after=None, fs_before=None):
         self.after, self.before, self.result, self.errors = books_after, books_before, result, errors
+        self.fs_after = fs_after if fs_after is not None else MockFS()
+        self.fs_before = fs_before if fs_before is not None else MockFS()
 
     def cells(self, ref, pre):
         book = self.before if pre else self.after
@@ -600,6 +663,10 @@ class Asserter:
                 return sum(1 for p in pts if sh.fills.get(p, "").upper() == color)
             if fn == "ROWS_USED":
                 return (self.before if pre else self.after)[str(args[0])].max_row()
+            if fn in ("FILE_EXISTS", "FILE_COUNT"):   # a path below the sandbox, starting with a FIXTURE folder
+                fs = self.fs_before if pre else self.fs_after
+                path = SANDBOX + "\\" + self.ev(args[0])
+                return fs.is_file(path) if fn == "FILE_EXISTS" else fs.files_below(path)
             raise VclError(f"assertion function {name} is not supported by the MVP interpreter")
         if d == "a_cond":
             if len(t.children) == 1:
@@ -727,6 +794,39 @@ class TestResult:
     failed: list = field(default_factory=list)
     log: list = field(default_factory=list)
     state: dict = field(default_factory=dict)
+    files: list = field(default_factory=list)   # VCL 0.3: the mock file system after the last run
+
+
+def files_of(fs):
+    """Every folder and file below the sandbox root, as (path below it, kind, size, locked), sorted."""
+    prefix = SANDBOX.casefold() + "\\"
+    return sorted((e["path"][len(prefix):], e["kind"], e["size"], e["locked"])
+                  for k, e in fs.entries.items() if k.startswith(prefix))
+
+
+def file_unchanged_problems(roots, before, after, stopped_at_pre, limit=5):
+    """E10: nothing on disk is removed or changed, and new folders and files appear only below a
+    root the TEST passed for a MODIFIES $root files argument (nowhere when every run stopped at PRE)."""
+    allowed = [] if stopped_at_pre else [r.rstrip("\\").casefold() + "\\" for r in roots]
+    prefix = len(SANDBOX) + 1
+    found = []
+    for key in sorted(set(before.entries) | set(after.entries)):
+        b, a = before.entries.get(key), after.entries.get(key)
+        if b == a:
+            continue
+        what = f"{(a or b)['kind']} {(a or b)['path'][prefix:]}"
+        if b is None:
+            if not any(key.startswith(root) for root in allowed):
+                found.append(f"UNCHANGED: {what} was added")
+        elif a is None:
+            found.append(f"UNCHANGED: {what} was removed")
+        else:
+            def show(e):
+                return f"{e['kind']}, {e['size']} bytes{', locked' if e['locked'] else ''}"
+            found.append(f"UNCHANGED: {what} was {show(b)}, now {show(a)}")
+    if len(found) > limit:
+        found = found[:limit] + [f"UNCHANGED: ... and {len(found) - limit} more file changes"]
+    return found
 
 
 def run_tests(text, today=None):
@@ -735,9 +835,9 @@ def run_tests(text, today=None):
     if problems or not spec or spec["kind"] != "TASK":
         raise VclError(f"spec doesn't parse: {problems[:3]}")
     today = today or dt.date.today()
-    if any(k["key"] == "FIXTURE" and k["tree"].data == "folder_fixture" for k in spec["keys"]):
-        raise VclError("folder FIXTUREs run on the mock file system from router Phase 2")
-    books = build_workbooks([k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"], today)
+    trees = [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]
+    books = build_workbooks(trees, today)
+    systems = build_folders(trees)
     results = []
     for k in spec["keys"]:
         if k["key"] != "TEST":
@@ -756,13 +856,21 @@ def run_tests(text, today=None):
             runs = int(rest[i])
             i += 1
         assertion = rest[i]
-        book = {name: sh.snapshot() for name, sh in books[fixture].items()}
+        if fixture not in systems:   # every FIXTURE line, sheet or folder, gives its file a mock file system
+            raise VclError(f"TEST uses fixture {fixture}, but no FIXTURE line builds it")
+        book = {name: sh.snapshot() for name, sh in books.get(fixture, {}).items()}
         before = {name: sh.snapshot() for name, sh in book.items()}
+        fs = systems[fixture].snapshot()
+        fs_before = fs.snapshot()
         params = [str(p.children[0]) for kk in spec["keys"] if kk["key"] == "ARGS" for p in kk["tree"].children]
         bound = {}
         for pname, v in zip(params, call_vals):
-            if isinstance(v, Token) and v.type == "NAME":
+            if isinstance(v, Token) and v.type == "NAME" and str(v) in book:
                 bound[pname] = book[str(v)]
+            elif isinstance(v, Token) and v.type == "NAME":   # a FIXTURE folder (F6)
+                if not fs.is_folder(SANDBOX + "\\" + str(v)):
+                    raise VclError(f"TEST passes {v}, which is neither a sheet nor a folder of {fixture}")
+                bound[pname] = SANDBOX + "\\" + str(v)
             elif isinstance(v, Token) and v.type == "STRING":
                 bound[pname] = str(v)[1:-1]
             else:
@@ -772,10 +880,10 @@ def run_tests(text, today=None):
         stopped_at_pre = True
         for _ in range(runs):
             log.clear()
-            machine = Machine(spec, bound, log, today)
+            machine = Machine(spec, bound, log, today, fs)
             result = machine.run()
             stopped_at_pre = stopped_at_pre and machine.pre_failed
-        asserter = Asserter(book, before, result, len(log))
+        asserter = Asserter(book, before, result, len(log), fs, fs_before)
         failed = []
         for cond in assertion.children:
             try:
@@ -791,10 +899,12 @@ def run_tests(text, today=None):
                 if isinstance(v, Token) and v.type == "NAME":
                     sheet_args.setdefault(str(v), []).append(pname)
             failed += unchanged_problems(modifies, sheet_args, before, book, stopped_at_pre)
+            roots = [bound[a] for a, kinds in modifies.items() if kinds.get("files") and isinstance(bound.get(a), str)]
+            failed += file_unchanged_problems(roots, fs_before, fs, stopped_at_pre)
         state = {name: (sorted((rc, S.text_of(v)) for rc, v in sh.cells.items()), sorted(sh.fills.items()),
                         sorted(sh.formats.items()))
                  for name, sh in book.items()}
-        results.append(TestResult(k["line"], not failed, result, len(log), failed, list(log), state))
+        results.append(TestResult(k["line"], not failed, result, len(log), failed, list(log), state, files_of(fs)))
     return results
 
 
