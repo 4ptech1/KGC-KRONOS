@@ -113,7 +113,7 @@ tests/                    211 unit tests; conformance_cases.py is shared with th
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
-docs/vep-0.3-file-ops.md  file ops and Job-Pack Router design and roadmap (approved, Phases 0 and 1a done)
+docs/vep-0.3-file-ops.md  file ops and Job-Pack Router design and roadmap (approved, Phases 0 and 1 done)
 docs/vcl-semantics.md     generated conformance tables   docs/vcl-m2-findings.md  M2 research
 docs/VBA_Forge_Project_Roadmap.docx  the full roadmap (phases, gates)
 harness/, batches/        Excel batch runner, deferred (PR #4)
@@ -331,8 +331,8 @@ Boss's decisions:
 | --- | --- | --- |
 | 0 | Blank key rows so every SKIP_IF is proven | **Done** (PR #16) |
 | 1a | Language surface, part 1: the `VCL 0.3` line; SAFE_NAME, PATH_JOIN, FOLDER_EXISTS; the Name and Path types (T4); the meaning of SAFE_NAME and PATH_JOIN with conformance cases (S18, S19, moved here from Phase 2, D26) | **Done** (PR #22) |
-| 1b | Language surface, part 2: MAKE_FOLDER and COPY_FILE returning a status into a VAR; `MODIFIES $jobs files`; folder FIXTUREs | Next (Boss's go, 18 Oct) |
-| 2 | A mock file system in fixtures and the interpreter; FOLDER_EXISTS and the file ops run on it; FILE_EXISTS and FILE_COUNT assertions; UNCHANGED for files | Planned (Boss's go, 18 Oct) |
+| 1b | Language surface, part 2: MAKE_FOLDER and COPY_FILE returning a status into a String VAR (E9); `MODIFIES $jobs files` (E10); folder FIXTUREs (F6) | **Done** (PR #23) |
+| 2 | A mock file system in fixtures and the interpreter; FOLDER_EXISTS and the file ops run on it; FILE_EXISTS and FILE_COUNT assertions; UNCHANGED for files | Next (Boss's go, 18 Oct) |
 | 3 | Compiler and ForgeLib: late-bound FSO wrappers that never overwrite, delete or move; lint bans DeleteFile, MoveFile and Kill; a sandbox builder in `%TEMP%` | Planned |
 | 4 | `specs/task_12.vcl` RouteJobPacks; the prompt switches to 0.3, and Boss updates the Orchestrator again | Planned |
 | 5 | Excel pilot kit: a ForgeLib self-test of the conformance cases, a sandbox, and a 5-step guide for Boss | Planned, optional |

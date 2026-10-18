@@ -336,6 +336,8 @@ def build_workbooks(fixture_trees, today=None):
     today = today or datetime.date.today()
     books = {}
     for tree in fixture_trees:
+        if tree.data == "folder_fixture":
+            continue  # VCL 0.3 folders: the mock file system comes in router Phase 2
         fx = parse_fixture(tree)
         sheet = Sheet(fx.sheet)
         for c, (_, header) in enumerate(fx.headers, start=1):
@@ -465,6 +467,8 @@ def fixtures_module(fixture_trees_by_spec):
     seen = {}
     parts = []
     for spec_name, trees in fixture_trees_by_spec:
+        if any(t.data == "folder_fixture" for t in trees):
+            raise ValueError(f"{spec_name}: folder FIXTUREs get a sandbox builder in router Phase 3")
         fixtures = [parse_fixture(t) for t in trees]
         for file in dict.fromkeys(fx.file for fx in fixtures):
             mine = [fx for fx in fixtures if fx.file == file]

@@ -1,5 +1,6 @@
-"""VCL 0.3 (docs/vep-0.3-file-ops.md), router Phase 1a: the version line, SAFE_NAME, PATH_JOIN
-and FOLDER_EXISTS, and the path rules of the type checker (T4)."""
+"""VCL 0.3 (docs/vep-0.3-file-ops.md). Router Phase 1a: the version line, SAFE_NAME, PATH_JOIN
+and FOLDER_EXISTS, and the path rules of the type checker (T4). Phase 1b: MAKE_FOLDER and
+COPY_FILE (E9), MODIFIES $root files (E10) and folder FIXTUREs (F6)."""
 import glob
 import os
 import sys
@@ -10,6 +11,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 sys.path.insert(0, str(ROOT / "vcl"))
 import validator  # noqa: E402
+from vcl_fixtures import fixtures_module  # noqa: E402
+from vcl_interp import VclError, modifies_of  # noqa: E402
 from vcl_codegen import CompileError, compile_text  # noqa: E402
 from vcl_interp import run_tests  # noqa: E402
 from vcl_parse import parse  # noqa: E402
@@ -44,6 +47,60 @@ FIXTURE  jobs_01.xlsx sheet=Jobs cols=A:Job ID,B:Safe Name,C:Path rows=6 data=A:
 TEST     fixture=jobs_01.xlsx call=CheckJobNames(Jobs, "C:\Jobs") runs=2 assert=RESULT = 3 AND COUNTIF(Jobs![Path], "C:\Jobs\J-101\Reports") = 2 AND COUNTIF(Jobs![Safe Name], "J-102") = 1 AND ERROR_COUNT = 0
 TEST     fixture=jobs_01.xlsx call=CheckJobNames(Jobs, "C:\Jobs") assert=COUNTA(Jobs![Job ID]) = PRE_COUNTA(Jobs![Job ID])
 """
+
+# Router Phase 1b: a small Job-Pack Router. Each tracker row names a job and its report; the
+# report is copied from the dump folder into the job's folder, and the status written back.
+ROUTER = r"""VCL 0.3
+TASK
+# ASSUME: Tracker headers (row 1) include "Job ID", "Report File" and "Status"
+PROC     RouteJobPacks
+KIND     Function
+MODULE   modRouter
+ARGS     tracker As Worksheet, dump As String, jobs As String
+RET      Long
+VAR      cJob As Long
+VAR      cFile As Long
+VAR      cStatus As Long
+VAR      status As String
+VAR      n As Long
+PRE      COL($tracker, "Job ID") > 0; COL($tracker, "Report File") > 0; COL($tracker, "Status") > 0; FOLDER_EXISTS($dump); FOLDER_EXISTS($jobs)
+MODIFIES $tracker["Status"]
+MODIFIES $jobs files
+OP       LET(cJob, COL($tracker, "Job ID"))
+OP       LET(cFile, COL($tracker, "Report File"))
+OP       LET(cStatus, COL($tracker, "Status"))
+OP       LET(n, 0)
+OP       LOOP_ROWS dir=down from=2 to=LASTROW($tracker, cJob) var=r
+OP         SKIP_IF IS_EMPTY(CELL($tracker, r, cJob))
+OP         IF SAFE_NAME(CELL($tracker, r, cJob)) = "" OR SAFE_NAME(CELL($tracker, r, cFile)) = ""
+OP           SET_VALUE(CELL($tracker, r, cStatus), "Bad name")
+OP         ELSE
+OP           MAKE_FOLDER(PATH_JOIN($jobs, SAFE_NAME(CELL($tracker, r, cJob))), into=status)
+OP           COPY_FILE(PATH_JOIN($dump, SAFE_NAME(CELL($tracker, r, cFile))), PATH_JOIN($jobs, SAFE_NAME(CELL($tracker, r, cJob)), SAFE_NAME(CELL($tracker, r, cFile))), into=status)
+OP           SET_VALUE(CELL($tracker, r, cStatus), status)
+OP           IF status = "Copied" THEN LET(n, n + 1)
+OP       RETURN(n)
+ERR      standard
+FIXTURE  router_01.xlsx sheet=Tracker cols=A:Job ID,B:Report File,C:Status rows=6 data=A:values("J-101"x2,"J-102"x1,"J-103"x1,"..\x"x1,""x1);B:values("r1.pdf"x1,"r2.pdf"x2,"r3.pdf"x1,"r4.pdf"x1,"r5.pdf"x1)
+FIXTURE  router_01.xlsx folder=Dump files=r1.pdf:120,r2.pdf:80,r3.pdf locked=r3.pdf
+FIXTURE  router_01.xlsx folder=Jobs files=J-102\r2.pdf:99
+TEST     fixture=router_01.xlsx call=RouteJobPacks(Tracker, Dump, Jobs) runs=2 assert=ERROR_COUNT = 0 AND COUNTIF(Tracker![Status], "Bad name") = 1 AND FILE_EXISTS("Jobs\J-101\r1.pdf")
+TEST     fixture=router_01.xlsx call=RouteJobPacks(Tracker, Dump, "S:\Missing") assert=RESULT = -1 AND ERROR_COUNT = 1 AND COUNTA(Tracker![Job ID]) = PRE_COUNTA(Tracker![Job ID])
+"""
+
+
+def router(*edits):
+    """ROUTER with each (old, new) edit applied once."""
+    text = ROUTER
+    for old, new in edits:
+        assert text.count(old) == 1, old
+        text = text.replace(old, new)
+    return text
+
+
+def problems(text):
+    return [(p.severity, p.message) for p in validator.validate_text(text)]
+
 
 HEAD = ["VCL 0.3", "TASK", "PROC     P", "KIND     Function", "MODULE   modP",
         "ARGS     ws As Worksheet, root As String", "RET      Long", "VAR      n As Long",
@@ -147,6 +204,131 @@ class PathTypes(unittest.TestCase):
         self.assertTrue(any("expected a number" in m or "not a number" in m
                             for m in type_problems(spec("LET(n, MOD(SAFE_NAME(t), 2))"))))
         self.assertTrue(any("expected text" in m for m in type_problems(spec("LET(t, SAFE_NAME($ws))"))))
+
+
+MAKE = "MAKE_FOLDER(PATH_JOIN($jobs, SAFE_NAME(CELL($tracker, r, cJob))), into=status)"
+COPY_FROM = "COPY_FILE(PATH_JOIN($dump, SAFE_NAME(CELL($tracker, r, cFile))),"
+RUN = "call=RouteJobPacks(Tracker, Dump, Jobs)"
+
+
+class FileOps(unittest.TestCase):
+    """E9: MAKE_FOLDER(<path>, into=<status>) and COPY_FILE(<from>, <to>, into=<status>)."""
+
+    def test_the_router_is_valid(self):
+        self.assertEqual(problems(ROUTER), [])
+
+    def test_everything_new_needs_the_0_3_line(self):
+        found = errors(ROUTER.replace("VCL 0.3", "VCL 0.2", 1))
+        for message in ("MAKE_FOLDER is VCL 0.3: start the spec with 'VCL 0.3' to use it",
+                        "COPY_FILE is VCL 0.3: start the spec with 'VCL 0.3' to use it",
+                        "MODIFIES ... files is VCL 0.3: start the spec with 'VCL 0.3' to use it",
+                        "folder FIXTUREs are VCL 0.3: start the spec with 'VCL 0.3' to use them"):
+            self.assertIn(message, found)
+
+    def test_the_status_goes_into_a_string_var(self):
+        self.assertIn("MAKE_FOLDER needs into=", errors(router((MAKE, MAKE.replace(", into=status", "")))))
+        self.assertIn("type: MAKE_FOLDER: into=n is Num, but the status is text: declare it As String",
+                      errors(router((MAKE, MAKE.replace("into=status", "into=n")))))
+
+    def test_paths_are_paths(self):
+        found = errors(router((COPY_FROM, "COPY_FILE(CELL($tracker, r, cFile),")))
+        self.assertIn("type: COPY_FILE: CELL($tracker,r,cFile) is not a path: write a String $argument or "
+                      "PATH_JOIN($root, ...)", found)
+
+    def test_a_root_itself_is_never_made_or_copied(self):
+        self.assertIn("MAKE_FOLDER: the folder to make must be PATH_JOIN($jobs, ...), not the root $jobs itself, "
+                      "which must already exist", errors(router((MAKE, "MAKE_FOLDER($jobs, into=status)"))))
+        self.assertIn("COPY_FILE: the file to copy from must be PATH_JOIN($dump, ...), not the root $dump itself, "
+                      "which must already exist", errors(router((COPY_FROM, "COPY_FILE($dump,"))))
+
+    def test_every_root_is_checked_in_pre(self):
+        self.assertEqual(errors(router(("; FOLDER_EXISTS($dump)", ""))),
+                         ["file ops use $dump, but PRE doesn't check FOLDER_EXISTS($dump) (rule 14)"])
+
+
+class ModifiesFiles(unittest.TestCase):
+    """E10: MODIFIES $root files, for a String argument, is the only way to add below a root."""
+
+    def test_adding_below_an_undeclared_root(self):
+        self.assertEqual(errors(router(("MODIFIES $jobs files\n", ""))),
+                         ["MAKE_FOLDER adds to $jobs, but no line declares MODIFIES $jobs files",
+                          "COPY_FILE adds to $jobs, but no line declares MODIFIES $jobs files"])
+
+    def test_the_line_must_fit_the_argument(self):
+        self.assertIn("MODIFIES $tracker files: $tracker must be a String argument (a root folder)",
+                      errors(router(("MODIFIES $jobs files", "MODIFIES $tracker files"))))
+        self.assertIn("MODIFIES $jobs: a String argument is a root folder, so write MODIFIES $jobs files",
+                      errors(router(("MODIFIES $jobs files", "MODIFIES $jobs"))))
+        self.assertIn("MODIFIES $jobs files appears twice: use one line",
+                      errors(router(("MODIFIES $jobs files", "MODIFIES $jobs files\nMODIFIES $jobs files"))))
+
+    def test_a_copy_source_needs_no_line_but_an_unused_one_warns(self):
+        self.assertEqual(problems(router(("MODIFIES $jobs files", "MODIFIES $jobs files\nMODIFIES $dump files"))),
+                         [("warning", "MODIFIES $dump files, but no op adds to $dump")])
+
+    def test_the_interpreter_reads_the_line(self):
+        from vcl_parse import parse as grammar_parse
+        self.assertEqual(modifies_of(grammar_parse(ROUTER)[0]), {"tracker": {"cols": ["Status"]}, "jobs": {"files": True}})
+
+
+class FolderFixtures(unittest.TestCase):
+    """F6: FIXTURE <file>.xlsx folder=<Name> [files=<path>[:<bytes>],...] [locked=<path>,...]."""
+
+    def test_the_parser_reads_them(self):
+        dump, jobs = validator.parse_spec(ROUTER).folders
+        self.assertEqual((dump.file, dump.folder, dump.files, dump.locked),
+                         ("router_01.xlsx", "Dump", [("r1.pdf", 120), ("r2.pdf", 80), ("r3.pdf", None)], ["r3.pdf"]))
+        self.assertEqual((jobs.folder, jobs.files, jobs.locked), ("Jobs", [("J-102\\r2.pdf", 99)], []))
+        self.assertEqual(problems(router(("folder=Jobs files=J-102\\r2.pdf:99", "folder=Jobs"))), [])
+
+    def test_bad_lines(self):
+        cases = [
+            (("files=r1.pdf:120,", "files=CON.pdf,"), "FIXTURE files: CON.pdf is not a safe path: CON.pdf is not a "
+                                                      "safe name (see SAFE_NAME)"),
+            (("files=r1.pdf:120,", "files=a\\..\\b,"), "FIXTURE files: a\\..\\b is not a safe path: .. is not a "
+                                                       "safe name (see SAFE_NAME)"),
+            (("files=r1.pdf:120,", "files=r1.pdf:120,R1.PDF,"), "FIXTURE folder Dump lists R1.PDF twice"),
+            (("files=J-102\\r2.pdf:99", "files=J-102:5,J-102\\r2.pdf:99"),
+             "FIXTURE folder Jobs: J-102 is a file, so nothing can be below it"),
+            ((" locked=r3.pdf", " locked=r9.pdf"), "FIXTURE locked= r9.pdf is not one of the folder's files="),
+            ((" locked=r3.pdf", " locked=r3.pdf,r3.pdf"), "FIXTURE folder Dump lists a locked file twice"),
+            (("folder=Jobs", "folder=Dump"), "router_01.xlsx has two FIXTURE lines for folder Dump"),
+            (("folder=Jobs", "folder=Tracker"), "router_01.xlsx has a sheet and a folder named Tracker: a TEST "
+                                                "could not tell them apart"),
+            (("files=r1.pdf:120,", "files=r 1.pdf:120,"), "a folder FIXTURE must look like: <name>.xlsx "
+                                                          "folder=<Name> [files=<path>[:<bytes>],...] "
+                                                          "[locked=<path>,...]"),
+            (("files=r1.pdf:120,", "files=r1.pdf:big,"), "FIXTURE files: expected <path> or <path>:<bytes>, "
+                                                         "got 'r1.pdf:big'"),
+        ]
+        for edit, message in cases:
+            with self.subTest(edit=edit):
+                self.assertIn(message, errors(router(edit)))
+
+    def test_tests_pass_folders_bare(self):
+        self.assertIn("TEST passes Jobz for $jobs, but router_01.xlsx has no folder Jobz",
+                      errors(router((RUN, RUN.replace("Jobs)", "Jobz)")))))
+        found = errors(router((RUN, "call=RouteJobPacks(Dump, Tracker, Jobs)")))
+        self.assertIn("TEST passes Dump for $tracker, but router_01.xlsx has no sheet Dump", found)
+        self.assertIn("TEST passes Tracker for $dump, but router_01.xlsx has no folder Tracker", found)
+
+    def test_a_missing_root_fails_pre(self):
+        self.assertEqual(errors(router(("RESULT = -1 AND ERROR_COUNT = 1 AND", "ERROR_COUNT = 0 AND"))),
+                         ["TEST fails PRE ($jobs is \"S:\\Missing\", which is not a folder of router_01.xlsx) but "
+                          "doesn't expect RESULT = -1"])
+
+    def test_rule_19_wants_a_locked_file(self):
+        self.assertEqual(problems(router((" locked=r3.pdf", ""))),
+                         [("warning", "the spec copies files, but no FIXTURE folder has a locked= file, so no TEST "
+                                      "shows what happens to a file that is open elsewhere (rule 19)")])
+
+    def test_folders_wait_for_the_mock_file_system(self):
+        with self.assertRaises(VclError):
+            run_tests(ROUTER)
+        from vcl_parse import parse as grammar_parse
+        trees = [k["tree"] for k in grammar_parse(ROUTER)[0]["keys"] if k["key"] == "FIXTURE"]
+        with self.assertRaises(ValueError):
+            fixtures_module([("task_x", trees)])
 
 
 class Interpreter(unittest.TestCase):

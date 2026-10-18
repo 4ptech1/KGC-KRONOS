@@ -166,10 +166,11 @@ Known: task_04 exceeds the ~60-line TASK guideline; accepted for now, revisit in
 
 Next, in order (`docs/vcl-mvp-plan.md`):
 1. The Job-Pack Router MVP, `docs/vep-0.3-file-ops.md` (approved by Boss): sandbox only, COPY_FILE
-   first (no MOVE), VCL 0.3. Phase 0 (blank key rows) and Phase 1a (the VCL 0.3 line, SAFE_NAME,
-   PATH_JOIN, FOLDER_EXISTS and the path types, D26) are done; next is Phase 1b (MAKE_FOLDER,
-   COPY_FILE, MODIFIES files, folder FIXTUREs), then Phase 2. Boss gave the go for Phases 1 and 2
-   on 18 Oct 2026; stop after Phase 2 and wait for his go on Phase 3.
+   first (no MOVE), VCL 0.3. Phase 0 (blank key rows) and Phase 1 (the language surface: the VCL
+   0.3 line, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS, the path types, MAKE_FOLDER, COPY_FILE,
+   MODIFIES files and folder FIXTUREs; D26, D27) are done; next is Phase 2 (the mock file system).
+   Boss gave the go for Phases 1 and 2 on 18 Oct 2026; stop after Phase 2 and wait for his go on
+   Phase 3.
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 

@@ -24,13 +24,15 @@ ret_value: TYPE
 var_value: NAME "As" TYPE
 pre_value: expr (";" expr)*
 // VCL 0.2: MODIFIES $arg (the whole sheet) | $arg["Header", ...] (values in those columns) | $arg fills
-modifies_value: ARG (modifies_cols | FILLS_WORD)?
+// VCL 0.3: | $root files (folders and files may be added below a String argument)
+modifies_value: ARG (modifies_cols | FILLS_WORD | FILES_WORD)?
 modifies_cols: "[" STRING ("," STRING)* "]"
 op_value: statement
 perf_value: PERF_FLAG+
 err_value: ERR_WORD
 allow_value: ALLOW_WORD+
 fixture_value: FILENAME "sheet=" NAME "cols=" col_list "rows=" INT stale_opt? ("data=" data_list)?
+             | FILENAME "folder=" NAME folder_files? folder_locked? -> folder_fixture   // VCL 0.3
 stale_opt: "stale=" INT
 test_value: "fixture=" FILENAME "call=" call_target "(" [call_arg ("," call_arg)*] ")" ("runs=" INT)? "assert=" assertion
 
@@ -137,6 +139,11 @@ boundary_mod: "boundary(" boundary_value ("," boundary_value)* ")"
 blank_mod: "blank(" INT ")"
 dupes_mod: "dupes(" INT ")"
 
+// VCL 0.3 folder FIXTUREs: files=<path>[:<bytes>],... locked=<path>,... (paths below the folder)
+folder_files: "files=" file_entry ("," file_entry)*
+file_entry: FILE_PATH (":" INT)?
+folder_locked: "locked=" FILE_PATH ("," FILE_PATH)*
+
 // ---------- terminals ----------
 // Option keys are reserved words. That resolves "name=value" (an option) versus
 // "a = b" (a comparison) inside call arguments: only reserved keys make options.
@@ -146,6 +153,7 @@ TYPE: "Long" | "Double" | "String" | "Boolean" | "Date" | "Variant" | "Range" | 
 PERF_FLAG: "screen_off" | "calc_manual" | "events_off"
 ERR_WORD: "standard"
 FILLS_WORD: "fills"
+FILES_WORD: "files"
 ALLOW_WORD: "file_delete" | "file_overwrite" | "shell" | "http"
 TARGET_WORD: "xlsm" | "xlam"
 CONTROL_TYPE: "TextBox" | "CommandButton" | "Label" | "ListBox" | "ComboBox" | "CheckBox" | "OptionButton"
@@ -161,6 +169,7 @@ SIGNED_NUM: /-?\d+(\.\d+)?/
 INT: /\d+/
 COLOR: /#[0-9A-Fa-f]{6}/
 FILENAME: /[a-z0-9_]+\.xlsx/
+FILE_PATH: /[A-Za-z0-9_.\-]+(\\[A-Za-z0-9_.\-]+)*/
 COLLETTER: /[A-Z]{1,3}/
 HEADER_TEXT: /[^,\r\n]+?(?=,[A-Z]{1,3}:| rows=|$)/
 ISO_DATE.2: /\d{4}-\d{2}-\d{2}/

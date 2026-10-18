@@ -104,3 +104,7 @@ Dataset count: 0 verified pairs
   FOLDER_EXISTS. The type checker accepts a path only when it starts from a String `$argument`
   and every part is SAFE_NAME(...) or a safe literal, so no path can climb out of its root.
   Every VCL 0.2 spec gives the same results under 0.3. Snapshot mutation score unchanged (95.1%).
+- **2026-10-18:** Job-Pack Router Phase 1b: MAKE_FOLDER and COPY_FILE (each writes a status
+  into a String variable instead of stopping the run), `MODIFIES $root files`, and folder
+  FIXTUREs with locked files. The validator checks every rule; the mock file system that runs
+  them comes in Phase 2.

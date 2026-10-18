@@ -25,6 +25,9 @@ from vcl_parse import OPTION_WORDS
 from vcl_parse import parse as grammar_parse
 from vcl_types import Checker as TypeChecker
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "vcl"))
+from semantics import safe_name  # noqa: E402
+
 TYPES = {"Long", "Double", "String", "Boolean", "Date", "Variant", "Range", "Worksheet", "Workbook",
          "Dictionary", "Collection"}
 CONTROL_TYPES = {"TextBox", "CommandButton", "Label", "ListBox", "ComboBox", "CheckBox", "OptionButton"}
@@ -69,6 +72,8 @@ OPS = {
     "MSG": (1, 1, {}, ()),
     "RETURN": (0, 1, {}, ()),
     "WRITE_ROW": (3, None, {"col": "expr"}, ()),   # VCL 0.2
+    "MAKE_FOLDER": (1, 1, {"into": "var"}, ("into",)),   # VCL 0.3 (E9)
+    "COPY_FILE": (2, 2, {"into": "var"}, ("into",)),
 }
 # Value functions: (fewest args, most args, {option: allowed values})
 VALUE_FUNCS = {
@@ -89,11 +94,12 @@ VALUE_FUNCS = {
 VCL_02_FUNCS = {"SAME", "CLEAN_TEXT", "IS_ERROR", "PARSE_DATE", "IIF", "MOD"}
 VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
 VCL_03_FUNCS = {"SAFE_NAME", "PATH_JOIN", "FOLDER_EXISTS"}
+VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
 VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3}
 # MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
 SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE"}
 ROW_OPS = {"INSERT_ROW", "DELETE_ROW", "SORT", "DEDUPE", "FILTER"}   # these move or hide rows
-MODIFIES_RE = re.compile(r"\$(?P<arg>[A-Za-z_]\w*)\s*(?:\[(?P<cols>.*)\]|\s(?P<fills>fills))?")
+MODIFIES_RE = re.compile(r"\$(?P<arg>[A-Za-z_]\w*)\s*(?:\[(?P<cols>.*)\]|\s(?P<fills>fills)|\s(?P<files>files))?")
 DATE_FORMATS = ("dd/mm/yyyy", "dd-mm-yyyy", "dd.mm.yyyy", "mm/dd/yyyy", "yyyy-mm-dd")  # as vcl/semantics.py
 # second argument is a "quoted" header, ref, sheet name or date format
 STRING_SECOND = {"COL", "RANGE", "SHEET", "PARSE_DATE"}
@@ -244,9 +250,10 @@ def blank_strings(text):
 class TaskChecker:
     """Checks one TASK spec. in_build=True for a TASK section inside a BUILD."""
 
-    def __init__(self, spec, in_build=False, build_fixtures=()):
+    def __init__(self, spec, in_build=False, build_fixtures=(), build_folders=()):
         self.spec, self.in_build = spec, in_build
         self.fixtures = list(build_fixtures) + spec.fixtures
+        self.folders = list(build_folders) + spec.folders
         self.problems = []
         self.line = spec.line
         self.mode = "op"
@@ -264,6 +271,9 @@ class TaskChecker:
         self.pre_evaluable = True
         self.modifies = {}         # arg -> {"whole": line, "cols": line, "fills": line}
         self.writes = []           # (line, op, sheet arg or None, what it changes)
+        self.pre_roots = []        # [arg] checked with FOLDER_EXISTS($arg) in PRE (VCL 0.3)
+        self.modifies_files = {}   # arg -> line of MODIFIES $arg files (VCL 0.3)
+        self.file_paths = []       # (line, op, "from" or "to", root arg or None, bare root?)
 
     def error(self, message, line=None):
         self.problems.append(Problem(line or self.line, "error", message))
@@ -291,6 +301,7 @@ class TaskChecker:
         elif self.at_least("VCL 0.2") and self.writes and not self.in_build:
             self.warning("the spec writes to sheets but has no MODIFIES lines, so no TEST checks that nothing "
                          "else changed: declare each sheet it changes with MODIFIES", self.writes[0][0])
+        self.check_file_ops()
         for line, arg, header in self.op_cols:
             if (arg, norm(header)) not in self.pre_cols:
                 self.error(f'header "{header}" on ${arg} is used but not checked in PRE (rule 14)', line)
@@ -300,10 +311,20 @@ class TaskChecker:
             self.warning(f"TASK has {op_count} OP lines (more than {MAX_TASK_OPS}): consider splitting it "
                          "into a BUILD (rule 9)", first)
         check_fixtures(self, spec.fixtures)
+        check_folders(self, spec.folders, self.fixtures)
         self.check_tests()
         if not self.in_build:
             self.check_fixtures_can_catch_mistakes()
+            self.check_folders_can_catch_mistakes()
         return self.problems
+
+    def check_folders_can_catch_mistakes(self):
+        """Rule 19 (warning, VCL 0.3): COPY_FILE needs a locked file in a FIXTURE folder, or no TEST
+        shows what the macro does with a report that is open in another program."""
+        copies = [line for line, name, role, _, _ in self.file_paths if name == "COPY_FILE" and role == "from"]
+        if copies and self.spec.tests and not any(ff.locked for ff in self.folders):
+            self.warning("the spec copies files, but no FIXTURE folder has a locked= file, so no TEST shows "
+                         "what happens to a file that is open elsewhere (rule 19)", copies[0])
 
     def check_fixtures_can_catch_mistakes(self):
         """Rule 19 (warnings): fixtures that let the TESTs tell a right macro from a wrong one."""
@@ -380,10 +401,14 @@ class TaskChecker:
                                  "so no TEST shows the skip matters: add +blank(<n>) (rule 19)", fx.line)
 
     def passes_pre(self, test):
-        """False only when PRE is a list of COL(...) > 0 checks and this TEST's sheets miss a header."""
-        if not (self.pre_evaluable and self.pre_conditions):
+        """False only when PRE is a list of COL(...) > 0 and FOLDER_EXISTS($root) checks and this TEST's
+        sheets miss a header or its roots are not folders of the fixture."""
+        if not (self.pre_evaluable and (self.pre_conditions or self.pre_roots)):
             return True
         argmap = dict(zip([d.name for d in self.spec.args], test.args))
+        folders = {f.folder for f in self.folders if f.file == test.fixture}
+        if any(argmap.get(root) not in folders for root in self.pre_roots):
+            return False
         for arg, header in self.pre_conditions:
             fx = next((f for f in self.fixtures if f.file == test.fixture and f.sheet == argmap.get(arg)), None)
             if fx is not None and norm(header) not in {norm(h) for _, h in fx.headers}:
@@ -477,10 +502,24 @@ class TaskChecker:
             self.error("MODIFIES is VCL 0.2: start the spec with 'VCL 0.2' to use it")
         m = MODIFIES_RE.fullmatch(mod.value)
         if not m:
-            self.error('MODIFIES needs $<sheet>, $<sheet>["<header>", ...] or $<sheet> fills, '
-                       f"got '{mod.value}'")
+            forms = ('$<sheet>, $<sheet>["<header>", ...], $<sheet> fills or $<root> files' if self.at_least("VCL 0.3")
+                     else '$<sheet>, $<sheet>["<header>", ...] or $<sheet> fills')
+            self.error(f"MODIFIES needs {forms}, got '{mod.value}'")
             return
         arg = m.group("arg")
+        if m.group("files"):   # VCL 0.3 (E10)
+            if not self.at_least("VCL 0.3"):
+                self.error("MODIFIES ... files is VCL 0.3: start the spec with 'VCL 0.3' to use it")
+            if self.args.get(arg) != "String":
+                self.error(f"MODIFIES ${arg} files: ${arg} must be a String argument (a root folder)")
+            elif arg in self.modifies_files:
+                self.error(f"MODIFIES ${arg} files appears twice: use one line")
+            else:
+                self.modifies_files[arg] = mod.line
+            return
+        if self.args.get(arg) == "String":
+            self.error(f"MODIFIES ${arg}: a String argument is a root folder, so write MODIFIES ${arg} files")
+            return
         if self.args.get(arg) != "Worksheet":
             self.error(f"MODIFIES ${arg}: ${arg} is not a Worksheet argument")
             return
@@ -561,6 +600,29 @@ class TaskChecker:
             if arg not in written:
                 self.warning(f"MODIFIES ${arg}, but no op writes to ${arg}", min(kinds.values()))
 
+    def check_file_ops(self):
+        """VCL 0.3 (E9, E10): every file op path is PATH_JOIN($root, ...); every root it adds to is
+        declared with MODIFIES $root files; every root it uses is checked with FOLDER_EXISTS in PRE."""
+        used, written = {}, set()
+        for line, name, role, root, bare in self.file_paths:
+            if root is None or self.args.get(root) != "String":
+                continue  # not a path: the type checker says why (T4)
+            used.setdefault(root, line)
+            if bare:
+                what = "the folder to make" if name == "MAKE_FOLDER" else f"the file to copy {role}"
+                self.error(f"{name}: {what} must be PATH_JOIN(${root}, ...), not the root ${root} itself, "
+                           "which must already exist", line)
+            if role == "to":
+                written.add(root)
+                if root not in self.modifies_files:
+                    self.error(f"{name} adds to ${root}, but no line declares MODIFIES ${root} files", line)
+        for root, line in used.items():
+            if root not in self.pre_roots:
+                self.error(f"file ops use ${root}, but PRE doesn't check FOLDER_EXISTS(${root}) (rule 14)", line)
+        for root, line in self.modifies_files.items():
+            if root not in written:
+                self.warning(f"MODIFIES ${root} files, but no op adds to ${root}", line)
+
     # -- PRE
 
     def check_pre(self, pre):
@@ -582,6 +644,12 @@ class TaskChecker:
                 if len(first) == 1 and is_tok(first[0], "arg") and len(second) == 1 \
                         and is_tok(second[0], "string"):
                     self.pre_conditions.append((first[0].text[1:], second[0].text[1:-1]))
+                    continue
+            if (len(condition) == 1 and isinstance(condition[0], Call) and condition[0].name == "FOLDER_EXISTS"
+                    and len(condition[0].args) == 1 and condition[0].args[0][0] is None):
+                root = condition[0].args[0][1]
+                if len(root) == 1 and is_tok(root[0], "arg"):
+                    self.pre_roots.append(root[0].text[1:])
                     continue
             self.pre_evaluable = False
 
@@ -648,6 +716,8 @@ class TaskChecker:
         info["name"] = name
         if name in VCL_02_OPS and not self.at_least("VCL 0.2"):
             self.error(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it")
+        if name in VCL_03_OPS and not self.at_least("VCL 0.3"):
+            self.error(f"{name} is VCL 0.3: start the spec with 'VCL 0.3' to use it")
         if name == "NOTE":
             if not (len(items) == 2 and is_tok(items[1], "string")):
                 self.error('NOTE takes one "<terse technical text>"')
@@ -838,6 +908,10 @@ class TaskChecker:
         if name in ("ADD_SHEET", "COPY_SHEET"):
             self.sheet_ops = True
         self.record_write(name, positional, options)
+        if name in VCL_03_OPS:
+            roles = ["to"] if name == "MAKE_FOLDER" else ["from", "to"]
+            for role, items in zip(roles, positional):
+                self.file_paths.append((self.line, name, role) + path_root(items))
         if name == "SET_VALUE" and len(positional) == 2:
             target, value = positional
             arg = self.row1_arg(target)
@@ -1004,13 +1078,15 @@ class TaskChecker:
     def check_tests(self):
         spec = self.spec
         tests = spec.tests
-        files = {}
+        files, folders = {}, {}
         for fx in self.fixtures:
             files.setdefault(fx.file, {})[fx.sheet] = fx
+        for ff in self.folders:
+            folders.setdefault(ff.file, {})[ff.folder] = ff
         flags = []
         for test in tests:
             self.line = test.line
-            flags.append(self.check_test(test, files))
+            flags.append(self.check_test(test, files, folders))
         if self.in_build:
             return
         first = tests[0].line if tests else spec.line
@@ -1029,28 +1105,38 @@ class TaskChecker:
             if not any(f["wrong_sheet"] for f in flags):
                 self.error(f"PRE is used and the fixture has another sheet, but no wrong-sheet TEST expects "
                            f"{want} (rule 5)", first)
-        if spec.lines("PRE") and self.pre_evaluable and self.pre_conditions and flags \
+        if spec.lines("PRE") and self.pre_evaluable and (self.pre_conditions or self.pre_roots) and flags \
                 and not any(f["passes_pre"] for f in flags if f["passes_pre"] is not None):
-            self.error("no TEST passes PRE: every TEST's sheets miss a header that PRE checks", first)
+            what = "TEST misses a header or a folder" if self.pre_roots else "TEST's sheets miss a header"
+            self.error(f"no TEST passes PRE: every {what} that PRE checks", first)
 
-    def check_test(self, test, files):
+    def check_test(self, test, files, folders):
         flags = {"error_count_0": False, "wrong_sheet": False, "pre": False, "passes_pre": None}
         spec = self.spec
         if test.fixture == "target":
             self.error("fixture=target is not allowed: use a named synthetic FIXTURE (rule 18)")
             return flags
         sheets = files.get(test.fixture)
+        dirs = folders.get(test.fixture, {})
+        if sheets is None and dirs:
+            sheets = {}   # a fixture of folders only
         if sheets is None:
             self.error(f"TEST uses fixture {test.fixture}, but no FIXTURE line builds it")
         proc = spec.value("PROC")
         if not self.in_build and test.procedure != proc:
             self.error(f"TEST calls {test.procedure}, but PROC is {proc}")
-        argmap = {}
+        argmap, rootmap = {}, {}
         if len(test.args) != len(spec.args):
             self.error(f"TEST passes {len(test.args)} argument{'s' if len(test.args) != 1 else ''}, "
                        f"but ARGS has {len(spec.args)}")
         elif sheets is not None:
             for decl, value in zip(spec.args, test.args):
+                if decl.type == "String" and SHEET_NAME.fullmatch(value):   # a bare name is a FIXTURE folder (F6)
+                    if value in dirs:
+                        rootmap[decl.name] = value
+                    else:
+                        self.error(f"TEST passes {value} for ${decl.name}, but {test.fixture} has no folder {value}")
+                    continue
                 if decl.type != "Worksheet":
                     continue
                 if value in sheets:
@@ -1069,15 +1155,20 @@ class TaskChecker:
                         headers[argmap[dst]] |= headers[argmap[src]]
         result = check_assertion(self, test, sheets, headers)
         flags.update(result)
-        if self.pre_evaluable and self.pre_conditions and sheets is not None:
+        if self.pre_evaluable and (self.pre_conditions or self.pre_roots) and sheets is not None:
             missing = [(arg, h) for arg, h in self.pre_conditions
                        if arg in argmap and norm(h) not in {norm(x) for _, x in sheets[argmap[arg]].headers}]
+            no_folder = [root for root in self.pre_roots if root not in rootmap]
             if all(arg in argmap for arg, _ in self.pre_conditions):
-                flags["passes_pre"] = not missing
-                if missing and self.kind == "Function" and not result["result_minus_1"]:
-                    arg, h = missing[0]
-                    self.error(f'TEST fails PRE (sheet {argmap[arg]} has no "{h}" header) but doesn\'t expect '
-                               "RESULT = -1")
+                flags["passes_pre"] = not missing and not no_folder
+                if (missing or no_folder) and self.kind == "Function" and not result["result_minus_1"]:
+                    if missing:
+                        arg, h = missing[0]
+                        why = f'sheet {argmap[arg]} has no "{h}" header'
+                    else:
+                        given = dict(zip([d.name for d in spec.args], test.args)).get(no_folder[0])
+                        why = f"${no_folder[0]} is {given}, which is not a folder of {test.fixture}"
+                    self.error(f"TEST fails PRE ({why}) but doesn't expect RESULT = -1")
         return flags
 
 
@@ -1231,6 +1322,57 @@ class AssertionChecker:
                        "and not written or copied into row 1)")
 
 
+def path_root(items):
+    """(arg, True) for a bare $arg, (arg, False) for PATH_JOIN($arg, ...), else (None, False)."""
+    if len(items) == 1 and is_tok(items[0], "arg"):
+        return items[0].text[1:], True
+    if len(items) == 1 and isinstance(items[0], Call) and items[0].name == "PATH_JOIN":
+        first = items[0].positional[:1]
+        if first and len(first[0]) == 1 and is_tok(first[0][0], "arg"):
+            return first[0][0].text[1:], False
+    return None, False
+
+
+def check_folders(checker, folders, fixtures):
+    """VCL 0.3 folder FIXTUREs (F6): one-word folder names, safe file paths, locked files listed."""
+    seen = set()
+    sheets = {(fx.file, fx.sheet) for fx in fixtures}
+    for ff in folders:
+        line = ff.line
+        if not checker.at_least("VCL 0.3"):
+            checker.error("folder FIXTUREs are VCL 0.3: start the spec with 'VCL 0.3' to use them", line)
+        if not FIXTURE_FILE.fullmatch(ff.file):
+            checker.error(f"fixture file {ff.file} must be named like snake_case_01.xlsx (rule 12)", line)
+        if not SHEET_NAME.fullmatch(ff.folder):
+            checker.error(f"fixture folder name {ff.folder} must be one word, so TESTs can pass it bare", line)
+        if (ff.file, ff.folder) in seen:
+            checker.error(f"{ff.file} has two FIXTURE lines for folder {ff.folder}", line)
+        if (ff.file, ff.folder) in sheets:
+            checker.error(f"{ff.file} has a sheet and a folder named {ff.folder}: a TEST could not tell them apart",
+                          line)
+        seen.add((ff.file, ff.folder))
+        paths, shown = [], {}
+        for path, _ in ff.files:
+            parts = path.split("\\")
+            bad = next((part for part in parts if safe_name(part) != part), None)
+            if bad is not None:
+                checker.error(f"FIXTURE files: {path} is not a safe path: {bad or 'an empty part'} is not "
+                              "a safe name (see SAFE_NAME)", line)
+            if path.casefold() in paths:
+                checker.error(f"FIXTURE folder {ff.folder} lists {path} twice", line)
+            paths.append(path.casefold())
+            shown.setdefault(path.casefold(), path)
+        for path in paths:
+            if any(other.startswith(path + "\\") for other in paths):
+                checker.error(f"FIXTURE folder {ff.folder}: {shown[path]} is a file, so nothing can be below it",
+                              line)
+        for path in ff.locked:
+            if path.casefold() not in paths:
+                checker.error(f"FIXTURE locked= {path} is not one of the folder's files=", line)
+        if len({p.casefold() for p in ff.locked}) != len(ff.locked):
+            checker.error(f"FIXTURE folder {ff.folder} lists a locked file twice", line)
+
+
 def check_fixtures(checker, fixtures):
     seen = set()
     for fx in fixtures:
@@ -1380,6 +1522,8 @@ def check_build(spec):
     files = {}
     for fx in spec.fixtures:
         files.setdefault(fx.file, {})[fx.sheet] = fx
+    for ff in spec.folders:
+        files.setdefault(ff.file, {})
     written = set()
     for task in spec.tasks:
         for node in task.all_ops():
@@ -1417,6 +1561,7 @@ def check_build(spec):
     if spec.tests and not any(t.runs >= 2 for t in spec.tests):
         shim.error("no TEST uses runs=2 to prove re-runs are safe (rule 16)", first)
     check_fixtures(shim, spec.fixtures)
+    check_folders(shim, spec.folders, spec.fixtures)
     problems += shim.problems
 
     # one TASK per SIG, matching it
@@ -1438,7 +1583,7 @@ def check_build(spec):
                 error(f"TASK {full} must have RET {sig.ret} to match its SIG", task.line)
             if [(d.name, d.type) for d in task.args] != [(d.name, d.type) for d in sig.params]:
                 error(f"TASK {full} ARGS don't match its SIG", task.line)
-        checker = TaskChecker(task, in_build=True, build_fixtures=spec.fixtures)
+        checker = TaskChecker(task, in_build=True, build_fixtures=spec.fixtures, build_folders=spec.folders)
         problems += checker.run()
         for line, target, nargs in checker.calls:
             if target not in sigs:
@@ -1482,7 +1627,7 @@ def grammar_and_type_problems(text, known):
         return out
     tasks = [spec] if spec["kind"] == "TASK" else spec.get("tasks", []) if spec["kind"] == "BUILD" else []
     for k in spec.get("keys", []) + [k for t in tasks if t and t is not spec for k in t.get("keys", [])]:
-        if k["key"] == "FIXTURE" and k["line"] not in bad_lines:
+        if k["key"] == "FIXTURE" and k["line"] not in bad_lines and k["tree"].data != "folder_fixture":
             try:
                 fx = parse_fixture(k["tree"])
                 sheet_rows(fx)

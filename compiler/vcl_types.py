@@ -57,6 +57,7 @@ FUNCS = {
     # VCL 0.3; PATH_JOIN and FOLDER_EXISTS are checked by shape in ty_call (T4)
     "SAFE_NAME": (["T"], "Name"), "PATH_JOIN": (None, "Path"), "FOLDER_EXISTS": (None, "Bool"),
 }
+FILE_OPS = {"MAKE_FOLDER", "COPY_FILE"}   # VCL 0.3: every path argument is checked by shape (T4)
 
 
 def tok(t):
@@ -360,6 +361,8 @@ class Checker:
                 values = self.dict_values.get(str(pos[0]), {"Cell"})
                 vt = "Num" if values == {"Num"} else ("Text" if values == {"Text"} else "Cell")
                 self.assign(v, vt, opts["into"], vflow, line)
+        elif name in FILE_OPS and "into" in opts:
+            drop_var(str(opts["into"]))
         elif name in ("SET_VALUE", "CLEAR"):
             drop_sheet_of(pos[0])
         elif name == "WRITE_ROW" and pos:
@@ -413,6 +416,18 @@ class Checker:
             opts = {str(a.children[0]): a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"}
             if "col" in opts:
                 self.need_num(self.ty(opts["col"], facts, vflow, line), opts["col"], line)
+        elif name in FILE_OPS:   # VCL 0.3: paths by shape (T4); the status goes into a String VAR
+            for a in pos:
+                problem = self.path_problem(a)
+                if problem:
+                    self.err(line, f"{name}: {problem}")
+                else:
+                    self.ty(a, facts, vflow, line)
+            into = next((a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"
+                         and str(a.children[0]) == "into"), None)
+            declared = self.vars.get(str(into)) if into is not None else None
+            if declared not in (None, "Text"):
+                self.err(line, f"{name}: into={into} is {declared}, but the status is text: declare it As String")
         elif name == "RETURN" and pos:
             rt = self.ty(pos[0], facts, vflow, line)
             if self.ret and rt not in (self.ret, "?"):
