@@ -15,7 +15,8 @@ build writes into DIR:
                         test workbook with exactly the data the interpreter tested on
   procedures/*.bas      each procedure on its own
   expected/*.json       for every TEST: RESULT, ERROR_COUNT and the final workbook state (values,
-                        fills, and the number formats set by FORMAT)
+                        fills, and the number formats set by FORMAT), and for VCL 0.3 folder
+                        FIXTUREs the final mock file system
 
 Exit code 0 when everything passes, 1 otherwise. Nothing here needs Excel.
 """
@@ -101,7 +102,8 @@ def cmd_build(files, out_dir, today):
                                "final_state": {sheet: {"cells": [[rc[0], rc[1], v] for rc, v in cells],
                                                        "fills": [[rc[0], rc[1], f] for rc, f in fills],
                                                        "number_formats": [[rc[0], rc[1], f] for rc, f in formats]}
-                                               for sheet, (cells, fills, formats) in r.state.items()}}
+                                               for sheet, (cells, fills, formats) in r.state.items()},
+                               **({"final_files": [list(f) for f in r.files]} if r.files else {})}
                               for r in run_tests(text, run_day)]}
         (out / "expected" / (path.stem + ".json")).write_text(json.dumps(expected, indent=1, default=str),
                                                                encoding="utf-8")

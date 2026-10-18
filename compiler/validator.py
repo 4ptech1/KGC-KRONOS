@@ -110,7 +110,7 @@ VBA_LEAKS = ["Dim ", "Set ", "End If", ".Value", "Cells(", "Range(", "Next ", "W
 
 # TEST assertion functions and the kind of each argument
 ASSERT_FUNCS = {"COUNTIF", "COUNTIFS", "COUNTA", "SUM", "SUMIFS", "VALUE", "ROWS_USED", "SHEET_EXISTS",
-                "FILE_EXISTS", "FILL_COUNT"}
+                "FILE_EXISTS", "FILL_COUNT", "FILE_COUNT"}
 ASSERT_COMPARE = {"=", "<>", "<", ">", "<=", ">=", "+", "-", "*", "/"}
 
 KEYWORD = re.compile(r"[A-Z][A-Z0-9_]+")
@@ -1256,6 +1256,8 @@ class AssertionChecker:
             return
         if call.options:
             self.error(f"{call.name} has no options")
+        if name == "FILE_COUNT" and not self.c.at_least("VCL 0.3"):
+            self.error("FILE_COUNT is VCL 0.3: start the spec with 'VCL 0.3' to use it")
         args = call.positional
         n = len(args)
         if name == "COUNTIFS":
@@ -1268,8 +1270,8 @@ class AssertionChecker:
             want = "a sum range, then range, criteria pairs"
         else:
             kinds = {"COUNTIF": ["range", "crit"], "COUNTA": ["range"], "SUM": ["range"], "VALUE": ["cell"],
-                     "ROWS_USED": ["sheet"], "SHEET_EXISTS": ["string"], "FILE_EXISTS": ["string"],
-                     "FILL_COUNT": ["range", "hex"]}[name]
+                     "ROWS_USED": ["sheet"], "SHEET_EXISTS": ["string"], "FILE_EXISTS": ["path"],
+                     "FILL_COUNT": ["range", "hex"], "FILE_COUNT": ["path"]}[name]
             ok = n == len(kinds)
             want = f"{len(kinds)} argument{'s' if len(kinds) > 1 else ''}"
         if not ok:
@@ -1300,9 +1302,17 @@ class AssertionChecker:
                 self.error(f"{fname} needs a sheet name, got '{text}'")
             else:
                 self.sheet(single.text)
-        elif kind == "string":
+        elif kind == "string" or (kind == "path" and not self.c.at_least("VCL 0.3")):
             if not is_tok(single, "string"):
                 self.error(f'{fname} needs a "quoted" name, got \'{text}\'')
+        elif kind == "path":   # VCL 0.3: below one of this TEST's FIXTURE folders (F7)
+            folders = {f.folder.casefold() for f in self.c.folders if f.file == self.test.fixture}
+            parts = single.text[1:-1].replace('""', '"').split("\\") if is_tok(single, "string") else []
+            if not parts or parts[0].casefold() not in folders:
+                self.error(f'{fname} needs a "quoted" path that starts with a FIXTURE folder of {self.test.fixture}, '
+                           f'like "Jobs\\J-101\\r1.pdf", got \'{text}\'')
+            elif any(safe_name(part) != part for part in parts):
+                self.error(f"{fname}: {text} is not a safe path (every part must be a SAFE_NAME)")
         elif kind == "hex":
             if not (is_tok(single, "hex") and HEX_COLOUR.fullmatch(single.text)):
                 self.error(f"{fname} needs a #RRGGBB colour, got '{text}'")

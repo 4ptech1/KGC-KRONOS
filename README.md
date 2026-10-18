@@ -108,3 +108,8 @@ Dataset count: 0 verified pairs
   into a String variable instead of stopping the run), `MODIFIES $root files`, and folder
   FIXTUREs with locked files. The validator checks every rule; the mock file system that runs
   them comes in Phase 2.
+- **2026-10-18:** Job-Pack Router Phase 2: the interpreter runs FOLDER_EXISTS, MAKE_FOLDER and
+  COPY_FILE on a mock file system in memory, with a status for every case (Copied, Already
+  there, Conflict, Locked, Missing, No folder, Bad name, Too long, ...), the FILE_EXISTS and
+  FILE_COUNT assertions, and an UNCHANGED check for files. A sample router spec passes all its
+  TESTs, which catch 29 of its 31 mutants (the other 2 change nothing). Phase 3 waits for Boss.
