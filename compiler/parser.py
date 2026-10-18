@@ -77,6 +77,16 @@ class Fixture:
 
 
 @dataclass
+class FolderFixture:
+    """One VCL 0.3 folder FIXTURE: <file>.xlsx folder=<Name> [files=<path>[:<bytes>],...] [locked=<path>,...]."""
+    line: int
+    file: str
+    folder: str
+    files: list   # [(path below the folder, size in bytes or None)]
+    locked: list  # [path]
+
+
+@dataclass
 class Test:
     line: int
     fixture: str
@@ -115,6 +125,7 @@ class Spec:
     vars: list = field(default_factory=list)      # [Decl]
     ops: list = field(default_factory=list)       # top-level OpNodes
     fixtures: list = field(default_factory=list)  # [Fixture]
+    folders: list = field(default_factory=list)   # [FolderFixture] (VCL 0.3)
     tests: list = field(default_factory=list)     # [Test]
     sigs: list = field(default_factory=list)      # BUILD: [Sig]
     forms: list = field(default_factory=list)     # BUILD: [Form]
@@ -206,6 +217,9 @@ def split_top(text, sep):
 
 FIXTURE_RE = re.compile(r"(?P<file>\S+)\s+sheet=(?P<sheet>\S+)\s+cols=(?P<cols>.+?)\s+rows=(?P<rows>\S+)"
                         r"(?:\s+stale=(?P<stale>\S+))?(?:\s+data=(?P<data>.*))?")
+FOLDER_RE = re.compile(r"(?P<file>\S+)\s+folder=(?P<folder>\S+)(?:\s+files=(?P<files>\S+))?"
+                       r"(?:\s+locked=(?P<locked>\S+))?")
+FILE_ENTRY_RE = re.compile(r"(?P<path>[^:]+)(?::(?P<size>\d+))?")
 CALL_HEAD_RE = re.compile(r"(\w+)\(")
 TEST_RE = re.compile(r"fixture=(?P<fixture>\S+)\s+call=(?P<proc>[A-Za-z_][\w.]*)\((?P<args>[^()]*)\)"
                      r"(?:\s+runs=(?P<runs>\S+))?\s+assert=(?P<assertion>.+)")
@@ -363,6 +377,9 @@ def _decl(spec, n, text, where, into):
 
 
 def _fixture(spec, n, value):
+    if " folder=" in value and " sheet=" not in value:
+        _folder_fixture(spec, n, value)
+        return
     m = FIXTURE_RE.fullmatch(value)
     if not m:
         missing = [part for part in ("sheet=", "cols=", "rows=") if part not in value]
@@ -395,6 +412,23 @@ def _fixture(spec, n, value):
             if rule:
                 rules.append(rule)
     spec.fixtures.append(Fixture(n, m["file"], m["sheet"], headers, rows, rules, stale))
+
+
+def _folder_fixture(spec, n, value):
+    m = FOLDER_RE.fullmatch(value)
+    if not m:
+        spec.error(n, "a folder FIXTURE must look like: <name>.xlsx folder=<Name> "
+                      "[files=<path>[:<bytes>],...] [locked=<path>,...]")
+        return
+    files = []
+    for item in m["files"].split(",") if m["files"] else []:
+        entry = FILE_ENTRY_RE.fullmatch(item)
+        if not entry:
+            spec.error(n, f"FIXTURE files: expected <path> or <path>:<bytes>, got '{item}'")
+            continue
+        files.append((entry["path"], int(entry["size"]) if entry["size"] else None))
+    locked = m["locked"].split(",") if m["locked"] else []
+    spec.folders.append(FolderFixture(n, m["file"], m["folder"], files, locked))
 
 
 def _calls(text):

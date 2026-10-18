@@ -50,7 +50,7 @@ Each phase is one or two PRs: CI green, merge, then the next phase. Every PR run
 - **Done when:** the SKIP_IF probes are killed and the snapshot score is at least 96% again. D22 is recorded in `DECISIONS.md`, and CLAUDE.md, the README and the plan are updated.
 
 ### Phase 1: language surface (VCL 0.3, no run-time code yet)
-Two PRs (D26). **1a (done):** the version line, the three value functions, the Name and Path types, and the meaning of SAFE_NAME and PATH_JOIN (moved here from Phase 2, because the type checker uses `safe_name` for quoted parts). **1b:** the ops, MODIFIES `files`, folder FIXTUREs and the validator rules.
+Two PRs (D26). **1a (done):** the version line, the three value functions, the Name and Path types, and the meaning of SAFE_NAME and PATH_JOIN (moved here from Phase 2, because the type checker uses `safe_name` for quoted parts). **1b (done):** the ops, MODIFIES `files`, folder FIXTUREs and the validator rules (E9, E10, F6, D27).
 - **Version line:** `VCL 0.3` in `parser.py`, `vcl_parse.py` and the validator gate, reusing the VCL_02 pattern.
 - **Value functions:** SAFE_NAME(x), PATH_JOIN(base, name, ...) and FOLDER_EXISTS(path).
 - **Ops:** `MAKE_FOLDER(<path>, into=<var>)` and `COPY_FILE(<from>, <to>, into=<var>)`. The status VAR must be a String.

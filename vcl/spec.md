@@ -342,13 +342,14 @@ A values() entry of `""` is a blank cell, and so is a column without a data rule
 
 Designed in `docs/vep-0.3-file-ops.md` (the Job-Pack Router). These are not in the text this
 file shares with the Orchestrator prompt yet: that text moves to 0.3 in one step, at router
-Phase 4. Details and reasons: `DECISIONS.md` (E8, S18, S19, T4, D26).
+Phase 4.
 
-Built so far (router Phase 1a): the version line and three value functions. Every VCL 0.2 spec
-is also valid as 0.3 and gives the same results (E8).
+Built so far (router Phases 1a and 1b): the version line, three value functions, two file ops,
+`MODIFIES $<root> files` and folder FIXTUREs. Every VCL 0.2 spec is also valid as 0.3 and gives
+the same results (E8). Details: `DECISIONS.md` (E8 to E10, S18, S19, T4, F6, D26, D27).
 
 ```text
-VCL 0.3                         the first line; the functions below are errors under 0.1 or 0.2
+VCL 0.3                         the first line; everything below is an error under 0.1 or 0.2
 SAFE_NAME(x)                    CLEAN_TEXT(x), or "" when that is not safe as one file or folder
                                 name: empty, over 100 characters, any of \ / : * ? " < > |,
                                 "." or "..", a trailing dot, or a reserved device name (CON,
@@ -357,6 +358,14 @@ PATH_JOIN($root, part, ...)     $root, a backslash, then the parts joined by bac
                                 trailing backslashes on $root are dropped. "" when $root is empty
                                 or any part is empty or not exactly its own SAFE_NAME (S19)
 FOLDER_EXISTS(<path>)           TRUE when the folder exists (runs from router Phase 2)
+
+MAKE_FOLDER(<path>, into=<status>)          make the folder, and any missing folders between
+                                            it and its root; never the root itself (E9)
+COPY_FILE(<from>, <to>, into=<status>)      copy one file; never overwrites, never deletes (E9)
+MODIFIES $<root> files          folders and files may be added below this String argument;
+                                nothing else on disk may change (E10)
+FIXTURE <name>.xlsx folder=<Name> [files=<path>[:<bytes>],...] [locked=<path>,...]
+                                a synthetic folder in the same fixture as the sheets (F6)
 ```
 
 Paths are checked by their shape (T4). A path is a String `$argument` (the root) or
@@ -365,9 +374,28 @@ that is its own safe name, written in place: a variable, a cell or another funct
 rejected, so every part is checked where it is used. FOLDER_EXISTS takes only a path. A
 SAFE_NAME result or a path is text everywhere text is read.
 
-Still to come: MAKE_FOLDER and COPY_FILE with a status variable, `MODIFIES $<arg> files`,
-folder FIXTUREs (router Phase 1b), then their meaning on a mock file system (Phase 2). The
-compiler can't translate the new functions until Phase 3.
+The file ops (E9, E10):
+- Each path is `PATH_JOIN($root, ...)`, never a bare root. MAKE_FOLDER's folder and
+  COPY_FILE's `<to>` must be below a root declared with `MODIFIES $<root> files`; COPY_FILE's
+  `<from>` may be below any String argument. Adding below an undeclared root is an error.
+- `into=` is required and names a String VAR. The op writes a status there (Phase 2 defines
+  the statuses: `Copied`, `Already there`, `Conflict`, `Missing`, `Locked`, ...) instead of
+  raising an error, so one bad file never stops the run.
+- Every root a file op uses must be checked with `FOLDER_EXISTS($<root>)` in PRE (rule 14).
+
+Folder FIXTUREs (F6):
+- `<Name>` is one word, unique in the fixture file and not the name of one of its sheets.
+  A TEST passes it bare for a String argument, as it passes sheets: `call=P(Tracker, Dump)`.
+  A bare name passed for a String argument must be one of the fixture's folders.
+- `files=` paths are below the folder, with `\` between folders; each part is a safe name of
+  letters, digits, `_`, `.` and `-`. A folder exists when a file is below it. `:<bytes>` sets
+  the size (Phase 2 picks a default). `locked=` files must be in `files=`: they behave as if
+  another program has them open.
+- Rule 19: a spec that copies files should have a `locked=` file in some FIXTURE folder.
+
+Still to come: the meaning of FOLDER_EXISTS and the file ops on a mock file system, the
+FILE_EXISTS and FILE_COUNT assertions, and the UNCHANGED check for files (Phase 2). The
+compiler can't translate the new functions and ops until Phase 3.
 
 ## Changes in VCL 0.2 (17 Oct 2026)
 

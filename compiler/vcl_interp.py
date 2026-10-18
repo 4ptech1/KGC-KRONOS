@@ -627,6 +627,8 @@ def modifies_of(spec):
             entry["whole"] = True
         elif isinstance(kids[1], Tree):
             entry.setdefault("cols", []).extend(str(h)[1:-1].replace('""', '"') for h in kids[1].children)
+        elif kids[1].type == "FILES_WORD":
+            entry["files"] = True   # VCL 0.3: a root folder, checked on the mock file system (router Phase 2)
         else:
             entry["fills"] = True
     return out
@@ -733,6 +735,8 @@ def run_tests(text, today=None):
     if problems or not spec or spec["kind"] != "TASK":
         raise VclError(f"spec doesn't parse: {problems[:3]}")
     today = today or dt.date.today()
+    if any(k["key"] == "FIXTURE" and k["tree"].data == "folder_fixture" for k in spec["keys"]):
+        raise VclError("folder FIXTUREs run on the mock file system from router Phase 2")
     books = build_workbooks([k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"], today)
     results = []
     for k in spec["keys"]:
