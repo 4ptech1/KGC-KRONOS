@@ -559,6 +559,15 @@ class RealSpecs(unittest.TestCase):
                            ("TASK FORMAT", "the same spec always builds the same file.")]:
             self.assertEqual(between(spec, start, end), between(prompt, start, end))
 
+    def test_the_context_file_carries_the_same_reference_text(self):
+        # docs/kgc-kronos-context.md is what Boss gives other Claude chats; its Appendix A must
+        # be spec.md's reference text, word for word.
+        spec, context = read("vcl/spec.md"), read("docs/kgc-kronos-context.md")
+        for start, end in [("1.  Reply with exactly", "nothing has no MODIFIES lines."),
+                           ("TASK FORMAT", "the same spec always builds the same file.")]:
+            pattern = re.escape(start) + r".*?" + re.escape(end)
+            self.assertEqual(re.search(pattern, spec, re.S).group(0), re.search(pattern, context, re.S).group(0))
+
 
 if __name__ == "__main__":
     unittest.main()
