@@ -172,7 +172,7 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    statuses, FILE_EXISTS, FILE_COUNT and UNCHANGED for files; E11, F7, D28) are done. Boss said
    "go Phase 3" on 19 Oct 2026, and Phase 3 is done: 3a (the compiler, ForgeLib's file helpers
    and the lint file-safety rules; D29, PR #25) and 3b (the sandbox builder and the sandbox
-   length check; D30). **Waiting for Boss's go on Phase 4** (`specs/task_12.vcl` RouteJobPacks,
+   length check; D30, PR #26). **Waiting for Boss's go on Phase 4** (`specs/task_12.vcl` RouteJobPacks,
    then the shared reference text and the Orchestrator prompt switch to VCL 0.3, and Boss
    updates the Orchestrator); do not start it before.
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
