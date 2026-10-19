@@ -2,7 +2,8 @@
 and FOLDER_EXISTS, and the path rules of the type checker (T4). Phase 1b: MAKE_FOLDER and
 COPY_FILE (E9), MODIFIES $root files (E10) and folder FIXTUREs (F6). Phase 2: the mock file
 system, the file op statuses (E11), FILE_EXISTS and FILE_COUNT (F7) and UNCHANGED for files.
-Phase 3a: the compiler, ForgeLib's file helpers and the linter's file safety rules (D29)."""
+Phase 3a: the compiler, ForgeLib's file helpers and the linter's file safety rules (D29). Phase 3b:
+the sandbox builder for Excel and the sandbox length check (D30)."""
 import glob
 import inspect
 import os
@@ -18,8 +19,10 @@ import semantics  # noqa: E402
 import validator  # noqa: E402
 import vcl_interp  # noqa: E402
 from vba_lint import lint  # noqa: E402
-from vcl_fixtures import SANDBOX, MockFS, default_size, fixtures_module  # noqa: E402
-from vcl_interp import VclError, copy_file, file_unchanged_problems, make_folder, modifies_of  # noqa: E402
+from vcl_fixtures import (EXCEL_SANDBOX_MAX, SANDBOX, MockFS, build_folders, default_size,  # noqa: E402
+                          fixtures_module)
+from vcl_interp import (VclError, copy_file, file_unchanged_problems, make_folder, modifies_of,  # noqa: E402
+                        sandbox_length_problems)
 from vcl_mutate import mutate_report  # noqa: E402
 from vcl_codegen import CompileError, assemble, compile_text  # noqa: E402
 from vcl_interp import run_tests  # noqa: E402
@@ -332,11 +335,120 @@ class FolderFixtures(unittest.TestCase):
                          [("warning", "the spec copies files, but no FIXTURE folder has a locked= file, so no TEST "
                                       "shows what happens to a file that is open elsewhere (rule 19)")])
 
-    def test_the_fixture_builder_waits_for_phase_3(self):
-        from vcl_parse import parse as grammar_parse
-        trees = [k["tree"] for k in grammar_parse(ROUTER)[0]["keys"] if k["key"] == "FIXTURE"]
-        with self.assertRaises(ValueError):
-            fixtures_module([("task_x", trees)])
+
+
+def fixture_trees(text):
+    return [k["tree"] for k in parse(text)[0]["keys"] if k["key"] == "FIXTURE"]
+
+
+class SandboxBuilder(unittest.TestCase):
+    """Router Phase 3b: ForgeSandbox_<file>() builds the folder FIXTUREs in Excel (D30)."""
+
+    def test_it_builds_what_the_interpreter_tests_on(self):
+        m = fixtures_module([("task_x", fixture_trees(ROUTER))])
+        self.assertEqual(lint(m), [])
+        self.assertIn("Public Sub ForgeFixture_router_01(ByVal wb As Workbook)", m)   # the sheets, as before
+        body = m[m.index("Public Function ForgeSandbox_router_01() As String"):]
+        body = body[:body.index("End Function")]
+        steps = [line.strip() for line in body.splitlines()[2:]]
+        self.assertEqual(steps[0], "root = SandboxNewRoot()")
+        self.assertEqual(steps[-1], "ForgeSandbox_router_01 = root")
+        built = {}
+        for step in steps[1:-1]:
+            kind, path, *size = re.fullmatch(r'(Sandbox\w+) root & "\\(.+?)"(?:, (\d+))?', step).groups()
+            built.setdefault(kind, []).append((path, int(size[0])) if size[0] else path)
+        mock = build_folders(fixture_trees(ROUTER))["router_01.xlsx"]
+        prefix = len(SANDBOX) + 1
+        folders = [e["path"][prefix:] for e in mock.entries.values() if e["kind"] == "folder" and e["path"] != SANDBOX]
+        self.assertEqual(sorted(built["SandboxFolder"]), sorted(folders))
+        self.assertEqual(sorted(built["SandboxFile"]),
+                         sorted((e["path"][prefix:], e["size"]) for e in mock.entries.values() if e["kind"] == "file"))
+        self.assertEqual(built["SandboxLock"], [e["path"][prefix:] for e in mock.entries.values() if e["locked"]])
+        self.assertLess(steps.index('SandboxFolder root & "\\Jobs"'), steps.index('SandboxFolder root & "\\Jobs\\J-102"'))
+        self.assertGreater(min(i for i, x in enumerate(steps) if x.startswith("SandboxLock")),
+                           max(i for i, x in enumerate(steps) if x.startswith("SandboxFile")))
+
+    def test_the_root_limits_come_from_the_interpreter(self):
+        m = fixtures_module([("task_x", fixture_trees(ROUTER))])
+        self.assertIn(f"Private Const SANDBOX_MAX_ROOT As Long = {EXCEL_SANDBOX_MAX}", m)
+        self.assertIn(f"Private Const SANDBOX_TEST_ROOT As Long = {len(SANDBOX)}", m)
+        self.assertIn('Environ$("TEMP") & "\\KGC_KRONOS_SANDBOX_" & Format$(Now, "yyyymmdd_hhnnss")', m)
+        self.assertIn('root = stem & "_" & n', m)   # several sandboxes a second each get a new folder
+
+    def test_it_never_writes_over_anything(self):
+        m = fixtures_module([("task_x", fixture_trees(ROUTER))])
+        body = m[m.index("Private Sub SandboxFile("):]
+        body = body[:body.index("End Sub")]
+        self.assertLess(body.index("If SandboxFso().FileExists(path) Or SandboxFso().FolderExists(path) Then"),
+                        body.index("Open path For Output"))
+        self.assertIn("SandboxFso().CreateFolder path", m)   # error 58 when the folder is there
+        self.assertNotRegex(m, r"(?i)\b(Kill|DeleteFile|DeleteFolder|MoveFile|RmDir)\b")
+
+    def test_bad_fixtures_stop_the_build(self):
+        long_name = "a" * 100
+        for line, why in ((r"FIXTURE  router_01.xlsx folder=Jobs files=J-102\r2.pdf:99,J-104:10000001", "bytes"),
+                          (rf"FIXTURE  router_01.xlsx folder=Jobs files={long_name}\{long_name}.pdf", "too long")):
+            with self.subTest(why):
+                text = router((r"FIXTURE  router_01.xlsx folder=Jobs files=J-102\r2.pdf:99,J-104:5", line))
+                with self.assertRaisesRegex(ValueError, why):
+                    fixtures_module([("task_x", fixture_trees(text))])
+
+    def test_a_shared_fixture_file_must_build_the_same_folders(self):
+        other = router(("files=r1.pdf:120,", "files=r1.pdf:121,"))
+        with self.assertRaisesRegex(ValueError, "defined differently"):
+            fixtures_module([("task_x", fixture_trees(ROUTER)), ("task_y", fixture_trees(other))])
+        self.assertIn("ForgeSandbox_router_01", fixtures_module([("task_x", fixture_trees(ROUTER)),
+                                                                 ("task_y", fixture_trees(ROUTER))]))
+
+    def test_lint_keeps_file_writes_in_the_sandbox_helpers(self):
+        m = fixtures_module([("task_x", fixture_trees(ROUTER))])
+        faults = {"Open elsewhere": m.replace("    root = SandboxNewRoot()\n",
+                                              '    root = SandboxNewRoot()\n    Open "x" For Append As #1\n', 1),
+                  "SandboxFso elsewhere": m.replace("    root = SandboxNewRoot()\n",
+                                                    "    root = SandboxNewRoot()\n    SandboxFso().CreateFolder root\n", 1),
+                  "two procedures, one name": m.replace("Private Sub SandboxLock(", "Private Sub SandboxFile(", 1)}
+        for what, bad in faults.items():
+            with self.subTest(what):
+                self.assertNotEqual(bad, m)
+                self.assertTrue(lint(bad))
+
+
+SHORT = "a" * 50
+LONG = "a" * 100
+
+
+def deep_folder(*parts):
+    """A spec that makes one folder below $jobs from the given quoted parts."""
+    return "\n".join(["VCL 0.3", "TASK", "PROC     P", "KIND     Function", "MODULE   modP", "ARGS     jobs As String",
+                      "RET      Long", "VAR      t As String", "VAR      n As Long", "PRE      FOLDER_EXISTS($jobs)",
+                      "MODIFIES $jobs files",
+                      "OP       MAKE_FOLDER(PATH_JOIN($jobs, " + ", ".join(f'"{p}"' for p in parts) + "), into=t)",
+                      "OP       RETURN(n)", "ERR      standard", "FIXTURE  deep_01.xlsx folder=Jobs",
+                      "TEST     fixture=deep_01.xlsx call=P(Jobs) assert=RESULT = 0 AND ERROR_COUNT = 0"])
+
+
+class SandboxLength(unittest.TestCase):
+    """D28's gap, closed in 3b (D30): a TEST fails when the longer Excel root could change a status."""
+
+    def test_the_rule(self):
+        jobs = SANDBOX + "\\Jobs\\"
+        near = jobs + "a" * (247 - len(jobs))   # exactly at the folder limit here
+        self.assertEqual(sandbox_length_problems([(jobs + "J-101", 247)]), [])
+        self.assertEqual(sandbox_length_problems([(near + "a" * EXCEL_SANDBOX_MAX, 247)]), [])   # Too long anywhere
+        self.assertEqual(sandbox_length_problems([("S:\\Missing\\" + "a" * 240, 247)]), [])  # not in the sandbox
+        self.assertEqual(len(sandbox_length_problems([(near, 247), (near, 247)])), 1)
+        self.assertIn("has 247 characters here but up to 350", sandbox_length_problems([(near, 247)])[0])
+
+    def test_it_fails_the_test(self):
+        for parts, passes in (((SHORT,), True), ((LONG, LONG), False), ((LONG, LONG, LONG), True)):
+            with self.subTest(len("\\".join(parts))):
+                (result,) = run_tests(deep_folder(*parts))
+                self.assertEqual(result.passed, passes, result.failed)
+                if not passes:
+                    self.assertEqual([p for p in result.failed if isinstance(p, str) and p.startswith("SANDBOX:")],
+                                     [f"SANDBOX: Jobs\\{LONG}\\{LONG} has 224 characters here but up to 327 in "
+                                      "Excel's sandbox, where it would be Too long (over 247): make it far longer or "
+                                      "shorter"])
 
 
 def mock(*files, folders=(), locked=()):

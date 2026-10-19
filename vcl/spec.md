@@ -348,11 +348,12 @@ Designed in `docs/vep-0.3-file-ops.md` (the Job-Pack Router). These are not in t
 file shares with the Orchestrator prompt yet: that text moves to 0.3 in one step, at router
 Phase 4.
 
-Built so far (router Phases 1 to 3a): the version line, three value functions, two file ops,
+Built so far (router Phases 1 to 3): the version line, three value functions, two file ops,
 `MODIFIES $<root> files`, folder FIXTUREs and two assertions, all checked by the validator, run
-by the interpreter on a mock file system and compiled to calls of ForgeLib's file helpers.
-Every VCL 0.2 spec is also valid as 0.3 and gives the same results (E8). Details:
-`DECISIONS.md` (E8 to E11, S18, S19, T4, F6, F7, D26 to D29).
+by the interpreter on a mock file system and compiled to calls of ForgeLib's file helpers; in
+Excel a sandbox builder makes the FIXTURE folders. Every VCL 0.2 spec is also valid as 0.3 and
+gives the same results (E8). Details: `DECISIONS.md` (E8 to E11, S18, S19, T4, F6, F7, D26 to
+D30).
 
 ```text
 VCL 0.3                         the first line; everything below is an error under 0.1 or 0.2
@@ -432,9 +433,14 @@ Folder FIXTUREs (F6):
   removed or changed, and new ones appear only below a root the TEST passed for a
   `MODIFIES $<root> files` argument. Each difference fails the TEST with, for example,
   `UNCHANGED: file Dump\copy.pdf was added`.
+- In Excel, `ForgeSandbox_<file>()` (in `forge_fixtures.bas`) builds the folders in a new
+  folder below `%TEMP%`, with a root of up to 120 characters instead of 17. So a TEST also
+  fails when a file op path is at most its length limit in the interpreter but could be over it
+  in Excel, for example `SANDBOX: Jobs\<name> has 224 characters here but up to 327 in Excel's
+  sandbox, ...`: a path must be Too long in both or in neither (D30).
 
-Still to come: the sandbox builder for Excel (router Phase 3b), then the first router spec and
-the switch of the shared reference text to 0.3 (Phase 4).
+Still to come: the first router spec and the switch of the shared reference text to 0.3
+(router Phase 4).
 
 ## Changes in VCL 0.2 (17 Oct 2026)
 

@@ -1,7 +1,7 @@
 # VEP 0.3: file ops and the Job-Pack Router MVP
 
 Status: **design, approved by Boss on 17 Oct 2026**. Phases 0 (D22), 1 (D26, D27), 2 (D28) and
-3a (D29) are done; 3b, 4 and 5 are next, one or two PRs each. Nothing below is in the language
+3 (D29, D30) are done; 4 and 5 are next, one or two PRs each. Nothing below is in the language
 until its phase lands.
 
 ## Context
@@ -69,8 +69,9 @@ Two PRs (D26). **1a (done):** the version line, the three value functions, the N
 ### Phase 3: VBA emitter and runtime
 Two PRs (D29). **3a (done):** the compiler, ForgeLib's file helpers and the lint bans. As built,
 the helpers are Functions that return the status and also take each path's root, and each has
-its own `On Error GoTo` handler instead of `On Error Resume Next` (D29). **3b:** the sandbox
-builder.
+its own `On Error GoTo` handler instead of `On Error Resume Next` (D29). **3b (done):** the
+sandbox builder, `ForgeSandbox_<file>()`, which also closes D28's gap: a TEST fails when the
+longer Excel root could change a Too long status (D30).
 - **`vcl_codegen.py`:** emits `ForgeSafeName`, `ForgePathJoin`, `ForgeFolderExists`, `ForgeMakeFolder path, status` and `ForgeCopyFile src, dst, status`.
 - **`ForgeLib.bas`:** late-bound FSO wrappers, each with a local `On Error Resume Next` that is cleared and restored. They re-check the root prefix, use overwrite False and compare sizes after a copy. No Kill, DeleteFile or MoveFile.
 - **`vba_lint.py`:** bans DeleteFile, DeleteFolder, MoveFile, Kill and `CopyFile` outside ForgeLib.

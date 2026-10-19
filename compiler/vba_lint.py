@@ -8,8 +8,10 @@ procedure, as Excel requires.
 
 File and system safety (CLAUDE.md, docs/vep-0.3-file-ops.md): nothing deletes, moves or renames a
 file or folder, runs a program, reads the registry or declares a Windows API. CreateObject makes
-only the classes in CREATE_OBJECT, each in one ForgeLib procedure, and ONLY_IN keeps the file
-writes inside their ForgeLib helpers, so generated code reaches the disk only through them.
+only the classes in CREATE_OBJECT, each in its own procedures, and ONLY_IN keeps the file writes
+inside ForgeLib's helpers and the fixture module's sandbox builder (D30), so generated code
+reaches the disk only through them. Procedure names are unique, as Excel requires, so a
+procedure can't borrow a helper's name.
 """
 import re
 import sys
@@ -22,13 +24,17 @@ BANNED = [(r"\.Select\b", "Select is banned"), (r"\.Activate\b", "Activate is ba
            "this file system method is banned"),
           (r"(?i)\b(SaveSetting|GetSetting|GetAllSettings|DeleteSetting)\b", "registry access is banned"),
           (r"(?i)\.(SaveAs|SaveCopyAs)\b", "SaveAs is banned"),
-          (r"(?i)^Name\s+.+\s+As\s+", "the Name statement (rename) is banned"),
-          (r"(?i)^Open\s+.*\bFor\s+(Output|Append|Binary|Random)\b", "writing files with Open is banned")]
-# CreateObject: the only classes, each made in exactly one procedure.
-CREATE_OBJECT = {"Scripting.Dictionary": "ForgeNewDict", "Scripting.FileSystemObject": "ForgeFso"}
-# The only procedures that may use these names: every file write goes through a ForgeLib helper.
-ONLY_IN = {"CopyFile": {"ForgeCopyFile"}, "CreateFolder": {"ForgeMakeFolder"},
-           "ForgeFso": {"ForgeFso", "ForgeFolderExists", "ForgeBelowRoot", "ForgeMakeFolder", "ForgeCopyFile"}}
+          (r"(?i)^Name\s+.+\s+As\s+", "the Name statement (rename) is banned")]
+# CreateObject: the only classes, and the procedures that make them.
+CREATE_OBJECT = {"Scripting.Dictionary": {"ForgeNewDict"}, "Scripting.FileSystemObject": {"ForgeFso", "SandboxFso"}}
+# (what, pattern, the only procedures where it may appear): every file write goes through these.
+ONLY_IN = [("CopyFile", r"\bCopyFile\b", {"ForgeCopyFile"}),
+           ("CreateFolder", r"\bCreateFolder\b", {"ForgeMakeFolder", "SandboxFolder"}),
+           ("ForgeFso", r"\bForgeFso\b", {"ForgeFso", "ForgeFolderExists", "ForgeBelowRoot", "ForgeMakeFolder",
+                                         "ForgeCopyFile"}),
+           ("SandboxFso", r"\bSandboxFso\b", {"SandboxFso", "SandboxNewRoot", "SandboxFolder", "SandboxFile"}),
+           ("Writing files with Open", r"(?i)^Open\s+.*\bFor\s+(Output|Append|Binary|Random)\b",
+            {"SandboxFile", "SandboxLock"})]
 KNOWN_GLOBALS = {"Application", "ThisWorkbook", "ActiveWorkbook", "ActiveSheet", "Err", "Debug", "Date",
                  "Now", "True", "False", "Nothing", "Empty", "Null"}
 
@@ -66,6 +72,7 @@ def lint(text):
     option_explicit_seen = False
     proc = None
     seen_proc = False
+    proc_lines = {}
     stack = []
     declared = set()
     labels = set()
@@ -110,12 +117,12 @@ def lint(text):
         here = header.group(1) if header else (proc[1] if proc else None)
         for cls in re.findall(r"\bCreateObject\((\"[^\"]*\"|[^)]*)\)", raw.split("'")[0]):
             cls = cls.strip('"')
-            if CREATE_OBJECT.get(cls) != here:
+            if here not in CREATE_OBJECT.get(cls, ()):
                 problems.append((no, f"CreateObject({cls}) is only allowed for "
-                                     + ", ".join(f"{k} in {v}" for k, v in CREATE_OBJECT.items())))
-        for word, allowed in ONLY_IN.items():
-            if re.search(r"\b" + word + r"\b", stmt) and here not in allowed:
-                problems.append((no, f"{word} is only allowed in {', '.join(sorted(allowed))}"))
+                                     + "; ".join(f"{k} in {', '.join(sorted(v))}" for k, v in CREATE_OBJECT.items())))
+        for what, pat, allowed in ONLY_IN:
+            if re.search(pat, stmt) and here not in allowed:
+                problems.append((no, f"{what} is only allowed in {', '.join(sorted(allowed))}"))
         m = re.match(r"^(?:Public |Private )?(Function|Sub) (\w+)\((.*?)\)", stmt)
         if m:
             if proc is not None:
@@ -124,6 +131,10 @@ def lint(text):
                 problems.append((no, "procedure before Option Explicit"))
             proc = (m.group(1), m.group(2))
             seen_proc = True
+            if m.group(2).lower() in proc_lines:
+                problems.append((no, f"{m.group(2)} is defined twice (line {proc_lines[m.group(2).lower()]}): "
+                                     "Excel stops with 'Ambiguous name detected'"))
+            proc_lines.setdefault(m.group(2).lower(), no)
             stack, labels, gotos = [], set(), []
             declared = {m.group(2)} | module_vars
             for p in filter(None, (x.strip() for x in m.group(3).split(","))):
