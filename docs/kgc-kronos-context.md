@@ -334,8 +334,8 @@ Boss's decisions:
 | 1b | Language surface, part 2: MAKE_FOLDER and COPY_FILE returning a status into a String VAR (E9); `MODIFIES $jobs files` (E10); folder FIXTUREs (F6) | **Done** (PR #23) |
 | 2 | A mock file system in fixtures and the interpreter; FOLDER_EXISTS and the file ops run on it with their statuses (E11); FILE_EXISTS and FILE_COUNT assertions (F7); UNCHANGED for files | **Done** (PR #24) |
 | 3a | Compiler and ForgeLib: late-bound FSO helpers that return the interpreter's statuses and never overwrite, delete or move; lint bans Kill, Shell, deleting, moving, the registry and SaveAs, and allows file writes only inside the helpers (D29) | **Done** (PR #25) |
-| 3b | A sandbox builder in `%TEMP%` for the folder FIXTUREs | **Next** (Boss said "go Phase 3" on 19 Oct 2026) |
-| 4 | `specs/task_12.vcl` RouteJobPacks; the prompt switches to 0.3, and Boss updates the Orchestrator again | Planned |
+| 3b | A sandbox builder in `%TEMP%` for the folder FIXTUREs (`ForgeSandbox_<file>()`); a TEST fails when Excel's longer sandbox root could change a Too long status (D30) | **Done** (PR #26) |
+| 4 | `specs/task_12.vcl` RouteJobPacks; the prompt switches to 0.3, and Boss updates the Orchestrator again | **Waiting for Boss: "go Phase 4"** |
 | 5 | Excel pilot kit: a ForgeLib self-test of the conformance cases, a sandbox, and a 5-step guide for Boss | Planned, optional |
 
 The key safety design for files:
@@ -359,7 +359,8 @@ The key safety design for files:
    conformance runs.
 
 **Pending Boss decisions right now:**
-1. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
+1. "go Phase 4" for the router. Phases 1 to 3 are done (PRs #22 to #26); Claude Code waits.
+2. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
    skipped column A, no TEST would notice. Closing it needs a FIXTURE whose last row has a value
    only in column A. That is a spec change, so it waits for Boss.
 

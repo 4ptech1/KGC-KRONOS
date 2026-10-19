@@ -12,7 +12,8 @@ mutate runs (default: the real date).
 build writes into DIR:
   forge_module.bas      one paste-ready module: the ForgeLib runtime plus one procedure per spec
   forge_fixtures.bas    the fixture builders: ForgeFixture_<file>(wb) rebuilds each synthetic
-                        test workbook with exactly the data the interpreter tested on
+                        test workbook with exactly the data the interpreter tested on, and
+                        ForgeSandbox_<file>() builds its VCL 0.3 folders in a new %TEMP% sandbox
   procedures/*.bas      each procedure on its own
   expected/*.json       for every TEST: RESULT, ERROR_COUNT and the final workbook state (values,
                         fills, and the number formats set by FORMAT), and for VCL 0.3 folder

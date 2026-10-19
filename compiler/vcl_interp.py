@@ -17,7 +17,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "vcl"))
 import semantics as S  # noqa: E402
-from vcl_fixtures import SANDBOX, MockFS, Sheet, build_folders, build_workbooks  # noqa: E402
+from vcl_fixtures import (EXCEL_SANDBOX_MAX, MAX_FILE_PATH, MAX_FOLDER_PATH, SANDBOX, MockFS,  # noqa: E402
+                          Sheet, build_folders, build_workbooks)
 from vcl_parse import parse  # noqa: E402
 
 
@@ -92,8 +93,6 @@ def call_args(call):
 
 
 # ---------- VCL 0.3 file ops on the mock file system (E11, router Phase 2) ----------
-MAX_FILE_PATH = 258     # Windows' MAX_PATH is 260 with the closing null; one spare
-MAX_FOLDER_PATH = 247   # a folder path leaves room for an 8.3 file name inside it (CreateDirectory)
 WILDCARDS = "*?"        # FSO reads them as patterns, so a path with one is never used
 
 
@@ -153,6 +152,7 @@ class Machine:
         self.types = {}
         self.proc = ""
         self.pre_failed = False
+        self.file_paths = []   # (path, its length limit) for every file op (D30)
         self.kind = "Sub"
         self.ret = None
         for k in spec["keys"]:
@@ -419,9 +419,13 @@ class Machine:
             target = pos[0]
             is_join = isinstance(target, Tree) and target.data == "call" and str(target.children[0]) == "PATH_JOIN"
             root = S.text_of(e(pos_of(call_args(target))[0] if is_join else target)).rstrip("\\")
-            self.assign(str(opts["into"]), make_folder(self.fs, root, S.text_of(e(target))))
+            path = S.text_of(e(target))
+            self.file_paths.append((path, MAX_FOLDER_PATH))
+            self.assign(str(opts["into"]), make_folder(self.fs, root, path))
         elif name == "COPY_FILE":
-            self.assign(str(opts["into"]), copy_file(self.fs, S.text_of(e(pos[0])), S.text_of(e(pos[1]))))
+            src, dst = S.text_of(e(pos[0])), S.text_of(e(pos[1]))
+            self.file_paths += [(src, MAX_FILE_PATH), (dst, MAX_FILE_PATH)]
+            self.assign(str(opts["into"]), copy_file(self.fs, src, dst))
         elif name == "RETURN":
             raise _Return(e(pos[0]) if pos else None)
         else:
@@ -829,6 +833,21 @@ def file_unchanged_problems(roots, before, after, stopped_at_pre, limit=5):
     return found
 
 
+def sandbox_length_problems(paths):
+    """D30: in Excel the sandbox root is longer than C:\\KRONOS_SANDBOX (up to EXCEL_SANDBOX_MAX
+    characters), so a path below it is longer there too. A path whose Too long status could be
+    different in Excel fails the TEST: it must be far over its limit or well under it."""
+    found = []
+    for path, limit in dict.fromkeys(paths):
+        if not path.casefold().startswith(SANDBOX.casefold() + "\\"):
+            continue
+        most = len(path) - len(SANDBOX) + EXCEL_SANDBOX_MAX
+        if len(path) <= limit < most:
+            found.append(f"SANDBOX: {path[len(SANDBOX) + 1:]} has {len(path)} characters here but up to {most} in "
+                         f"Excel's sandbox, where it would be Too long (over {limit}): make it far longer or shorter")
+    return found
+
+
 def run_tests(text, today=None):
     """Run every TEST of a TASK spec. today pins TODAY (default: the real date)."""
     spec, problems = parse(text)
@@ -878,11 +897,13 @@ def run_tests(text, today=None):
         log = []
         result = None
         stopped_at_pre = True
+        file_paths = []
         for _ in range(runs):
             log.clear()
             machine = Machine(spec, bound, log, today, fs)
             result = machine.run()
             stopped_at_pre = stopped_at_pre and machine.pre_failed
+            file_paths += machine.file_paths
         asserter = Asserter(book, before, result, len(log), fs, fs_before)
         failed = []
         for cond in assertion.children:
@@ -901,6 +922,7 @@ def run_tests(text, today=None):
             failed += unchanged_problems(modifies, sheet_args, before, book, stopped_at_pre)
             roots = [bound[a] for a, kinds in modifies.items() if kinds.get("files") and isinstance(bound.get(a), str)]
             failed += file_unchanged_problems(roots, fs_before, fs, stopped_at_pre)
+        failed += sandbox_length_problems(file_paths)
         state = {name: (sorted((rc, S.text_of(v)) for rc, v in sh.cells.items()), sorted(sh.fills.items()),
                         sorted(sh.formats.items()))
                  for name, sh in book.items()}

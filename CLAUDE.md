@@ -170,8 +170,11 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    0.3 line, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS, the path types, MAKE_FOLDER, COPY_FILE,
    MODIFIES files and folder FIXTUREs; D26, D27) and Phase 2 (the mock file system: the file op
    statuses, FILE_EXISTS, FILE_COUNT and UNCHANGED for files; E11, F7, D28) are done. Boss said
-   "go Phase 3" on 19 Oct 2026. Phase 3a (the compiler, ForgeLib's file helpers and the lint
-   file-safety rules; D29) is done; **next is 3b, the sandbox builder**, then Phase 4.
+   "go Phase 3" on 19 Oct 2026, and Phase 3 is done: 3a (the compiler, ForgeLib's file helpers
+   and the lint file-safety rules; D29, PR #25) and 3b (the sandbox builder and the sandbox
+   length check; D30, PR #26). **Waiting for Boss's go on Phase 4** (`specs/task_12.vcl` RouteJobPacks,
+   then the shared reference text and the Orchestrator prompt switch to VCL 0.3, and Boss
+   updates the Orchestrator); do not start it before.
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 

@@ -118,3 +118,8 @@ Dataset count: 0 verified pairs
   late-bound FileSystemObject, never overwrite, delete or retry, and return the interpreter's
   status for every case. The linter now bans Kill, Shell, deleting, moving, renaming, the
   registry and SaveAs, and allows file writes only inside those helpers (D29).
+- **2026-10-19:** Job-Pack Router Phase 3b: `forge_fixtures.bas` gets a sandbox builder,
+  `ForgeSandbox_<file>()`, which makes each fixture's folders and files (exact sizes, locked
+  files held open) in a new folder below `%TEMP%` and never touches anything else. A TEST now
+  fails when a path is so close to the Windows length limit that Excel's longer sandbox root
+  could change its status (D30). Phase 3 is done; Phase 4 (the router spec, task_12) waits for Boss.
