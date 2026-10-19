@@ -1,0 +1,105 @@
+# VBA Forge AI plan: the model writes VCL (D31)
+
+Status: **approved by Boss on 19 Oct 2026**. This is the general direction for the model after
+the Job-Pack Router MVP. It is not a build plan yet: each stage gets its own design and PRs
+when it starts. Nothing here starts before the MVP is done, and no training starts before the
+new PC arrives in March 2027.
+
+## The decision
+
+**Our own model writes VCL, never VBA. The compiler stays the only thing that writes VBA.**
+
+The model is still ours (D25): designed and trained from zero, on in-house data only.
+
+Why:
+- The compiler already turns VCL into VBA without mistakes. A model doing the same job could
+  only be a worse copy of it.
+- Every VCL spec the model writes can be proven without Excel: the validator, the type checker,
+  the TESTs in the reference interpreter and the MODIFIES safety check. VBA written by a model
+  can't be proven until it runs in Excel.
+- So nothing unproven ever reaches Excel, and every VBA line that does is lint-clean compiler
+  output that calls ForgeLib.
+
+## The model's three jobs
+
+1. **Plain English to VCL:** an offline Orchestrator for everyday tasks.
+2. **Repair:** a spec that fails a check, plus the error messages, in; a fixed spec out.
+3. **NOTE steps** (what VCL can't say yet): the model never writes raw VBA for them. Instead
+   VCL grows until they are rare. Until VCL covers a NOTE, the task goes to Claude or Boss.
+
+## The flow
+
+```text
+Boss types a task in plain English
+  -> the model writes VCL (several tries)
+  -> validator, type checker and TESTs keep only the tries that pass
+  -> the compiler writes the VBA (ForgeLib calls, lint-clean)
+  -> Boss pastes it into Excel
+No try passes  -> repair mode, with the error messages
+Still failing  -> the task goes to Claude (the Orchestrator) or Boss
+```
+
+## How VCL's structure helps
+
+| VCL feature | What it gives the model |
+| --- | --- |
+| A small vocabulary (a few dozen keywords) | A small model, trainable from zero on one PC |
+| One step per line | Easy to learn, and every error points at one line |
+| A formal grammar (`vcl/grammar.lark`) | Output can be forced to be valid VCL (grammar-constrained decoding) |
+| The validator and type checker | Wrong outputs are rejected at once; every error is a free "error -> fix" training pair |
+| The interpreter, synthetic fixtures and TESTs | Outputs are judged by "do the tests pass", not by how they look |
+| The mutation engine | Many near-miss specs: training for careful reading and for repair |
+| MODIFIES and UNCHANGED | An automatic safety check: the model can't quietly touch other sheets or files |
+| The migration tool (`vcl_migrate.py`) | Old training data moves to each new VCL version, so the model learns one version |
+
+## VCL changes planned for this goal
+
+Each is a language change, so each comes as its own VEP and PRs, with spec.md, the prompt and
+every check updated together. None starts before the MVP is done.
+
+1. **A `GOAL` line** in every TASK: one plain-English sentence saying what the task does. Every
+   spec then carries its own English -> VCL training pair.
+2. **One canonical way to write each spec**, with a formatter (`vclc fmt`): the same meaning
+   always gives the same text, so there is less for the model to learn.
+3. **Error codes** in validator and type checker messages (for example `V107 line 12: ...`).
+   Stable codes make repairs learnable.
+4. **Shrink NOTE:** count every NOTE step in the corpus (the expressibility report), and turn
+   the common ones into VCL ops.
+5. **Keep VCL small:** a few ops that combine well, and one way to do each thing.
+6. **Strong tests required:** a model-written spec counts only when its own TESTs catch enough
+   mutants (a minimum snapshot mutation score), so it can't pass by writing weak tests.
+
+## Where the training data comes from (all in-house, D25)
+
+- **Orchestrator specs:** synthetic KGC-style tasks (BOM, weld log, NDE, NCR, calibration and
+  similar registers), each with its English description and its proven VCL.
+- **Paraphrases:** the same task written several ways, by Claude through our pipeline, so the
+  model learns how Boss words things.
+- **Repairs:** made automatically from mutants and the errors they cause, in large numbers.
+- **A locked benchmark:** held-out tasks never used for training; the only scoreboard.
+
+Every pair passes the whole toolchain before it goes into `data/verified/`. Synthetic data only
+until March 2027 (CLAUDE.md).
+
+Scale: the planned 150-task corpus is a seed, not a dataset. A useful model needs thousands of
+proven specs; paraphrases and mutants help multiply them.
+
+## Stages after the MVP
+
+| Stage | When | What |
+| --- | --- | --- |
+| A | Before March (cloud) | The `GOAL` line, the formatter and error codes; the 150-task corpus; the data generator; the benchmark |
+| B | Before March (cloud) | Grow VCL from the NOTE count; grow the data to thousands of proven specs |
+| C | March 2027 (new PC) | A tokenizer and a small model trained from zero: English -> VCL, with grammar-constrained output |
+| D | After C | Add repair. The model is used only when it passes enough benchmark tasks; Claude stays the Orchestrator until then |
+| E | Later | Daily use: Boss types a task and gets proven VBA |
+
+Stages A and B fit today's rules (no training before March), and they make the data valuable
+even if the model takes longer than planned.
+
+## What doesn't change
+
+- D25: the model and everything it learns from are ours; no pre-trained weights, outside data
+  or retrieval.
+- The compiler and ForgeLib stay the core, and the reference for what VBA a spec means.
+- Running anything in Excel stays optional and never blocks work.

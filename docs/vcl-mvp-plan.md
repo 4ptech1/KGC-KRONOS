@@ -34,7 +34,8 @@ Running the generated VBA in Excel is optional and never blocks work.
   bit for bit (`DECISIONS.md` D1).
 - **The MVP compiler covers** every op the 10 specs use, plus loops, SELECT_CASE, arrays, CALL,
   LOG and MSG, and the VCL 0.3 file ops MAKE_FOLDER and COPY_FILE. Not yet covered: other file
-  ops, ADD_SHEET, COPY_SHEET, FIND, DEDUPE, FILTER, SET_FORMULA, OPEN_BOOK, SAVE_AS. `NOTE` steps need the local model.
+  ops, ADD_SHEET, COPY_SHEET, FIND, DEDUPE, FILTER, SET_FORMULA, OPEN_BOOK, SAVE_AS. `NOTE` steps
+  go to Claude or Boss until VCL covers them (D31).
 - **EXIT_IF was undefined in revision 3.** The MVP treats it as "leave the procedure". VCL 0.2
   adds EXIT_LOOP_IF for loops.
 
@@ -73,10 +74,10 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    SET_FORMULA, sheet and file ops), plus list syntax.
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
    VCL 0.2 packs.
-7. **Dataset generator:** spec-to-VBA pairs straight from the compiler. The mutation engine
-   doubles as a contrast-pair generator: every valid mutant is a near-identical spec with
-   different behaviour, compiled to its own correct VBA. That is exactly the "read carefully"
-   training data the Phase 2 plan wanted.
+7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
+   VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
+   valid mutant is a near-identical spec with different behaviour. That is exactly the "read
+   carefully" training data the Phase 2 plan wanted. See `docs/ai-plan.md`, Stages A and B.
 8. **March:** train our own model from zero on the in-house dataset (D25: no pre-trained weights,
-   no outside data); the compiler stays as the fallback and the
-   reference. Excel conformance runs whenever Boss chooses.
+   no outside data). It writes VCL, never VBA; the compiler writes all the VBA (D31,
+   `docs/ai-plan.md`). Excel conformance runs whenever Boss chooses.
