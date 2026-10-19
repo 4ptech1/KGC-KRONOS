@@ -24,12 +24,13 @@ How it works:
 2. The **toolchain** in this repo (Python, run in the cloud) checks the spec, runs its TESTs on
    synthetic data in a reference interpreter, and compiles it to Excel 2016 VBA that calls a
    shared runtime, **ForgeLib**.
-3. Every spec plus its proven VBA is a **verified spec-to-VBA pair**. From March 2027 those
-   pairs train **our own model, designed and trained from zero** (D25), which takes over the code
-   generation the compiler can't do, with the compiler
-   kept as the fallback and the reference.
+3. Every task in plain English plus its proven spec (and the compiler's VBA) is a **verified
+   pair**. From March 2027 those pairs train **our own model, designed and trained from zero**
+   (D25). **The model writes VCL, never VBA** (D31, `docs/ai-plan.md`): from plain English, and
+   as repairs of failing specs. The compiler stays the only thing that writes VBA, so every model
+   output is proven by the toolchain before anything reaches Excel.
 
-The goal until March 2027: a large, verified dataset of spec-to-VBA pairs, and a toolchain
+The goal until March 2027: a large, verified dataset of tasks and proven specs, and a toolchain
 that proves every macro without Excel.
 
 ## 2. Who does what
@@ -72,8 +73,8 @@ Boss's working policy (from `CLAUDE.md`):
   VBA collections), no retrieval over outside sources. In-house means made by this repo's tools, by
   Boss, or by Claude through our pipeline, and verified by our toolchain. General tools (Python,
   PyTorch) are allowed; Claude stays the design and build tool. Design: compiler first, own model
-  second, shipped only where it beats the compiler on VBA-Bench. Never suggest a base model or
-  outside data.
+  second. The model writes VCL, never VBA (D31), and is used once it passes enough of the held-out
+  benchmark; Claude stays the Orchestrator until then. Never suggest a base model or outside data.
 - **Generated VBA rules:**
   - `Option Explicit`, and late-bound `Scripting.Dictionary` (no References).
   - The standard error handler, which logs to ForgeLog and restores ScreenUpdating and
@@ -353,10 +354,19 @@ The key safety design for files:
 1. The rest of revision 3 in the interpreter and compiler: DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops, list syntax.
 2. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
-3. A dataset generator: spec-to-VBA pairs from the compiler. Mutants double as "read
-   carefully" contrast pairs.
-4. **March 2027:** the new PC; train our own model from zero on in-house data (D25); Excel
-   conformance runs.
+3. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
+   Mutants double as "read carefully" contrast pairs.
+4. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
+   VCL, never VBA (D31). Excel conformance runs.
+
+**The AI plan** (`docs/ai-plan.md`, D31, approved by Boss on 19 Oct 2026): the model's jobs are
+plain English to VCL, and repairing failing specs. NOTE steps shrink as VCL grows; until then
+they go to Claude or Boss. Planned VCL changes, each its own VEP after the MVP: a `GOAL` line
+(one English sentence per TASK), a canonical formatter, error codes in checker messages, fewer
+NOTE steps, a small language, and a minimum mutation score for model-written TESTs. Stages: A and
+B before March (corpus, data generator, benchmark, growing VCL), C in March (train a small model
+from zero, grammar-constrained), D (repair; used once it passes enough of the benchmark), E
+(Boss's daily use).
 
 **Pending Boss decisions right now:**
 1. "go Phase 4" for the router. Phases 1 to 3 are done (PRs #22 to #26); Claude Code waits.
@@ -385,6 +395,7 @@ The key safety design for files:
 - **D23:** FORMAT fill names work: each name is the VBA colour constant of that name.
 - **D24:** Boss's weld-log spec is task_11, unchanged. The router spec becomes task_12.
 - **D25:** original model and context data: the model is trained from zero, on in-house data only.
+- **D31:** the model writes VCL, never VBA; the compiler writes all VBA (`docs/ai-plan.md`).
 
 ## 11. How to help (rules for the AI reading this)
 

@@ -9,8 +9,9 @@ VBA Forge is an offline, VBA-only code generator for Excel automation at KGC Eng
 (pressure-vessel fabrication paper trail: BOM, weld log, NDE, NCR, calibration and similar
 registers). Claude writes task specs in VCL (VBA Command Language); VBA Forge turns each spec into
 VBA and proves the macro works with tests. From March 2027 our own model, trained from zero on our
-data (D25), will generate the VBA where the compiler can't. Until then, the goal is a verified
-dataset of spec-to-VBA pairs.
+data (D25), will write VCL specs from plain English; the compiler stays the only thing that writes
+VBA (D31, `docs/ai-plan.md`). Until then, the goal is a verified dataset of tasks and their proven
+specs, each with its VBA.
 
 ## Working policy
 
@@ -50,7 +51,8 @@ dataset of spec-to-VBA pairs.
   scraped or downloaded code, datasets or prompts, no retrieval over outside sources. Everything it
   learns from or reads is in-house: made by this repo's tools, by me, or by Claude through our
   pipeline, and verified by our toolchain. General tools (Python, PyTorch) are allowed, and Claude
-  stays the design and build tool (Orchestrator, Claude Code). Compiler first, own model second.
+  stays the design and build tool (Orchestrator, Claude Code). Compiler first, own model second:
+  the model writes VCL, never VBA (D31).
 
 ## Sources of truth
 
@@ -177,6 +179,9 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    updates the Orchestrator); do not start it before.
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
+3. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
+   model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
+   the data generator and the benchmark) starts after the MVP; no training before March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it.
