@@ -333,7 +333,7 @@ Boss's decisions:
 | 1a | Language surface, part 1: the `VCL 0.3` line; SAFE_NAME, PATH_JOIN, FOLDER_EXISTS; the Name and Path types (T4); the meaning of SAFE_NAME and PATH_JOIN with conformance cases (S18, S19, moved here from Phase 2, D26) | **Done** (PR #22) |
 | 1b | Language surface, part 2: MAKE_FOLDER and COPY_FILE returning a status into a String VAR (E9); `MODIFIES $jobs files` (E10); folder FIXTUREs (F6) | **Done** (PR #23) |
 | 2 | A mock file system in fixtures and the interpreter; FOLDER_EXISTS and the file ops run on it with their statuses (E11); FILE_EXISTS and FILE_COUNT assertions (F7); UNCHANGED for files | **Done** (PR #24) |
-| 3a | Compiler and ForgeLib: late-bound FSO helpers that return the interpreter's statuses and never overwrite, delete or move; lint bans Kill, Shell, deleting, moving, the registry and SaveAs, and allows file writes only inside the helpers (D29) | **Done** |
+| 3a | Compiler and ForgeLib: late-bound FSO helpers that return the interpreter's statuses and never overwrite, delete or move; lint bans Kill, Shell, deleting, moving, the registry and SaveAs, and allows file writes only inside the helpers (D29) | **Done** (PR #25) |
 | 3b | A sandbox builder in `%TEMP%` for the folder FIXTUREs | **Next** (Boss said "go Phase 3" on 19 Oct 2026) |
 | 4 | `specs/task_12.vcl` RouteJobPacks; the prompt switches to 0.3, and Boss updates the Orchestrator again | Planned |
 | 5 | Excel pilot kit: a ForgeLib self-test of the conformance cases, a sandbox, and a 5-step guide for Boss | Planned, optional |
