@@ -3,14 +3,32 @@
 lint(text) -> list of (line_no, message). Checks: ASCII only, Option Explicit, balanced blocks
 (Sub/Function, If, For/For Each with matching Next variable, Select Case, Do/Loop, With),
 declared variables under Option Explicit, unique line labels, GoTo targets, Forge* helpers that
-exist, banned constructs, and quote balance.
+exist, banned constructs, and quote balance. Module-level declarations come before the first
+procedure, as Excel requires.
+
+File and system safety (CLAUDE.md, docs/vep-0.3-file-ops.md): nothing deletes, moves or renames a
+file or folder, runs a program, reads the registry or declares a Windows API. CreateObject makes
+only the classes in CREATE_OBJECT, each in one ForgeLib procedure, and ONLY_IN keeps the file
+writes inside their ForgeLib helpers, so generated code reaches the disk only through them.
 """
 import re
 import sys
 
 BANNED = [(r"\.Select\b", "Select is banned"), (r"\.Activate\b", "Activate is banned"),
           (r"\bSelection\b", "Selection is banned"), (r"\bSendKeys\b", "SendKeys is banned"),
-          (r"\bAs\s+Integer\b", "use Long, not Integer"), (r"^\s*End\s*$", "bare End statement")]
+          (r"\bAs\s+Integer\b", "use Long, not Integer"), (r"^\s*End\s*$", "bare End statement"),
+          (r"(?i)\b(Kill|RmDir|MkDir|ChDir|ChDrive|Shell|GetObject|Declare)\b", "file, process and API statements are banned"),
+          (r"(?i)\.(DeleteFile|DeleteFolder|MoveFile|MoveFolder|CopyFolder|CreateTextFile|OpenTextFile)\b",
+           "this file system method is banned"),
+          (r"(?i)\b(SaveSetting|GetSetting|GetAllSettings|DeleteSetting)\b", "registry access is banned"),
+          (r"(?i)\.(SaveAs|SaveCopyAs)\b", "SaveAs is banned"),
+          (r"(?i)^Name\s+.+\s+As\s+", "the Name statement (rename) is banned"),
+          (r"(?i)^Open\s+.*\bFor\s+(Output|Append|Binary|Random)\b", "writing files with Open is banned")]
+# CreateObject: the only classes, each made in exactly one procedure.
+CREATE_OBJECT = {"Scripting.Dictionary": "ForgeNewDict", "Scripting.FileSystemObject": "ForgeFso"}
+# The only procedures that may use these names: every file write goes through a ForgeLib helper.
+ONLY_IN = {"CopyFile": {"ForgeCopyFile"}, "CreateFolder": {"ForgeMakeFolder"},
+           "ForgeFso": {"ForgeFso", "ForgeFolderExists", "ForgeBelowRoot", "ForgeMakeFolder", "ForgeCopyFile"}}
 KNOWN_GLOBALS = {"Application", "ThisWorkbook", "ActiveWorkbook", "ActiveSheet", "Err", "Debug", "Date",
                  "Now", "True", "False", "Nothing", "Empty", "Null"}
 
@@ -47,6 +65,7 @@ def lint(text):
     module_vars = set(re.findall(r"^(?:Private|Public|Dim) (\w+) As ", text, re.M))
     option_explicit_seen = False
     proc = None
+    seen_proc = False
     stack = []
     declared = set()
     labels = set()
@@ -87,6 +106,16 @@ def lint(text):
         for pat, msg in BANNED:
             if re.search(pat, stmt):
                 problems.append((no, msg))
+        header = re.match(r"^(?:Public |Private )?(?:Function|Sub) (\w+)\(", stmt)
+        here = header.group(1) if header else (proc[1] if proc else None)
+        for cls in re.findall(r"\bCreateObject\((\"[^\"]*\"|[^)]*)\)", raw.split("'")[0]):
+            cls = cls.strip('"')
+            if CREATE_OBJECT.get(cls) != here:
+                problems.append((no, f"CreateObject({cls}) is only allowed for "
+                                     + ", ".join(f"{k} in {v}" for k, v in CREATE_OBJECT.items())))
+        for word, allowed in ONLY_IN.items():
+            if re.search(r"\b" + word + r"\b", stmt) and here not in allowed:
+                problems.append((no, f"{word} is only allowed in {', '.join(sorted(allowed))}"))
         m = re.match(r"^(?:Public |Private )?(Function|Sub) (\w+)\((.*?)\)", stmt)
         if m:
             if proc is not None:
@@ -94,6 +123,7 @@ def lint(text):
             if not option_explicit_seen:
                 problems.append((no, "procedure before Option Explicit"))
             proc = (m.group(1), m.group(2))
+            seen_proc = True
             stack, labels, gotos = [], set(), []
             declared = {m.group(2)} | module_vars
             for p in filter(None, (x.strip() for x in m.group(3).split(","))):
@@ -112,7 +142,9 @@ def lint(text):
             proc = None
             continue
         if proc is None:
-            if re.match(r"^(Private|Public|Dim) \w+ As ", stmt):
+            if re.match(r"^(Private|Public|Dim) \w+ As |^(Private |Public )?Const \w+ As \w+ = ", stmt):
+                if seen_proc:
+                    problems.append((no, "module-level declaration after a procedure: Excel only allows comments there"))
                 continue
             problems.append((no, f"statement outside a procedure: {stmt[:40]}"))
             continue
