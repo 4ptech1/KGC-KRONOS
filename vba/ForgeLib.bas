@@ -2,6 +2,13 @@
 ' Every function here implements one decision in docs/vcl-semantics.md. Keep them in sync.
 
 Private gForgeLog As Collection
+Private gForgeFso As Object
+
+' VCL 0.3 limits: the same numbers as vcl/semantics.py and compiler/vcl_interp.py (a unit test checks)
+Private Const FORGE_MAX_NAME As Long = 100
+Private Const FORGE_MAX_FILE_PATH As Long = 258
+Private Const FORGE_MAX_FOLDER_PATH As Long = 247
+Private Const FORGE_NAME_FORBIDDEN As String = "\/:*?""<>|"
 
 Public Sub ForgeLog(ByVal procName As String, ByVal errNumber As Long, ByVal message As String, ByVal lineNo As Long)
     If gForgeLog Is Nothing Then Set gForgeLog = New Collection
@@ -475,4 +482,183 @@ End Function
 
 Public Function ForgeDictExists(ByVal d As Object, ByVal key As Variant) As Boolean
     ForgeDictExists = d.Exists(ForgeText(key))
+End Function
+
+' ---- VCL 0.3: S18 SAFE_NAME, S19 PATH_JOIN, FOLDER_EXISTS and the file ops (E11) ----
+' One attempt, then a status: the file ops never raise, overwrite, delete or retry.
+
+Private Function ForgeFso() As Object
+    ' Late-bound, so no References are needed. Made once per Excel session.
+    If gForgeFso Is Nothing Then Set gForgeFso = CreateObject("Scripting.FileSystemObject")
+    Set ForgeFso = gForgeFso
+End Function
+
+Private Function ForgeNoTrailingSlash(ByVal s As String) As String
+    Do While Right$(s, 1) = "\"
+        s = Left$(s, Len(s) - 1)
+    Loop
+    ForgeNoTrailingSlash = s
+End Function
+
+Private Function ForgeHasWildcard(ByVal s As String) As Boolean
+    ' FSO reads * and ? as patterns, so a path with one is never used.
+    ForgeHasWildcard = (InStr(1, s, "*", vbBinaryCompare) > 0 Or InStr(1, s, "?", vbBinaryCompare) > 0)
+End Function
+
+Private Function ForgeSamePath(ByVal a As String, ByVal b As String) As Boolean
+    ' Paths compare ignoring case, as on Windows.
+    ForgeSamePath = (StrComp(LCase$(a), LCase$(b), vbBinaryCompare) = 0)
+End Function
+
+Public Function ForgeSafeName(ByVal v As Variant) As String
+    Dim s As String
+    Dim stem As String
+    Dim i As Long
+    s = ForgeCleanText(v)
+    If Len(s) = 0 Or Len(s) > FORGE_MAX_NAME Then Exit Function
+    For i = 1 To Len(s)
+        If InStr(1, FORGE_NAME_FORBIDDEN, Mid$(s, i, 1), vbBinaryCompare) > 0 Then Exit Function
+    Next i
+    ' A trailing dot also covers "." and "..".
+    If Right$(s, 1) = "." Then Exit Function
+    ' Device names are reserved with any extension and any case: con.txt is CON.
+    stem = s
+    i = InStr(1, stem, ".", vbBinaryCompare)
+    If i > 0 Then stem = Left$(stem, i - 1)
+    stem = UCase$(RTrim$(stem))
+    If stem = "CON" Or stem = "PRN" Or stem = "AUX" Or stem = "NUL" Then Exit Function
+    If Len(stem) = 4 And (Left$(stem, 3) = "COM" Or Left$(stem, 3) = "LPT") Then
+        If AscW(Right$(stem, 1)) >= 49 And AscW(Right$(stem, 1)) <= 57 Then Exit Function
+    End If
+    ForgeSafeName = s
+End Function
+
+Public Function ForgePathJoin(ByVal root As Variant, ByVal names As Variant) As String
+    ' names is Array(part, ...). An empty or unsafe part gives "", so it never becomes a path.
+    Dim s As String
+    Dim part As String
+    Dim i As Long
+    s = ForgeNoTrailingSlash(ForgeText(root))
+    If Len(s) = 0 Or UBound(names) < LBound(names) Then Exit Function
+    For i = LBound(names) To UBound(names)
+        part = ForgeText(names(i))
+        If Len(part) = 0 Then Exit Function
+        If StrComp(ForgeSafeName(part), part, vbBinaryCompare) <> 0 Then Exit Function
+        s = s & "\" & part
+    Next i
+    ForgePathJoin = s
+End Function
+
+Public Function ForgeFolderExists(ByVal path As String) As Boolean
+    ' TRUE only for a folder written in full, as in the interpreter's mock. A relative path, or one
+    ' Windows would rewrite (a trailing \, a /), depends on the PC, so it gives FALSE.
+    On Error GoTo FailedOp
+    If Len(path) = 0 Then Exit Function
+    If Not ForgeSamePath(ForgeFso().GetAbsolutePathName(path), path) Then Exit Function
+    ForgeFolderExists = ForgeFso().FolderExists(path)
+    Exit Function
+FailedOp:
+    ForgeLog "ForgeFolderExists", Err.Number, Err.Description & ": " & path, 0
+End Function
+
+Private Function ForgeBelowRoot(ByVal root As String, ByVal path As String) As Boolean
+    ' The run-time root check (docs/vep-0.3-file-ops.md, item 3): root is written in full, and
+    ' path starts with root and \, as written and as Windows reads it. PATH_JOIN's safe names
+    ' keep every generated path below its root; this catches a path built any other way.
+    Dim r As String
+    r = ForgeNoTrailingSlash(root)
+    If Len(r) = 0 Then Exit Function
+    If Not ForgeSamePath(ForgeNoTrailingSlash(ForgeFso().GetAbsolutePathName(root)), r) Then Exit Function
+    If Not ForgeSamePath(Left$(path, Len(r) + 1), r & "\") Then Exit Function
+    ForgeBelowRoot = ForgeSamePath(Left$(ForgeFso().GetAbsolutePathName(path), Len(r) + 1), r & "\")
+End Function
+
+Public Function ForgeMakeFolder(ByVal root As String, ByVal path As String) As String
+    ' MAKE_FOLDER: path and every missing folder between it and root, never root itself. Every
+    ' level is checked before any folder is made, so a blocked path changes nothing.
+    Dim fso As Object
+    Dim r As String
+    Dim parts As Variant
+    Dim cur As String
+    Dim blocked As Boolean
+    Dim i As Long
+    On Error GoTo FailedOp
+    Set fso = ForgeFso()
+    r = ForgeNoTrailingSlash(root)
+    If Len(path) = 0 Or Len(r) = 0 Or ForgeHasWildcard(path) Then
+        ForgeMakeFolder = "Bad name"
+    ElseIf Len(path) > FORGE_MAX_FOLDER_PATH Then
+        ForgeMakeFolder = "Too long"
+    ElseIf fso.FolderExists(path) Then
+        ForgeMakeFolder = "Exists"
+    ElseIf fso.FileExists(path) Then
+        ForgeMakeFolder = "Blocked by file"
+    ElseIf Not ForgeBelowRoot(root, path) Then
+        ForgeMakeFolder = "Bad name"
+    ElseIf Not fso.FolderExists(r) Then
+        ForgeMakeFolder = "No folder"
+    Else
+        parts = Split(Mid$(path, Len(r) + 2), "\")
+        cur = r
+        For i = LBound(parts) To UBound(parts)
+            cur = cur & "\" & parts(i)
+            If fso.FileExists(cur) Then blocked = True
+        Next i
+        If blocked Then
+            ForgeMakeFolder = "Blocked by file"
+        Else
+            cur = r
+            For i = LBound(parts) To UBound(parts)
+                cur = cur & "\" & parts(i)
+                If Not fso.FolderExists(cur) Then fso.CreateFolder cur
+            Next i
+            ForgeMakeFolder = "Created"
+        End If
+    End If
+    Exit Function
+FailedOp:
+    ForgeLog "ForgeMakeFolder", Err.Number, Err.Description & ": " & path, 0
+    ForgeMakeFolder = "Failed"
+End Function
+
+Public Function ForgeCopyFile(ByVal srcRoot As String, ByVal src As String, ByVal dstRoot As String, ByVal dst As String) As String
+    ' COPY_FILE: one copy, never over anything at dst; src always stays, and a short copy is kept.
+    Dim fso As Object
+    Dim slash As Long
+    Dim copying As Boolean
+    On Error GoTo FailedOp
+    Set fso = ForgeFso()
+    slash = InStrRev(dst, "\")
+    If Len(src) = 0 Or Len(dst) = 0 Or ForgeHasWildcard(src & dst) Then
+        ForgeCopyFile = "Bad name"
+    ElseIf Len(src) > FORGE_MAX_FILE_PATH Or Len(dst) > FORGE_MAX_FILE_PATH Then
+        ForgeCopyFile = "Too long"
+    ElseIf Not ForgeBelowRoot(srcRoot, src) Or Not ForgeBelowRoot(dstRoot, dst) Then
+        ForgeCopyFile = "Bad name"
+    ElseIf Not fso.FileExists(src) Then
+        ForgeCopyFile = "Missing"
+    ElseIf slash = 0 Then
+        ForgeCopyFile = "No folder"
+    ElseIf Not fso.FolderExists(Left$(dst, slash - 1)) Then
+        ForgeCopyFile = "No folder"
+    ElseIf fso.FileExists(dst) Then
+        If fso.GetFile(dst).Size = fso.GetFile(src).Size Then ForgeCopyFile = "Already there" Else ForgeCopyFile = "Conflict"
+    ElseIf fso.FolderExists(dst) Then
+        ForgeCopyFile = "Conflict"
+    Else
+        ' overwrite is False: a file that appears at dst meanwhile raises an error, never replaced
+        copying = True
+        fso.CopyFile src, dst, False
+        copying = False
+        If fso.GetFile(dst).Size = fso.GetFile(src).Size Then ForgeCopyFile = "Copied" Else ForgeCopyFile = "Check copy"
+    End If
+    Exit Function
+FailedOp:
+    ' Error 70 (permission denied) during the copy: another program has src open.
+    If copying And Err.Number = 70 Then
+        ForgeCopyFile = "Locked"
+    Else
+        ForgeLog "ForgeCopyFile", Err.Number, Err.Description & ": " & src & " -> " & dst, 0
+        ForgeCopyFile = "Failed"
+    End If
 End Function

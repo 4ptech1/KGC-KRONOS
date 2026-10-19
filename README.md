@@ -113,3 +113,8 @@ Dataset count: 0 verified pairs
   there, Conflict, Locked, Missing, No folder, Bad name, Too long, ...), the FILE_EXISTS and
   FILE_COUNT assertions, and an UNCHANGED check for files. A sample router spec passes all its
   TESTs, which catch 29 of its 31 mutants (the other 2 change nothing). Phase 3 waits for Boss.
+- **2026-10-19:** Job-Pack Router Phase 3a: the compiler turns SAFE_NAME, PATH_JOIN,
+  FOLDER_EXISTS, MAKE_FOLDER and COPY_FILE into calls of new ForgeLib helpers. They use a
+  late-bound FileSystemObject, never overwrite, delete or retry, and return the interpreter's
+  status for every case. The linter now bans Kill, Shell, deleting, moving, renaming, the
+  registry and SaveAs, and allows file writes only inside those helpers (D29).

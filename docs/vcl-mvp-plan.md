@@ -33,8 +33,8 @@ Running the generated VBA in Excel is optional and never blocks work.
 - **One fixture generator** (item 1): `compiler/vcl_fixtures.py` builds the pilot's data
   bit for bit (`DECISIONS.md` D1).
 - **The MVP compiler covers** every op the 10 specs use, plus loops, SELECT_CASE, arrays, CALL,
-  LOG and MSG. Not yet covered: file ops, ADD_SHEET, COPY_SHEET, FIND, DEDUPE, FILTER,
-  SET_FORMULA, OPEN_BOOK, SAVE_AS. `NOTE` steps need the local model.
+  LOG and MSG, and the VCL 0.3 file ops MAKE_FOLDER and COPY_FILE. Not yet covered: other file
+  ops, ADD_SHEET, COPY_SHEET, FIND, DEDUPE, FILTER, SET_FORMULA, OPEN_BOOK, SAVE_AS. `NOTE` steps need the local model.
 - **EXIT_IF was undefined in revision 3.** The MVP treats it as "leave the procedure". VCL 0.2
   adds EXIT_LOOP_IF for loops.
 
@@ -67,7 +67,8 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    PR C (MODIFIES with UNCHANGED), PR D1 (the 10 specs migrated) and PR D2 (spec.md and the
    Orchestrator prompt) are done: VCL 0.2 core is complete.**
 4. **The Job-Pack Router MVP (VCL 0.3 file ops), approved 17 Oct 2026:** `docs/vep-0.3-file-ops.md`,
-   Phases 0 to 5. Phase 0 (blank key rows, D22) is done. It comes before the rest of item 5.
+   Phases 0 to 5. Phases 0 to 2 and 3a (the compiler and ForgeLib, D29) are done. It comes
+   before the rest of item 5.
 5. **The rest of rev 3** in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives

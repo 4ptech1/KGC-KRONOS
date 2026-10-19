@@ -348,10 +348,11 @@ Designed in `docs/vep-0.3-file-ops.md` (the Job-Pack Router). These are not in t
 file shares with the Orchestrator prompt yet: that text moves to 0.3 in one step, at router
 Phase 4.
 
-Built so far (router Phases 1 and 2): the version line, three value functions, two file ops,
-`MODIFIES $<root> files`, folder FIXTUREs and two assertions, all checked by the validator and
-run by the interpreter on a mock file system. Every VCL 0.2 spec is also valid as 0.3 and gives
-the same results (E8). Details: `DECISIONS.md` (E8 to E11, S18, S19, T4, F6, F7, D26 to D28).
+Built so far (router Phases 1 to 3a): the version line, three value functions, two file ops,
+`MODIFIES $<root> files`, folder FIXTUREs and two assertions, all checked by the validator, run
+by the interpreter on a mock file system and compiled to calls of ForgeLib's file helpers.
+Every VCL 0.2 spec is also valid as 0.3 and gives the same results (E8). Details:
+`DECISIONS.md` (E8 to E11, S18, S19, T4, F6, F7, D26 to D29).
 
 ```text
 VCL 0.3                         the first line; everything below is an error under 0.1 or 0.2
@@ -410,7 +411,8 @@ COPY_FILE     Bad name         <from> or <to> is ""
 ```
 In Excel (from router Phase 3) COPY_FILE can also give `Check copy` (the copy came out a
 different size; it is never deleted) and both ops `Failed` (any other error, logged to
-ForgeLog). The mock file system never gives them.
+ForgeLog). The mock file system never gives them. In Excel FOLDER_EXISTS is TRUE only for a
+folder written in full, as in the mock: a relative path or a trailing `\` gives FALSE (D29).
 
 Folder FIXTUREs (F6):
 - `<Name>` is one word, unique in the fixture file and not the name of one of its sheets.
@@ -431,8 +433,8 @@ Folder FIXTUREs (F6):
   `MODIFIES $<root> files` argument. Each difference fails the TEST with, for example,
   `UNCHANGED: file Dump\copy.pdf was added`.
 
-Still to come: the compiler and ForgeLib (router Phase 3), then the first router spec and the
-switch of the shared reference text to 0.3 (Phase 4).
+Still to come: the sandbox builder for Excel (router Phase 3b), then the first router spec and
+the switch of the shared reference text to 0.3 (Phase 4).
 
 ## Changes in VCL 0.2 (17 Oct 2026)
 

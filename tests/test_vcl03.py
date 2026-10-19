@@ -1,9 +1,12 @@
 """VCL 0.3 (docs/vep-0.3-file-ops.md). Router Phase 1a: the version line, SAFE_NAME, PATH_JOIN
 and FOLDER_EXISTS, and the path rules of the type checker (T4). Phase 1b: MAKE_FOLDER and
 COPY_FILE (E9), MODIFIES $root files (E10) and folder FIXTUREs (F6). Phase 2: the mock file
-system, the file op statuses (E11), FILE_EXISTS and FILE_COUNT (F7) and UNCHANGED for files."""
+system, the file op statuses (E11), FILE_EXISTS and FILE_COUNT (F7) and UNCHANGED for files.
+Phase 3a: the compiler, ForgeLib's file helpers and the linter's file safety rules (D29)."""
 import glob
+import inspect
 import os
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -11,11 +14,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 sys.path.insert(0, str(ROOT / "vcl"))
+import semantics  # noqa: E402
 import validator  # noqa: E402
+import vcl_interp  # noqa: E402
+from vba_lint import lint  # noqa: E402
 from vcl_fixtures import SANDBOX, MockFS, default_size, fixtures_module  # noqa: E402
 from vcl_interp import VclError, copy_file, file_unchanged_problems, make_folder, modifies_of  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
-from vcl_codegen import CompileError, compile_text  # noqa: E402
+from vcl_codegen import CompileError, assemble, compile_text  # noqa: E402
 from vcl_interp import run_tests  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from vcl_types import check_text  # noqa: E402
@@ -518,9 +524,101 @@ class Interpreter(unittest.TestCase):
         self.assertTrue(all(r.passed for r in results), [(r.line, r.failed, r.result) for r in results])
         self.assertEqual(results[0].result, 3)
 
-    def test_the_compiler_waits_for_phase_3(self):
+
+
+FORGELIB = (ROOT / "vba" / "ForgeLib.bas").read_text(encoding="utf-8")
+
+
+def vba_body(name):
+    """The text of one ForgeLib procedure, from its first line to its End line."""
+    start = re.search(r"^(Public|Private) (Function|Sub) " + name + r"\(", FORGELIB, re.M).start()
+    return FORGELIB[start:FORGELIB.index("\nEnd ", start)]
+
+
+class Compiler(unittest.TestCase):
+    """Router Phase 3a: the file ops compile to calls of ForgeLib's file helpers (D29)."""
+
+    def test_the_value_functions(self):
+        vba = compile_text(NAMES)
+        self.assertIn("ForgeSetValue ws.Cells(r, cName), ForgeSafeName(ws.Cells(r, cJob).Value)", vba)
+        self.assertIn('ForgePathJoin(root, Array(ForgeSafeName(ws.Cells(r, cJob).Value), "Reports"))', vba)
+
+    def test_the_file_ops_get_their_roots(self):
+        vba = compile_text(ROUTER)
+        self.assertIn('If Not ForgeFolderExists(dump) Then ForgeLog "RouteJobPacks", 0, '
+                      '"PRE failed: FOLDER_EXISTS($dump)"', vba)
+        job = "ForgeSafeName(tracker.Cells(r, cJob).Value)"
+        report = "ForgeSafeName(tracker.Cells(r, cFile).Value)"
+        self.assertIn(f"status = ForgeMakeFolder(jobs, ForgePathJoin(jobs, Array({job})))", vba)
+        self.assertIn(f"status = ForgeCopyFile(dump, ForgePathJoin(dump, Array({report})), "
+                      f"jobs, ForgePathJoin(jobs, Array({job}, {report})))", vba)
+
+    def test_the_module_is_lint_clean(self):
+        self.assertEqual(lint(assemble([compile_text(ROUTER), compile_text(NAMES)])), [])
+
+    def test_a_bare_root_is_refused(self):
         with self.assertRaises(CompileError):
-            compile_text(NAMES)
+            compile_text(spec("MAKE_FOLDER($root, into=t)"))
+
+
+class ForgeLibFiles(unittest.TestCase):
+    """ForgeLib can't run here (Excel only, router Phase 5), so these pin it to the reference."""
+
+    def const(self, name):
+        return re.search(r"^Private Const " + name + r" As \w+ = (.+)$", FORGELIB, re.M).group(1)
+
+    def test_the_limits_are_the_reference_limits(self):
+        self.assertEqual(int(self.const("FORGE_MAX_NAME")), semantics.MAX_NAME)
+        self.assertEqual(int(self.const("FORGE_MAX_FILE_PATH")), vcl_interp.MAX_FILE_PATH)
+        self.assertEqual(int(self.const("FORGE_MAX_FOLDER_PATH")), vcl_interp.MAX_FOLDER_PATH)
+        self.assertEqual(self.const("FORGE_NAME_FORBIDDEN")[1:-1].replace('""', '"'), semantics.NAME_FORBIDDEN)
+
+    def test_the_reserved_names(self):
+        self.assertEqual(semantics.RESERVED_NAMES, {"CON", "PRN", "AUX", "NUL"} | {f"{d}{i}" for d in ("COM", "LPT")
+                                                                                     for i in range(1, 10)})
+        body = vba_body("ForgeSafeName")
+        self.assertIn('If stem = "CON" Or stem = "PRN" Or stem = "AUX" Or stem = "NUL" Then Exit Function', body)
+        self.assertIn('(Left$(stem, 3) = "COM" Or Left$(stem, 3) = "LPT")', body)
+        self.assertIn("AscW(Right$(stem, 1)) >= 49 And AscW(Right$(stem, 1)) <= 57", body)   # 1 to 9
+
+    def test_every_status_and_no_other(self):
+        for fn, helper, excel_only in ((vcl_interp.make_folder, "ForgeMakeFolder", {"Failed"}),
+                                       (vcl_interp.copy_file, "ForgeCopyFile", {"Check copy", "Failed"})):
+            reference = {status for line in inspect.getsource(fn).splitlines() if "return " in line
+                         for status in re.findall(r'"([A-Z][^"]*)"', line)}
+            self.assertEqual(set(re.findall(helper + r' = "([^"]+)"', vba_body(helper))), reference | excel_only)
+
+    def test_one_attempt_never_overwrite_never_delete(self):
+        copy = vba_body("ForgeCopyFile")
+        self.assertEqual(re.findall(r"\.CopyFile [^\n]*", copy), [".CopyFile src, dst, False"])
+        for helper in ("ForgeFolderExists", "ForgeMakeFolder", "ForgeCopyFile"):
+            body = vba_body(helper)
+            self.assertIn("On Error GoTo FailedOp", body)
+            self.assertNotRegex(body, r"(?i)\b(Delete|Kill|Move|Resume|Do )")
+
+
+class LintFileSafety(unittest.TestCase):
+    """The linter keeps every file write inside ForgeLib's helpers (D29)."""
+
+    def test_catches_planted_faults(self):
+        m = assemble([compile_text(ROUTER)])
+        self.assertEqual(lint(m), [])
+        faults = {"Kill": m.replace("    n = 0\n", '    n = 0\n          Kill "x"\n', 1),
+                  "DeleteFile": m.replace("fso.CopyFile src, dst, False", "fso.DeleteFile dst", 1),
+                  "MkDir": m.replace("    n = 0\n", '    n = 0\n          MkDir "C:\\x"\n', 1),
+                  "Open": m.replace("    n = 0\n", '    n = 0\n          Open "x" For Output As #1\n', 1),
+                  "Shell": m.replace('CreateObject("Scripting.Dictionary")', 'CreateObject("WScript.Shell")', 1),
+                  "SaveAs": m.replace("    n = 0\n", '    n = 0\n          ThisWorkbook.SaveAs "x"\n', 1),
+                  "registry": m.replace("    n = 0\n", '    n = 0\n          SaveSetting "a", "b", "c", "d"\n', 1),
+                  "FSO made elsewhere": m.replace('CreateObject("Scripting.Dictionary")',
+                                                  'CreateObject("Scripting.FileSystemObject")', 1),
+                  "CopyFile outside": m.replace("    n = 0\n", '    n = 0\n          ForgeFso().CopyFile "a", "b"\n', 1),
+                  "CreateFolder outside": m.replace("fso.CopyFile src, dst, False", "fso.CreateFolder dst", 1),
+                  "late declaration": m + "Private gLate As Long\n"}
+        for what, bad in faults.items():
+            with self.subTest(what):
+                self.assertNotEqual(bad, m)
+                self.assertTrue(lint(bad))
 
 
 if __name__ == "__main__":

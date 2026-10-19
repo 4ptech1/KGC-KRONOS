@@ -1,4 +1,4 @@
-"""Compile a VCL 0.1 or 0.2 TASK spec to an Excel 2016 VBA procedure (MVP compiler).
+"""Compile a VCL 0.1, 0.2 or 0.3 TASK spec to an Excel 2016 VBA procedure (MVP compiler).
 
 House style: Option Explicit at module level; every VCL meaning goes through ForgeLib; line
 labels are spec_line * 10 + k, so Erl \\ 10 is the spec line; Excel state is saved first and
@@ -263,6 +263,12 @@ class Gen:
             return f"ForgeIif({e(0)}, {ac}, {bc})", ak if ak == bk else "raw"
         if name == "MOD":
             return f"ForgeMod({n(0)}, {n(1)})", "num"
+        if name == "SAFE_NAME":
+            return f"ForgeSafeName({e(0)})", "text"
+        if name == "PATH_JOIN":
+            return f"ForgePathJoin({e(0)}, Array({', '.join(self.ex(p)[0] for p in pos[1:])}))", "text"
+        if name == "FOLDER_EXISTS":
+            return f"ForgeFolderExists({e(0)})", "bool"
         if name == "EXISTS":
             return f"ForgeDictExists({e(0)}, {e(1)})", "bool"
         if name == "COUNT":
@@ -360,6 +366,10 @@ class Gen:
             return [f"{vba_name(str(opts['into']))} = {self.rng(pos[0])}.Value"]
         if name == "WRITE_ARRAY":
             return [f"ForgeWriteArray {e(pos[0])}, {self.rng(opts['to'])}"]
+        if name in ("MAKE_FOLDER", "COPY_FILE"):   # a status into a String VAR (E11), never an error
+            paths = ", ".join(f"{self.path_root(p)}, {e(p)}" for p in pos)
+            helper = "ForgeMakeFolder" if name == "MAKE_FOLDER" else "ForgeCopyFile"
+            return [f"{vba_name(str(opts['into']))} = {helper}({paths})"]
         if name == "RETURN":
             out = []
             if self.kind == "Function" and pos:
@@ -376,6 +386,12 @@ class Gen:
             return [f"Call {target}({rest})" if rest else f"Call {target}"]
         raise CompileError(f"{name} is not supported by the MVP compiler")
 
+    def path_root(self, t):
+        """The $root of a file op's path: the validator allows only PATH_JOIN($root, ...) (E9)."""
+        if isinstance(t, Tree) and t.data == "call" and str(t.children[0]) == "PATH_JOIN":
+            return self.ex(pos_opts(t)[0][0])[0]
+        raise CompileError(f"{canon(t)} is not PATH_JOIN($root, ...)")
+
     def update_facts_after(self, call):
         name = str(call.children[0])
         pos, opts = pos_opts(call)
@@ -387,7 +403,7 @@ class Gen:
             _, k = self.ex(pos[1])
             if self.vars.get(str(pos[0])) == "Variant":
                 self.facts[str(pos[0])] = k if k in ("num", "text", "date", "bool") else "raw"
-        elif name in ("DICT_GET", "READ_ARRAY") and "into" in opts:
+        elif name in ("DICT_GET", "READ_ARRAY", "MAKE_FOLDER", "COPY_FILE") and "into" in opts:
             drop(str(opts["into"]))
         elif name in ("SET_VALUE", "CLEAR", "SORT", "DELETE_ROW", "INSERT_ROW"):
             target = canon(pos[0])
