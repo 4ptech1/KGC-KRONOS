@@ -181,3 +181,7 @@ Dataset count: 0 verified pairs
 - **2026-10-20:** Item 2, Phase 7a: LIST_FILES and ITEMS run everywhere. A spec can list the files
   directly in a sandbox folder that match `*`/`?` patterns, in an order that is the same on every PC
   (S24, D44).
+- **2026-10-20:** Item 2, Phase 7b: READ_TEXT and WRITE_TEXT run everywhere, each with a status
+  (like COPY_FILE): text is printable ASCII only (S25), and WRITE_TEXT only ever adds a new file.
+  Folder FIXTUREs can hold text files, and FILE_TEXT checks what was written (D45). Every phase of
+  item 2 is now in the toolchain; spec.md and the prompt move to VCL 0.4 next.

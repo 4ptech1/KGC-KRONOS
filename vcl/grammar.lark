@@ -141,8 +141,9 @@ blank_mod: "blank(" INT ")"
 dupes_mod: "dupes(" INT ")"
 
 // VCL 0.3 folder FIXTUREs: files=<path>[:<bytes>],... locked=<path>,... (paths below the folder)
+// VCL 0.4: a file may hold text instead, <path>:"<text>" (one line of printable ASCII, D45)
 folder_files: "files=" file_entry ("," file_entry)*
-file_entry: FILE_PATH (":" INT)?
+file_entry: FILE_PATH (":" (INT | STRING))?
 folder_locked: "locked=" FILE_PATH ("," FILE_PATH)*
 
 // ---------- terminals ----------

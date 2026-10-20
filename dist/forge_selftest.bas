@@ -24,7 +24,7 @@ Public Sub ForgeSelfTest()
     SelfTestPart5
     SelfTestPart6
     SelfTestFlush
-    total = 215
+    total = 226
     For r = 2 To total + 1
         If gWs.Cells(r, 6).Value = "PASS" Then
             passed = passed + 1
@@ -149,6 +149,12 @@ Private Function SelfTestFind(ByVal values As Variant, ByVal x As Variant, ByVal
     Set found = ForgeFind(gScratch.Range(gScratch.Cells(1, 1), gScratch.Cells(1, UBound(values) - LBound(values) + 1)), _
         x, match = "whole")
     If Not found Is Nothing Then SelfTestFind = found.Column
+End Function
+
+Private Function SelfTestFileText(ByVal raw As Variant) As Variant
+    ' S25: ForgeFileText gives Null for what is not text; the cases write that as Empty.
+    SelfTestFileText = ForgeFileText(raw)
+    If IsNull(SelfTestFileText) Then SelfTestFileText = Empty
 End Function
 
 Private Function SelfTestJoin(ByVal names As Collection) As String
@@ -631,5 +637,27 @@ Private Sub SelfTestPart6()
     SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("a.pdf"), "*.txt")), ""
     SelfTestCase 215, "list_files", "an empty folder"
     SelfTestCheck SelfTestJoin(ForgeMatchNames(Array(), "*")), ""
+    SelfTestCase 216, "file_text", "one line, as it is"
+    SelfTestCheck SelfTestFileText("J-101 Shell"), "J-101 Shell"
+    SelfTestCase 217, "file_text", "one final CR LF is dropped"
+    SelfTestCheck SelfTestFileText("J-101" & ChrW(13) & ChrW(10)), "J-101"
+    SelfTestCase 218, "file_text", "one final LF is dropped"
+    SelfTestCheck SelfTestFileText("J-101" & ChrW(10)), "J-101"
+    SelfTestCase 219, "file_text", "only one: the inner and the other line breaks stay"
+    SelfTestCheck SelfTestFileText("a" & ChrW(13) & ChrW(10) & "b" & ChrW(13) & ChrW(10) & ChrW(13) & ChrW(10)), "a" & ChrW(13) & ChrW(10) & "b" & ChrW(13) & ChrW(10)
+    SelfTestCase 220, "file_text", "a tab is text"
+    SelfTestCheck SelfTestFileText("a" & ChrW(9) & "b"), "a" & ChrW(9) & "b"
+    SelfTestCase 221, "file_text", "an empty file"
+    SelfTestCheck SelfTestFileText(""), ""
+    SelfTestCase 222, "file_text", "an accented letter is not text: it reads differently with each code page"
+    SelfTestCheck SelfTestFileText("caf" & ChrW(233)), Empty
+    SelfTestCase 223, "file_text", "a NUL byte is not text"
+    SelfTestCheck SelfTestFileText("x" & ChrW(0) & "y"), Empty
+    SelfTestCase 224, "text_ok", "printable ASCII"
+    SelfTestCheck ForgeIsTextOk("done: J-101"), True
+    SelfTestCase 225, "text_ok", "line breaks"
+    SelfTestCheck ForgeIsTextOk("a" & ChrW(13) & ChrW(10) & "b"), True
+    SelfTestCase 226, "text_ok", "the euro sign is not ASCII"
+    SelfTestCheck ForgeIsTextOk(ChrW(8364) & " 5"), False
     SelfTestFlush
 End Sub

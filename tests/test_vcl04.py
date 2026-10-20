@@ -4,7 +4,8 @@ FILE_NAME and FOR_EACH over SHEETS and CELLS (D36, D37). Phase 2: the VCL 0.4 li
 DEDUPE cols=[...] and DEDUPE itself (S21, D38). Phase 3: FIND, IS_NOTHING and NOTHING (S22, D39). Phase 4a: Workbook
 arguments, MODIFIES $book sheets, ADD_SHEET and SHEET_EXISTS (S23, D40). Phase 4b: COPY_SHEET (D41). Phase 5:
 FILTER, hidden rows and VISIBLE_COUNT (D42). Phase 6: SET_FORMULA, the formula check and FORMULA (D43).
-Phase 7a: LIST_FILES and ITEMS (S24, D44)."""
+Phase 7a: LIST_FILES and ITEMS (S24, D44). Phase 7b: READ_TEXT, WRITE_TEXT, file texts and FILE_TEXT
+(S25, D45)."""
 import sys
 import unittest
 from pathlib import Path
@@ -12,10 +13,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 import validator  # noqa: E402
+sys.path.insert(0, str(ROOT / "vcl"))
+import semantics as S  # noqa: E402
 from vba_lint import lint  # noqa: E402
 from vcl_codegen import assemble, compile_text  # noqa: E402
 from vcl_formula import formula_problems  # noqa: E402
-from vcl_interp import modifies_of, needs_unchanged_check, run_tests  # noqa: E402
+from vcl_fixtures import SANDBOX, MockFS  # noqa: E402
+from vcl_interp import modifies_of, needs_unchanged_check, read_text, run_tests, write_text  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
 from vcl_types import check_text  # noqa: E402
@@ -298,6 +302,43 @@ TEST     fixture=dump_01.xlsx call=ListDumpPdfs(Report, Empty) assert=RESULT = 0
 TEST     fixture=dump_01.xlsx call=ListDumpPdfs(Other, Dump) assert=RESULT = -1 AND ERROR_COUNT = 1
 """
 
+# READ_TEXT and WRITE_TEXT (D45): every status a file can give, and new files only.
+TEXT_FILES = r"""VCL 0.4
+TASK
+# ASSUME: each job folder may hold job.txt with the job's title, which goes to the Title column (or the status)
+# ASSUME: done.txt ("done: <title>") is written next to it when the title was read; its status goes to Note
+PROC     MarkJobsDone
+KIND     Function
+MODULE   modNotes
+ARGS     ws As Worksheet, jobs As String
+RET      Long
+VAR      job As String
+VAR      title As String
+VAR      readStatus As String
+VAR      writeStatus As String
+VAR      n As Long
+PRE      FOLDER_EXISTS($jobs); COL($ws, "Job") > 0; COL($ws, "Title") > 0; COL($ws, "Note") > 0
+MODIFIES $ws["Title", "Note"]
+MODIFIES $jobs files
+OP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, COL($ws, "Job")) var=r
+OP         SKIP_IF IS_EMPTY(CELL($ws, r, COL($ws, "Job")))
+OP         LET(job, TRIM(CELL($ws, r, COL($ws, "Job"))))
+OP         READ_TEXT(PATH_JOIN($jobs, SAFE_NAME(job), "job.txt"), title, into=readStatus)
+OP         SET_VALUE(CELL($ws, r, COL($ws, "Title")), IIF(readStatus = "Read", title, readStatus))
+OP         IF readStatus = "Read"
+OP           WRITE_TEXT(PATH_JOIN($jobs, SAFE_NAME(job), "done.txt"), "done: " & title, into=writeStatus)
+OP           SET_VALUE(CELL($ws, r, COL($ws, "Note")), writeStatus)
+OP           IF writeStatus = "Written" THEN LET(n, n + 1)
+OP       RETURN(n)
+ERR      standard
+FIXTURE  jobs_01.xlsx sheet=Register cols=A:Job,B:Title,C:Note rows=6 data=A:values("J1"x1,"J2"x1,"J3"x1,"J4"x1,"J5"x1,""x1)+boundary("J1","","J2","J3","J4","J5")
+FIXTURE  jobs_01.xlsx sheet=Other cols=A:Item rows=1 data=A:seq(1,1)
+FIXTURE  jobs_01.xlsx folder=Jobs files=J1\job.txt:"Shell 1200",J2\job.txt:"Head",J2\done.txt:"done: Head",J3\other.txt:"x",J4\job.txt:"Nozzle",J5\job.txt:"Lock" locked=J5\job.txt
+TEST     fixture=jobs_01.xlsx call=MarkJobsDone(Register, Jobs) assert=RESULT = 2 AND ERROR_COUNT = 0 AND VALUE(Register!B2) = "Shell 1200" AND VALUE(Register!B5) = "Missing" AND VALUE(Register!B7) = "Locked" AND VALUE(Register!C4) = "Already there" AND VALUE(Register!C6) = "Written" AND FILE_TEXT("Jobs\J1\done.txt") = "done: Shell 1200" AND FILE_EXISTS("Jobs\J4\done.txt")
+TEST     fixture=jobs_01.xlsx call=MarkJobsDone(Register, Jobs) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND FILE_COUNT("Jobs") = 8 AND FILE_TEXT("Jobs\J4\done.txt") = "done: Nozzle" AND COUNTA(Register!A:A) = PRE_COUNTA(Register!A:A)
+TEST     fixture=jobs_01.xlsx call=MarkJobsDone(Other, Jobs) assert=RESULT = -1 AND ERROR_COUNT = 1
+"""
+
 FIXTURE = 'FIXTURE  t_01.xlsx sheet=Data cols=A:Key,B:Qty rows=4 data=A:values("a"x2,"b"x2);B:int(1,9)'
 
 
@@ -323,7 +364,7 @@ class Samples(unittest.TestCase):
     def test_they_validate_pass_and_catch_every_mutant(self):
         for name, text in (("GRADE", GRADE), ("MARKS", MARKS), ("DEDUPE", DEDUPE), ("FIND", FIND),
                            ("ADD_SHEET", ADD_SHEET), ("COPY_SHEET", COPY_SHEET), ("FILTER", FILTER),
-                           ("FORMULA", FORMULA), ("LIST_FILES", LIST_FILES)):
+                           ("FORMULA", FORMULA), ("LIST_FILES", LIST_FILES), ("TEXT_FILES", TEXT_FILES)):
             with self.subTest(name):
                 self.assertEqual([p.message for p in validator.validate_text(text)], [])
                 results = run_tests(text)
@@ -372,6 +413,11 @@ class Samples(unittest.TestCase):
         self.assertEqual(lint(assemble([vba])), [])
         self.assertIn('Set files = ForgeListFiles(dump, dump, "*.pdf")', vba)
         self.assertIn("For Each fileName In files", vba)
+        vba = compile_text(TEXT_FILES)
+        self.assertEqual(lint(assemble([vba])), [])
+        self.assertIn('readStatus = ForgeReadText(jobs, ForgePathJoin(jobs, Array(ForgeSafeName(job), "job.txt")), title)', vba)
+        self.assertIn('writeStatus = ForgeWriteText(jobs, ForgePathJoin(jobs, Array(ForgeSafeName(job), "done.txt")), '
+                      '("done: " & title))', vba)
 
     def test_log_and_msg_are_never_errors(self):
         grade, marks = run_tests(GRADE)[0], run_tests(MARKS)[0]
@@ -705,6 +751,63 @@ class ListFiles(unittest.TestCase):
         self.assertTrue(any("but the names are a list: declare it As Collection" in m for _, m in found), found)
 
 
+class TextFiles(unittest.TestCase):
+    ROOT = SANDBOX + "\\Jobs"
+
+    def fs(self):
+        fs = MockFS()
+        fs.add_folder(self.ROOT)
+        fs.add_folder(self.ROOT + "\\J1")
+        fs.add_file(self.ROOT + "\\J1\\a.txt", 6, text="Head\r\n")
+        fs.add_file(self.ROOT + "\\J1\\cafe.txt", 4, text="caf\u00e9")
+        fs.add_file(self.ROOT + "\\J1\\big.txt", 32768)
+        fs.add_file(self.ROOT + "\\J1\\held.txt", 4, locked=True, text="Lock")
+        return fs
+
+    def test_read_text_in_status_order(self):
+        fs, root = self.fs(), self.ROOT
+        for path, want in (("", ("Bad name", "")), (root + "\\J1\\a*.txt", ("Bad name", "")),
+                           (root + "\\" + "x" * 260, ("Too long", "")), (SANDBOX + "\\Other\\a.txt", ("Bad name", "")),
+                           (root + "\\J1\\none.txt", ("Missing", "")), (root + "\\J1", ("Missing", "")),
+                           (root + "\\J1\\big.txt", ("Too big", "")), (root + "\\J1\\held.txt", ("Locked", "")),
+                           (root + "\\J1\\cafe.txt", ("Not text", "")), (root + "\\J1\\a.txt", ("Read", "Head"))):
+            with self.subTest(path[-20:]):
+                self.assertEqual(read_text(fs, root, path), want)
+
+    def test_write_text_new_files_only(self):
+        fs, root = self.fs(), self.ROOT
+        for path, text, want in (("", "x", "Bad name"), (root + "\\" + "x" * 260, "x", "Too long"),
+                                 (SANDBOX + "\\Other\\n.txt", "x", "Bad name"), (root + "\\J1\\n.txt", "\u20ac", "Not text"),
+                                 (root + "\\J9\\n.txt", "x", "No folder"), (root + "\\J1", "x", "Conflict"),
+                                 (root + "\\J1\\a.txt", "Head", "Conflict"),          # 4 bytes, not 6
+                                 (root + "\\J1\\a.txt", "Head!\n", "Conflict"),      # 6 bytes, other text
+                                 (root + "\\J1\\held.txt", "Lock", "Locked"), (root + "\\J1\\a.txt", "Head\r\n", "Already there"),
+                                 (root + "\\J1\\n.txt", "new", "Written"), (root + "\\J1\\n.txt", "new", "Already there")):
+            with self.subTest(want):
+                self.assertEqual(write_text(fs, root, path, text), want)
+        self.assertEqual(fs.text_of(root + "\\J1\\a.txt"), "Head\r\n")       # never written over
+
+    def test_s25_length(self):
+        self.assertTrue(S.text_ok("x" * 32767))
+        self.assertFalse(S.text_ok("x" * 32768))
+        self.assertEqual(S.file_text("x" * 32767 + "\n"), None)    # the raw file is one too many
+        self.assertIn("Private Const FORGE_MAX_TEXT As Long = 32767", FORGELIB)
+
+    def test_the_rules(self):
+        def problems(text):
+            return [p.message for p in validator.validate_text(text) if p.severity == "error"]
+        self.assertIn("READ_TEXT needs a declared String VAR second, which gets the file's text, got '\"x\"'",
+                      problems(TEXT_FILES.replace("job.txt\"), title, into", 'job.txt"), "x", into')))
+        self.assertIn("WRITE_TEXT has no option mode=",
+                      problems(TEXT_FILES.replace("title, into=writeStatus", "title, mode=new, into=writeStatus")))
+        self.assertIn("WRITE_TEXT adds to $jobs, but no line declares MODIFIES $jobs files",
+                      problems(TEXT_FILES.replace("MODIFIES $jobs files\n", "")))
+        self.assertIn("READ_TEXT is VCL 0.4: start the spec with 'VCL 0.4' to use it",
+                      problems(TEXT_FILES.replace("VCL 0.4", "VCL 0.3", 1)))
+        self.assertTrue(any("must be one line of printable ASCII" in m
+                            for m in problems(TEXT_FILES.replace('"Head"', '"H\u00e9ad"'))))
+
+
 class Unchanged(unittest.TestCase):
     def test_a_spec_that_writes_nothing_changes_nothing_from_0_2_on(self):   # D20, for every later version too
         for version, want in (("VCL 0.1", False), ("VCL 0.2", True), ("VCL 0.3", True), ("VCL 0.4", True)):
@@ -765,6 +868,10 @@ class ForgeLib(unittest.TestCase):
         self.assertIn("ForgeFso().GetFolder(folder).Files", listing)
         self.assertNotIn("Dir(", listing)
         self.assertNotIn(" Like ", self.body("ForgeNameMatches"))
+        write = self.body("ForgeWriteText")
+        self.assertIn("Set ts = fso.CreateTextFile(path, False, False)", write)   # never over a file; ANSI
+        self.assertLess(write.index("ElseIf fso.FileExists(path) Then"), write.index("CreateTextFile"))
+        self.assertIn("Close #f\n    Err.Raise errNo", FORGELIB[FORGELIB.index("Private Function ForgeReadRaw("):])
         copy = self.body("ForgeCopySheet")
         self.assertLess(copy.index("already exists"), copy.index("src.Copy After:=after"))   # checked first
         find = self.body("ForgeFind")

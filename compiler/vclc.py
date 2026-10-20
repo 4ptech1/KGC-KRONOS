@@ -112,7 +112,8 @@ def cmd_build(files, out_dir, today):
                                                        "number_formats": [[rc[0], rc[1], f] for rc, f in formats],
                                                        **({"hidden_rows": r.hidden[sheet]} if sheet in r.hidden else {})}
                                                for sheet, (cells, fills, formats) in r.state.items()},
-                               **({"final_files": [list(f) for f in r.files]} if r.files else {})}
+                               **({"final_files": [list(f) for f in r.files]} if r.files else {}),
+                               **({"final_texts": [list(f) for f in r.texts]} if r.texts else {})}
                               for r in run_tests(text, run_day)]}
         (out / "expected" / (path.stem + ".json")).write_text(json.dumps(expected, indent=1, default=str),
                                                                encoding="utf-8")

@@ -252,4 +252,16 @@ CASES = [
     ("list_files", [["ab[1].txt", "ab1.txt"], "ab[1].txt"], ["ab[1].txt"], "[ ] are themselves, not a set"),
     ("list_files", [["a.pdf"], "*.txt"], [], "nothing matches: an empty list"),
     ("list_files", [[], "*"], [], "an empty folder"),
+    # S25 text files (VEP 0.4 Phase 7b)
+    ("file_text", ["J-101 Shell"], "J-101 Shell", "one line, as it is"),
+    ("file_text", ["J-101\r\n"], "J-101", "one final CR LF is dropped"),
+    ("file_text", ["J-101\n"], "J-101", "one final LF is dropped"),
+    ("file_text", ["a\r\nb\r\n\r\n"], "a\r\nb\r\n", "only one: the inner and the other line breaks stay"),
+    ("file_text", ["a\tb"], "a\tb", "a tab is text"),
+    ("file_text", [""], "", "an empty file"),
+    ("file_text", ["caf\u00e9"], None, "an accented letter is not text: it reads differently with each code page"),
+    ("file_text", ["x\x00y"], None, "a NUL byte is not text"),
+    ("text_ok", ["done: J-101"], True, "printable ASCII"),
+    ("text_ok", ["a\r\nb"], True, "line breaks"),
+    ("text_ok", ["\u20ac 5"], False, "the euro sign is not ASCII"),
 ]

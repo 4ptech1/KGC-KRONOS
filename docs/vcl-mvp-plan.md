@@ -76,7 +76,8 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    (D36), seven phases; OPEN_BOOK, SAVE_AS and CLOSE_BOOK wait until March. Phase 1 (the
    interpreter catches up, D37), Phase 2 (list syntax and DEDUPE, D38), Phase 3 (FIND, D39)
    Phase 4 (ADD_SHEET and COPY_SHEET, D40, D41), Phase 5 (FILTER, D42), Phase 6 (SET_FORMULA,
-   D43) and Phase 7a (LIST_FILES, D44) are done.
+   D43) and Phase 7 (LIST_FILES, READ_TEXT, WRITE_TEXT; D44, D45) are done. Left: spec.md and the
+   prompt move to VCL 0.4.
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
    VCL 0.2 packs.
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's

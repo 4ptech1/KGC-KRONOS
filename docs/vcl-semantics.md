@@ -32,6 +32,8 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S22 (VEP 0.4, D39) | `find` | FIND(range, x, match=...) looks at the cells row by row, left to right, and gives the first that matches, or NOTHING. match=whole (the default): the cell is SAME as x (S12). match=part: the cell's text holds TRIM(x), ignoring case (letter by letter, as LOWER); an empty TRIM(x) finds NOTHING, because every cell would hold it. Here: the 1-based position of that cell among values, or 0 for NOTHING. |
 | S23 (VEP 0.4, D40) | `sheet_name_ok` | a name ADD_SHEET may give a new sheet: 1 to 31 characters, no spaces at the ends (TRIM leaves it as it is), none of \ / ? * [ ] :, no apostrophe first or last, no character below code 32, and not History, which Excel keeps for itself (case ignored). Stricter than Excel where Excel allows lookalikes, so a name never differs from what a TEST asserts. |
 | S24 (VEP 0.4, D44) | `list_files` | LIST_FILES gives the names of the files directly in the folder that match the pattern, sorted by LOWER(name) and then by the name as written, so the order is the same on every PC. Here: from the names of the files in the folder. |
+| S25 (VEP 0.4, D45) | `text_ok` | text that READ_TEXT and WRITE_TEXT handle: printable ASCII (codes 32 to 126), tabs and line breaks, at most 32,767 characters. Any other character would read or write differently with each PC's code page. |
+| S25 (VEP 0.4, D45) | `file_text` | what READ_TEXT gives for a file's contents: the text with one final line break (CR LF, or LF) dropped, as editors add one; None when it isn't text (S25), which READ_TEXT reports as Not text. |
 
 ## Conformance cases
 
@@ -385,3 +387,24 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | ["ab[1].txt", "ab1.txt"], "ab[1].txt" | ["ab[1].txt"] | [ ] are themselves, not a set |
 | ["a.pdf"], "*.txt" | [] | nothing matches: an empty list |
 | [], "*" | [] | an empty folder |
+
+### READ_TEXT (VCL 0.4)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| "J-101 Shell" | "J-101 Shell" | one line, as it is |
+| "J-101\x0d\n" | "J-101" | one final CR LF is dropped |
+| "J-101\n" | "J-101" | one final LF is dropped |
+| "a\x0d\nb\x0d\n\x0d\n" | "a\x0d\nb\x0d\n" | only one: the inner and the other line breaks stay |
+| "a\tb" | "a\tb" | a tab is text |
+| "" | "" | an empty file |
+| "café" | (empty) | an accented letter is not text: it reads differently with each code page |
+| "x\x00y" | (empty) | a NUL byte is not text |
+
+### Text for READ_TEXT and WRITE_TEXT (VCL 0.4)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| "done: J-101" | True | printable ASCII |
+| "a\x0d\nb" | True | line breaks |
+| "€ 5" | False | the euro sign is not ASCII |

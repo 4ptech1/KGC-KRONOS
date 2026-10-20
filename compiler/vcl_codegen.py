@@ -394,6 +394,13 @@ class Gen:
         if name == "LIST_FILES":   # names in S24 order; never an error (D44)
             root = e(pos[0]) if isinstance(pos[0], Token) else self.path_root(pos[0])
             return [f"Set {vba_name(str(opts['into']))} = ForgeListFiles({root}, {e(pos[0])}, {e(pos[1])})"]
+        if name in ("READ_TEXT", "WRITE_TEXT"):   # a status into a String VAR (E11, D45), never an error
+            root, path = self.path_root(pos[0]), e(pos[0])
+            if name == "READ_TEXT":
+                return [f"{vba_name(str(opts['into']))} = ForgeReadText({root}, {path}, {vba_name(str(pos[1]))})"]
+            text, k = self.ex(pos[1])
+            text = text if k == "text" else f"ForgeText({text})"
+            return [f"{vba_name(str(opts['into']))} = ForgeWriteText({root}, {path}, {text})"]
         if name in ("MAKE_FOLDER", "COPY_FILE"):   # a status into a String VAR (E11), never an error
             paths = ", ".join(f"{self.path_root(p)}, {e(p)}" for p in pos)
             helper = "ForgeMakeFolder" if name == "MAKE_FOLDER" else "ForgeCopyFile"
@@ -431,8 +438,11 @@ class Gen:
             _, k = self.ex(pos[1])
             if self.vars.get(str(pos[0])) == "Variant":
                 self.facts[str(pos[0])] = k if k in ("num", "text", "date", "bool") else "raw"
-        elif name in ("DICT_GET", "READ_ARRAY", "MAKE_FOLDER", "COPY_FILE", "LIST_FILES") and "into" in opts:
+        elif name in ("DICT_GET", "READ_ARRAY", "MAKE_FOLDER", "COPY_FILE", "LIST_FILES", "READ_TEXT",
+                      "WRITE_TEXT") and "into" in opts:
             drop(str(opts["into"]))
+            if name == "READ_TEXT":
+                drop(str(pos[1]))
         elif name in ("SET_VALUE", "CLEAR", "SORT", "DELETE_ROW", "INSERT_ROW"):
             target = canon(pos[0])
             if target in self.facts:

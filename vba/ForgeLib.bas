@@ -8,6 +8,7 @@ Private gForgeFso As Object
 Private Const FORGE_MAX_NAME As Long = 100
 Private Const FORGE_MAX_FILE_PATH As Long = 258
 Private Const FORGE_MAX_FOLDER_PATH As Long = 247
+Private Const FORGE_MAX_TEXT As Long = 32767   ' S25: the most characters a cell holds
 Private Const FORGE_NAME_FORBIDDEN As String = "\/:*?""<>|"
 
 Public Sub ForgeLog(ByVal procName As String, ByVal errNumber As Long, ByVal message As String, ByVal lineNo As Long)
@@ -908,6 +909,151 @@ Public Function ForgeListFiles(ByVal root As String, ByVal folder As String, ByV
 FailedOp:
     ForgeLog "ForgeListFiles", Err.Number, Err.Description & ": " & folder, 0
     Set ForgeListFiles = New Collection
+End Function
+
+Public Function ForgeIsTextOk(ByVal v As Variant) As Boolean
+    ' S25: printable ASCII (32 to 126), tabs and line breaks, at most 32,767 characters. Any other
+    ' character reads or writes differently with each PC's code page.
+    Dim s As String
+    Dim i As Long
+    Dim code As Long
+    s = ForgeText(v)
+    If Len(s) > FORGE_MAX_TEXT Then Exit Function
+    For i = 1 To Len(s)
+        code = AscW(Mid$(s, i, 1))
+        If (code < 32 Or code > 126) And code <> 9 And code <> 10 And code <> 13 Then Exit Function
+    Next i
+    ForgeIsTextOk = True
+End Function
+
+Public Function ForgeFileText(ByVal raw As Variant) As Variant
+    ' S25: what READ_TEXT gives for a file's contents: one final line break (CR LF, or LF) dropped;
+    ' Null when it isn't text.
+    Dim s As String
+    s = ForgeText(raw)
+    If Not ForgeIsTextOk(s) Then
+        ForgeFileText = Null
+    ElseIf Right$(s, 2) = vbCrLf Then
+        ForgeFileText = Left$(s, Len(s) - 2)
+    ElseIf Right$(s, 1) = vbLf Then
+        ForgeFileText = Left$(s, Len(s) - 1)
+    Else
+        ForgeFileText = s
+    End If
+End Function
+
+Private Function ForgeReadRaw(ByVal path As String) As String
+    ' A file's bytes, read only and shared with any other reader. An error (70 when another program
+    ' holds the file) goes on to the caller, which turns it into a status; the file is closed first.
+    Dim f As Long
+    Dim raw As String
+    Dim errNo As Long
+    Dim errText As String
+    On Error GoTo FailedRead
+    f = FreeFile
+    Open path For Binary Access Read Shared As #f
+    raw = Space$(LOF(f))
+    Get #f, , raw
+    Close #f
+    ForgeReadRaw = raw
+    Exit Function
+FailedRead:
+    errNo = Err.Number
+    errText = Err.Description
+    Close #f
+    Err.Raise errNo, "ForgeReadRaw", errText
+End Function
+
+Public Function ForgeReadText(ByVal root As String, ByVal path As String, ByRef text As String) As String
+    ' READ_TEXT (D45): one read, never a change. text gets the file's text (S25), or "" unless the
+    ' status is Read: a missing, locked or binary file is a status, never an error.
+    Dim fso As Object
+    Dim got As Variant
+    Dim reading As Boolean
+    text = ""
+    On Error GoTo FailedOp
+    Set fso = ForgeFso()
+    If Len(path) = 0 Or ForgeHasWildcard(path) Then
+        ForgeReadText = "Bad name"
+    ElseIf Len(path) > FORGE_MAX_FILE_PATH Then
+        ForgeReadText = "Too long"
+    ElseIf Not ForgeBelowRoot(root, path) Then
+        ForgeReadText = "Bad name"
+    ElseIf Not fso.FileExists(path) Then
+        ForgeReadText = "Missing"
+    ElseIf fso.GetFile(path).Size > FORGE_MAX_TEXT Then
+        ForgeReadText = "Too big"
+    Else
+        reading = True
+        got = ForgeFileText(ForgeReadRaw(path))
+        reading = False
+        If IsNull(got) Then
+            ForgeReadText = "Not text"
+        Else
+            text = got
+            ForgeReadText = "Read"
+        End If
+    End If
+    Exit Function
+FailedOp:
+    ' Error 70 (permission denied) while reading: another program holds the file.
+    If reading And Err.Number = 70 Then
+        ForgeReadText = "Locked"
+    Else
+        ForgeLog "ForgeReadText", Err.Number, Err.Description & ": " & path, 0
+        ForgeReadText = "Failed"
+    End If
+End Function
+
+Public Function ForgeWriteText(ByVal root As String, ByVal path As String, ByVal text As String) As String
+    ' WRITE_TEXT (D45): a new file holding exactly text, with no line break added; never over anything.
+    Dim fso As Object
+    Dim ts As Object
+    Dim slash As Long
+    Dim stage As Long   ' 1 while reading the file that is there, 2 while writing the new one
+    On Error GoTo FailedOp
+    Set fso = ForgeFso()
+    slash = InStrRev(path, "\")
+    If Len(path) = 0 Or ForgeHasWildcard(path) Then
+        ForgeWriteText = "Bad name"
+    ElseIf Len(path) > FORGE_MAX_FILE_PATH Then
+        ForgeWriteText = "Too long"
+    ElseIf Not ForgeBelowRoot(root, path) Then
+        ForgeWriteText = "Bad name"
+    ElseIf Not ForgeIsTextOk(text) Then
+        ForgeWriteText = "Not text"
+    ElseIf slash = 0 Then
+        ForgeWriteText = "No folder"
+    ElseIf Not fso.FolderExists(Left$(path, slash - 1)) Then
+        ForgeWriteText = "No folder"
+    ElseIf fso.FolderExists(path) Then
+        ForgeWriteText = "Conflict"
+    ElseIf fso.FileExists(path) Then
+        If fso.GetFile(path).Size <> Len(text) Then
+            ForgeWriteText = "Conflict"
+        Else
+            stage = 1
+            If ForgeReadRaw(path) = text Then ForgeWriteText = "Already there" Else ForgeWriteText = "Conflict"
+            stage = 0
+        End If
+    Else
+        ' overwrite is False: a file that appears at path meanwhile raises an error, never replaced
+        stage = 2
+        Set ts = fso.CreateTextFile(path, False, False)
+        ts.Write text
+        ts.Close
+        stage = 0
+        If fso.GetFile(path).Size = Len(text) Then ForgeWriteText = "Written" Else ForgeWriteText = "Check write"
+    End If
+    Exit Function
+FailedOp:
+    ' Error 70 (permission denied) while reading what is there: another program holds that file.
+    If stage = 1 And Err.Number = 70 Then
+        ForgeWriteText = "Locked"
+    Else
+        ForgeLog "ForgeWriteText", Err.Number, Err.Description & ": " & path, 0
+        ForgeWriteText = "Failed"
+    End If
 End Function
 
 Public Function ForgeCopyFile(ByVal srcRoot As String, ByVal src As String, ByVal dstRoot As String, ByVal dst As String) As String
