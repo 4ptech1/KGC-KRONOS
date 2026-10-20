@@ -1,11 +1,12 @@
 # VEP 0.4: the rest of revision 3 (MVP plan, item 2)
 
-Status: **design, 20 Oct 2026** (Boss said "go item 2"). Choices that needed Boss's decision were
-made the conservative way and recorded in `DECISIONS.md` D36, as CLAUDE.md asks; Boss can
-overrule any of them. Phase 1 changes no language; later phases change VCL and follow the usual
-rule (spec.md and the prompt together, every check, one Orchestrator update per switch).
-Phases 1 to 7 are done (D37 to D45): every phase of item 2 is in the toolchain. The toolchain accepts the `VCL 0.4` line; spec.md and the
-prompt move to 0.4 after the last language phase (D38).
+Status: **done, 20 Oct 2026** (Boss said "go item 2"; designed and built the same day). Choices
+that needed Boss's decision were made the conservative way and recorded in `DECISIONS.md` D36,
+as CLAUDE.md asks; Boss can overrule any of them. Phase 1 changes no language; later phases
+change VCL and follow the usual rule (spec.md and the prompt together, every check, one
+Orchestrator update per switch). Phases 1 to 7 are done (D37 to D45), and so is the switch (E12,
+D46): spec.md and the Orchestrator prompt teach VCL 0.4, so Boss updates the Orchestrator once.
+**Item 2 is complete.**
 
 ## The problem
 

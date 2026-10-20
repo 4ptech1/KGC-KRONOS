@@ -419,6 +419,8 @@ class Gen:
             target = str(pos[0]).split(".")[-1]
             rest = ", ".join(e(p) for p in pos[1:])
             return [f"Call {target}({rest})" if rest else f"Call {target}"]
+        if name in ("OPEN_BOOK", "SAVE_AS", "CLOSE_BOOK"):
+            raise CompileError(f"{name} opens or saves a real workbook: refused until March 2027 (D36)")
         raise CompileError(f"{name} is not supported by the MVP compiler")
 
     def path_root(self, t):

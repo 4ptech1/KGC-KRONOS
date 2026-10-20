@@ -370,12 +370,14 @@ class TaskChecker:
         return self.problems
 
     def check_folders_can_catch_mistakes(self):
-        """Rule 19 (warning, VCL 0.3): COPY_FILE needs a locked file in a FIXTURE folder, or no TEST
-        shows what the macro does with a report that is open in another program."""
-        copies = [line for line, name, role, _, _ in self.file_paths if name == "COPY_FILE" and role == "from"]
-        if copies and self.spec.tests and not any(ff.locked for ff in self.folders):
-            self.warning("the spec copies files, but no FIXTURE folder has a locked= file, so no TEST shows "
-                         "what happens to a file that is open elsewhere (rule 19)", copies[0])
+        """Rule 19 (warning, VCL 0.3): COPY_FILE, and READ_TEXT (VCL 0.4, D46), need a locked file in a
+        FIXTURE folder, or no TEST shows what the macro does with a file that is open in another program."""
+        reads = [(line, name) for line, name, role, _, _ in self.file_paths if role == "from"]
+        if reads and self.spec.tests and not any(ff.locked for ff in self.folders):
+            line, name = reads[0]
+            self.warning(f"the spec {'copies' if name == 'COPY_FILE' else 'reads'} files, but no FIXTURE folder has "
+                         "a locked= file, so no TEST shows what happens to a file that is open elsewhere (rule 19)",
+                         line)
 
     def check_fixtures_can_catch_mistakes(self):
         """Rule 19 (warnings): fixtures that let the TESTs tell a right macro from a wrong one."""

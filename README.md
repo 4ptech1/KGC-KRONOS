@@ -185,3 +185,9 @@ Dataset count: 0 verified pairs
   (like COPY_FILE): text is printable ASCII only (S25), and WRITE_TEXT only ever adds a new file.
   Folder FIXTUREs can hold text files, and FILE_TEXT checks what was written (D45). Every phase of
   item 2 is now in the toolchain; spec.md and the prompt move to VCL 0.4 next.
+- **2026-10-20:** Item 2, the switch: spec.md and the Orchestrator prompt teach VCL 0.4. They have
+  every op item 2 made provable, with its meaning, a new hard rule 22 for sheets and formulas, and
+  rules 10, 19, 20 and 21 grown to match; ops no TEST can prove (ACTIVE_SHEET, and OPEN_BOOK,
+  SAVE_AS and CLOSE_BOOK until March 2027) are no longer taught. Every spec gives the same
+  results under 0.4 (E12, D46). Boss pastes the new prompt into the Orchestrator Project once.
+  Item 2 is complete.
