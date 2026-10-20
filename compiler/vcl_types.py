@@ -339,9 +339,10 @@ class Checker:
             for k in [k for k in facts if mentions(k, v)]:
                 del facts[k]
 
-        def drop_sheet_of(rng):
+        def drop_sheet_of(rng, block=False):
+            """block: the op writes a block that starts at rng, so a CELL(...) target loses the sheet."""
             text = canon(rng)
-            if text.startswith("CELL("):
+            if text.startswith("CELL(") and not block:
                 facts.pop(text, None)
                 return
             sheet = text[text.index("(") + 1:].split(",")[0].rstrip(")") if "(" in text else text
@@ -373,6 +374,8 @@ class Checker:
             drop_sheet_of(pos[2])
         elif name in ("DELETE_ROW", "INSERT_ROW", "SORT", "DEDUPE"):
             drop_sheet_of(pos[0])
+        elif name == "WRITE_ARRAY" and "to" in opts:
+            drop_sheet_of(opts["to"], block=True)
 
     def assign(self, v, vt, src, vflow, line):
         declared = self.vars.get(v)
