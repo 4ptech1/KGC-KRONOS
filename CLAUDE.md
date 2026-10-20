@@ -161,8 +161,8 @@ TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
 Done: 12 specs (11 in VCL 0.2, task_12 in 0.3), VCL 0.4 in spec.md and the Orchestrator prompt (D46), the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,
 `vclc`), with one fixture generator. Fixtures from the mutation evidence (revision 5:
-`stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). All specs are VCL 0.2, with blank
-key rows for every SKIP_IF (D22). FORMAT fill names work (D23). task_11 HighlightRejectedWelds is
+`stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). Every SKIP_IF has blank key rows
+(D22). FORMAT fill names work (D23). task_11 HighlightRejectedWelds is
 Boss's weld-log spec, unchanged (D24). task_12 RouteJobPacks is the router MVP spec, VCL 0.3 (D32).
 Snapshot mutation score 95.4% (418 of 438); 19 of the 20 survivors are
 equivalents, and 1 (task_11 `LOOP_COLS from=1`) needs a fixture change, reported to Boss. The repo is KGC-KRONOS (renamed 17 Oct 2026). PR #4 (Excel pilot) is open with the `deferred`

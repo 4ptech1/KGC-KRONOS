@@ -114,7 +114,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
-tests/                    346 unit tests; conformance_cases.py is shared with the docs
+tests/                    347 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -284,7 +284,8 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
 - rows and formulas (VCL 0.4): `VISIBLE_COUNT(Sheet!range)`, `FORMULA(Sheet!cell)`
 - run results: RESULT, ERROR_COUNT
 - PRE_<measure>, taken before the run
-- ranges by header: `Sheet![Header]` and `Sheet![Header]<row>`
+- ranges by header: `Sheet![Header]` (the whole column from row 1, header cell included) and
+  `Sheet![Header]<row>` (one cell)
 - a Workbook argument is passed as the TEST's own fixture file: `call=P(ncr_01.xlsx, Ncr)`
 
 ## 7. What the toolchain can run today (important when reviewing specs)
@@ -308,7 +309,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 346 pass |
+| Unit tests | 347 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the ~40 guideline; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -471,6 +472,16 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 - **D24:** Boss's weld-log spec is task_11, unchanged. The router spec becomes task_12.
 - **D25:** original model and context data: the model is trained from zero, on in-house data only.
 - **D31:** the model writes VCL, never VBA; the compiler writes all VBA (`docs/ai-plan.md`).
+- **D36, D46:** item 2 made the rest of revision 3 provable by TESTs, and VCL 0.4 is taught in
+  one step. OPEN_BOOK, SAVE_AS and CLOSE_BOOK stay in the language but are refused until
+  March 2027, because they open and save real workbooks.
+- **D42, D43:** FILTER hides rows itself (never AutoFilter, whose criteria read through the PC's
+  settings). SET_FORMULA writes Excel 2016 functions only, and a TEST checks a formula's text,
+  never its value (only Excel can calculate it).
+- **S24, S25:** LIST_FILES gives names in one fixed order. READ_TEXT and WRITE_TEXT handle
+  printable ASCII only, and WRITE_TEXT never overwrites a file.
+- **D47:** `Sheet![Header]` is the header's whole column from row 1, the header cell included
+  (as `A:A` is): 5 values under a header give COUNTA = 6. Committed specs count on it.
 
 ## 11. How to help (rules for the AI reading this)
 
@@ -869,8 +880,9 @@ TEST ASSERTIONS  (checked on the test workbook after the run)
 COUNTIF, COUNTIFS and SUMIFS work as in Excel 2016: criteria such as "Ready", "<>" (not
 blank), "<>B-109" or ">=5"; text matching ignores case. COUNTIFS and SUMIFS ranges must be
 the same size, so use [Header] ranges from the same sheet.
-Ranges by header: <Sheet>![Header] is the whole column under that row-1 header;
-<Sheet>![Header]<n> is that column's cell in row n. Prefer them to column letters.
+Ranges by header: <Sheet>![Header] is that header's whole column from row 1, the header
+cell included (5 values under a header: COUNTA gives 6); <Sheet>![Header]<n> is that
+column's cell in row n. Prefer them to column letters.
 runs=<n> calls the procedure n times on the same test workbook before checking
 (default 1).
 Combine assertions with AND. In TEST call arguments, a bare sheet name (Orders) means that

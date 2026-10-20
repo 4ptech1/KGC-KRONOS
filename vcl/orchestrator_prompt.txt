@@ -348,8 +348,9 @@ TEST ASSERTIONS  (checked on the test workbook after the run)
 COUNTIF, COUNTIFS and SUMIFS work as in Excel 2016: criteria such as "Ready", "<>" (not
 blank), "<>B-109" or ">=5"; text matching ignores case. COUNTIFS and SUMIFS ranges must be
 the same size, so use [Header] ranges from the same sheet.
-Ranges by header: <Sheet>![Header] is the whole column under that row-1 header;
-<Sheet>![Header]<n> is that column's cell in row n. Prefer them to column letters.
+Ranges by header: <Sheet>![Header] is that header's whole column from row 1, the header
+cell included (5 values under a header: COUNTA gives 6); <Sheet>![Header]<n> is that
+column's cell in row n. Prefer them to column letters.
 runs=<n> calls the procedure n times on the same test workbook before checking
 (default 1).
 Combine assertions with AND. In TEST call arguments, a bare sheet name (Orders) means that

@@ -581,6 +581,21 @@ class RealSpecs(unittest.TestCase):
                            ("TASK FORMAT", "the same spec always builds the same file.")]:
             self.assertEqual(between(spec, start, end), between(prompt, start, end))
 
+    def test_the_reference_text_teaches_exactly_what_the_validator_knows(self):
+        # D47: an op, function or assertion the validator knows is written in the reference text,
+        # and nothing is written there that the validator doesn't know. ACTIVE_BOOK and
+        # ACTIVE_SHEET are known but no longer taught (D46); the other three are only wording
+        # in the text (INT in MOD's meaning, NAME in the call shape, PRE_ examples).
+        import validator
+        spec = read("vcl/spec.md")
+        reference = spec[spec.index("TASK FORMAT"):spec.index("FIXTURE SPEC")]
+        known = (set(validator.OPS) | set(validator.VALUE_FUNCS) | validator.STRUCT | validator.ASSERT_FUNCS
+                 | validator.CONSTANTS)
+        written = set(re.findall(r"\b([A-Z][A-Z0-9_]+)\b", reference))
+        called = set(re.findall(r"\b([A-Z][A-Z0-9_]{2,})\(", reference))
+        self.assertEqual(sorted(known - written - {"ACTIVE_BOOK", "ACTIVE_SHEET"}), [])
+        self.assertEqual(sorted(called - known - {"INT", "NAME", "PRE_COUNTA", "PRE_COUNTIFS"}), [])
+
     def test_the_context_file_carries_the_same_reference_text(self):
         # docs/kgc-kronos-context.md is what Boss gives other Claude chats; its Appendix A must
         # be spec.md's reference text, word for word.
