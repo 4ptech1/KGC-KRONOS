@@ -23,9 +23,9 @@ jobs:
         run: python compiler/validator.py specs/*.vcl
       - name: Check, test and build every spec
         run: python compiler/vclc.py all specs/*.vcl -o dist
-      - name: dist/forge_module.bas and dist/forge_selftest.bas are up to date
+      - name: The committed dist/ modules are up to date
         run: |
-          for f in dist/forge_module.bas dist/forge_selftest.bas; do
+          for f in dist/forge_module.bas dist/forge_selftest.bas dist/forge_pilot.bas; do
             if [ -n "$(git status --porcelain -- "$f")" ]; then
               echo "::error file=$f::out of date: run 'python compiler/vclc.py all specs/*.vcl -o dist' and commit $f"
               git diff --stat -- "$f"

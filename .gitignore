@@ -20,8 +20,9 @@ env/
 # Run logs
 logs/*.log
 
-# Build output from vclc: only dist/forge_module.bas and dist/forge_selftest.bas are kept (CI checks
-# they are up to date)
+# Build output from vclc: only dist/forge_module.bas, forge_selftest.bas and forge_pilot.bas are kept
+# (CI checks they are up to date)
 dist/*
 !dist/forge_module.bas
 !dist/forge_selftest.bas
+!dist/forge_pilot.bas

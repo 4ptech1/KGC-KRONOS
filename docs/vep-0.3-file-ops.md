@@ -1,7 +1,7 @@
 # VEP 0.3: file ops and the Job-Pack Router MVP
 
 Status: **design, approved by Boss on 17 Oct 2026**. Phases 0 (D22), 1 (D26, D27), 2 (D28),
-3 (D29, D30), 4 (D32, D33) and 5a (D34) are done; 5b is next. Nothing below is in the language
+3 (D29, D30), 4 (D32, D33) and 5 (D34, D35) are done: the MVP is complete. Nothing below is in the language
 until its phase lands.
 
 ## Context
@@ -87,7 +87,8 @@ caught. **4b (done):** the language switch, with hard rule 21 and Example 3 (D33
 
 ### Phase 5: Excel pilot kit (optional; Boss runs it when he chooses)
 Two PRs (D34). **5a (done):** `dist/forge_selftest.bas`, committed, from `compiler/vcl_selftest.py`.
-**5b:** the task_12 pilot runner, the results checker and the guide.
+**5b (done):** `dist/forge_pilot.bas`, `vclc pilot-check` (which replaces the expected JSON files)
+and `docs/excel-pilot.md` (D35).
 - **`dist/forge_selftest.bas`:** runs every conformance case through ForgeLib in Excel and writes PASS or FAIL to a new sheet. This is the actual "ForgeLib runs in Excel 2016" proof.
 - **A guide for Boss** (`docs/excel-pilot.md`): open a blank .xlsm, import 3 modules, run `ForgeSandboxBuild`, run `RouteJobPacks`, then paste the results back.
 - **`dist/expected/task_12*.json`:** what the run should show. Claude compares the pasted results automatically.

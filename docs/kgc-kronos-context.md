@@ -110,6 +110,8 @@ compiler/gen_semantics_doc.py  writes docs/vcl-semantics.md
 vba/ForgeLib.bas          the VBA runtime every generated procedure calls
 dist/forge_module.bas     committed build output: ForgeLib plus one procedure per spec (paste-ready)
 dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance case run in Excel (D34)
+dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
+docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
 tests/                    211 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
@@ -328,6 +330,7 @@ The 12 specs:
 - #27: the AI plan, D31 (the model writes VCL, never VBA).
 - #28: task_12 RouteJobPacks, the router MVP spec.
 - #29: spec.md and the prompt teach VCL 0.3.
+- #30 and #31: the Excel pilot kit (the ForgeLib self-test; the task_12 pilot and `pilot-check`).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -337,7 +340,7 @@ The 12 specs:
 
 ## 9. The plan
 
-**Current: the Job-Pack Router MVP** (`docs/vep-0.3-file-ops.md`, approved by Boss).
+**Done: the Job-Pack Router MVP** (`docs/vep-0.3-file-ops.md`, approved by Boss; complete on 20 Oct 2026).
 
 A single-task MVP that proves ForgeLib in Boss's Excel 2016:
 - It reads a tracker of Job IDs and report files.
@@ -360,8 +363,8 @@ Boss's decisions:
 | 3b | A sandbox builder in `%TEMP%` for the folder FIXTUREs (`ForgeSandbox_<file>()`); a TEST fails when Excel's longer sandbox root could change a Too long status (D30) | **Done** (PR #26) |
 | 4a | `specs/task_12.vcl` RouteJobPacks: every status on a row of its own, a re-run, two PRE failures; 29 of 29 mutants caught (D32) | **Done** (PR #28) |
 | 4b | The shared reference text and the prompt switch to 0.3 (hard rule 21, Example 3), and Boss updates the Orchestrator again (exact clicks) (D33) | **Done** (PR #29); Boss pastes the prompt |
-| 5a | The ForgeLib self-test: every conformance case run through ForgeLib in Excel (`dist/forge_selftest.bas`, D34) | **Done** |
-| 5b | The task_12 pilot runner, the results checker and a step-by-step guide for Boss | **Next** (Boss said "go Phase 5" on 20 Oct 2026); running it stays optional |
+| 5a | The ForgeLib self-test: every conformance case run through ForgeLib in Excel (`dist/forge_selftest.bas`, D34) | **Done** (PR #30) |
+| 5b | The task_12 pilot (`dist/forge_pilot.bas`), `vclc pilot-check`, and Boss's guide `docs/excel-pilot.md` (D35) | **Done**; running it in Excel is optional |
 
 The key safety design for files:
 - **Every path is built** with `PATH_JOIN` from a `$root` argument and `SAFE_NAME` parts.
@@ -393,7 +396,9 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 (Boss's daily use).
 
 **Pending Boss decisions right now:**
-1. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
+1. "go item 2" (the rest of revision 3 in the compiler and interpreter); Claude Code waits.
+2. When, if ever, to run the optional Excel pilot (`docs/excel-pilot.md`).
+3. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
    skipped column A, no TEST would notice. Closing it needs a FIXTURE whose last row has a value
    only in column A. That is a spec change, so it waits for Boss.
 
