@@ -16,6 +16,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from test_parser import MINIMAL_BUILD  # noqa: E402
 from validator import validate_text  # noqa: E402
+from vcl_interp import run_tests  # noqa: E402
+from vcl_mutate import mutate_report  # noqa: E402
 
 MINIMAL = """VCL 0.1
 TASK
@@ -539,13 +541,32 @@ class RealSpecs(unittest.TestCase):
     def test_orchestrator_example_1(self):
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 1"):prompt.index("EXAMPLE 2")]
-        spec = example[example.index("VCL 0.2"):]
+        spec = example[example.index("VCL 0.3"):]
         self.assertEqual(validate_text(spec), [])
 
     def test_example_1_file_is_the_prompts_example_1(self):
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 1"):prompt.index("EXAMPLE 2")]
-        self.assertEqual(read("vcl/examples/example1_rev3.vcl").strip(), example[example.index("VCL 0.2"):].strip())
+        self.assertEqual(read("vcl/examples/example1_rev3.vcl").strip(), example[example.index("VCL 0.3"):].strip())
+
+    def test_example_3_copies_files_and_is_proven(self):
+        # Example 3 (VCL 0.3, D33) is vcl/examples/example3_files.vcl: valid with no warnings,
+        # every TEST passes, and its TESTs catch every mutant.
+        prompt = read("vcl/orchestrator_prompt.txt")
+        example = prompt[prompt.index("EXAMPLE 3"):prompt.index("FINAL CHECK")]
+        spec = example[example.index("VCL 0.3"):]
+        self.assertEqual(read("vcl/examples/example3_files.vcl").strip(), spec.strip())
+        self.assertEqual(validate_text(spec), [])
+        results = run_tests(spec)
+        self.assertTrue(all(r.passed for r in results), [(r.line, r.failed) for r in results])
+        self.assertEqual(mutate_report(spec, snapshot=True)[:2], (29, 29))
+
+    def test_the_prompt_teaches_vcl_0_3(self):
+        prompt = read("vcl/orchestrator_prompt.txt")
+        self.assertTrue(prompt.startswith("VBA FORGE ORCHESTRATOR · SYSTEM PROMPT · VCL 0.3\n"))
+        self.assertIn("exactly one VCL 0.3 spec. The VBA Forge compiler turns", prompt)   # D25, D31
+        self.assertNotIn("fine-tuned", prompt)
+        self.assertNotIn("VCL 0.2", prompt)
 
     def test_spec_md_and_prompt_share_the_reference_text(self):
         spec, prompt = read("vcl/spec.md"), read("vcl/orchestrator_prompt.txt")
@@ -555,7 +576,7 @@ class RealSpecs(unittest.TestCase):
             self.assertIsNotNone(match, start)
             return match.group(0)
 
-        for start, end in [("1.  Reply with exactly", "nothing has no MODIFIES lines."),
+        for start, end in [("1.  Reply with exactly", "moves, renames, overwrites or deletes a file."),
                            ("TASK FORMAT", "the same spec always builds the same file.")]:
             self.assertEqual(between(spec, start, end), between(prompt, start, end))
 
@@ -563,7 +584,7 @@ class RealSpecs(unittest.TestCase):
         # docs/kgc-kronos-context.md is what Boss gives other Claude chats; its Appendix A must
         # be spec.md's reference text, word for word.
         spec, context = read("vcl/spec.md"), read("docs/kgc-kronos-context.md")
-        for start, end in [("1.  Reply with exactly", "nothing has no MODIFIES lines."),
+        for start, end in [("1.  Reply with exactly", "moves, renames, overwrites or deletes a file."),
                            ("TASK FORMAT", "the same spec always builds the same file.")]:
             pattern = re.escape(start) + r".*?" + re.escape(end)
             self.assertEqual(re.search(pattern, spec, re.S).group(0), re.search(pattern, context, re.S).group(0))

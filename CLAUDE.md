@@ -56,7 +56,7 @@ specs, each with its VBA.
 
 ## Sources of truth
 
-- `vcl/spec.md`: VCL 0.2, the language reference.
+- `vcl/spec.md`: VCL 0.3, the language reference.
 - `vcl/orchestrator_prompt.txt`: the claude.ai prompt that writes specs. It contains the same
   reference text (a unit test keeps them identical), so the two always change together.
 - `vcl/grammar.lark`: the formal syntax. `vcl/semantics.py`: the reference meaning of the value
@@ -155,7 +155,7 @@ The Excel batch runner (`harness/ForgeTest.bas`, PR #4) is deferred; nothing dep
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, type-check, pass their
 TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
 
-Done: 12 specs, VCL 0.2 (specs, spec.md and the Orchestrator prompt), the parser and validator, and the
+Done: 12 specs (11 in VCL 0.2, task_12 in 0.3), VCL 0.3 in spec.md and the Orchestrator prompt (D33), the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,
 `vclc`), with one fixture generator. Fixtures from the mutation evidence (revision 5:
 `stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). All specs are VCL 0.2, with blank
@@ -175,10 +175,11 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    statuses, FILE_EXISTS, FILE_COUNT and UNCHANGED for files; E11, F7, D28) are done. Boss said
    "go Phase 3" on 19 Oct 2026, and Phase 3 is done: 3a (the compiler, ForgeLib's file helpers
    and the lint file-safety rules; D29, PR #25) and 3b (the sandbox builder and the sandbox
-   length check; D30, PR #26). Boss said "go Phase 4" on 20 Oct 2026: 4a (`specs/task_12.vcl`
-   RouteJobPacks; D32) is done. **Next is 4b**: the shared reference text and the Orchestrator
-   prompt switch to VCL 0.3 (with the ROLE line of D25 and D31), then Boss updates the
-   Orchestrator, with exact clicks.
+   length check; D30, PR #26). Boss said "go Phase 4" on 20 Oct 2026, and Phase 4 is done: 4a
+   (`specs/task_12.vcl` RouteJobPacks; D32, PR #28) and 4b (spec.md and the Orchestrator prompt
+   teach VCL 0.3: hard rule 21, Example 3, the new ROLE line; D33). Boss pastes the new prompt
+   into the Orchestrator Project. **Next: ask Boss** whether to build Phase 5 (the optional
+   Excel pilot kit) or move on to item 2.
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 3. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
