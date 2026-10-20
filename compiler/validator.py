@@ -60,7 +60,7 @@ OPS = {
     "INSERT_ROW": (2, 2, {}, ()),
     "DELETE_ROW": (2, 2, {}, ()),
     "ADD_SHEET": (1, 1, {"name": "expr", "after": "expr", "into": "var"}, ()),
-    "COPY_SHEET": (1, 1, {"after": "expr", "into": "var"}, ()),
+    "COPY_SHEET": (1, 1, {"name": "expr", "after": "expr", "into": "var"}, ()),
     "OPEN_BOOK": (1, 1, {"readonly": YES_NO, "into": "var"}, ("into",)),
     "SAVE_AS": (2, 2, {"format": ("xlsx", "xlsm", "csv")}, ()),
     "CLOSE_BOOK": (1, 1, {"save": YES_NO}, ()),
@@ -309,9 +309,9 @@ class TaskChecker:
         self.pre_roots = []        # [arg] checked with FOLDER_EXISTS($arg) in PRE (VCL 0.3)
         self.modifies_files = {}   # arg -> line of MODIFIES $arg files (VCL 0.3)
         self.modifies_sheets = {}  # arg -> line of MODIFIES $arg sheets (VCL 0.4)
-        self.sheet_adds = []       # (line, op, $book argument or None): ADD_SHEET (VCL 0.4)
-        self.new_sheets = {}       # Worksheet VAR -> line: set by ADD_SHEET into= (VCL 0.4, D40)
-        self.var_sets = []         # (line, VAR) set by LET or any other into= (not ADD_SHEET)
+        self.sheet_adds = []       # (line, op, $book, None or "*" for COPY_SHEET's own workbook) (VCL 0.4)
+        self.new_sheets = {}       # Worksheet VAR -> line: set by ADD_SHEET or COPY_SHEET into= (D40, D41)
+        self.var_sets = []         # (line, VAR) set by LET or any other into=
         self.file_paths = []       # (line, op, "from" or "to", root arg or None, bare root?)
 
     def error(self, message, line=None):
@@ -631,10 +631,17 @@ class TaskChecker:
         self.writes.append((self.line, name, arg, change))
 
     def check_sheet_adds(self):
-        """VCL 0.4 (D40): ADD_SHEET adds to a Workbook argument declared with MODIFIES $book sheets."""
+        """VCL 0.4 (D40, D41): ADD_SHEET and COPY_SHEET add to a Workbook argument declared with
+        MODIFIES $book sheets."""
         added = set()
         for line, name, book in self.sheet_adds:
-            if book is None or self.args.get(book) != "Workbook":
+            if book == "*":   # COPY_SHEET: the copy goes into the TEST's workbook, every Workbook argument
+                if not self.modifies_sheets:
+                    why = "" if self.at_least("VCL 0.4") else ", which is VCL 0.4: start the spec with 'VCL 0.4'"
+                    self.error(f"{name} adds a sheet to the workbook of the sheet it copies: give the spec a Workbook "
+                               f"argument $book and declare MODIFIES $book sheets{why}", line)
+                added |= set(self.modifies_sheets)
+            elif book is None or self.args.get(book) != "Workbook":
                 self.error(f"{name} needs a Workbook argument ($book) as its first argument, so MODIFIES can "
                            "name the workbook it changes", line)
             elif book not in self.modifies_sheets:
@@ -647,8 +654,8 @@ class TaskChecker:
                 self.warning(f"MODIFIES ${book} sheets, but no op adds a sheet to ${book}", line)
         for line, var in self.var_sets:
             if var in self.new_sheets:
-                self.error(f"{var} holds the sheet ADD_SHEET made (line {self.new_sheets[var]}), so only ADD_SHEET "
-                           "may set it: writes through it are checked as writes to a new sheet", line)
+                self.error(f"{var} holds the sheet made on line {self.new_sheets[var]}, so only ADD_SHEET or "
+                           "COPY_SHEET may set it: writes through it are checked as writes to a new sheet", line)
 
     def check_writes_are_declared(self):
         """MODIFIES: every write names a declared sheet in a way its lines allow; every declared
@@ -983,21 +990,27 @@ class TaskChecker:
         if name == "LET" and positional and len(positional[0]) == 1 and is_tok(positional[0][0], "name"):
             self.var_sets.append((self.line, positional[0][0].text))
         for key, items in options:
-            if key.text == "into" and name != "ADD_SHEET" and len(items) == 1 and is_tok(items[0], "name"):
+            if (key.text == "into" and name not in ("ADD_SHEET", "COPY_SHEET") and len(items) == 1
+                    and is_tok(items[0], "name")):
                 self.var_sets.append((self.line, items[0].text))
-        if name == "ADD_SHEET" and self.at_least("VCL 0.2"):   # D40: it changes the workbook's sheet list
+        if name in ("ADD_SHEET", "COPY_SHEET") and self.at_least("VCL 0.2"):   # they change the sheet list (D40, D41)
             book = positional[0] if positional else []
-            self.sheet_adds.append((self.line, name, book[0].text[1:] if len(book) == 1 and is_tok(book[0], "arg")
-                                    else None))
+            if name == "COPY_SHEET":
+                self.sheet_adds.append((self.line, name, "*"))   # the workbook of the sheet it copies
+            else:
+                self.sheet_adds.append((self.line, name, book[0].text[1:] if len(book) == 1 and is_tok(book[0], "arg")
+                                        else None))
             given = dict((k.text, v) for k, v in options)
             into = given.get("into")
             if into and len(into) == 1 and is_tok(into[0], "name"):
                 self.new_sheets.setdefault(into[0].text, self.line)
             if "name" not in given:
-                self.error("ADD_SHEET needs name=: Excel's own names (Sheet4) depend on the PC's language")
+                why = ("Excel's own names (Sheet4) depend on the PC's language" if name == "ADD_SHEET"
+                       else "Excel's own name for a copy (Template (2)) is not one a TEST can rely on")
+                self.error(f"{name} needs name=: {why}")
             elif len(given["name"]) == 1 and is_tok(given["name"][0], "string") \
                     and not sheet_name_ok(given["name"][0].text[1:-1].replace('""', '"')):
-                self.error(f"ADD_SHEET name={given['name'][0].text} is not a valid sheet name (S23: 1 to 31 "
+                self.error(f"{name} name={given['name'][0].text} is not a valid sheet name (S23: 1 to 31 "
                            "characters, no spaces at the ends, none of \\ / ? * [ ] :, not History)")
         self.record_write(name, positional, options)
         if name in VCL_03_OPS:

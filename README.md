@@ -168,3 +168,6 @@ Dataset count: 0 verified pairs
   argument declared with `MODIFIES $book sheets`. A sheet is only ever added: a bad name (S23) or
   one already used stops the run first. Also fixed: the D20 UNCHANGED check now runs for VCL 0.4
   specs too (#37).
+- **2026-10-20:** Item 2, Phase 4b: COPY_SHEET runs everywhere. It needs `name=` (checked first,
+  never a replacement) and copies into the workbook of its sheet, under `MODIFIES $book sheets`
+  (D41).

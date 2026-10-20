@@ -644,6 +644,21 @@ Public Function ForgeAddSheet(ByVal book As Workbook, ByVal name As Variant, ByV
     Set ForgeAddSheet = ws
 End Function
 
+Public Function ForgeCopySheet(ByVal src As Worksheet, ByVal name As Variant, ByVal after As Object) As Worksheet
+    ' COPY_SHEET: a copy of src in its own workbook, with this name, after the given sheet or else after
+    ' the last one. A bad name, or one already used, stops the run before anything is copied.
+    Dim book As Workbook
+    Dim s As String
+    Set book = src.Parent
+    s = ForgeText(name)
+    If Not ForgeSheetNameOk(s) Then Err.Raise 1004, "ForgeCopySheet", "COPY_SHEET: '" & s & "' is not a valid sheet name (S23)"
+    If ForgeSheetExists(book, s) Then Err.Raise 1004, "ForgeCopySheet", "COPY_SHEET: a sheet named '" & s & "' already exists"
+    If after Is Nothing Then Set after = book.Sheets(book.Sheets.Count)
+    src.Copy After:=after
+    Set ForgeCopySheet = book.Sheets(after.Index + 1)
+    ForgeCopySheet.Name = s
+End Function
+
 ' ---- VCL 0.3: S18 SAFE_NAME, S19 PATH_JOIN, FOLDER_EXISTS and the file ops (E11) ----
 ' One attempt, then a status: the file ops never raise, overwrite, delete or retry.
 
