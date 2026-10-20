@@ -168,9 +168,10 @@ Snapshot mutation score 95.4% (418 of 438); 19 of the 20 survivors are
 equivalents, and 1 (task_11 `LOOP_COLS from=1`) needs a fixture change, reported to Boss. The repo is KGC-KRONOS (renamed 17 Oct 2026). PR #4 (Excel pilot) is open with the `deferred`
 label.
 
-Known: task_04 exceeds the ~60-line TASK guideline; accepted for now, revisit in March.
+Known: task_04 is bigger than a TASK should be: 48 OP lines (the validator warns above 40) and 107
+lines of VBA (rule 9: about 60); accepted for now, revisit in March.
 
-Next, in order (`docs/vcl-mvp-plan.md`):
+Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5 and 6-7):
 1. The Job-Pack Router MVP, `docs/vep-0.3-file-ops.md` (approved by Boss): sandbox only, COPY_FILE
    first (no MOVE), VCL 0.3. Phase 0 (blank key rows) and Phase 1 (the language surface: the VCL
    0.3 line, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS, the path types, MAKE_FOLDER, COPY_FILE,
@@ -205,7 +206,8 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    and BUILD specs (the VEP's group D) are their own item, for Boss to schedule.
 3. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
-   the data generator and the benchmark) starts after the MVP; no training before March 2027.
+   the data generator and the benchmark) starts when Boss says "go item 3", as every earlier
+   item did (D47); no training before March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it.

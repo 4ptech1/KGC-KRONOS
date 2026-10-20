@@ -73,6 +73,14 @@ class Module(unittest.TestCase):
         self.assertTrue(committed == self.MODULE, "dist/forge_selftest.bas is out of date: run "
                                                   "python compiler/vclc.py all specs/*.vcl -o dist and commit it")
 
+    def test_the_pilot_guide_gives_the_right_count(self):
+        # Boss compares the self-test's message with docs/excel-pilot.md, so its numbers follow the cases (D47).
+        guide = (ROOT / "docs" / "excel-pilot.md").read_text(encoding="utf-8")
+        counts = re.findall(r"\((\d+) cases\)|(\d+) of (\d+) cases pass|SELFTEST (\d+)/(\d+)", guide)
+        numbers = [int(n) for found in counts for n in found if n]
+        self.assertEqual(len(numbers), 5, counts)
+        self.assertEqual(set(numbers), {len(CASES)})
+
 
 if __name__ == "__main__":
     unittest.main()

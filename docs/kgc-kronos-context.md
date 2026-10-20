@@ -1,6 +1,6 @@
 # KGC KRONOS: AI context file
 
-**Snapshot: 18 Oct 2026, `main` at ed5a793.** Hand this file to any Claude chat or claude.ai
+**Snapshot: 20 Oct 2026, after the review pass of item 2 (D47).** Hand this file to any Claude chat or claude.ai
 Project that needs to understand the project. The repo is always the source of truth: if this
 file and the repo disagree, the repo wins, and the repo's `CLAUDE.md` has the current status.
 
@@ -310,7 +310,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
 | Unit tests | 347 pass |
-| Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the ~40 guideline; accepted until March) |
+| Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
 | Verified pairs | 0 (none has been run in Excel yet) |
@@ -415,8 +415,9 @@ The key safety design for files:
   `C:\KRONOS_SANDBOX`; nothing real is read or written.
 - **No overwrite, no delete, no retry loops.**
 
-**After the MVP** (`docs/vcl-mvp-plan.md`):
-1. The rest of revision 3 in the interpreter and compiler (Boss said "go item 2" on 20 Oct
+**After the MVP** (the numbers are CLAUDE.md's and Boss's; `docs/vcl-mvp-plan.md` calls the
+router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
+2. The rest of revision 3 in the interpreter and compiler (Boss said "go item 2" on 20 Oct
    2026), designed in `docs/vep-0.4-rev3-rest.md` (D36): first the interpreter catches up with
    what already compiles, then list syntax with DEDUPE, FIND, the sheet ops, FILTER (it hides
    rows by SAME, never by AutoFilter criteria), SET_FORMULA (tested by its text) and text files
@@ -426,9 +427,10 @@ The key safety design for files:
    (D44: LIST_FILES) and 7b (D45: READ_TEXT, WRITE_TEXT) are done, and so is the switch (E12,
    D46): spec.md and the Orchestrator prompt teach VCL 0.4, and Boss updates the Orchestrator
    once. **Item 2 is complete.** CALL and BUILD specs are their own item, for Boss to schedule.
-2. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
-3. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
-   Mutants double as "read carefully" contrast pairs.
+3. The AI plan's Stage A, when Boss says "go item 3": a corpus of 150 tasks with
+   Orchestrator-written specs and an expressibility report, and a dataset generator (tasks in
+   plain English with their proven specs, plus repair pairs; mutants double as "read
+   carefully" contrast pairs), with the benchmark.
 4. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
    VCL, never VBA (D31). Excel conformance runs.
 

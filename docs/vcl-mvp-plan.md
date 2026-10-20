@@ -55,9 +55,14 @@ Every surviving mutant is missing test data, not missing assertions:
 
 Target after these: at least 95% with whole-workbook comparison. **Done in item 2 (VCL 0.1
 revision 5):** `stale=<n>`, `+dupes(n)`, `+boundary(...)` and `reldates(lo, hi)` are in the
-language, rule 19 warns when a spec doesn't use them, and the whole-workbook score is 96.4%.
+language, rule 19 warns when a spec doesn't use them, and the whole-workbook score reached
+96.4% for the 10 specs of that time (95.4% for today's 12, in the table above).
 
 ## Build sequence (Claude Code works through it without waiting; merges itself when CI is green)
+
+CLAUDE.md, and Boss, number the open work differently: its item 1 (the router) is item 4 here,
+its item 2 (the rest of revision 3) is item 5, and its item 3 (the AI plan's Stage A) is items 6
+and 7.
 
 1. **Integrate the MVP** into the repo. Unify the two fixture generators, apply the task_06
    rewrite, record the decisions, and make CI run the whole `vclc all` pipeline.
@@ -83,7 +88,7 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    spec.md and the prompt teach VCL 0.4 (E12, D46). **Item 5 is complete.** CALL and BUILD specs
    are their own item.
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
-   VCL 0.2 packs.
+   the next VCL packs.
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
