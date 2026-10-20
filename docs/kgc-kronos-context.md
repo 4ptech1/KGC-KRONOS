@@ -259,22 +259,22 @@ of it. A spec outside this subset passes the validator but fails at test or buil
 cyan) or `#RRGGBB`. Each name is the colour of the VBA constant of that name (red = `#FF0000`), so
 `fill=red` and `fill=#FF0000` give the same result (D23, fixed in PR #18).
 
-## 8. Status (17 Oct 2026)
+## 8. Status (20 Oct 2026)
 
 **Roadmap Phase 0, Foundation (14 to 31 Oct 2026).** Gate 0: all specs validate, type-check,
 pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **This is met.**
 
 | Measure | Now |
 | --- | --- |
-| Specs | 11 (task_01 to task_11), all VCL 0.2 |
-| Unit tests | 214 pass |
+| Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
+| Unit tests | 278 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the ~40 guideline; accepted until March) |
-| Mutation score (snapshot) | 95.1% (389 of 409); 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
+| Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
 | Verified pairs | 0 (none has been run in Excel yet) |
 | Orchestrator Project | updated to the VCL 0.2 prompt; its replies start with `VCL 0.2` and use MODIFIES and SAME |
 
-The 11 specs:
+The 12 specs:
 
 | Spec | Procedure | Sheets (ARGS) |
 | --- | --- | --- |
@@ -289,6 +289,7 @@ The 11 specs:
 | task_09 | BuildOpenNcrSummary | ncr, out |
 | task_10 | BuildCalibrationDueList | cal, out |
 | task_11 | HighlightRejectedWelds | ws |
+| task_12 | RouteJobPacks (VCL 0.3) | tracker; dump and jobs are folder paths |
 
 **History in one line each** (PRs on KGC-KRONOS; #1 to #15 were made under the old name):
 - #1: repo skeleton and the 10 specs.
@@ -336,7 +337,8 @@ Boss's decisions:
 | 2 | A mock file system in fixtures and the interpreter; FOLDER_EXISTS and the file ops run on it with their statuses (E11); FILE_EXISTS and FILE_COUNT assertions (F7); UNCHANGED for files | **Done** (PR #24) |
 | 3a | Compiler and ForgeLib: late-bound FSO helpers that return the interpreter's statuses and never overwrite, delete or move; lint bans Kill, Shell, deleting, moving, the registry and SaveAs, and allows file writes only inside the helpers (D29) | **Done** (PR #25) |
 | 3b | A sandbox builder in `%TEMP%` for the folder FIXTUREs (`ForgeSandbox_<file>()`); a TEST fails when Excel's longer sandbox root could change a Too long status (D30) | **Done** (PR #26) |
-| 4 | `specs/task_12.vcl` RouteJobPacks; the prompt switches to 0.3, and Boss updates the Orchestrator again | **Waiting for Boss: "go Phase 4"** |
+| 4a | `specs/task_12.vcl` RouteJobPacks: every status on a row of its own, a re-run, two PRE failures; 29 of 29 mutants caught (D32) | **Done** |
+| 4b | The shared reference text and the prompt switch to 0.3, and Boss updates the Orchestrator again (exact clicks) | **Next** (Boss said "go Phase 4" on 20 Oct 2026) |
 | 5 | Excel pilot kit: a ForgeLib self-test of the conformance cases, a sandbox, and a 5-step guide for Boss | Planned, optional |
 
 The key safety design for files:
@@ -369,8 +371,7 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 (Boss's daily use).
 
 **Pending Boss decisions right now:**
-1. "go Phase 4" for the router. Phases 1 to 3 are done (PRs #22 to #26); Claude Code waits.
-2. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
+1. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
    skipped column A, no TEST would notice. Closing it needs a FIXTURE whose last row has a value
    only in column A. That is a spec change, so it waits for Boss.
 

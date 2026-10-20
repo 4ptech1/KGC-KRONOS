@@ -1,7 +1,7 @@
 # VEP 0.3: file ops and the Job-Pack Router MVP
 
-Status: **design, approved by Boss on 17 Oct 2026**. Phases 0 (D22), 1 (D26, D27), 2 (D28) and
-3 (D29, D30) are done; 4 and 5 are next, one or two PRs each. Nothing below is in the language
+Status: **design, approved by Boss on 17 Oct 2026**. Phases 0 (D22), 1 (D26, D27), 2 (D28),
+3 (D29, D30) and 4a (D32) are done; 4b and 5 are next, one or two PRs each. Nothing below is in the language
 until its phase lands.
 
 ## Context
@@ -78,6 +78,8 @@ longer Excel root could change a Too long status (D30).
 - **Fixture builder (`vcl_fixtures.vba_for_file`):** emits a sandbox builder that creates `Environ$("TEMP")\KGC_KRONOS_SANDBOX_<yyyymmdd_hhnnss>` and writes dummy `.pdf` text files with `Open ... For Output`. It never deletes anything, and a new timestamped folder means it never collides.
 
 ### Phase 4: the MVP spec
+Two PRs (D32). **4a (done):** `specs/task_12.vcl`, with its fixtures and TESTs; 29 of 29 mutants
+caught. **4b:** the language switch.
 - **`specs/task_12.vcl`** (`RouteJobPacks`, Function returning the number copied). For each tracker row it takes `SAFE_NAME` of the Job ID and of the Report File, skips bad names (status `Bad name`), runs MAKE_FOLDER on `PATH_JOIN($jobs, id)` and COPY_FILE from `PATH_JOIN($dump, file)`, and writes the status. It declares `MODIFIES $tracker["Status"]` and `MODIFIES $jobs files`.
 - **Fixtures:** the cases Copied, Missing, Conflict, Locked, an unsafe ID, and a re-run with `runs=2` (Already there).
 - **Run:** `vclc all` and rebuild `dist/forge_module.bas`.

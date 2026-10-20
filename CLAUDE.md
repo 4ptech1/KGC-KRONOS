@@ -155,12 +155,13 @@ The Excel batch runner (`harness/ForgeTest.bas`, PR #4) is deferred; nothing dep
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, type-check, pass their
 TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
 
-Done: 11 specs, VCL 0.2 (specs, spec.md and the Orchestrator prompt), the parser and validator, and the
+Done: 12 specs, VCL 0.2 (specs, spec.md and the Orchestrator prompt), the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,
 `vclc`), with one fixture generator. Fixtures from the mutation evidence (revision 5:
 `stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). All specs are VCL 0.2, with blank
 key rows for every SKIP_IF (D22). FORMAT fill names work (D23). task_11 HighlightRejectedWelds is
-Boss's weld-log spec, unchanged (D24): snapshot mutation score 95.1%; 19 of the 20 survivors are
+Boss's weld-log spec, unchanged (D24). task_12 RouteJobPacks is the router MVP spec, VCL 0.3 (D32).
+Snapshot mutation score 95.4% (418 of 438); 19 of the 20 survivors are
 equivalents, and 1 (task_11 `LOOP_COLS from=1`) needs a fixture change, reported to Boss. The repo is KGC-KRONOS (renamed 17 Oct 2026). PR #4 (Excel pilot) is open with the `deferred`
 label.
 
@@ -174,9 +175,10 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    statuses, FILE_EXISTS, FILE_COUNT and UNCHANGED for files; E11, F7, D28) are done. Boss said
    "go Phase 3" on 19 Oct 2026, and Phase 3 is done: 3a (the compiler, ForgeLib's file helpers
    and the lint file-safety rules; D29, PR #25) and 3b (the sandbox builder and the sandbox
-   length check; D30, PR #26). **Waiting for Boss's go on Phase 4** (`specs/task_12.vcl` RouteJobPacks,
-   then the shared reference text and the Orchestrator prompt switch to VCL 0.3, and Boss
-   updates the Orchestrator); do not start it before.
+   length check; D30, PR #26). Boss said "go Phase 4" on 20 Oct 2026: 4a (`specs/task_12.vcl`
+   RouteJobPacks; D32) is done. **Next is 4b**: the shared reference text and the Orchestrator
+   prompt switch to VCL 0.3 (with the ROLE line of D25 and D31), then Boss updates the
+   Orchestrator, with exact clicks.
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 3. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
