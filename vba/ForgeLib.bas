@@ -598,6 +598,52 @@ Public Sub ForgeDedupe(ByVal rng As Range, ByVal cols As Variant, ByVal hasHeade
     Next r
 End Sub
 
+' ---- VCL 0.4: the sheets of a workbook (S23, VEP 0.4 Phase 4, D40) ----
+
+Public Function ForgeSheetNameOk(ByVal v As Variant) As Boolean
+    ' S23: 1 to 31 characters, no spaces at the ends, none of \ / ? * [ ] :, no apostrophe first or
+    ' last, no character below 32, and not History (Excel keeps that name for itself).
+    Dim s As String
+    Dim i As Long
+    s = ForgeText(v)
+    If Len(s) < 1 Or Len(s) > 31 Then Exit Function
+    If ForgeTrim(s) <> s Then Exit Function
+    If Left$(s, 1) = "'" Or Right$(s, 1) = "'" Then Exit Function
+    If LCase$(s) = "history" Then Exit Function
+    For i = 1 To Len(s)
+        If InStr(1, "\/?*[]:", Mid$(s, i, 1), vbBinaryCompare) > 0 Then Exit Function
+        If AscW(Mid$(s, i, 1)) < 32 Then Exit Function
+    Next i
+    ForgeSheetNameOk = True
+End Function
+
+Public Function ForgeSheetExists(ByVal book As Workbook, ByVal name As Variant) As Boolean
+    ' SHEET_EXISTS: a sheet of that name, case ignored as Excel does. A loop, so no error handling.
+    Dim sh As Object
+    Dim s As String
+    s = LCase$(ForgeText(name))
+    For Each sh In book.Sheets
+        If LCase$(sh.Name) = s Then
+            ForgeSheetExists = True
+            Exit Function
+        End If
+    Next sh
+End Function
+
+Public Function ForgeAddSheet(ByVal book As Workbook, ByVal name As Variant, ByVal after As Object) As Worksheet
+    ' ADD_SHEET: a new empty sheet with this name, after the given sheet or else after the last one.
+    ' A bad name, or one already used, stops the run before anything is added: never a replacement.
+    Dim s As String
+    Dim ws As Worksheet
+    s = ForgeText(name)
+    If Not ForgeSheetNameOk(s) Then Err.Raise 1004, "ForgeAddSheet", "ADD_SHEET: '" & s & "' is not a valid sheet name (S23)"
+    If ForgeSheetExists(book, s) Then Err.Raise 1004, "ForgeAddSheet", "ADD_SHEET: a sheet named '" & s & "' already exists"
+    If after Is Nothing Then Set after = book.Sheets(book.Sheets.Count)
+    Set ws = book.Worksheets.Add(After:=after)
+    ws.Name = s
+    Set ForgeAddSheet = ws
+End Function
+
 ' ---- VCL 0.3: S18 SAFE_NAME, S19 PATH_JOIN, FOLDER_EXISTS and the file ops (E11) ----
 ' One attempt, then a status: the file ops never raise, overwrite, delete or retry.
 

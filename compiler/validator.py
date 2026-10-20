@@ -26,7 +26,7 @@ from vcl_parse import parse as grammar_parse
 from vcl_types import Checker as TypeChecker
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "vcl"))
-from semantics import safe_name  # noqa: E402
+from semantics import safe_name, sheet_name_ok  # noqa: E402
 
 TYPES = {"Long", "Double", "String", "Boolean", "Date", "Variant", "Range", "Worksheet", "Workbook",
          "Dictionary", "Collection"}
@@ -90,16 +90,20 @@ VALUE_FUNCS = {
     "IIF": (3, 3, {}), "MOD": (2, 2, {}),
     # VCL 0.3 (docs/vep-0.3-file-ops.md, Phase 1)
     "SAFE_NAME": (1, 1, {}), "PATH_JOIN": (2, None, {}), "FOLDER_EXISTS": (1, 1, {}),
+    # VCL 0.4 (docs/vep-0.4-rev3-rest.md, Phase 4)
+    "SHEET_EXISTS": (2, 2, {}),
 }
 VCL_02_FUNCS = {"SAME", "CLEAN_TEXT", "IS_ERROR", "PARSE_DATE", "IIF", "MOD"}
 VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
 VCL_03_FUNCS = {"SAFE_NAME", "PATH_JOIN", "FOLDER_EXISTS"}
 VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
+VCL_04_FUNCS = {"SHEET_EXISTS"}
 VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4}
 # MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
 SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE"}
 ROW_OPS = {"INSERT_ROW", "DELETE_ROW", "SORT", "DEDUPE", "FILTER"}   # these move or hide rows
-MODIFIES_RE = re.compile(r"\$(?P<arg>[A-Za-z_]\w*)\s*(?:\[(?P<cols>.*)\]|\s(?P<fills>fills)|\s(?P<files>files))?")
+MODIFIES_RE = re.compile(r"\$(?P<arg>[A-Za-z_]\w*)\s*(?:\[(?P<cols>.*)\]|\s(?P<fills>fills)|\s(?P<files>files)"
+                         r"|\s(?P<sheets>sheets))?")
 DATE_FORMATS = ("dd/mm/yyyy", "dd-mm-yyyy", "dd.mm.yyyy", "mm/dd/yyyy", "yyyy-mm-dd")  # as vcl/semantics.py
 # second argument is a "quoted" header, ref, sheet name or date format
 STRING_SECOND = {"COL", "RANGE", "SHEET", "PARSE_DATE"}
@@ -304,6 +308,10 @@ class TaskChecker:
         self.writes = []           # (line, op, sheet arg or None, what it changes)
         self.pre_roots = []        # [arg] checked with FOLDER_EXISTS($arg) in PRE (VCL 0.3)
         self.modifies_files = {}   # arg -> line of MODIFIES $arg files (VCL 0.3)
+        self.modifies_sheets = {}  # arg -> line of MODIFIES $arg sheets (VCL 0.4)
+        self.sheet_adds = []       # (line, op, $book argument or None): ADD_SHEET (VCL 0.4)
+        self.new_sheets = {}       # Worksheet VAR -> line: set by ADD_SHEET into= (VCL 0.4, D40)
+        self.var_sets = []         # (line, VAR) set by LET or any other into= (not ADD_SHEET)
         self.file_paths = []       # (line, op, "from" or "to", root arg or None, bare root?)
 
     def error(self, message, line=None):
@@ -333,6 +341,7 @@ class TaskChecker:
             self.warning("the spec writes to sheets but has no MODIFIES lines, so no TEST checks that nothing "
                          "else changed: declare each sheet it changes with MODIFIES", self.writes[0][0])
         self.check_file_ops()
+        self.check_sheet_adds()
         for line, arg, header in self.op_cols:
             if (arg, norm(header)) not in self.pre_cols:
                 self.error(f'header "{header}" on ${arg} is used but not checked in PRE (rule 14)', line)
@@ -533,7 +542,9 @@ class TaskChecker:
             self.error("MODIFIES is VCL 0.2: start the spec with 'VCL 0.2' to use it")
         m = MODIFIES_RE.fullmatch(mod.value)
         if not m:
-            forms = ('$<sheet>, $<sheet>["<header>", ...], $<sheet> fills or $<root> files' if self.at_least("VCL 0.3")
+            forms = ('$<sheet>, $<sheet>["<header>", ...], $<sheet> fills, $<root> files or $<book> sheets'
+                     if self.at_least("VCL 0.4") else
+                     '$<sheet>, $<sheet>["<header>", ...], $<sheet> fills or $<root> files' if self.at_least("VCL 0.3")
                      else '$<sheet>, $<sheet>["<header>", ...] or $<sheet> fills')
             self.error(f"MODIFIES needs {forms}, got '{mod.value}'")
             return
@@ -548,8 +559,21 @@ class TaskChecker:
             else:
                 self.modifies_files[arg] = mod.line
             return
+        if m.group("sheets"):   # VCL 0.4 (D40)
+            if not self.at_least("VCL 0.4"):
+                self.error("MODIFIES ... sheets is VCL 0.4: start the spec with 'VCL 0.4' to use it")
+            if self.args.get(arg) != "Workbook":
+                self.error(f"MODIFIES ${arg} sheets: ${arg} must be a Workbook argument")
+            elif arg in self.modifies_sheets:
+                self.error(f"MODIFIES ${arg} sheets appears twice: use one line")
+            else:
+                self.modifies_sheets[arg] = mod.line
+            return
         if self.args.get(arg) == "String":
             self.error(f"MODIFIES ${arg}: a String argument is a root folder, so write MODIFIES ${arg} files")
+            return
+        if self.args.get(arg) == "Workbook":
+            self.error(f"MODIFIES ${arg}: a Workbook argument gets new sheets only, so write MODIFIES ${arg} sheets")
             return
         if self.args.get(arg) != "Worksheet":
             self.error(f"MODIFIES ${arg}: ${arg} is not a Worksheet argument")
@@ -589,6 +613,10 @@ class TaskChecker:
             return
         if name == "SET_VALUE" and len(target) == 1 and isinstance(target[0], Call) and target[0].name == "ARR":
             return   # an array element, not a cell
+        base = target[0].positional[0] if (len(target) == 1 and isinstance(target[0], Call)
+                                           and target[0].name in SHEET_FUNCS and target[0].positional) else target
+        if len(base) == 1 and is_tok(base[0], "name") and base[0].text in self.new_sheets:
+            return   # a sheet ADD_SHEET made: MODIFIES $book sheets covers all of it (D40)
         arg = target_sheet(target)
         keys = {k.text for k, _ in options}
         what = dict((k.text, show(v)) for k, v in options).get("what", "all")
@@ -601,6 +629,26 @@ class TaskChecker:
         else:
             change = "values"
         self.writes.append((self.line, name, arg, change))
+
+    def check_sheet_adds(self):
+        """VCL 0.4 (D40): ADD_SHEET adds to a Workbook argument declared with MODIFIES $book sheets."""
+        added = set()
+        for line, name, book in self.sheet_adds:
+            if book is None or self.args.get(book) != "Workbook":
+                self.error(f"{name} needs a Workbook argument ($book) as its first argument, so MODIFIES can "
+                           "name the workbook it changes", line)
+            elif book not in self.modifies_sheets:
+                why = "" if self.at_least("VCL 0.4") else ", which is VCL 0.4: start the spec with 'VCL 0.4'"
+                self.error(f"{name} adds a sheet to ${book}: declare MODIFIES ${book} sheets{why}", line)
+            else:
+                added.add(book)
+        for book, line in self.modifies_sheets.items():
+            if book not in added:
+                self.warning(f"MODIFIES ${book} sheets, but no op adds a sheet to ${book}", line)
+        for line, var in self.var_sets:
+            if var in self.new_sheets:
+                self.error(f"{var} holds the sheet ADD_SHEET made (line {self.new_sheets[var]}), so only ADD_SHEET "
+                           "may set it: writes through it are checked as writes to a new sheet", line)
 
     def check_writes_are_declared(self):
         """MODIFIES: every write names a declared sheet in a way its lines allow; every declared
@@ -932,6 +980,25 @@ class TaskChecker:
                 self.error("a Sub can't RETURN a value")
         if name in ("ADD_SHEET", "COPY_SHEET"):
             self.sheet_ops = True
+        if name == "LET" and positional and len(positional[0]) == 1 and is_tok(positional[0][0], "name"):
+            self.var_sets.append((self.line, positional[0][0].text))
+        for key, items in options:
+            if key.text == "into" and name != "ADD_SHEET" and len(items) == 1 and is_tok(items[0], "name"):
+                self.var_sets.append((self.line, items[0].text))
+        if name == "ADD_SHEET" and self.at_least("VCL 0.2"):   # D40: it changes the workbook's sheet list
+            book = positional[0] if positional else []
+            self.sheet_adds.append((self.line, name, book[0].text[1:] if len(book) == 1 and is_tok(book[0], "arg")
+                                    else None))
+            given = dict((k.text, v) for k, v in options)
+            into = given.get("into")
+            if into and len(into) == 1 and is_tok(into[0], "name"):
+                self.new_sheets.setdefault(into[0].text, self.line)
+            if "name" not in given:
+                self.error("ADD_SHEET needs name=: Excel's own names (Sheet4) depend on the PC's language")
+            elif len(given["name"]) == 1 and is_tok(given["name"][0], "string") \
+                    and not sheet_name_ok(given["name"][0].text[1:-1].replace('""', '"')):
+                self.error(f"ADD_SHEET name={given['name'][0].text} is not a valid sheet name (S23: 1 to 31 "
+                           "characters, no spaces at the ends, none of \\ / ? * [ ] :, not History)")
         self.record_write(name, positional, options)
         if name in VCL_03_OPS:
             roles = ["to"] if name == "MAKE_FOLDER" else ["from", "to"]
@@ -1081,6 +1148,8 @@ class TaskChecker:
             self.error(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it")
         if name in VCL_03_FUNCS and not self.at_least("VCL 0.3"):
             self.error(f"{name} is VCL 0.3: start the spec with 'VCL 0.3' to use it")
+        if name in VCL_04_FUNCS and not self.at_least("VCL 0.4"):
+            self.error(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it")
         fewest, most, allowed = VALUE_FUNCS[name]
         positional, options = self.call_parts(call)
         if len(positional) < fewest or (most is not None and len(positional) > most):
@@ -1167,6 +1236,11 @@ class TaskChecker:
                        f"but ARGS has {len(spec.args)}")
         elif sheets is not None:
             for decl, value in zip(spec.args, test.args):
+                if decl.type == "Workbook":   # VCL 0.4 (D40): the workbook is the TEST's fixture file
+                    if value != test.fixture:
+                        self.error(f"TEST passes {value} for ${decl.name}, a Workbook: pass this TEST's "
+                                   f"fixture file, {test.fixture}")
+                    continue
                 if decl.type == "String" and SHEET_NAME.fullmatch(value):   # a bare name is a FIXTURE folder (F6)
                     if value in dirs:
                         rootmap[decl.name] = value

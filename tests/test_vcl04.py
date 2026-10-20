@@ -1,7 +1,8 @@
 """VEP 0.4 (docs/vep-0.4-rev3-rest.md). Phase 1: the interpreter runs what the compiler already
 compiled: INSERT_ROW, READ_ARRAY, WRITE_ARRAY, ARR, ROWS, COLS, SELECT_CASE, LOG, MSG, RANGE, SHEET,
 FILE_NAME and FOR_EACH over SHEETS and CELLS (D36, D37). Phase 2: the VCL 0.4 line, lists in
-DEDUPE cols=[...] and DEDUPE itself (S21, D38). Phase 3: FIND, IS_NOTHING and NOTHING (S22, D39)."""
+DEDUPE cols=[...] and DEDUPE itself (S21, D38). Phase 3: FIND, IS_NOTHING and NOTHING (S22, D39). Phase 4a: Workbook
+arguments, MODIFIES $book sheets, ADD_SHEET and SHEET_EXISTS (S23, D40)."""
 import sys
 import unittest
 from pathlib import Path
@@ -143,6 +144,37 @@ TEST     fixture=ncr_01.xlsx call=FlagNcr(Ncr, "NCR-099") assert=RESULT = 0 AND 
 TEST     fixture=ncr_01.xlsx call=FlagNcr(Other, "NCR-001") assert=RESULT = -1 AND ERROR_COUNT = 1
 """
 
+# ADD_SHEET (VCL 0.4): a new Summary sheet, unless the workbook has one already.
+ADD_SHEET = r"""VCL 0.4
+TASK
+# ASSUME: the count goes to a new sheet "Summary" after the register; an existing Summary is left as it is
+# ASSUME: an NCR is open when its Status is SAME as "Open"
+PROC     AddNcrSummary
+KIND     Function
+MODULE   modSummary
+ARGS     book As Workbook, ncr As Worksheet
+RET      Long
+VAR      out As Worksheet
+VAR      n As Long
+PRE      COL($ncr, "Status") > 0
+MODIFIES $book sheets
+OP       IF SHEET_EXISTS($book, "Summary") THEN RETURN(0)
+OP       ADD_SHEET($book, name="Summary", after=$ncr, into=out)
+OP       LOOP_ROWS dir=down from=2 to=LASTROW($ncr, COL($ncr, "Status")) var=r
+OP         IF SAME(CELL($ncr, r, COL($ncr, "Status")), "Open") THEN LET(n, n + 1)
+OP       WRITE_ROW(out, 1, "Open NCRs", n)
+OP       RETURN(n)
+ERR      standard
+FIXTURE  ncr_01.xlsx sheet=Ncr cols=A:NCR No,B:Status rows=6 data=A:seq(1,1);B:values("Open"x2," open "x1,"Closed"x2,""x1)+boundary("Open")
+FIXTURE  ncr_01.xlsx sheet=Other cols=A:Item rows=2 data=A:seq(1,1)
+FIXTURE  ncr_02.xlsx sheet=Ncr cols=A:NCR No,B:Status rows=2 data=A:seq(1,1);B:values("Open"x2)
+FIXTURE  ncr_02.xlsx sheet=Summary cols=A:Old rows=1 data=A:values("keep"x1)
+TEST     fixture=ncr_01.xlsx call=AddNcrSummary(ncr_01.xlsx, Ncr) assert=RESULT = 3 AND ERROR_COUNT = 0 AND SHEET_EXISTS("Summary") AND VALUE(Summary!A1) = "Open NCRs" AND VALUE(Summary!B1) = 3 AND COUNTA(Ncr!B:B) = PRE_COUNTA(Ncr!B:B)
+TEST     fixture=ncr_01.xlsx call=AddNcrSummary(ncr_01.xlsx, Ncr) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND VALUE(Summary!B1) = 3
+TEST     fixture=ncr_02.xlsx call=AddNcrSummary(ncr_02.xlsx, Ncr) assert=RESULT = 0 AND ERROR_COUNT = 0 AND VALUE(Summary!A2) = "keep"
+TEST     fixture=ncr_01.xlsx call=AddNcrSummary(ncr_01.xlsx, Other) assert=RESULT = -1 AND ERROR_COUNT = 1
+"""
+
 FIXTURE = 'FIXTURE  t_01.xlsx sheet=Data cols=A:Key,B:Qty rows=4 data=A:values("a"x2,"b"x2);B:int(1,9)'
 
 
@@ -166,7 +198,8 @@ def cells(result, sheet="Data"):
 
 class Samples(unittest.TestCase):
     def test_they_validate_pass_and_catch_every_mutant(self):
-        for name, text in (("GRADE", GRADE), ("MARKS", MARKS), ("DEDUPE", DEDUPE), ("FIND", FIND)):
+        for name, text in (("GRADE", GRADE), ("MARKS", MARKS), ("DEDUPE", DEDUPE), ("FIND", FIND),
+                           ("ADD_SHEET", ADD_SHEET)):
             with self.subTest(name):
                 self.assertEqual([p.message for p in validator.validate_text(text)], [])
                 results = run_tests(text)
@@ -197,6 +230,11 @@ class Samples(unittest.TestCase):
         self.assertEqual(lint(assemble([vba])), [])
         self.assertIn('If (ForgeFind(ws.Range("A2:A9"), ncrNo, True) Is Nothing) Then', vba)
         self.assertIn('If (Not (ForgeFind(ws.Range("B2:B9"), ncrNo, False) Is Nothing)) Then n = 2', vba)
+        vba = compile_text(ADD_SHEET)
+        self.assertEqual(lint(assemble([vba])), [])
+        self.assertIn("Public Function AddNcrSummary(ByVal book As Workbook, ByVal ncr As Worksheet) As Long", vba)
+        self.assertIn('If ForgeSheetExists(book, "Summary") Then', vba)
+        self.assertIn('Set out = ForgeAddSheet(book, "Summary", ncr)', vba)
 
     def test_log_and_msg_are_never_errors(self):
         grade, marks = run_tests(GRADE)[0], run_tests(MARKS)[0]
@@ -352,6 +390,61 @@ class Find(unittest.TestCase):
                       "USED_RANGE, RANGE or FIND of a $sheet argument", found)
 
 
+def book_ops(*lines, head=(), modifies="MODIFIES $book sheets", version="VCL 0.4", call="P(t_01.xlsx, Data)"):
+    """A small spec with a Workbook argument, around OP lines."""
+    return "\n".join([version, "TASK", "PROC     P", "KIND     Function", "MODULE   modP",
+                      "ARGS     book As Workbook, ws As Worksheet", "RET      Long", "VAR      n As Long", *head]
+                     + ([modifies] if modifies else [])
+                     + ["OP       " + o for o in lines]
+                     + ["OP       RETURN(n)", "ERR      standard", FIXTURE,
+                        f"TEST     fixture=t_01.xlsx call={call} assert=ERROR_COUNT = 0"])
+
+
+class Sheets(unittest.TestCase):
+    def test_add_sheet_and_its_place(self):
+        r = run(book_ops('ADD_SHEET($book, name="Totals", after=$ws, into=out)', 'ADD_SHEET($book, name="First", into=s2)',
+                         'WRITE_ROW(out, 1, "x")', 'IF SHEET_EXISTS($book, "totals") THEN LET(n, 1)',
+                         head=["VAR      out As Worksheet", "VAR      s2 As Worksheet"]))
+        self.assertEqual((r.result, r.errors, r.failed), (1, 0, []))
+        self.assertEqual(list(r.state), ["Data", "Totals", "First"])   # after=$ws, then after the last sheet
+        self.assertEqual(r.state["Totals"][0], [((1, 1), "x")])
+
+    def test_never_a_replacement_and_never_a_bad_name(self):
+        for name in ("DATA", "Q1/Q2", "History", " Pad"):   # a used name (case ignored), then three bad ones (S23)
+            with self.subTest(name):
+                r = run(book_ops(f'ADD_SHEET($book, name="{name}")'))   # run_tests doesn't validate
+                self.assertEqual((r.result, r.errors), (-2, 1))
+                self.assertEqual(list(r.state), ["Data"])                  # nothing was added
+
+    def test_the_validator(self):
+        def problems(text):   # leaves out the spec-wide TEST rules, which book_ops() breaks on purpose
+            return [p.message for p in validator.validate_text(text) if p.severity == "error"
+                    and "(rule 5)" not in p.message and "(rule 16)" not in p.message]
+        self.assertEqual(problems(book_ops('ADD_SHEET($book, name="Totals")')), [])
+        self.assertIn("ADD_SHEET adds a sheet to $book: declare MODIFIES $book sheets",
+                      problems(book_ops('ADD_SHEET($book, name="Totals")', modifies=None)))
+        self.assertIn("MODIFIES ... sheets is VCL 0.4: start the spec with 'VCL 0.4' to use it",
+                      problems(book_ops('ADD_SHEET($book, name="Totals")', version="VCL 0.3")))
+        self.assertIn("ADD_SHEET needs a Workbook argument ($book) as its first argument, so MODIFIES can name the "
+                      "workbook it changes", problems(book_ops('ADD_SHEET(THIS_BOOK, name="Totals")')))
+        self.assertIn("ADD_SHEET needs name=: Excel's own names (Sheet4) depend on the PC's language",
+                      problems(book_ops("ADD_SHEET($book)")))
+        self.assertTrue(any("is not a valid sheet name" in m for m in problems(book_ops('ADD_SHEET($book, name="Q1/Q2")'))))
+        self.assertIn("TEST passes t_02.xlsx for $book, a Workbook: pass this TEST's fixture file, t_01.xlsx",
+                      problems(book_ops('ADD_SHEET($book, name="Totals")', call="P(t_02.xlsx, Data)")))
+        self.assertIn("MODIFIES $book: a Workbook argument gets new sheets only, so write MODIFIES $book sheets",
+                      problems(book_ops('ADD_SHEET($book, name="Totals")', modifies="MODIFIES $book")))
+        self.assertIn("SHEET_EXISTS is VCL 0.4: start the spec with 'VCL 0.4' to use it",
+                      errors(ops('IF SHEET_EXISTS(THIS_BOOK, "Data") THEN LET(n, 1)')))
+        found = problems(book_ops('ADD_SHEET($book, name="Totals", into=out)', "LET(out, $ws)", "SET_VALUE(CELL(out, 1, 1), 1)",
+                                  head=["VAR      out As Worksheet"]))
+        self.assertTrue(any(m.startswith("out holds the sheet ADD_SHEET made") for m in found), found)
+
+    def test_an_added_sheet_needs_modifies_sheets_at_run_time_too(self):
+        r = run(book_ops('ADD_SHEET($book, name="Totals")', modifies="MODIFIES $ws"))
+        self.assertIn("UNCHANGED: sheet Totals was added", r.failed)
+
+
 class Unchanged(unittest.TestCase):
     def test_a_spec_that_writes_nothing_changes_nothing_from_0_2_on(self):   # D20, for every later version too
         for version, want in (("VCL 0.1", False), ("VCL 0.2", True), ("VCL 0.3", True), ("VCL 0.4", True)):
@@ -398,6 +491,9 @@ class ForgeLib(unittest.TestCase):
         self.assertLess(dedupe.index("key = ForgeRowKey(parts)"), dedupe.index("Step -1"))   # marked first, deleted after
         self.assertIn("If doomed(r) Then rng.Worksheet.Rows(rng.Row + r - 1).Delete", dedupe)
         self.assertIn("If ForgeIsEmpty(values(i)) Or ForgeIsError(values(i)) Then", self.body("ForgeRowKey"))
+        add = self.body("ForgeAddSheet")
+        self.assertLess(add.index("already exists"), add.index("book.Worksheets.Add(After:=after)"))   # checked first
+        self.assertIn("If Not ForgeSheetNameOk(s) Then Err.Raise 1004", add)
         find = self.body("ForgeFind")
         self.assertIn("For Each cell In rng.Cells", find)
         self.assertNotIn(".Find(", find)   # Range.Find keeps the settings of the last search

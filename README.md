@@ -164,3 +164,7 @@ Dataset count: 0 verified pairs
   row by row, that is SAME as the value (or holds it, with `match=part`), or NOTHING; ForgeFind
   loops itself instead of using Excel's Range.Find (S22, D39). Also fixed: the type checker now
   forgets cell guards after WRITE_ARRAY (#35).
+- **2026-10-20:** Item 2, Phase 4a: ADD_SHEET and SHEET_EXISTS run everywhere, on a Workbook
+  argument declared with `MODIFIES $book sheets`. A sheet is only ever added: a bad name (S23) or
+  one already used stops the run first. Also fixed: the D20 UNCHANGED check now runs for VCL 0.4
+  specs too (#37).

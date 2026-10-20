@@ -193,7 +193,8 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    and FOR_EACH over SHEETS and CELLS now run in the interpreter. Phase 2 is done (D38): the
    `VCL 0.4` line, `cols=[1, 2]` and DEDUPE (S21). spec.md and the prompt move to 0.4 after
    the last language phase, so Boss updates the Orchestrator once. Phase 3 is done (D39): FIND
-   and IS_NOTHING (S22). **Next: Phase 4** (the sheet ops: ADD_SHEET, COPY_SHEET, SHEET_EXISTS).
+   and IS_NOTHING (S22). Phase 4a is done (D40): Workbook arguments, `MODIFIES $book sheets`,
+   ADD_SHEET and SHEET_EXISTS (S23). **Next: Phase 4b** (COPY_SHEET).
 3. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts after the MVP; no training before March 2027.

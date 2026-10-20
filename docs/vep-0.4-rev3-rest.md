@@ -4,7 +4,7 @@ Status: **design, 20 Oct 2026** (Boss said "go item 2"). Choices that needed Bos
 made the conservative way and recorded in `DECISIONS.md` D36, as CLAUDE.md asks; Boss can
 overrule any of them. Phase 1 changes no language; later phases change VCL and follow the usual
 rule (spec.md and the prompt together, every check, one Orchestrator update per switch).
-Phases 1 (D37), 2 (D38) and 3 (D39) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
+Phases 1 (D37), 2 (D38), 3 (D39) and 4a (D40) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
 prompt move to 0.4 after the last language phase (D38).
 
 ## The problem
@@ -74,7 +74,7 @@ and the dataset (item 7).
   Range.Find, whose settings (LookIn, LookAt, MatchCase, the last search) carry over between
   calls.
 
-### Phase 4: sheets of the workbook
+### Phase 4: sheets of the workbook (4a done: ADD_SHEET, SHEET_EXISTS, S23, D40; 4b: COPY_SHEET)
 
 - ADD_SHEET(book, name=, after=, into=) and COPY_SHEET(sheet, after=, into=), and the
   SHEET_EXISTS assertion. They change the workbook's sheet list, so they need a new MODIFIES
