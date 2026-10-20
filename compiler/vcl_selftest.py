@@ -91,6 +91,9 @@ def case_lines(n, fn, args, expected, why):
     """The two VBA lines of case n: name it, then check the ForgeLib call against the expected value."""
     if fn == "dict_key":   # S10: a key added once is found again under the expected text, case ignored
         got, want = f"SelfTestDictHas({vba_value(args[0])}, {vba_value(expected)})", "True"
+    elif fn == "list_files":   # S24: the names that match, joined by | in their order
+        got = f"SelfTestJoin(ForgeMatchNames({vba_value(args[0])}, {vba_value(args[1])}))"
+        want = vba_text("|".join(expected))
     elif fn == "path_join":
         got = f"ForgePathJoin({vba_value(args[0])}, Array({', '.join(vba_value(a) for a in args[1:])}))"
         want = vba_value(expected)
@@ -244,6 +247,15 @@ Private Function SelfTestFind(ByVal values As Variant, ByVal x As Variant, ByVal
     Set found = ForgeFind(gScratch.Range(gScratch.Cells(1, 1), gScratch.Cells(1, UBound(values) - LBound(values) + 1)), _
         x, match = "whole")
     If Not found Is Nothing Then SelfTestFind = found.Column
+End Function
+
+Private Function SelfTestJoin(ByVal names As Collection) As String
+    ' A list's names joined by |, in their order.
+    Dim i As Long
+    For i = 1 To names.Count
+        If i > 1 Then SelfTestJoin = SelfTestJoin & "|"
+        SelfTestJoin = SelfTestJoin & names(i)
+    Next i
 End Function
 
 Private Function SelfTestDictHas(ByVal key As Variant, ByVal want As String) As Boolean

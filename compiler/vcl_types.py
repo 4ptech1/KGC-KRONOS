@@ -43,7 +43,7 @@ FUNCS = {
     "CELL": (["Sheet", "Num", "Num"], "Cell"), "ROW_RANGE": (["Sheet", "Num", "Num", "Num"], "Range"),
     "RANGE": (["Sheet", "Text"], "Range"), "SHEET": (["Book", "Text"], "Sheet"),
     "FIND": (["Range", "S"], "Range"), "ROWS": (["Arr"], "Num"), "COLS": (["Arr"], "Num"),
-    "ARR": (["Arr", "Num", "Num"], "Cell"), "COUNT": (["Dict"], "Num"),
+    "ARR": (["Arr", "Num", "Num"], "Cell"), "COUNT": (["Count"], "Num"),
     "EXISTS": (["Dict", "S"], "Bool"), "LEN": (["T"], "Num"), "TRIM": (["T"], "Text"),
     "UPPER": (["T"], "Text"), "LOWER": (["T"], "Text"), "LEFT": (["T", "Num"], "Text"),
     "RIGHT": (["T", "Num"], "Text"), "IS_EMPTY": (["S"], "Bool"), "IS_NUMBER": (["S"], "Bool"),
@@ -59,7 +59,7 @@ FUNCS = {
     # VCL 0.4
     "SHEET_EXISTS": (["Book", "T"], "Bool"),
 }
-FILE_OPS = {"MAKE_FOLDER", "COPY_FILE"}   # VCL 0.3: every path argument is checked by shape (T4)
+FILE_OPS = {"MAKE_FOLDER", "COPY_FILE", "LIST_FILES"}   # every path argument is checked by shape (T4)
 
 
 def tok(t):
@@ -263,6 +263,9 @@ class Checker:
                 self.err(line, f"{name}: {canon(a)} is {at}, expected a value")
             elif p == "T" and at not in TEXTLIKE:
                 self.err(line, f"{name}: {canon(a)} is {at}, expected text")
+            elif p == "Count":   # COUNT: a dictionary, or a list from LIST_FILES (D44)
+                if at not in ("Dict", "Coll"):
+                    self.err(line, f"{name}: {canon(a)} is {at}, expected a Dictionary or a Collection")
             elif (p not in ("S", "T") and at != p and not (p == "Num" and at == "Date")
                   and not (p == "Text" and at in STRINGS)):
                 self.err(line, f"{name}: {canon(a)} is {at}, expected {p}")
@@ -452,7 +455,7 @@ class Checker:
             if "col" in opts:
                 self.need_num(self.ty(opts["col"], facts, vflow, line), opts["col"], line)
         elif name in FILE_OPS:   # VCL 0.3: paths by shape (T4); the status goes into a String VAR
-            for a in pos:
+            for a in (pos[:1] if name == "LIST_FILES" else pos):   # LIST_FILES: a folder, then its pattern
                 problem = self.path_problem(a)
                 if problem:
                     self.err(line, f"{name}: {problem}")
@@ -461,7 +464,10 @@ class Checker:
             into = next((a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"
                          and str(a.children[0]) == "into"), None)
             declared = self.vars.get(str(into)) if into is not None else None
-            if declared not in (None, "Text"):
+            if name == "LIST_FILES" and declared not in (None, "Coll"):   # D44
+                self.err(line, f"LIST_FILES: into={into} is {declared}, but the names are a list: "
+                               "declare it As Collection")
+            elif name != "LIST_FILES" and declared not in (None, "Text"):
                 self.err(line, f"{name}: into={into} is {declared}, but the status is text: declare it As String")
         elif name == "RETURN" and pos:
             rt = self.ty(pos[0], facts, vflow, line)
@@ -512,7 +518,7 @@ class Checker:
                     if src is not None:
                         self.ty(src, facts, vflow, line)
                     over = canon(src).split("(")[0] if src is not None else ""
-                    self.loopvars[var] = {"KEYS": "Text", "SHEETS": "Sheet"}.get(over, "Cell")   # D36
+                    self.loopvars[var] = {"KEYS": "Text", "SHEETS": "Sheet", "ITEMS": "Text"}.get(over, "Cell")   # D36, D44
                 else:
                     self.loopvars[var] = "Num"
                 body = {k: v for k, v in facts.items() if not mentions(k, var)}

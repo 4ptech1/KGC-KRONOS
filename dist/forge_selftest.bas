@@ -24,7 +24,7 @@ Public Sub ForgeSelfTest()
     SelfTestPart5
     SelfTestPart6
     SelfTestFlush
-    total = 207
+    total = 215
     For r = 2 To total + 1
         If gWs.Cells(r, 6).Value = "PASS" Then
             passed = passed + 1
@@ -149,6 +149,15 @@ Private Function SelfTestFind(ByVal values As Variant, ByVal x As Variant, ByVal
     Set found = ForgeFind(gScratch.Range(gScratch.Cells(1, 1), gScratch.Cells(1, UBound(values) - LBound(values) + 1)), _
         x, match = "whole")
     If Not found Is Nothing Then SelfTestFind = found.Column
+End Function
+
+Private Function SelfTestJoin(ByVal names As Collection) As String
+    ' A list's names joined by |, in their order.
+    Dim i As Long
+    For i = 1 To names.Count
+        If i > 1 Then SelfTestJoin = SelfTestJoin & "|"
+        SelfTestJoin = SelfTestJoin & names(i)
+    Next i
 End Function
 
 Private Function SelfTestDictHas(ByVal key As Variant, ByVal want As String) As Boolean
@@ -606,5 +615,21 @@ Private Sub SelfTestPart6()
     SelfTestCheck ForgeSheetNameOk("history"), False
     SelfTestCase 207, "sheet_name_ok", "a number is its text"
     SelfTestCheck ForgeSheetNameOk(2026#), True
+    SelfTestCase 208, "list_files", "case ignored, then name order"
+    SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("b.pdf", "A.PDF", "c.txt"), "*.pdf")), "A.PDF|b.pdf"
+    SelfTestCase 209, "list_files", "the whole name: *.pdf is not x.pdfa"
+    SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("x.pdfa", "x.pdf"), "*.pdf")), "x.pdf"
+    SelfTestCase 210, "list_files", "? is exactly one character"
+    SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("r1.pdf", "r10.pdf", "r2.pdf"), "r?.pdf")), "r1.pdf|r2.pdf"
+    SelfTestCase 211, "list_files", "* is any run; the order is by character, not by number"
+    SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("r1.pdf", "r10.pdf", "r2.pdf"), "r*.pdf")), "r1.pdf|r10.pdf|r2.pdf"
+    SelfTestCase 212, "list_files", "the same name in two cases: as written breaks the tie"
+    SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("a.pdf", "A.pdf"), "*")), "A.pdf|a.pdf"
+    SelfTestCase 213, "list_files", "[ ] are themselves, not a set"
+    SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("ab[1].txt", "ab1.txt"), "ab[1].txt")), "ab[1].txt"
+    SelfTestCase 214, "list_files", "nothing matches: an empty list"
+    SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("a.pdf"), "*.txt")), ""
+    SelfTestCase 215, "list_files", "an empty folder"
+    SelfTestCheck SelfTestJoin(ForgeMatchNames(Array(), "*")), ""
     SelfTestFlush
 End Sub

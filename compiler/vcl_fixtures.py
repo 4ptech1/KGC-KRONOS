@@ -374,6 +374,12 @@ class MockFS:
     def add_file(self, path, size, locked=False):
         self.entries[path.casefold()] = {"path": path, "kind": "file", "size": size, "locked": locked}
 
+    def files_in(self, folder):
+        """The names of the files directly in the folder (LIST_FILES, D44)."""
+        prefix = folder.casefold() + "\\"
+        return [e["path"][len(prefix):] for k, e in self.entries.items()
+                if e["kind"] == "file" and k.startswith(prefix) and "\\" not in k[len(prefix):]]
+
     def files_below(self, folder):
         """Files in the folder and in every folder below it."""
         prefix = folder.casefold() + "\\"

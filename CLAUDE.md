@@ -197,8 +197,9 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    and IS_NOTHING (S22). Phase 4a is done (D40): Workbook arguments, `MODIFIES $book sheets`,
    ADD_SHEET and SHEET_EXISTS (S23). Phase 4b is done (D41): COPY_SHEET with `name=`. Phase 5 is
    done (D42): FILTER hides rows by SAME, never by AutoFilter, with VISIBLE_COUNT. Phase 6 is done
-   (D43): SET_FORMULA with an Excel 2016 allowlist, tested by its text with FORMULA. **Next:
-   Phase 7** (text files in the sandbox), then spec.md and the prompt move to VCL 0.4.
+   (D43): SET_FORMULA with an Excel 2016 allowlist, tested by its text with FORMULA. Phase 7a is
+   done (D44): LIST_FILES and ITEMS (S24). **Next: Phase 7b** (READ_TEXT and WRITE_TEXT with
+   statuses, designed in the VEP), then spec.md and the prompt move to VCL 0.4.
 3. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts after the MVP; no training before March 2027.

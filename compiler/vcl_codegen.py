@@ -391,6 +391,9 @@ class Gen:
             return [f"{vba_name(str(opts['into']))} = ForgeReadArray({self.rng(pos[0])})"]
         if name == "WRITE_ARRAY":
             return [f"ForgeWriteArray {e(pos[0])}, {self.rng(opts['to'])}"]
+        if name == "LIST_FILES":   # names in S24 order; never an error (D44)
+            root = e(pos[0]) if isinstance(pos[0], Token) else self.path_root(pos[0])
+            return [f"Set {vba_name(str(opts['into']))} = ForgeListFiles({root}, {e(pos[0])}, {e(pos[1])})"]
         if name in ("MAKE_FOLDER", "COPY_FILE"):   # a status into a String VAR (E11), never an error
             paths = ", ".join(f"{self.path_root(p)}, {e(p)}" for p in pos)
             helper = "ForgeMakeFolder" if name == "MAKE_FOLDER" else "ForgeCopyFile"
@@ -428,7 +431,7 @@ class Gen:
             _, k = self.ex(pos[1])
             if self.vars.get(str(pos[0])) == "Variant":
                 self.facts[str(pos[0])] = k if k in ("num", "text", "date", "bool") else "raw"
-        elif name in ("DICT_GET", "READ_ARRAY", "MAKE_FOLDER", "COPY_FILE") and "into" in opts:
+        elif name in ("DICT_GET", "READ_ARRAY", "MAKE_FOLDER", "COPY_FILE", "LIST_FILES") and "into" in opts:
             drop(str(opts["into"]))
         elif name in ("SET_VALUE", "CLEAR", "SORT", "DELETE_ROW", "INSERT_ROW"):
             target = canon(pos[0])
@@ -524,7 +527,7 @@ class Gen:
                     coll = f"{self.rng(spos[0])}.Cells"
                 else:
                     raise CompileError(f"line {line}: FOR_EACH over {fn} is not supported")
-                self.loopvars[var] = {"KEYS": "text", "SHEETS": "obj"}.get(fn, "raw")
+                self.loopvars[var] = {"KEYS": "text", "SHEETS": "obj", "ITEMS": "text"}.get(fn, "raw")
                 # over CELLS the loop variable is the cell's value, as in the interpreter (D36)
                 walker = f"forgeCell_{var}" if fn == "CELLS" else vba_name(var)
                 if fn == "CELLS":

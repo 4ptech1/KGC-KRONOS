@@ -178,3 +178,6 @@ Dataset count: 0 verified pairs
 - **2026-10-20:** Item 2, Phase 6: SET_FORMULA runs everywhere. A formula is checked against an Excel
   2016 allowlist (no Microsoft 365 function, nothing outside the workbook) and written in Excel's
   English form; TESTs check its text with FORMULA, since only Excel can calculate it (D43).
+- **2026-10-20:** Item 2, Phase 7a: LIST_FILES and ITEMS run everywhere. A spec can list the files
+  directly in a sandbox folder that match `*`/`?` patterns, in an order that is the same on every PC
+  (S24, D44).

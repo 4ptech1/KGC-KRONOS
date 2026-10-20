@@ -339,3 +339,18 @@ def sheet_name_ok(v):
     s = text_of(v)
     return (1 <= len(s) <= 31 and trim(s) == s and not any(ch in '\\/?*[]:' or ord(ch) < 32 for ch in s)
             and not s.startswith("'") and not s.endswith("'") and s.lower() != "history")
+
+
+def name_matches(name, pattern):
+    """S24 (VEP 0.4, D44): a LIST_FILES pattern against a whole file name: * is any run of characters
+    (also none), ? is exactly one character, every other character is itself; case ignored (letter by
+    letter, as LOWER). Not Excel's Dir, which also matches Windows short names (*.pdf finds x.pdfa)."""
+    regex = "".join(".*" if ch == "*" else "." if ch == "?" else _re.escape(ch) for ch in text_of(pattern).lower())
+    return _re.fullmatch(regex, text_of(name).lower(), _re.DOTALL) is not None
+
+
+def list_files(names, pattern):
+    """S24 (VEP 0.4, D44): LIST_FILES gives the names of the files directly in the folder that match the
+    pattern, sorted by LOWER(name) and then by the name as written, so the order is the same on every PC.
+    Here: from the names of the files in the folder."""
+    return sorted((n for n in names if name_matches(n, pattern)), key=lambda n: (n.lower(), n))

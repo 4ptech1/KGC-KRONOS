@@ -31,7 +31,7 @@ CREATE_OBJECT = {"Scripting.Dictionary": {"ForgeNewDict"}, "Scripting.FileSystem
 ONLY_IN = [("CopyFile", r"\bCopyFile\b", {"ForgeCopyFile"}),
            ("CreateFolder", r"\bCreateFolder\b", {"ForgeMakeFolder", "SandboxFolder"}),
            ("ForgeFso", r"\bForgeFso\b", {"ForgeFso", "ForgeFolderExists", "ForgeBelowRoot", "ForgeMakeFolder",
-                                         "ForgeCopyFile"}),
+                                         "ForgeCopyFile", "ForgeListFiles"}),
            ("SandboxFso", r"\bSandboxFso\b", {"SandboxFso", "SandboxNewRoot", "SandboxFolder", "SandboxFile",
                                              "PilotFiles"}),
            ("Writing files with Open", r"(?i)^Open\s+.*\bFor\s+(Output|Append|Binary|Random)\b",

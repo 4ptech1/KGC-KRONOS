@@ -25,11 +25,11 @@ NAMES = {"is_empty": "IS_EMPTY", "is_number": "IS_NUMBER", "is_date": "IS_DATE",
          "safe_name": "SAFE_NAME (VCL 0.3)", "path_join": "PATH_JOIN (VCL 0.3)",
          "file_name": "FILE_NAME (revision 3, VEP 0.4)",
          "same_row_key": "DEDUPE keys (VCL 0.4)", "find": "FIND (revision 3, VEP 0.4)",
-         "sheet_name_ok": "Sheet names for ADD_SHEET (VCL 0.4)"}
+         "sheet_name_ok": "Sheet names for ADD_SHEET (VCL 0.4)", "list_files": "LIST_FILES (VCL 0.4)"}
 DECISION_FUNCS = ["is_empty", "trim", "is_number", "is_date", "is_error", "text_of", "equals",
                   "left", "header_key", "dict_key", "last_row", "same", "clean_text", "parse_date",
                   "iif", "mod", "needs_text_guard", "safe_name", "path_join", "file_name",
-                  "same_row_key", "find", "sheet_name_ok"]
+                  "same_row_key", "find", "sheet_name_ok", "list_files"]
 
 
 def show(v):

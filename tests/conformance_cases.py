@@ -242,4 +242,14 @@ CASES = [
     ("sheet_name_ok", ["Bob's"], True, "an apostrophe inside is fine"),
     ("sheet_name_ok", ["history"], False, "History is kept by Excel, in any case"),
     ("sheet_name_ok", [2026], True, "a number is its text"),
+    # S24 LIST_FILES patterns and order (VEP 0.4 Phase 7a)
+    ("list_files", [["b.pdf", "A.PDF", "c.txt"], "*.pdf"], ["A.PDF", "b.pdf"], "case ignored, then name order"),
+    ("list_files", [["x.pdfa", "x.pdf"], "*.pdf"], ["x.pdf"], "the whole name: *.pdf is not x.pdfa"),
+    ("list_files", [["r1.pdf", "r10.pdf", "r2.pdf"], "r?.pdf"], ["r1.pdf", "r2.pdf"], "? is exactly one character"),
+    ("list_files", [["r1.pdf", "r10.pdf", "r2.pdf"], "r*.pdf"], ["r1.pdf", "r10.pdf", "r2.pdf"],
+     "* is any run; the order is by character, not by number"),
+    ("list_files", [["a.pdf", "A.pdf"], "*"], ["A.pdf", "a.pdf"], "the same name in two cases: as written breaks the tie"),
+    ("list_files", [["ab[1].txt", "ab1.txt"], "ab[1].txt"], ["ab[1].txt"], "[ ] are themselves, not a set"),
+    ("list_files", [["a.pdf"], "*.txt"], [], "nothing matches: an empty list"),
+    ("list_files", [[], "*"], [], "an empty folder"),
 ]

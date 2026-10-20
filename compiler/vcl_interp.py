@@ -204,6 +204,19 @@ def make_folder(fs, root, path):
     return "Created"
 
 
+def list_files(fs, root, folder, pattern):
+    """LIST_FILES (D44): S24 on the files directly in the folder. A bad, missing or too long folder
+    gives an empty list, as ForgeListFiles does: listing never fails and changes nothing."""
+    root = root.rstrip("\\")
+    if not folder or len(folder) > MAX_FOLDER_PATH or any(ch in folder for ch in WILDCARDS):
+        return []
+    if folder.casefold() != root.casefold() and not folder.casefold().startswith(root.casefold() + "\\"):
+        return []
+    if not fs.is_folder(folder):
+        return []
+    return S.list_files(fs.files_in(folder), pattern)
+
+
 def copy_file(fs, src, dst):
     """COPY_FILE's status (E11). One attempt; it never overwrites, deletes or makes folders."""
     if not src or not dst or any(ch in src + dst for ch in WILDCARDS):
@@ -486,6 +499,8 @@ class Machine:
             return e(pos[0]) is None
         if name == "SHEET_EXISTS":   # VCL 0.4 (D40)
             return e(pos[0]).exists(e(pos[1]))
+        if name == "ITEMS":   # what LIST_FILES gave, in its order (D44)
+            return list(e(pos[0]))
         raise VclError(f"{name} is not supported by the MVP interpreter")
 
     # ---------- statements ----------
@@ -625,6 +640,12 @@ class Machine:
         elif name == "SORT":
             self.sort(self.target(pos[0]), int(self.num(e(opts["key"]))),
                       str(opts.get("order", "asc")) == "asc", str(opts.get("header", "yes")) == "yes")
+        elif name == "LIST_FILES":   # D44: names, S24 order; a Collection VAR
+            target = pos[0]
+            is_join = isinstance(target, Tree) and target.data == "call" and str(target.children[0]) == "PATH_JOIN"
+            root = S.text_of(e(pos_of(call_args(target))[0] if is_join else target))
+            pattern = str(pos[1])[1:-1].replace('""', '"')
+            self.assign(str(opts["into"]), list_files(self.fs, root, S.text_of(e(target)), pattern))
         elif name == "MAKE_FOLDER":
             target = pos[0]
             is_join = isinstance(target, Tree) and target.data == "call" and str(target.children[0]) == "PATH_JOIN"
