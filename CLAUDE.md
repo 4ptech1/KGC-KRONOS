@@ -184,10 +184,12 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    5a (the ForgeLib self-test, `dist/forge_selftest.bas`; D34, PR #30) and 5b (the task_12 pilot,
    `dist/forge_pilot.bas`, `vclc pilot-check` and `docs/excel-pilot.md`; D35). **The router MVP
    is complete.** Running the kit in Excel is optional, whenever Boss chooses; when he pastes
-   results back, save them to a file and run `vclc pilot-check`. **Next: ask Boss** before
-   starting item 2.
-2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
-   SET_FORMULA, sheet and file ops), plus list syntax.
+   results back, save them to a file and run `vclc pilot-check`.
+2. The rest of revision 3 in the compiler and interpreter. Boss said "go item 2" on 20 Oct 2026.
+   Designed in `docs/vep-0.4-rev3-rest.md` (D36): Phase 1, the interpreter catches up with what
+   already compiles (no language change), then list syntax with DEDUPE, FIND, the sheet ops,
+   FILTER, SET_FORMULA and text files. OPEN_BOOK, SAVE_AS and CLOSE_BOOK wait until March.
+   **Next: Phase 1.**
 3. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts after the MVP; no training before March 2027.
