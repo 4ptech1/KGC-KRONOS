@@ -171,3 +171,7 @@ Dataset count: 0 verified pairs
 - **2026-10-20:** Item 2, Phase 4b: COPY_SHEET runs everywhere. It needs `name=` (checked first,
   never a replacement) and copies into the workbook of its sheet, under `MODIFIES $book sheets`
   (D41).
+- **2026-10-20:** Item 2, Phase 5: FILTER runs everywhere. Below the header, a row stays visible when
+  its cell is SAME as the value and is hidden otherwise; nothing is deleted and AutoFilter is never
+  used. The new VISIBLE_COUNT assertion counts what stays visible. LASTROW no longer depends on
+  hidden rows in Excel (D42).

@@ -355,7 +355,18 @@ End Function
 ' ---- S11: last row / last column like End(xlUp) ----
 
 Public Function ForgeLastRow(ByVal ws As Worksheet, ByVal col As Long) As Long
-    ForgeLastRow = ws.Cells(ws.Rows.Count, col).End(xlUp).Row
+    ' End(xlUp) skips rows a FILTER hid (D42), so the rows below it, up to the end of the used range,
+    ' are checked too: the answer is the same whether rows are hidden or not.
+    Dim last As Long
+    Dim r As Long
+    last = ws.Cells(ws.Rows.Count, col).End(xlUp).Row
+    For r = ws.UsedRange.Row + ws.UsedRange.Rows.Count - 1 To last + 1 Step -1
+        If Not IsEmpty(ws.Cells(r, col).Value) Then
+            ForgeLastRow = r
+            Exit Function
+        End If
+    Next r
+    ForgeLastRow = last
 End Function
 
 Public Function ForgeLastCol(ByVal ws As Worksheet, ByVal rowNo As Long) As Long
@@ -465,10 +476,23 @@ Public Function ForgeReadArray(ByVal rng As Range) As Variant
     End If
 End Function
 
+Public Sub ForgeFilter(ByVal rng As Range, ByVal col As Long, ByVal crit As Variant)
+    ' FILTER (D42): below the range's first row (its header), a row stays visible when its cell in sheet
+    ' column col is SAME as crit, and is hidden otherwise. Never AutoFilter, whose criteria read numbers
+    ' and dates through the PC's settings and treat * and ? as wildcards; it never deletes a row.
+    Dim ws As Worksheet
+    Dim r As Long
+    Set ws = rng.Worksheet
+    For r = rng.Row + 1 To rng.Row + rng.Rows.Count - 1
+        ws.Rows(r).Hidden = Not ForgeSame(ws.Cells(r, col).Value, crit)
+    Next r
+End Sub
+
 Public Sub ForgeInsertRow(ByVal ws As Worksheet, ByVal rowNo As Long)
     ' INSERT_ROW (D36): a blank row with no fill and no number format, whatever the row above holds.
     ws.Rows(rowNo).Insert
     ws.Rows(rowNo).ClearFormats
+    ws.Rows(rowNo).Hidden = False   ' never hidden like a filtered row next to it (D42)
 End Sub
 
 Public Function ForgeFind(ByVal rng As Range, ByVal x As Variant, ByVal whole As Boolean) As Range

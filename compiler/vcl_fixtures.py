@@ -65,13 +65,15 @@ MAX_LINE = 1000      # VBA allows 1023 characters per line
 # ---------------------------------------------------------------- the data model
 
 class Sheet:
-    """One worksheet as the interpreter sees it: values, fills and number formats by (row, col)."""
+    """One worksheet as the interpreter sees it: values, fills and number formats by (row, col), and
+    the rows FILTER hid (VEP 0.4 Phase 5)."""
 
     def __init__(self, name):
         self.name = name
         self.cells = {}    # (row, col) -> value
         self.fills = {}    # (row, col) -> "#RRGGBB"
         self.formats = {}  # (row, col) -> number format
+        self.hidden = set()   # row numbers
 
     def get(self, r, c):
         return self.cells.get((int(r), int(c)))
@@ -92,6 +94,7 @@ class Sheet:
     def snapshot(self):
         s = Sheet(self.name)
         s.cells, s.fills, s.formats = dict(self.cells), dict(self.fills), dict(self.formats)
+        s.hidden = set(self.hidden)
         return s
 
 
