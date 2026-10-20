@@ -712,6 +712,8 @@ class Machine:
             self.assign(str(opts["into"]), copy_file(self.fs, src, dst))
         elif name == "RETURN":
             raise _Return(e(pos[0]) if pos else None)
+        elif name in ("OPEN_BOOK", "SAVE_AS", "CLOSE_BOOK"):
+            raise VclError(f"{name} opens or saves a real workbook: refused until March 2027 (D36)")
         else:
             raise VclError(f"{name} is not supported by the MVP interpreter")
 

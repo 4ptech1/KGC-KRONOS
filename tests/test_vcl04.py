@@ -5,7 +5,8 @@ DEDUPE cols=[...] and DEDUPE itself (S21, D38). Phase 3: FIND, IS_NOTHING and NO
 arguments, MODIFIES $book sheets, ADD_SHEET and SHEET_EXISTS (S23, D40). Phase 4b: COPY_SHEET (D41). Phase 5:
 FILTER, hidden rows and VISIBLE_COUNT (D42). Phase 6: SET_FORMULA, the formula check and FORMULA (D43).
 Phase 7a: LIST_FILES and ITEMS (S24, D44). Phase 7b: READ_TEXT, WRITE_TEXT, file texts and FILE_TEXT
-(S25, D45)."""
+(S25, D45). The switch of spec.md and the prompt to VCL 0.4 (E12, D46)."""
+import datetime
 import sys
 import unittest
 from pathlib import Path
@@ -16,7 +17,7 @@ import validator  # noqa: E402
 sys.path.insert(0, str(ROOT / "vcl"))
 import semantics as S  # noqa: E402
 from vba_lint import lint  # noqa: E402
-from vcl_codegen import assemble, compile_text  # noqa: E402
+from vcl_codegen import CompileError, assemble, compile_text  # noqa: E402
 from vcl_formula import formula_problems  # noqa: E402
 from vcl_fixtures import SANDBOX, MockFS  # noqa: E402
 from vcl_interp import modifies_of, needs_unchanged_check, read_text, run_tests, write_text  # noqa: E402
@@ -806,6 +807,11 @@ class TextFiles(unittest.TestCase):
                       problems(TEXT_FILES.replace("VCL 0.4", "VCL 0.3", 1)))
         self.assertTrue(any("must be one line of printable ASCII" in m
                             for m in problems(TEXT_FILES.replace('"Head"', '"H\u00e9ad"'))))
+        unlocked = TEXT_FILES.replace(" locked=J5\\job.txt", "")   # rule 19 (D46)
+        self.assertNotEqual(unlocked, TEXT_FILES)
+        self.assertIn(("warning", "the spec reads files, but no FIXTURE folder has a locked= file, so no TEST shows "
+                                  "what happens to a file that is open elsewhere (rule 19)"),
+                      [(p.severity, p.message) for p in validator.validate_text(unlocked)])
 
 
 class Unchanged(unittest.TestCase):
@@ -815,6 +821,37 @@ class Unchanged(unittest.TestCase):
                 spec, problems = parse(ops("LET(n, 1)", version=version).replace("MODIFIES $ws\n", ""))
                 self.assertEqual(problems, [])
                 self.assertEqual(needs_unchanged_check(spec, modifies_of(spec)), want)
+
+
+class VersionSwitch(unittest.TestCase):
+    """E12, D46: every committed spec and the prompt's examples, read as VCL 0.4, give the same
+    problems and the same TEST results as under their own line (the examples were 0.3)."""
+
+    def test_every_spec_and_example_gives_the_same_results_under_0_4(self):
+        paths = sorted((ROOT / "specs").glob("*.vcl")) + [ROOT / "vcl" / "examples" / name
+                                                         for name in ("example1_rev3.vcl", "example3_files.vcl")]
+        day = datetime.date(2026, 10, 20)
+        for path in paths:
+            first, rest = path.read_text(encoding="utf-8").split("\n", 1)
+            with self.subTest(spec=path.name):
+                self.assertIn(first, ("VCL 0.2", "VCL 0.3", "VCL 0.4"))
+                older = ("VCL 0.3" if first == "VCL 0.4" else first) + "\n" + rest
+                newer = "VCL 0.4\n" + rest
+                self.assertEqual(*[[(p.line, p.severity, p.message) for p in validator.validate_text(t)]
+                                   for t in (older, newer)])
+                self.assertEqual(*[[(r.line, r.passed, r.result, r.errors, r.state, r.files, r.hidden, r.texts)
+                                    for r in run_tests(t, day)] for t in (older, newer)])
+
+    def test_real_workbooks_are_refused_until_march_2027(self):   # D36: the language keeps them
+        for op in ('OPEN_BOOK("x.xlsx", readonly=yes, into=b)', 'SAVE_AS(THIS_BOOK, "out.xlsx", format=xlsx)',
+                   "CLOSE_BOOK(THIS_BOOK, save=no)"):
+            with self.subTest(op):
+                text = ops(op, head=["VAR      b As Workbook"], version="VCL 0.4")
+                why = f"{op.split('(')[0]} opens or saves a real workbook: refused until March 2027 (D36)"
+                with self.assertRaises(CompileError) as caught:
+                    compile_text(text)
+                self.assertEqual(str(caught.exception), why)
+                self.assertEqual(run(text).log[0][2], "runtime error: " + why)
 
 
 class Facts(unittest.TestCase):

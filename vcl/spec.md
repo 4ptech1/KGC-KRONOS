@@ -1,4 +1,4 @@
-# VCL 0.3: VBA Command Language (20 Oct 2026)
+# VCL 0.4: VBA Command Language (20 Oct 2026)
 
 VCL is the contract between Claude (which writes specs) and VBA Forge (which turns them into
 tested VBA). This file is the reference that `validator.py` and the training data follow.
@@ -7,13 +7,14 @@ The formal syntax is `vcl/grammar.lark`; the reference meaning of the value func
 `vcl/semantics.py` (tables in `docs/vcl-semantics.md`); the reasons behind each decision are
 in `DECISIONS.md`.
 
-Specs start with `VCL 0.3`. The validator still reads `VCL 0.2` and `VCL 0.1` specs: every 0.2
-spec is also valid as 0.3 and gives the same results (E8), every 0.1 spec is also valid as 0.2,
-and `compiler/vcl_migrate.py` rewrites 0.1 specs into 0.2.
+Specs start with `VCL 0.4`. The validator still reads `VCL 0.3`, `VCL 0.2` and `VCL 0.1` specs:
+every 0.3 spec is also valid as 0.4 and gives the same results once a DEDUPE `cols=1,2` is
+written `cols=[1, 2]` (E12), every 0.2 spec is also valid as 0.3 (E8), every 0.1 spec is also
+valid as 0.2, and `compiler/vcl_migrate.py` rewrites 0.1 specs into 0.2.
 
 Target: Excel 2016 desktop. Specs never rely on Microsoft 365 functions such as XLOOKUP or
-dynamic arrays; every op compiles to plain VBA. (`FILTER` here means AutoFilter, which
-Excel 2016 has.)
+dynamic arrays; every op compiles to plain VBA. (The `FILTER` op hides rows itself, without
+AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses.)
 
 ## Hard rules
 
@@ -35,9 +36,9 @@ Excel 2016 has.)
     file_overwrite, shell, http. Otherwise design around them.
 9.  Choose TASK for one procedure of up to about 60 lines of VBA. Choose BUILD when the
     request needs several procedures, a UserForm, or more than about 60 lines.
-10. Delete rows only inside LOOP_ROWS dir=up, and only rows the user explicitly wants
-    removed. Never delete rows because data is missing or pending: copy them to an
-    exceptions sheet instead.
+10. Delete rows only inside LOOP_ROWS dir=up or with DEDUPE, and only rows the user
+    explicitly wants removed. Never delete rows because data is missing or pending: copy
+    them to an exceptions sheet instead (DEDUPE never deletes a row with a blank key).
 11. For more than about 1,000 rows: READ_ARRAY, process the array, WRITE_ARRAY, and add
     PERF screen_off calc_manual.
 12. Naming: procedures PascalCase and verb-first (DeleteRowsByValue); modules mod +
@@ -60,24 +61,31 @@ Excel 2016 has.)
     or >= comparison in the first rows with +boundary(...), repeat dictionary keys with
     +dupes(<n>) or values() counts of 2 or more, and use reldates(lo, hi) when the spec
     uses TODAY. Give each column a SKIP_IF IS_EMPTY tests at least one blank cell
-    (+blank(<n>) or a "" boundary value), and give a spec that copies files a locked= file
-    in a FIXTURE folder. Prefer exact assertions to ranges.
+    (+blank(<n>) or a "" boundary value), and give a spec that copies or reads files a
+    locked= file in a FIXTURE folder. Prefer exact assertions to ranges.
 20. Declare every sheet the macro changes with MODIFIES: the whole sheet when it is
-    rebuilt, cleared, sorted or has rows added or removed; ["<header>", ...] when only
-    those columns' values change; fills when only fills change; files for a String
-    argument whose folder the macro adds folders or files to. A spec that changes
-    nothing has no MODIFIES lines.
-21. Work with files only through MAKE_FOLDER and COPY_FILE, on paths built in place as
-    PATH_JOIN($<root>, SAFE_NAME(...), ...) from a String argument. Check every root with
+    rebuilt, cleared, sorted, filtered or has rows added or removed; ["<header>", ...]
+    when only those columns' values change; fills when only fills change; files for a
+    String argument whose folder the macro adds folders or files to; sheets for a
+    Workbook argument the macro adds sheets to. A spec that changes nothing has no
+    MODIFIES lines.
+21. Work with files only through MAKE_FOLDER, COPY_FILE, LIST_FILES, READ_TEXT and
+    WRITE_TEXT, on paths built in place as PATH_JOIN($<root>, SAFE_NAME(...), ...) from a
+    String argument (LIST_FILES may list the root itself). Check every root with
     FOLDER_EXISTS in PRE, and write each file op's status where the user can see it. No op
     moves, renames, overwrites or deletes a file.
+22. Add sheets only with ADD_SHEET or COPY_SHEET, each with name=, on a Workbook argument
+    declared with MODIFIES $<book> sheets, and skip the add when SHEET_EXISTS says the
+    sheet is there, so a re-run is safe. Write formulas only with SET_FORMULA, using
+    Excel 2016 functions; a TEST checks their text with FORMULA, never their value. No op
+    removes or replaces a sheet.
 ```
 
 ## Reference
 
 ```text
 TASK FORMAT  (keys in this order; (opt) = optional)
-VCL 0.3
+VCL 0.4
 TASK
 # ASSUME: <assumption>                        (opt, one line each)
 PROC     <PascalCase name>
@@ -87,7 +95,7 @@ ARGS     <name> As <Type>, ...                (opt)
 RET      <Type>                               (Function only)
 VAR      <name> As <Type>                     (opt, one line per local variable)
 PRE      <condition>; <condition>             (opt, checked before any change)
-MODIFIES $<arg> | $<arg>["<header>", ...] | $<arg> fills | $<arg> files   (opt, one line each)
+MODIFIES $<arg> | $<arg>["<header>", ...] | $<arg> fills | $<arg> files | $<arg> sheets   (opt, one line each)
 OP       <step>                               (one or more)
 PERF     screen_off calc_manual events_off    (opt, any of these)
 ERR      standard
@@ -103,7 +111,7 @@ automatically; never repeat them in VAR.
 For form events: MODULE is the form, PROC is <control>_<Event> (btnRun_Click).
 
 BUILD FORMAT
-VCL 0.3
+VCL 0.4
 BUILD
 # ASSUME: <assumption>                        (opt)
 NAME     <PascalCase tool name>
@@ -116,7 +124,7 @@ FLOW     <caller> -> <callee> -> ...          (call order)
 FIXTURE  ...                                  (opt)
 TEST     fixture=<name>.xlsx call=modMain.RunHeadless(<args>) assert=...   (two or more)
 ---
-<one complete TASK spec per SIG, each starting with VCL 0.3, separated by lines
+<one complete TASK spec per SIG, each starting with VCL 0.4, separated by lines
 containing only --->
 
 BUILD rules: modMain always has RunHeadless (runs the whole tool without the form, so the
@@ -127,7 +135,7 @@ OP SYNTAX
 Structural ops begin an OP line:
   LOOP_ROWS dir=up|down from=<expr> to=<expr> var=<name>
   LOOP_COLS dir=left|right from=<expr> to=<expr> var=<name>
-  FOR_EACH var=<name> in=SHEETS(<book>)|CELLS(<range>)|KEYS(<dict>)|ITEMS(<collection>)
+  FOR_EACH var=<name> in=SHEETS(<book>)|CELLS(<range>)|KEYS(<dict>)|ITEMS(<list>)
   IF <condition> THEN <action>       (one-line form)
   IF <condition>                     (block form; steps below are nested)
   ELSE
@@ -146,7 +154,7 @@ Every other op is a call, NAME(arguments, key=value):
           DICT_GET(<dict>, <key>, into=<var>)
           SORT(<range>, key=<col>, order=asc|desc, header=yes|no)
           FILTER(<range>, col=<n>, crit=<expr>)
-          DEDUPE(<range>, cols=<n>|<n,n>, header=yes|no)
+          DEDUPE(<range>, cols=<n>|[<n>, <n>, ...], header=yes|no)
   Cells   SET_VALUE(<target>, <expr>)
           WRITE_ROW(<ws>, <row>, <expr>, <expr>, ..., col=<n>)
                   (the values go to columns n, n+1, ...; without col= they start at column 1)
@@ -156,16 +164,14 @@ Every other op is a call, NAME(arguments, key=value):
           COPY_ROW(<fromWs>, <fromRow>, <toWs>, <toRow>, cols=<n>)   (values of columns 1 to n)
           INSERT_ROW(<ws>, <row>)
           DELETE_ROW(<ws>, <row>)
-  Sheets  ADD_SHEET(<book>, name=<expr>, after=<sheet>, into=<var>)
-          COPY_SHEET(<sheet>, after=<sheet>, into=<var>)
-          OPEN_BOOK(<path>, readonly=yes|no, into=<var>)
-          SAVE_AS(<book>, <path>, format=xlsx|xlsm|csv)
-          CLOSE_BOOK(<book>, save=yes|no)
+  Sheets  ADD_SHEET(<book>, name=<expr>, after=<sheet>, into=<var>)    (a new empty sheet)
+          COPY_SHEET(<sheet>, name=<expr>, after=<sheet>, into=<var>)  (a copy, in its workbook)
+          OPEN_BOOK, SAVE_AS and CLOSE_BOOK open and save real workbooks: refused until March 2027
   Files   MAKE_FOLDER(<path>, into=<status>)       (the folder, and any missing ones below its root)
           COPY_FILE(<from>, <to>, into=<status>)   (one file; never overwrites, never deletes)
-          LIST_FILES(<folder>, "<pattern>", into=<var>)
-          READ_TEXT(<path>, into=<var>)
-          WRITE_TEXT(<path>, <expr>, mode=new|append)
+          LIST_FILES(<folder>, "<pattern>", into=<list>)   (file names in the folder, in name order)
+          READ_TEXT(<path>, <text var>, into=<status>)     (a text file's text into <text var>)
+          WRITE_TEXT(<path>, <expr>, into=<status>)        (a new text file; never overwrites)
   Calls   CALL(<module>.<Proc>, <args>)
   Output  LOG(<expr>)   MSG(<expr>)   RETURN(<expr>)
   Escape  NOTE "<terse technical text>"
@@ -177,10 +183,10 @@ Value functions:
   LASTROW(<ws>, <col>)  LASTCOL(<ws>, <row>)  USED_RANGE(<ws>)
   COL(<ws>, "<header>")   column number of a row-1 header, or 0 if it is missing
   CELL(<ws>, <row>, <col>)  ROW_RANGE(<ws>, <row>, <fromCol>, <toCol>)  RANGE(<ws>, "<A1 ref>")
-  SHEET(<book>, "<name>")  THIS_BOOK  ACTIVE_BOOK  ACTIVE_SHEET
-  FIND(<range>, <expr>, match=whole|part)   returns a Range or NOTHING
+  SHEET(<book>, "<name>")  SHEET_EXISTS(<book>, <name>)  THIS_BOOK
+  FIND(<range>, <expr>, match=whole|part)   the first matching cell, or NOTHING
   ROWS(<array>)  COLS(<array>)  ARR(<array>, <row>, <col>)
-  COUNT(<dict or collection>)  EXISTS(<dict>, <key>)
+  COUNT(<dict or list>)  EXISTS(<dict>, <key>)
   LEN  TRIM  UPPER  LOWER  LEFT(<expr>, <n>)  RIGHT(<expr>, <n>)
   IS_EMPTY  IS_NUMBER  IS_DATE  IS_ERROR  IS_NOTHING  TODAY  NOW  FILE_NAME(<path>)
   SAME(<expr>, <expr>)   TRUE when TRIM(a) and TRIM(b) are the same text, ignoring case
@@ -193,7 +199,7 @@ Value functions:
   FOLDER_EXISTS(<path>)   TRUE when that folder exists
 Arguments are written $name. Variables and loop variables are bare names.
 Text uses "double quotes"; write a quote inside text as two quotes: "Say ""hi""".
-Also numbers, TRUE, FALSE, NOTHING.
+Also numbers, TRUE, FALSE, NOTHING. A list [<n>, <n>, ...] is only for DEDUPE cols=.
 Operators: = <> < > <= >= AND OR NOT + - * / &
 Precedence, tightest first: - (negation), * /, + -, &, comparisons, NOT, AND, OR.
 Comparisons don't chain: write a < b AND b < c, never a < b < c.
@@ -269,6 +275,48 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               Locked (open in another program), Copied (<from> stays). In Excel also Check
               copy (the copy came out a different size; it is kept) and Failed (logged to
               ForgeLog). A file op never stops the run
+  LIST_FILES  the names (not paths) of the files directly in the folder whose whole name
+              matches the pattern (* any run of characters, ? one character, case ignored),
+              sorted by lowercase name; a missing or bad folder gives an empty list. ITEMS
+              walks them in that order
+  Text        READ_TEXT and WRITE_TEXT handle printable ASCII, tabs and line breaks, at most
+              32,767 characters; anything else is Not text, because it reads differently on
+              each PC
+  READ_TEXT   writes, in this order: Bad name, Too long, Missing, Too big, Locked, Not text,
+              Read; with Read, <text var> holds the file's text without one final line
+              break, else "". In Excel also Failed
+  WRITE_TEXT  writes, in this order: Bad name, Too long, Not text, No folder, Conflict (a
+              folder or a different file is there: never overwritten), Locked, Already there
+              (the same text: a re-run is safe), Written (exactly the text, no line break
+              added). In Excel also Check write and Failed
+  RANGE       a cell (B2) or a block (B2:D9); whole columns, whole rows and names stop a TEST
+  THIS_BOOK   the TEST's workbook; pass sheets as arguments rather than using the active one
+  READ_ARRAY  always a 2-D array from 1, even for one cell; WRITE_ARRAY writes it from the
+              top-left cell of to= and stores text as exactly that text
+  SELECT_CASE a CASE matches when = would be TRUE; the first match runs, else CASE_ELSE
+  FOR_EACH    over CELLS gives each cell's value, row by row; over SHEETS each sheet
+  INSERT_ROW  a new empty row, visible, with no fill and no number format
+  LOG MSG     LOG writes a line to ForgeLog and is not an error; MSG shows a message
+  FILE_NAME   the text after the last backslash
+  DEDUPE      keeps the first row of each key and deletes each later row with that key
+              (whole sheet rows); cols= are sheet column numbers, as for SORT; key cells
+              compare as dictionary keys do; a row with an empty or error key cell stays
+  FIND        looks row by row, left to right: match=whole (the default) means SAME,
+              match=part means the cell's text holds TRIM(<expr>), case ignored (an empty
+              text finds NOTHING). Test it with IS_NOTHING before writing to it
+  FILTER      below the range's first row, a row stays visible when its cell in sheet column
+              col= is SAME as crit=, and is hidden otherwise; it never deletes and never uses
+              AutoFilter. A spec that FILTERs may not SORT
+  SET_FORMULA writes the formula's English text (=SUM(B2:B9), or R1C1 such as =RC[-2]*RC[-1]
+              with style=r1c1). Only Excel 2016 functions: no XLOOKUP, FILTER, LET, TEXTJOIN,
+              IFS, INDIRECT, TEXT, VALUE, no @, no A1#, nothing outside the workbook. style=a1
+              writes one cell; style=r1c1 writes the same text to every cell of the range.
+              Later steps and TESTs can't read a formula's value; a spec that SET_FORMULAs
+              may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT
+  Sheet names ADD_SHEET and COPY_SHEET take 1 to 31 characters, no spaces at the ends, none
+              of \ / ? * [ ] :, no apostrophe first or last, not History; a bad name or one
+              already used (case ignored) stops the run before anything is added. Without
+              after= the new sheet goes after the last one
 
 MODIFIES  (one line per sheet the macro changes, or per kind of change)
   MODIFIES $<arg>                     anything on that sheet: values, fills, formats, rows
@@ -276,17 +324,23 @@ MODIFIES  (one line per sheet the macro changes, or per kind of change)
   MODIFIES $<arg> fills               fills anywhere on that sheet
   MODIFIES $<arg> files               folders and files may be added below that String
                                       argument; nothing else on disk may change
+  MODIFIES $<arg> sheets              sheets may be added to that Workbook argument; every
+                                      sheet that was there stays as it was
   An argument has one whole-sheet line, or at most one [headers] line and one fills line.
   Every write op must go through a $sheet argument whose lines allow that change: values
   need [headers] or the whole sheet, fill-only FORMATs need fills, and anything else
   (other FORMATs, CLEAR what=all or formats, SORT, INSERT_ROW, DELETE_ROW, DEDUPE, FILTER)
-  needs the whole sheet. Write through CELL, ROW_RANGE, USED_RANGE or RANGE of a $sheet.
-  MAKE_FOLDER's folder and COPY_FILE's <to> must be below a root with a files line;
-  COPY_FILE's <from> may be below any String argument.
+  needs the whole sheet. Write through CELL, ROW_RANGE, USED_RANGE, RANGE or FIND of a
+  $sheet, or through the into= VAR of ADD_SHEET or COPY_SHEET, which writes to the new
+  sheet and which nothing else may set.
+  MAKE_FOLDER's folder, COPY_FILE's <to> and WRITE_TEXT's file must be below a root with a
+  files line; COPY_FILE's <from>, READ_TEXT's file and LIST_FILES' folder may be below any
+  String argument.
   Every TEST then checks that nothing else changed: each other cell keeps its value, fill
-  and number format, and the header row never changes; on disk nothing is removed or
-  changed, and new folders and files appear only below a files root. A spec that changes
-  nothing has no MODIFIES lines and gets the same check.
+  and number format, each row stays visible or hidden, and the header row never changes;
+  no sheet is removed, and new sheets appear only with a sheets line; on disk nothing is
+  removed or changed, and new folders and files appear only below a files root. A spec
+  that changes nothing has no MODIFIES lines and gets the same check.
 
 TEST ASSERTIONS  (checked on the test workbook after the run)
   COUNTIF(<Sheet>!<range>, <criteria>)  COUNTA(<Sheet>!<range>)  SUM(<Sheet>!<range>)
@@ -298,6 +352,9 @@ TEST ASSERTIONS  (checked on the test workbook after the run)
   FILE_EXISTS("<Folder>\<path>")   that file exists below a FIXTURE folder of the TEST
   FILE_COUNT("<Folder>[\<path>]")  files in that folder and in every folder below it
   FILL_COUNT(<Sheet>!<range>, #RRGGBB)   cells in the range with that fill colour
+  VISIBLE_COUNT(<Sheet>!<range>)   non-empty cells of the range in rows that are not hidden
+  FORMULA(<Sheet>!<cell>)          the formula text SET_FORMULA wrote there, or ""
+  FILE_TEXT("<Folder>\<path>")     the exact text of that file, or "" when there is none
   RESULT         the Function's return value (from the last run)
   ERROR_COUNT    errors written to ForgeLog during the run
   PRE_<measure>  the same measurement taken before the first run, e.g. PRE_COUNTA(Data!A:A)
@@ -310,7 +367,8 @@ Ranges by header: <Sheet>![Header] is the whole column under that row-1 header;
 runs=<n> calls the procedure n times on the same test workbook before checking
 (default 1).
 Combine assertions with AND. In TEST call arguments, a bare sheet name (Orders) means that
-worksheet in the test workbook, and a bare folder name (Dump) means that FIXTURE folder.
+worksheet in the test workbook, a bare folder name (Dump) means that FIXTURE folder, and the
+TEST's fixture file name (orders_01.xlsx) means the test workbook, for a Workbook argument.
 fixture=<name>.xlsx names a FIXTURE file from this spec; the harness builds it fresh for
 every TEST. fixture=target and real workbooks are not allowed.
 
@@ -331,15 +389,15 @@ FIXTURE SPEC
   values stay.
   values(...) counts add up to rows. rows=0 creates the sheet with its header row only.
   Repeat FIXTURE lines with the same file name to add more sheets.
-  FIXTURE <name>.xlsx folder=<Name> [files=<path>[:<bytes>],...] [locked=<path>,...]
+  FIXTURE <name>.xlsx folder=<Name> [files=<path>[:<bytes>|:"<text>"],...] [locked=<path>,...]
   adds a synthetic folder to the same test file: each file below it (\ between folders,
   each part a safe name of letters, digits, _ . and -), with that size or one from its own
-  seed. locked= files act as if another program has them open. A folder exists when a
-  file is below it. <Name> is one word and not a sheet's name. Nothing real is read or
-  written: the folders sit in a sandbox (C:\KRONOS_SANDBOX in the interpreter, a new
-  folder below %TEMP% in Excel, whose root may be up to 120 characters), so a TEST fails
-  when a file op path could be Too long in Excel but not in the interpreter: keep paths
-  far over or well under the limits.
+  seed, or holding exactly "<text>" (one line of printable ASCII). locked= files act as if
+  another program has them open. A folder exists when a file is below it. <Name> is one
+  word and not a sheet's name. Nothing real is read or written: the folders sit in a
+  sandbox (C:\KRONOS_SANDBOX in the interpreter, a new folder below %TEMP% in Excel, whose
+  root may be up to 120 characters), so a TEST fails when a file op path could be Too long
+  in Excel but not in the interpreter: keep paths far over or well under the limits.
   Sheet names have no spaces, so TEST calls can use them bare. They may be short forms of
   the real sheet names (WelderPerf for "Welder Performance"); ASSUME lines describe the
   real workbook.
@@ -390,7 +448,32 @@ A values() entry of `""` is a blank cell, and so is a column without a data rule
 
 VCL 0.3 folder FIXTUREs: a file without `:<bytes>` gets 100 + below(900) bytes, from the
 PRNG seeded with "<file>|<folder>|<path as written>|size", for example
-"router_01.xlsx|Dump|r3.pdf|size".
+"router_01.xlsx|Dump|r3.pdf|size". Such a file holds that many "x" characters. A VCL 0.4
+file written `:"<text>"` holds exactly that text, with no PRNG draws.
+
+## Changes in VCL 0.4 (20 Oct 2026)
+
+Designed in `docs/vep-0.4-rev3-rest.md` (the rest of revision 3, MVP plan item 2) and built in
+its Phases 1 to 7. Every VCL 0.3 spec stays valid and gives the same results, once a DEDUPE
+`cols=1,2` is written `cols=[1, 2]` (E12). Details and reasons: `DECISIONS.md` (E12, S20 to
+S25, D36 to D46).
+
+- The version line is `VCL 0.4` (E12).
+- Every revision 3 op and function that compiled now also runs in the interpreter, so a TEST
+  can prove it: arrays, INSERT_ROW, SELECT_CASE, LOG, MSG, RANGE, SHEET, FILE_NAME (S20), and
+  FOR_EACH over SHEETS and CELLS (D37).
+- DEDUPE, with key columns as a list, `cols=[1, 2]`; a row with a blank key stays (S21, D38).
+- FIND and IS_NOTHING, by VCL's own matching (S22, D39).
+- ADD_SHEET and COPY_SHEET with `name=` (S23), SHEET_EXISTS, Workbook arguments passed as the
+  TEST's fixture file, and `MODIFIES $<book> sheets` (D40, D41).
+- FILTER hides rows by SAME, without AutoFilter, and the VISIBLE_COUNT assertion (D42).
+- SET_FORMULA on an Excel 2016 list of functions, and the FORMULA assertion (D43).
+- LIST_FILES and ITEMS (S24); READ_TEXT and WRITE_TEXT with statuses (S25); text files in
+  folder FIXTUREs and the FILE_TEXT assertion (D44, D45).
+- Hard rules 10, 19, 20 and 21 grow to cover these, and the new rule 22 covers sheets and
+  formulas. OPEN_BOOK, SAVE_AS and CLOSE_BOOK stay refused until March 2027 (D36).
+- The specs stay in their versions (11 in 0.2, task_12 in 0.3); Examples 1 and 3 moved to 0.4
+  by their first line only (D46).
 
 ## Changes in VCL 0.3 (20 Oct 2026)
 
