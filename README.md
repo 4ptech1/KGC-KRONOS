@@ -175,3 +175,6 @@ Dataset count: 0 verified pairs
   its cell is SAME as the value and is hidden otherwise; nothing is deleted and AutoFilter is never
   used. The new VISIBLE_COUNT assertion counts what stays visible. LASTROW no longer depends on
   hidden rows in Excel (D42).
+- **2026-10-20:** Item 2, Phase 6: SET_FORMULA runs everywhere. A formula is checked against an Excel
+  2016 allowlist (no Microsoft 365 function, nothing outside the workbook) and written in Excel's
+  English form; TESTs check its text with FORMULA, since only Excel can calculate it (D43).

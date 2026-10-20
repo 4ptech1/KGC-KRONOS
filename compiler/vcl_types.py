@@ -370,7 +370,7 @@ class Checker:
         elif name in ("ADD_SHEET", "COPY_SHEET") and "into" in opts:   # the new sheet (D40, D41)
             drop_var(str(opts["into"]))
             self.assign(str(opts["into"]), "Sheet", opts["into"], vflow, line)
-        elif name in ("SET_VALUE", "CLEAR"):
+        elif name in ("SET_VALUE", "CLEAR", "SET_FORMULA"):
             drop_sheet_of(pos[0])
         elif name == "WRITE_ROW" and pos:
             for k in [k for k in facts if k.startswith("CELL(" + canon(pos[0]) + ",")]:

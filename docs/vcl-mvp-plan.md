@@ -75,7 +75,8 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    SET_FORMULA, sheet and file ops), plus list syntax. Designed in `docs/vep-0.4-rev3-rest.md`
    (D36), seven phases; OPEN_BOOK, SAVE_AS and CLOSE_BOOK wait until March. Phase 1 (the
    interpreter catches up, D37), Phase 2 (list syntax and DEDUPE, D38), Phase 3 (FIND, D39)
-   Phase 4 (ADD_SHEET and COPY_SHEET, D40, D41) and Phase 5 (FILTER, D42) are done.
+   Phase 4 (ADD_SHEET and COPY_SHEET, D40, D41), Phase 5 (FILTER, D42) and Phase 6 (SET_FORMULA,
+   D43) are done.
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
    VCL 0.2 packs.
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's

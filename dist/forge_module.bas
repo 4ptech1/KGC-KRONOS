@@ -479,6 +479,16 @@ Public Function ForgeReadArray(ByVal rng As Range) As Variant
     End If
 End Function
 
+Public Sub ForgeSetFormula(ByVal rng As Range, ByVal f As String, ByVal r1c1 As Boolean)
+    ' SET_FORMULA (D43): Excel's own English form, .Formula or .FormulaR1C1 and never .FormulaLocal,
+    ' so the same text means the same formula on every PC. The validator checked f against its list.
+    If r1c1 Then
+        rng.FormulaR1C1 = f
+    Else
+        rng.Formula = f
+    End If
+End Sub
+
 Public Sub ForgeFilter(ByVal rng As Range, ByVal col As Long, ByVal crit As Variant)
     ' FILTER (D42): below the range's first row (its header), a row stays visible when its cell in sheet
     ' column col is SAME as crit, and is hidden otherwise. Never AutoFilter, whose criteria read numbers
