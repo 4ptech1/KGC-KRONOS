@@ -189,7 +189,9 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    Designed in `docs/vep-0.4-rev3-rest.md` (D36): Phase 1, the interpreter catches up with what
    already compiles (no language change), then list syntax with DEDUPE, FIND, the sheet ops,
    FILTER, SET_FORMULA and text files. OPEN_BOOK, SAVE_AS and CLOSE_BOOK wait until March.
-   **Next: Phase 1.**
+   Phase 1 is done (D37): arrays, INSERT_ROW, SELECT_CASE, LOG, MSG, RANGE, SHEET, FILE_NAME
+   and FOR_EACH over SHEETS and CELLS now run in the interpreter. **Next: Phase 2** (list
+   syntax and DEDUPE).
 3. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts after the MVP; no training before March 2027.

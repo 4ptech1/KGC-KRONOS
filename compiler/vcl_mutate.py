@@ -54,12 +54,12 @@ def mutants(text):
 
 def mutate_report(text, snapshot=False, today=None):
     """snapshot=True also counts a mutant as caught when any test's final workbook (values, fills
-    and number formats), final mock file system (VCL 0.3) or RESULT differs from the original
-    spec's: the check generated VBA will face.
+    and number formats), final mock file system (VCL 0.3), LOG and MSG texts (D36) or RESULT
+    differs from the original spec's: the check generated VBA will face.
     today pins TODAY for every run (default: the real date)."""
     lines = text.splitlines()
     killed, total, survivors = 0, 0, []
-    golden = [(r.result, r.state, r.files) for r in run_tests(text, today)] if snapshot else None
+    golden = [(r.result, r.state, r.files, r.messages) for r in run_tests(text, today)] if snapshot else None
     for i, what, new_body in mutants(text):
         new_lines = list(lines)
         if new_body is None:
@@ -75,7 +75,7 @@ def mutate_report(text, snapshot=False, today=None):
             results = run_tests(mutant, today)
             caught = any(not r.passed for r in results)
             if snapshot and not caught:
-                caught = [(r.result, r.state, r.files) for r in results] != golden
+                caught = [(r.result, r.state, r.files, r.messages) for r in results] != golden
         except (VclError, KeyError, TypeError, ValueError, IndexError):
             caught = True
         if caught:

@@ -194,4 +194,11 @@ CASES = [
     ("path_join", ["C:\\Jobs", ".."], "", "an unsafe part gives an empty path"),
     ("path_join", ["C:\\Jobs", "A\\B"], "", "a part may not hide a separator"),
     ("path_join", ["", "J-101"], "", "no root, no path"),
+    # FILE_NAME (VEP 0.4)
+    ("file_name", ["C:\\Jobs\\J-101\\r1.pdf"], "r1.pdf", "the part after the last backslash"),
+    ("file_name", ["r1.pdf"], "r1.pdf", "no backslash: all of it"),
+    ("file_name", ["C:\\Jobs\\"], "", "a folder path ending in a backslash"),
+    ("file_name", ["\\\\server\\share\\a b.pdf"], "a b.pdf", "a network path; spaces are kept"),
+    ("file_name", ["C:/Jobs/r1.pdf"], "C:/Jobs/r1.pdf", "only a backslash separates"),
+    ("file_name", [None], "", "empty"),
 ]

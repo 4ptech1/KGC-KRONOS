@@ -7,6 +7,7 @@ and returns -2 (Functions).
 """
 import datetime as dt
 import fnmatch
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -18,7 +19,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "vcl"))
 import semantics as S  # noqa: E402
 from vcl_fixtures import (EXCEL_SANDBOX_MAX, MAX_FILE_PATH, MAX_FOLDER_PATH, SANDBOX, MockFS,  # noqa: E402
-                          Sheet, build_folders, build_workbooks)
+                          Sheet, build_folders, build_workbooks, col_number)
 from vcl_parse import parse  # noqa: E402
 
 
@@ -78,6 +79,55 @@ class FDict:
 
     def keys(self):
         return [orig for orig, _ in self.items.values()]
+
+
+class Arr:
+    """A 2-D array from READ_ARRAY: 1-based rows and columns, as Range.Value gives them (D36)."""
+
+    def __init__(self, rows, cols, data):
+        self.rows, self.cols, self.data = rows, cols, data   # data: {(row, col): value}
+
+    def check(self, r, c):
+        if not (1 <= r <= self.rows and 1 <= c <= self.cols):
+            raise VclError(f"subscript out of range (VBA error 9): ARR({r}, {c}) of a {self.rows} x {self.cols} array")
+
+    def get(self, r, c):
+        self.check(r, c)
+        return self.data.get((r, c))
+
+    def set(self, r, c, v):
+        self.check(r, c)
+        self.data[(r, c)] = v
+
+
+class Book:
+    """THIS_BOOK and ACTIVE_BOOK in a TEST: the fixture workbook, its sheets in FIXTURE order."""
+
+    def __init__(self, sheets):
+        self.sheets = sheets   # name -> Sheet
+
+    def sheet(self, name):
+        for key, sh in self.sheets.items():
+            if key.casefold() == S.text_of(name).casefold():   # Worksheets("name") ignores case
+                return sh
+        raise VclError(f"subscript out of range (VBA error 9): no sheet {S.text_of(name)!r} in the workbook")
+
+
+EXCEL_ROWS, EXCEL_COLS = 1048576, 16384   # the size of an Excel 2016 sheet (XFD1048576)
+A1_REF = re.compile(r"\$?([A-Za-z]{1,3})\$?(\d+)(?::\$?([A-Za-z]{1,3})\$?(\d+))?")
+
+
+def a1_range(sheet, ref):
+    """RANGE(ws, "B2") or RANGE(ws, "B2:D9") (D36). Other refs stop the TEST with a clear message."""
+    m = A1_REF.fullmatch(S.text_of(ref).strip())
+    if not m:
+        raise VclError(f"RANGE {S.text_of(ref)!r}: the interpreter reads a cell (\"B2\") or a block (\"B2:D9\") only")
+    c1, r1 = col_number(m.group(1).upper()), int(m.group(2))
+    c2, r2 = (col_number(m.group(3).upper()), int(m.group(4))) if m.group(3) else (c1, r1)
+    if min(r1, r2, c1, c2) < 1 or max(r1, r2) > EXCEL_ROWS or max(c1, c2) > EXCEL_COLS:
+        raise VclError(f"RANGE {S.text_of(ref)!r}: outside an Excel sheet (rows 1 to {EXCEL_ROWS}, columns A to XFD); "
+                       "Excel error 1004")
+    return Rng(sheet, min(r1, r2), min(c1, c2), max(r1, r2), max(c1, c2))
 
 
 def opts_of(args):
@@ -142,9 +192,11 @@ def copy_file(fs, src, dst):
 
 
 class Machine:
-    def __init__(self, spec, bound_args, log, today=None, fs=None):
+    def __init__(self, spec, bound_args, log, today=None, fs=None, book=None):
         self.spec = spec
         self.log = log
+        self.book = Book(book if book is not None else {})
+        self.messages = []   # LOG and MSG texts: never errors, never part of ERROR_COUNT (D36)
         self.fs = fs if fs is not None else MockFS()
         self.args = bound_args
         self.today = today or dt.date.today()
@@ -190,6 +242,10 @@ class Machine:
                 return dt.datetime.combine(self.today, dt.datetime.now().time())
             if name in ("TRUE", "FALSE"):
                 return name == "TRUE"
+            if name in ("THIS_BOOK", "ACTIVE_BOOK"):
+                return self.book
+            if name == "ACTIVE_SHEET":
+                raise VclError("ACTIVE_SHEET depends on what was active in Excel: pass the sheet as an argument")
             if name in self.vars:
                 return self.vars[name]
             return name  # an option word such as up, sum, desc
@@ -336,6 +392,24 @@ class Machine:
             return len(d.items) if isinstance(d, FDict) else len(d)
         if name == "KEYS":
             return e(pos[0]).keys()
+        # rev 3 functions the compiler already compiled (VEP 0.4 Phase 1, D36)
+        if name == "RANGE":
+            return a1_range(e(pos[0]), e(pos[1]))
+        if name == "SHEET":
+            return e(pos[0]).sheet(e(pos[1]))
+        if name == "SHEETS":
+            return list(e(pos[0]).sheets.values())
+        if name == "CELLS":
+            rng = self.target(pos[0])
+            return [rng.sheet.get(r, c) for r, c in rng.cells()]   # row by row, as For Each
+        if name == "ARR":
+            return e(pos[0]).get(self.index(e(pos[1])), self.index(e(pos[2])))
+        if name == "ROWS":
+            return e(pos[0]).rows
+        if name == "COLS":
+            return e(pos[0]).cols
+        if name == "FILE_NAME":
+            return S.file_name(e(pos[0]))
         raise VclError(f"{name} is not supported by the MVP interpreter")
 
     # ---------- statements ----------
@@ -356,6 +430,9 @@ class Machine:
         e = self.ev
         if name == "LET":
             self.assign(str(pos[0]), e(pos[1]))
+        elif name == "SET_VALUE" and isinstance(pos[0], Tree) and str(pos[0].children[0]) == "ARR":
+            ap = pos_of(call_args(pos[0]))
+            e(ap[0]).set(self.index(e(ap[1])), self.index(e(ap[2])), e(pos[1]))
         elif name == "SET_VALUE":
             rng = self.target(pos[0])
             v = e(pos[1])
@@ -393,6 +470,22 @@ class Machine:
             n = self.index(e(opts["cols"]))
             for c in range(1, n + 1):
                 dst.set(r2, c, src.get(r, c))
+        elif name == "INSERT_ROW":   # a new empty row, no fill, no number format (D36)
+            sh, row = e(pos[0]), self.index(e(pos[1]))
+            sh.cells = {(r + (r >= row), c): v for (r, c), v in sh.cells.items()}
+            sh.fills = {(r + (r >= row), c): v for (r, c), v in sh.fills.items()}
+            sh.formats = {(r + (r >= row), c): v for (r, c), v in sh.formats.items()}
+        elif name == "READ_ARRAY":   # always 2-D and 1-based, even for one cell (ForgeReadArray)
+            rng = self.target(pos[0])
+            data = {(r - rng.r1 + 1, c - rng.c1 + 1): rng.sheet.get(r, c) for r, c in rng.cells()}
+            self.assign(str(opts["into"]), Arr(rng.r2 - rng.r1 + 1, rng.c2 - rng.c1 + 1, data))
+        elif name == "WRITE_ARRAY":   # from the top-left cell of to=; text stays text (S17)
+            arr, top = e(pos[0]), self.target(opts["to"])
+            for r in range(1, arr.rows + 1):
+                for c in range(1, arr.cols + 1):
+                    top.sheet.set(top.r1 + r - 1, top.c1 + c - 1, arr.data.get((r, c)))
+        elif name in ("LOG", "MSG"):
+            self.messages.append((name, S.text_of(e(pos[0]))))
         elif name == "DELETE_ROW":
             sh, row = e(pos[0]), int(e(pos[1]))
             sh.cells = {(r - (r > row), c): v for (r, c), v in sh.cells.items() if r != row}
@@ -490,6 +583,13 @@ class Machine:
                 for i in range(a, b + step, step) if (b - a) * step >= 0 else []:
                     self.vars[var] = i
                     if not self.loop_pass(n["children"]):
+                        break
+            elif kind == "select_case":   # the first CASE with a value = the selector (S7); else CASE_ELSE
+                sel = self.ev(s.children[0])
+                for case in n["children"]:
+                    if case["kind"] == "case_else" or any(self.compare(sel, "=", self.ev(v))
+                                                          for v in case["stmt"].children):
+                        self.block(case["children"])
                         break
             elif kind == "for_each":
                 o = {str(x.children[0]): x.children[1] for x in s.children}
@@ -799,6 +899,7 @@ class TestResult:
     log: list = field(default_factory=list)
     state: dict = field(default_factory=dict)
     files: list = field(default_factory=list)   # VCL 0.3: the mock file system after the last run
+    messages: list = field(default_factory=list)   # LOG and MSG texts of the last run (D36)
 
 
 def files_of(fs):
@@ -900,7 +1001,7 @@ def run_tests(text, today=None):
         file_paths = []
         for _ in range(runs):
             log.clear()
-            machine = Machine(spec, bound, log, today, fs)
+            machine = Machine(spec, bound, log, today, fs, book)
             result = machine.run()
             stopped_at_pre = stopped_at_pre and machine.pre_failed
             file_paths += machine.file_paths
@@ -926,7 +1027,8 @@ def run_tests(text, today=None):
         state = {name: (sorted((rc, S.text_of(v)) for rc, v in sh.cells.items()), sorted(sh.fills.items()),
                         sorted(sh.formats.items()))
                  for name, sh in book.items()}
-        results.append(TestResult(k["line"], not failed, result, len(log), failed, list(log), state, files_of(fs)))
+        results.append(TestResult(k["line"], not failed, result, len(log), failed, list(log), state, files_of(fs),
+                                   list(machine.messages)))
     return results
 
 

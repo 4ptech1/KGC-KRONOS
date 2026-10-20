@@ -73,7 +73,8 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    kit: D32 to D35). **The MVP is complete.** It came before the rest of item 5.
 5. **The rest of rev 3** in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax. Designed in `docs/vep-0.4-rev3-rest.md`
-   (D36), seven phases; OPEN_BOOK, SAVE_AS and CLOSE_BOOK wait until March.
+   (D36), seven phases; OPEN_BOOK, SAVE_AS and CLOSE_BOOK wait until March. Phase 1 (the
+   interpreter catches up) is done (D37).
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
    VCL 0.2 packs.
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's

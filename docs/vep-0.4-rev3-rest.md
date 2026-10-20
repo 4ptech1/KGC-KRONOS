@@ -4,6 +4,7 @@ Status: **design, 20 Oct 2026** (Boss said "go item 2"). Choices that needed Bos
 made the conservative way and recorded in `DECISIONS.md` D36, as CLAUDE.md asks; Boss can
 overrule any of them. Phase 1 changes no language; later phases change VCL and follow the usual
 rule (spec.md and the prompt together, every check, one Orchestrator update per switch).
+Phase 1 is done (D37).
 
 ## The problem
 
@@ -30,7 +31,7 @@ and the dataset (item 7).
 
 ## Phases (one or two PRs each, in this order)
 
-### Phase 1: the interpreter catches up (group A, no language change)
+### Phase 1: the interpreter catches up (group A, no language change; done: D37)
 
 - **Arrays:** READ_ARRAY gives a 2-D array, 1-based, as `Range.Value` does; ROWS, COLS and ARR
   read it; SET_VALUE(ARR(...), x) writes it; WRITE_ARRAY writes it from a top-left cell. S17

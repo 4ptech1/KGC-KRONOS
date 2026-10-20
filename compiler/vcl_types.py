@@ -107,6 +107,7 @@ class Checker:
             elif k["key"] == "RET":
                 self.ret = VBA_TO_TYPE[str(t.children[0])]
         self.loopvars = {}
+        self.selectors = []   # the SELECT_CASE selectors around the current line, innermost last
         self.spec = spec
 
     def err(self, line, msg):
@@ -476,15 +477,27 @@ class Checker:
                     src = opts.get("in")
                     if src is not None:
                         self.ty(src, facts, vflow, line)
-                    self.loopvars[var] = "Text" if src is not None and canon(src).startswith("KEYS(") else "Cell"
+                    over = canon(src).split("(")[0] if src is not None else ""
+                    self.loopvars[var] = {"KEYS": "Text", "SHEETS": "Sheet"}.get(over, "Cell")   # D36
                 else:
                     self.loopvars[var] = "Num"
                 body = {k: v for k, v in facts.items() if not mentions(k, var)}
                 after = self.block(n["children"], body, vflow)
                 facts = {k: v for k, v in facts.items() if after.get(k) == v}
-            elif kind in ("select_case", "case_line", "case_else"):
+            elif kind == "select_case":   # each CASE value is compared with the selector as = does (D36)
+                self.ty(s.children[0], facts, vflow, line)
+                self.selectors.append(s.children[0])
+                self.block(n["children"], facts, vflow)
+                self.selectors.pop()
+            elif kind == "case_line":
                 for c in s.children:
-                    self.ty(c, facts, vflow, line)
+                    if self.selectors:
+                        self.ty_compare(Tree("comparison", [self.selectors[-1], Token("COMP_OP", "="), c]),
+                                        facts, vflow, line)
+                    else:
+                        self.ty(c, facts, vflow, line)
+                self.block(n["children"], facts, vflow)
+            elif kind == "case_else":
                 self.block(n["children"], facts, vflow)
         return facts
 

@@ -291,3 +291,12 @@ def path_join(base, *names):
     if not root or not parts or any(not n or safe_name(n) != n for n in parts):
         return ""
     return "\\".join([root] + parts)
+
+
+# ---------------------------------------------------------------- revision 3 functions (VEP 0.4)
+
+def file_name(path):
+    """S20 (VEP 0.4, D36): FILE_NAME(path) is the text after the last backslash, or all of the text
+    when it has none; a path ending in a backslash gives "". Only \\ separates: a / is part of
+    the name."""
+    return text_of(path).rsplit("\\", 1)[-1]
