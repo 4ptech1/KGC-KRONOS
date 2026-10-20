@@ -3,7 +3,8 @@ compiled: INSERT_ROW, READ_ARRAY, WRITE_ARRAY, ARR, ROWS, COLS, SELECT_CASE, LOG
 FILE_NAME and FOR_EACH over SHEETS and CELLS (D36, D37). Phase 2: the VCL 0.4 line, lists in
 DEDUPE cols=[...] and DEDUPE itself (S21, D38). Phase 3: FIND, IS_NOTHING and NOTHING (S22, D39). Phase 4a: Workbook
 arguments, MODIFIES $book sheets, ADD_SHEET and SHEET_EXISTS (S23, D40). Phase 4b: COPY_SHEET (D41). Phase 5:
-FILTER, hidden rows and VISIBLE_COUNT (D42). Phase 6: SET_FORMULA, the formula check and FORMULA (D43)."""
+FILTER, hidden rows and VISIBLE_COUNT (D42). Phase 6: SET_FORMULA, the formula check and FORMULA (D43).
+Phase 7a: LIST_FILES and ITEMS (S24, D44)."""
 import sys
 import unittest
 from pathlib import Path
@@ -266,6 +267,37 @@ TEST     fixture=lines_01.xlsx call=AddLineTotals(Bare) assert=RESULT = 0 AND ER
 TEST     fixture=lines_01.xlsx call=AddLineTotals(Other) assert=RESULT = -1 AND ERROR_COUNT = 1
 """
 
+# LIST_FILES (D44): the PDFs directly in the dump folder, in S24 order.
+LIST_FILES = r"""VCL 0.4
+TASK
+# ASSUME: the report lists the PDF files directly in the dump folder, not in its sub-folders, in name order
+# ASSUME: the names go under the File header from row 2; the result is how many there are
+PROC     ListDumpPdfs
+KIND     Function
+MODULE   modDump
+ARGS     ws As Worksheet, dump As String
+RET      Long
+VAR      files As Collection
+VAR      r As Long
+PRE      FOLDER_EXISTS($dump); COL($ws, "File") > 0
+MODIFIES $ws["File"]
+OP       LIST_FILES($dump, "*.pdf", into=files)
+OP       LET(r, 1)
+OP       FOR_EACH var=fileName in=ITEMS(files)
+OP         LET(r, r + 1)
+OP         SET_VALUE(CELL($ws, r, COL($ws, "File")), fileName)
+OP       RETURN(COUNT(files))
+ERR      standard
+FIXTURE  dump_01.xlsx sheet=Report cols=A:File rows=0
+FIXTURE  dump_01.xlsx sheet=Other cols=A:Item rows=1 data=A:seq(1,1)
+FIXTURE  dump_01.xlsx folder=Dump files=b.pdf,A.PDF,c.txt,x.pdfa,sub\d.pdf
+FIXTURE  dump_01.xlsx folder=Empty
+TEST     fixture=dump_01.xlsx call=ListDumpPdfs(Report, Dump) assert=RESULT = 2 AND ERROR_COUNT = 0 AND VALUE(Report!A2) = "A.PDF" AND VALUE(Report!A3) = "b.pdf" AND COUNTA(Report!A:A) = 3 AND FILE_COUNT("Dump") = 5
+TEST     fixture=dump_01.xlsx call=ListDumpPdfs(Report, Dump) runs=2 assert=RESULT = 2 AND ERROR_COUNT = 0 AND COUNTA(Report!A:A) = PRE_COUNTA(Report!A:A) + 2
+TEST     fixture=dump_01.xlsx call=ListDumpPdfs(Report, Empty) assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTA(Report!A:A) = 1
+TEST     fixture=dump_01.xlsx call=ListDumpPdfs(Other, Dump) assert=RESULT = -1 AND ERROR_COUNT = 1
+"""
+
 FIXTURE = 'FIXTURE  t_01.xlsx sheet=Data cols=A:Key,B:Qty rows=4 data=A:values("a"x2,"b"x2);B:int(1,9)'
 
 
@@ -291,7 +323,7 @@ class Samples(unittest.TestCase):
     def test_they_validate_pass_and_catch_every_mutant(self):
         for name, text in (("GRADE", GRADE), ("MARKS", MARKS), ("DEDUPE", DEDUPE), ("FIND", FIND),
                            ("ADD_SHEET", ADD_SHEET), ("COPY_SHEET", COPY_SHEET), ("FILTER", FILTER),
-                           ("FORMULA", FORMULA)):
+                           ("FORMULA", FORMULA), ("LIST_FILES", LIST_FILES)):
             with self.subTest(name):
                 self.assertEqual([p.message for p in validator.validate_text(text)], [])
                 results = run_tests(text)
@@ -336,6 +368,10 @@ class Samples(unittest.TestCase):
         vba = compile_text(FORMULA)
         self.assertEqual(lint(assemble([vba])), [])
         self.assertIn('ForgeSetFormula ws.Cells(r, cTotal), "=RC[-2]*RC[-1]", True', vba)
+        vba = compile_text(LIST_FILES)
+        self.assertEqual(lint(assemble([vba])), [])
+        self.assertIn('Set files = ForgeListFiles(dump, dump, "*.pdf")', vba)
+        self.assertIn("For Each fileName In files", vba)
 
     def test_log_and_msg_are_never_errors(self):
         grade, marks = run_tests(GRADE)[0], run_tests(MARKS)[0]
@@ -644,6 +680,31 @@ class Formulas(unittest.TestCase):
                       [p.message for p in validator.validate_text(FORMULA.replace("VCL 0.4", "VCL 0.3", 1))])
 
 
+class ListFiles(unittest.TestCase):
+    def listed(self, folder_expr, pattern="*.pdf", pre="FOLDER_EXISTS($dump); COL($ws, \"File\") > 0"):
+        text = LIST_FILES.replace("LIST_FILES($dump, \"*.pdf\"", f'LIST_FILES({folder_expr}, "{pattern}"')
+        text = text.replace("FIXTURE  dump_01.xlsx folder=Empty",
+                            "FIXTURE  dump_01.xlsx folder=Empty files=Jobs\\J1\\r1.pdf,Jobs\\J1\\r2.PDF,Jobs\\J1\\n.txt")
+        r = run_tests(text)[2]   # the TEST on the Empty folder, which now has files below it
+        return r.result
+
+    def test_a_folder_below_the_root(self):
+        self.assertEqual(self.listed('PATH_JOIN($dump, "Jobs", "J1")'), 2)
+        self.assertEqual(self.listed('PATH_JOIN($dump, "Jobs")'), 0)          # files below, not in it
+        self.assertEqual(self.listed('PATH_JOIN($dump, "Nope")'), 0)          # a missing folder: an empty list
+        self.assertEqual(self.listed('PATH_JOIN($dump, "Jobs", "J1")', pattern="*"), 3)
+
+    def test_the_rules(self):
+        found = [p.message for p in validator.validate_text(LIST_FILES.replace('"*.pdf"', '"..\\*.pdf"'))]
+        self.assertTrue(any("LIST_FILES pattern" in m for m in found), found)
+        found = [p.message for p in validator.validate_text(LIST_FILES.replace("VCL 0.4", "VCL 0.3", 1))]
+        self.assertIn("LIST_FILES is VCL 0.4: start the spec with 'VCL 0.4' to use it", found)
+        found = [p.message for p in validator.validate_text(LIST_FILES.replace("PRE      FOLDER_EXISTS($dump); ", "PRE      "))]
+        self.assertTrue(any("FOLDER_EXISTS($dump)" in m and "rule 14" in m for m in found), found)
+        found = check_text(LIST_FILES.replace("VAR      files As Collection", "VAR      files As String"))
+        self.assertTrue(any("but the names are a list: declare it As Collection" in m for _, m in found), found)
+
+
 class Unchanged(unittest.TestCase):
     def test_a_spec_that_writes_nothing_changes_nothing_from_0_2_on(self):   # D20, for every later version too
         for version, want in (("VCL 0.1", False), ("VCL 0.2", True), ("VCL 0.3", True), ("VCL 0.4", True)):
@@ -700,6 +761,10 @@ class ForgeLib(unittest.TestCase):
         last = self.body("ForgeLastRow")
         self.assertIn("To last + 1 Step -1", last)                  # rows below End(xlUp) are checked too
         self.assertIn("ws.Rows(rowNo).Hidden = False", self.body("ForgeInsertRow"))
+        listing = self.body("ForgeListFiles")
+        self.assertIn("ForgeFso().GetFolder(folder).Files", listing)
+        self.assertNotIn("Dir(", listing)
+        self.assertNotIn(" Like ", self.body("ForgeNameMatches"))
         copy = self.body("ForgeCopySheet")
         self.assertLess(copy.index("already exists"), copy.index("src.Copy After:=after"))   # checked first
         find = self.body("ForgeFind")

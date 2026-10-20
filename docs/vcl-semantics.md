@@ -31,6 +31,7 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S21 (VEP 0.4, D38) | `same_row_key` | DEDUPE treats two rows as the same when both have a key and the keys are equal. A row's key is the values of its key cells, each compared as a dictionary key (S10: its canonical text, case ignored, no TRIM). A row with an empty or error key cell has no key, so DEDUPE never deletes a row because data is missing. |
 | S22 (VEP 0.4, D39) | `find` | FIND(range, x, match=...) looks at the cells row by row, left to right, and gives the first that matches, or NOTHING. match=whole (the default): the cell is SAME as x (S12). match=part: the cell's text holds TRIM(x), ignoring case (letter by letter, as LOWER); an empty TRIM(x) finds NOTHING, because every cell would hold it. Here: the 1-based position of that cell among values, or 0 for NOTHING. |
 | S23 (VEP 0.4, D40) | `sheet_name_ok` | a name ADD_SHEET may give a new sheet: 1 to 31 characters, no spaces at the ends (TRIM leaves it as it is), none of \ / ? * [ ] :, no apostrophe first or last, no character below code 32, and not History, which Excel keeps for itself (case ignored). Stricter than Excel where Excel allows lookalikes, so a name never differs from what a TEST asserts. |
+| S24 (VEP 0.4, D44) | `list_files` | LIST_FILES gives the names of the files directly in the folder that match the pattern, sorted by LOWER(name) and then by the name as written, so the order is the same on every PC. Here: from the names of the files in the folder. |
 
 ## Conformance cases
 
@@ -371,3 +372,16 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | "Bob's" | True | an apostrophe inside is fine |
 | "history" | False | History is kept by Excel, in any case |
 | 2026 | True | a number is its text |
+
+### LIST_FILES (VCL 0.4)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| ["b.pdf", "A.PDF", "c.txt"], "*.pdf" | ["A.PDF", "b.pdf"] | case ignored, then name order |
+| ["x.pdfa", "x.pdf"], "*.pdf" | ["x.pdf"] | the whole name: *.pdf is not x.pdfa |
+| ["r1.pdf", "r10.pdf", "r2.pdf"], "r?.pdf" | ["r1.pdf", "r2.pdf"] | ? is exactly one character |
+| ["r1.pdf", "r10.pdf", "r2.pdf"], "r*.pdf" | ["r1.pdf", "r10.pdf", "r2.pdf"] | * is any run; the order is by character, not by number |
+| ["a.pdf", "A.pdf"], "*" | ["A.pdf", "a.pdf"] | the same name in two cases: as written breaks the tie |
+| ["ab[1].txt", "ab1.txt"], "ab[1].txt" | ["ab[1].txt"] | [ ] are themselves, not a set |
+| ["a.pdf"], "*.txt" | [] | nothing matches: an empty list |
+| [], "*" | [] | an empty folder |

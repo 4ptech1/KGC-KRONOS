@@ -4,7 +4,7 @@ Status: **design, 20 Oct 2026** (Boss said "go item 2"). Choices that needed Bos
 made the conservative way and recorded in `DECISIONS.md` D36, as CLAUDE.md asks; Boss can
 overrule any of them. Phase 1 changes no language; later phases change VCL and follow the usual
 rule (spec.md and the prompt together, every check, one Orchestrator update per switch).
-Phases 1 (D37), 2 (D38), 3 (D39), 4 (D40, D41), 5 (D42) and 6 (D43) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
+Phases 1 (D37), 2 (D38), 3 (D39), 4 (D40, D41), 5 (D42), 6 (D43) and 7a (D44) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
 prompt move to 0.4 after the last language phase (D38).
 
 ## The problem
@@ -98,15 +98,33 @@ and the dataset (item 7).
   SEQUENCE, TEXTJOIN, IFS and the like), as CLAUDE.md requires. A formula's value is proven
   only by an Excel run (the pilot of router Phase 5).
 
-### Phase 7: text files in the sandbox (decision D36)
+### Phase 7: text files in the sandbox (decision D36; 7a done: S24, D44; 7b planned)
 
-- LIST_FILES(folder, "pattern", into=list) and READ_TEXT(path, into=text) read the mock file
-  system; folder FIXTUREs gain file contents (`files=a.txt:"text"`). Paths follow T4 (PATH_JOIN
-  of a String argument).
-- WRITE_TEXT writes a **new** file only, below a `MODIFIES $root files` root, and reports a
-  status like COPY_FILE (`Written`, `Already there`, `Bad name`, ...): it never overwrites.
-  `mode=append` is refused, because it changes a file that already exists.
-- ITEMS(list) iterates what LIST_FILES gave, in name order.
+Two PRs (D44): 7a lists files, 7b reads and writes text.
+
+- **7a (done): LIST_FILES and ITEMS.** `LIST_FILES(<folder>, "<pattern>", into=<Collection VAR>)`
+  (VCL 0.4) gives the names of the files directly in the folder that match the pattern, in S24
+  order; `FOR_EACH var=<name> in=ITEMS(<list>)` walks them as text, and COUNT counts them. The
+  folder is the String root argument itself or PATH_JOIN of it (T4), and PRE checks the root with
+  FOLDER_EXISTS (rule 14). The pattern is quoted: `*` and `?` only, against the whole name, case
+  ignored (S24); ForgeNameMatches does it itself, not VBA's Like or Dir, which also matches
+  Windows short names (`*.pdf` finds `x.pdfa`). A bad, missing or too long folder gives an empty
+  list: listing never raises and changes nothing. The names are names, not paths, so a spec that
+  copies a listed file builds its path with PATH_JOIN and SAFE_NAME, as T4 asks.
+- **7b (planned): READ_TEXT and WRITE_TEXT**, each with a status into `into=`, as MAKE_FOLDER
+  and COPY_FILE have (E11), so a missing or locked file never stops a run halfway. No new option
+  word is added: `status` would become a reserved word (G2), and three specs have a VAR of that
+  name.
+  - `READ_TEXT(<path>, <String VAR>, into=<status VAR>)`: the file's text goes into the String
+    VAR ("" unless the status is `Read`). Statuses in check order: `Bad name`, `Too long`,
+    `Missing`, `Too big` (more than 32,767 characters, what a cell holds), `Not text` (anything
+    but printable ASCII, tabs and line breaks: other bytes read differently with each PC's code
+    page), `Locked`, `Read`; in Excel also `Failed`. One final line break is dropped.
+  - `WRITE_TEXT(<path>, <text>, into=<status VAR>)` writes a **new** file below a
+    `MODIFIES $root files` root, never over one: `Bad name`, `Too long`, `Not text`, `No folder`,
+    `Already there` (the same text is there), `Conflict` (a different file is there), `Written`;
+    in Excel also `Failed`. `mode=append` is refused, because it changes a file that is there.
+  - Folder FIXTUREs gain file contents, `files=notes\a.txt:"text"`: one line of printable ASCII.
 
 ### Deferred (decision D36)
 

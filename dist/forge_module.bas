@@ -833,6 +833,86 @@ FailedOp:
     ForgeMakeFolder = "Failed"
 End Function
 
+Public Function ForgeNameMatches(ByVal name As String, ByVal pattern As String) As Boolean
+    ' S24: * is any run of characters (also none), ? is exactly one, every other character is itself,
+    ' case ignored, against the whole name. Not VBA's Like, which reads [ ] and # as well, and not Dir,
+    ' which also matches Windows short names.
+    Dim n As String
+    Dim p As String
+    Dim i As Long
+    Dim j As Long
+    Dim star As Long
+    Dim mark As Long
+    n = LCase$(name)
+    p = LCase$(pattern)
+    i = 1
+    j = 1
+    Do While i <= Len(n)
+        If Mid$(p, j, 1) = "*" Then
+            star = j
+            mark = i
+            j = j + 1
+        ElseIf j <= Len(p) And (Mid$(p, j, 1) = "?" Or Mid$(p, j, 1) = Mid$(n, i, 1)) Then
+            i = i + 1
+            j = j + 1
+        ElseIf star > 0 Then
+            j = star + 1
+            mark = mark + 1
+            i = mark
+        Else
+            Exit Function
+        End If
+    Loop
+    Do While Mid$(p, j, 1) = "*"
+        j = j + 1
+    Loop
+    ForgeNameMatches = (j > Len(p))
+End Function
+
+Private Sub ForgeAddInOrder(ByVal names As Collection, ByVal name As String)
+    ' S24 order: by LCase, then as written, both compared by character code, so it is the same on every PC.
+    Dim k As Long
+    Dim c As Long
+    For k = 1 To names.Count
+        c = StrComp(LCase$(name), LCase$(names(k)), vbBinaryCompare)
+        If c = 0 Then c = StrComp(name, names(k), vbBinaryCompare)
+        If c < 0 Then
+            names.Add name, Before:=k
+            Exit Sub
+        End If
+    Next k
+    names.Add name
+End Sub
+
+Public Function ForgeMatchNames(ByVal names As Variant, ByVal pattern As String) As Collection
+    ' S24 on a list of names: the ones that match, in S24 order.
+    Dim i As Long
+    Set ForgeMatchNames = New Collection
+    For i = LBound(names) To UBound(names)
+        If ForgeNameMatches(names(i), pattern) Then ForgeAddInOrder ForgeMatchNames, names(i)
+    Next i
+End Function
+
+Public Function ForgeListFiles(ByVal root As String, ByVal folder As String, ByVal pattern As String) As Collection
+    ' LIST_FILES (D44): the names of the files directly in folder that match pattern (S24), in S24 order.
+    ' A bad, missing or too long folder gives an empty list: listing never raises and changes nothing.
+    Dim f As Object
+    Set ForgeListFiles = New Collection
+    On Error GoTo FailedOp
+    If Len(folder) = 0 Or Len(folder) > FORGE_MAX_FOLDER_PATH Or ForgeHasWildcard(folder) Then Exit Function
+    If Not ForgeSamePath(folder, ForgeNoTrailingSlash(root)) Then
+        If Not ForgeBelowRoot(root, folder) Then Exit Function
+    End If
+    If Not ForgeFolderExists(folder) Then Exit Function
+    For Each f In ForgeFso().GetFolder(folder).Files
+        If ForgeNameMatches(f.Name, pattern) Then ForgeAddInOrder ForgeListFiles, f.Name
+    Next f
+    Exit Function
+FailedOp:
+    ForgeLog "ForgeListFiles", Err.Number, Err.Description & ": " & folder, 0
+    Set ForgeListFiles = New Collection
+End Function
+
 Public Function ForgeCopyFile(ByVal srcRoot As String, ByVal src As String, ByVal dstRoot As String, ByVal dst As String) As String
     ' COPY_FILE: one copy, never over anything at dst; src always stays, and a short copy is kept.
     Dim fso As Object

@@ -99,6 +99,7 @@ VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
 VCL_03_FUNCS = {"SAFE_NAME", "PATH_JOIN", "FOLDER_EXISTS"}
 VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
 VCL_04_FUNCS = {"SHEET_EXISTS"}
+VCL_04_OPS = {"LIST_FILES"}   # D44: S24 and the path rules of VCL 0.3
 VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4}
 # MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
 SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE"}
@@ -698,7 +699,7 @@ class TaskChecker:
             if root is None or self.args.get(root) != "String":
                 continue  # not a path: the type checker says why (T4)
             used.setdefault(root, line)
-            if bare:
+            if bare and role != "list":
                 what = "the folder to make" if name == "MAKE_FOLDER" else f"the file to copy {role}"
                 self.error(f"{name}: {what} must be PATH_JOIN(${root}, ...), not the root ${root} itself, "
                            "which must already exist", line)
@@ -808,6 +809,8 @@ class TaskChecker:
             self.error(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it")
         if name in VCL_03_OPS and not self.at_least("VCL 0.3"):
             self.error(f"{name} is VCL 0.3: start the spec with 'VCL 0.3' to use it")
+        if name in VCL_04_OPS and not self.at_least("VCL 0.4"):
+            self.error(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it")
         if name == "NOTE":
             if not (len(items) == 2 and is_tok(items[1], "string")):
                 self.error('NOTE takes one "<terse technical text>"')
@@ -988,6 +991,12 @@ class TaskChecker:
                 if not (len(items) == 1 and is_tok(items[0], "string")):
                     self.error(f'{name} needs a "quoted" {"formula" if name == "SET_FORMULA" else "pattern"} '
                                "as its second argument")
+                elif name == "LIST_FILES":   # D44: a name pattern with * and ? only
+                    pattern = items[0].text[1:-1].replace('""', '"')
+                    bad = sorted(set(ch for ch in pattern if ch in '\\/:"<>|'))
+                    if not pattern or bad:
+                        self.error(f"LIST_FILES pattern \"{pattern}\" must be a file name pattern with * and ? "
+                                   f"(not empty, none of \\ / : \" < > |)")
                 elif name == "SET_FORMULA":   # D43: Excel 2016 only, this workbook only
                     r1c1 = any(k.text == "style" and show(v) == "r1c1" for k, v in call.options)
                     for problem in formula_problems(items[0].text[1:-1].replace('""', '"'), r1c1):
@@ -1035,6 +1044,8 @@ class TaskChecker:
             roles = ["to"] if name == "MAKE_FOLDER" else ["from", "to"]
             for role, items in zip(roles, positional):
                 self.file_paths.append((self.line, name, role) + path_root(items))
+        if name == "LIST_FILES" and positional:   # D44: it reads a folder, the root itself or one below it
+            self.file_paths.append((self.line, name, "list") + path_root(positional[0]))
         if name == "SET_VALUE" and len(positional) == 2:
             target, value = positional
             arg = self.row1_arg(target)
