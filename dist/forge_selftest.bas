@@ -23,7 +23,7 @@ Public Sub ForgeSelfTest()
     SelfTestPart4
     SelfTestPart5
     SelfTestFlush
-    total = 169
+    total = 180
     For r = 2 To total + 1
         If gWs.Cells(r, 6).Value = "PASS" Then
             passed = passed + 1
@@ -510,5 +510,27 @@ Private Sub SelfTestPart5()
     SelfTestCheck ForgeFileName("C:/Jobs/r1.pdf"), "C:/Jobs/r1.pdf"
     SelfTestCase 169, "file_name", "empty"
     SelfTestCheck ForgeFileName(Empty), ""
+    SelfTestCase 170, "same_row_key", "the same values in every key column"
+    SelfTestCheck ForgeSameRowKey(Array("S1", "W1"), Array("S1", "W1")), True
+    SelfTestCase 171, "same_row_key", "case is ignored, as in dictionary keys (S10)"
+    SelfTestCheck ForgeSameRowKey(Array("S1", "W1"), Array("s1", "w1")), True
+    SelfTestCase 172, "same_row_key", "a number and the same number as text"
+    SelfTestCheck ForgeSameRowKey(Array(1001#), Array("1001")), True
+    SelfTestCase 173, "same_row_key", "text is compared as typed: 2.50 is not 2.5"
+    SelfTestCheck ForgeSameRowKey(Array(2.5), Array("2.50")), False
+    SelfTestCase 174, "same_row_key", "no TRIM: a trailing space makes another key"
+    SelfTestCheck ForgeSameRowKey(Array("S1"), Array("S1 ")), False
+    SelfTestCase 175, "same_row_key", "one key column differs"
+    SelfTestCheck ForgeSameRowKey(Array("S1", "W1"), Array("S1", "W2")), False
+    SelfTestCase 176, "same_row_key", "the columns stay apart"
+    SelfTestCheck ForgeSameRowKey(Array("ab", "c"), Array("a", "bc")), False
+    SelfTestCase 177, "same_row_key", "an empty key: never a duplicate (data is missing)"
+    SelfTestCheck ForgeSameRowKey(Array(Empty), Array(Empty)), False
+    SelfTestCase 178, "same_row_key", "a key cell of spaces only counts as empty"
+    SelfTestCheck ForgeSameRowKey(Array("S1", "  "), Array("S1", "  ")), False
+    SelfTestCase 179, "same_row_key", "an error in a key cell: never a duplicate"
+    SelfTestCheck ForgeSameRowKey(Array(CVErr(xlErrNA)), Array(CVErr(xlErrNA))), False
+    SelfTestCase 180, "same_row_key", "the same date"
+    SelfTestCheck ForgeSameRowKey(Array(DateSerial(2026, 10, 15)), Array(DateSerial(2026, 10, 15))), True
     SelfTestFlush
 End Sub

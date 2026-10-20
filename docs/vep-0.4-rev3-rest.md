@@ -4,7 +4,8 @@ Status: **design, 20 Oct 2026** (Boss said "go item 2"). Choices that needed Bos
 made the conservative way and recorded in `DECISIONS.md` D36, as CLAUDE.md asks; Boss can
 overrule any of them. Phase 1 changes no language; later phases change VCL and follow the usual
 rule (spec.md and the prompt together, every check, one Orchestrator update per switch).
-Phase 1 is done (D37).
+Phases 1 (D37) and 2 (D38) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
+prompt move to 0.4 after the last language phase (D38).
 
 ## The problem
 
@@ -57,7 +58,7 @@ and the dataset (item 7).
   the cell's value.
 - **FILE_NAME(path):** the part after the last backslash.
 
-### Phase 2: list syntax and DEDUPE
+### Phase 2: list syntax and DEDUPE (done: S21, D38)
 
 - `cols=[1, 2]` (G3 of `docs/vcl-m2-findings.md`); a single number stays valid.
 - DEDUPE keeps the first row of each key and deletes the later ones, moving rows up. The key is

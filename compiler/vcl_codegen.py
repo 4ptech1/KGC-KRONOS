@@ -1,4 +1,4 @@
-"""Compile a VCL 0.1, 0.2 or 0.3 TASK spec to an Excel 2016 VBA procedure (MVP compiler).
+"""Compile a VCL 0.1 to 0.4 TASK spec to an Excel 2016 VBA procedure (MVP compiler).
 
 House style: Option Explicit at module level; every VCL meaning goes through ForgeLib; line
 labels are spec_line * 10 + k, so Erl \\ 10 is the spec line; Excel state is saved first and
@@ -366,6 +366,11 @@ class Gen:
             asc = "True" if str(opts.get("order", "asc")) == "asc" else "False"
             hdr = "True" if str(opts.get("header", "yes")) == "yes" else "False"
             return [f"ForgeSort {self.rng(pos[0])}, {self.as_num(opts['key'])[0]}, {asc}, {hdr}"]
+        if name == "DEDUPE":   # S21 keys, whole rows deleted bottom up (D38)
+            cols = opts["cols"]
+            items = cols.children if isinstance(cols, Tree) and cols.data == "list_lit" else [cols]
+            hdr = "True" if str(opts.get("header", "yes")) == "yes" else "False"
+            return [f"ForgeDedupe {self.rng(pos[0])}, Array({', '.join(self.as_num(c)[0] for c in items)}), {hdr}"]
         if name == "READ_ARRAY":   # always a 2-D array, even for one cell (D36)
             return [f"{vba_name(str(opts['into']))} = ForgeReadArray({self.rng(pos[0])})"]
         if name == "WRITE_ARRAY":

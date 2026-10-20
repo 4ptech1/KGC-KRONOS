@@ -191,6 +191,13 @@ def copy_file(fs, src, dst):
     return "Copied"
 
 
+def delete_row(sh, row):
+    """Delete a whole sheet row: the rows below move up, with their fills and formats."""
+    sh.cells = {(r - (r > row), c): v for (r, c), v in sh.cells.items() if r != row}
+    sh.fills = {(r - (r > row), c): v for (r, c), v in sh.fills.items() if r != row}
+    sh.formats = {(r - (r > row), c): v for (r, c), v in sh.formats.items() if r != row}
+
+
 class Machine:
     def __init__(self, spec, bound_args, log, today=None, fs=None, book=None):
         self.spec = spec
@@ -487,10 +494,24 @@ class Machine:
         elif name in ("LOG", "MSG"):
             self.messages.append((name, S.text_of(e(pos[0]))))
         elif name == "DELETE_ROW":
-            sh, row = e(pos[0]), int(e(pos[1]))
-            sh.cells = {(r - (r > row), c): v for (r, c), v in sh.cells.items() if r != row}
-            sh.fills = {(r - (r > row), c): v for (r, c), v in sh.fills.items() if r != row}
-            sh.formats = {(r - (r > row), c): v for (r, c), v in sh.formats.items() if r != row}
+            delete_row(e(pos[0]), int(e(pos[1])))
+        elif name == "DEDUPE":   # S21: keep the first row of each key, delete the later whole rows (D38)
+            rng, cols = self.target(pos[0]), opts["cols"]
+            items = cols.children if isinstance(cols, Tree) and cols.data == "list_lit" else [cols]
+            keys = [int(self.num(e(c))) for c in items]
+            first = rng.r1 + (1 if str(opts.get("header", "yes")) == "yes" else 0)
+            bad = [c for c in keys if not 1 <= c <= EXCEL_COLS]
+            if bad and first <= rng.r2:   # Excel reads a key cell only when there is a row to check
+                raise VclError(f"Excel error 1004: DEDUPE cols= column {bad[0]} is outside the sheet")
+            seen, doomed = set(), []
+            for r in range(first, rng.r2 + 1):   # marked top down ...
+                key = S.row_key([rng.sheet.get(r, c) for c in keys])
+                if key is not None and key in seen:
+                    doomed.append(r)
+                elif key is not None:
+                    seen.add(key)
+            for r in reversed(doomed):   # ... deleted bottom up, as ForgeDedupe does
+                delete_row(rng.sheet, r)
         elif name == "DICT_ADD":
             d, k, v = e(pos[0]), e(pos[1]), e(pos[2])
             mode = str(opts["mode"])

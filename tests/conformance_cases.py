@@ -201,4 +201,16 @@ CASES = [
     ("file_name", ["\\\\server\\share\\a b.pdf"], "a b.pdf", "a network path; spaces are kept"),
     ("file_name", ["C:/Jobs/r1.pdf"], "C:/Jobs/r1.pdf", "only a backslash separates"),
     ("file_name", [None], "", "empty"),
+    # S21 DEDUPE keys (VEP 0.4 Phase 2)
+    ("same_row_key", [["S1", "W1"], ["S1", "W1"]], True, "the same values in every key column"),
+    ("same_row_key", [["S1", "W1"], ["s1", "w1"]], True, "case is ignored, as in dictionary keys (S10)"),
+    ("same_row_key", [[1001], ["1001"]], True, "a number and the same number as text"),
+    ("same_row_key", [[2.5], ["2.50"]], False, "text is compared as typed: 2.50 is not 2.5"),
+    ("same_row_key", [["S1"], ["S1 "]], False, "no TRIM: a trailing space makes another key"),
+    ("same_row_key", [["S1", "W1"], ["S1", "W2"]], False, "one key column differs"),
+    ("same_row_key", [["ab", "c"], ["a", "bc"]], False, "the columns stay apart"),
+    ("same_row_key", [[None], [None]], False, "an empty key: never a duplicate (data is missing)"),
+    ("same_row_key", [["S1", "  "], ["S1", "  "]], False, "a key cell of spaces only counts as empty"),
+    ("same_row_key", [[NA], [NA]], False, "an error in a key cell: never a duplicate"),
+    ("same_row_key", [[D], [D]], True, "the same date"),
 ]

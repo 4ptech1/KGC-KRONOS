@@ -1,6 +1,7 @@
-"""VEP 0.4 (docs/vep-0.4-rev3-rest.md), Phase 1: the interpreter runs what the compiler already
+"""VEP 0.4 (docs/vep-0.4-rev3-rest.md). Phase 1: the interpreter runs what the compiler already
 compiled: INSERT_ROW, READ_ARRAY, WRITE_ARRAY, ARR, ROWS, COLS, SELECT_CASE, LOG, MSG, RANGE, SHEET,
-FILE_NAME and FOR_EACH over SHEETS and CELLS (D36, D37)."""
+FILE_NAME and FOR_EACH over SHEETS and CELLS (D36, D37). Phase 2: the VCL 0.4 line, lists in
+DEDUPE cols=[...] and DEDUPE itself (S21, D38)."""
 import sys
 import unittest
 from pathlib import Path
@@ -90,12 +91,36 @@ TEST     fixture=marks_01.xlsx call=CountMarks(Checks) assert=COUNTA(Checks![Mar
 TEST     fixture=marks_01.xlsx call=CountMarks(Notes) assert=RESULT = -1 AND ERROR_COUNT = 1
 """
 
+# DEDUPE with a list of key columns (VCL 0.4): drop repeated welds, never a row with a blank key.
+DEDUPE = r"""VCL 0.4
+TASK
+# ASSUME: a weld is listed twice when Seam and Welder repeat (case ignored, as typed); the first listing stays
+# ASSUME: a row with a blank Seam or Welder is never removed
+PROC     DropRepeatedWelds
+KIND     Function
+MODULE   modDedupe
+ARGS     ws As Worksheet
+RET      Long
+VAR      before As Long
+PRE      COL($ws, "Seam") > 0; COL($ws, "Welder") > 0
+MODIFIES $ws
+OP       LET(before, LASTROW($ws, 3))
+OP       DEDUPE(USED_RANGE($ws), cols=[COL($ws, "Seam"), COL($ws, "Welder")], header=yes)
+OP       RETURN(before - LASTROW($ws, 3))
+ERR      standard
+FIXTURE  welds_01.xlsx sheet=Welds cols=A:Seam,B:Welder,C:Note rows=8 data=C:seq(1,1);A:values("S1"x2,"s1"x1,"S2"x1,"S1 "x1,""x2,"S3"x1)+boundary("S1","S1","s1","S2","S1 ","","","S3");B:values("W1"x7,""x1)+boundary("W1","W1","W1","W1","W1","W1","W1","")
+FIXTURE  welds_01.xlsx sheet=Other cols=A:Item rows=2 data=A:seq(1,1)
+TEST     fixture=welds_01.xlsx call=DropRepeatedWelds(Welds) assert=RESULT = 2 AND ERROR_COUNT = 0 AND VALUE(Welds!C2) = 1 AND VALUE(Welds!C3) = 4 AND VALUE(Welds!A4) = "S1 " AND VALUE(Welds!C7) = 8
+TEST     fixture=welds_01.xlsx call=DropRepeatedWelds(Welds) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTA(Welds!C:C) = PRE_COUNTA(Welds!C:C) - 2
+TEST     fixture=welds_01.xlsx call=DropRepeatedWelds(Other) assert=RESULT = -1 AND ERROR_COUNT = 1 AND COUNTA(Other!A:A) = PRE_COUNTA(Other!A:A)
+"""
+
 FIXTURE = 'FIXTURE  t_01.xlsx sheet=Data cols=A:Key,B:Qty rows=4 data=A:values("a"x2,"b"x2);B:int(1,9)'
 
 
-def ops(*lines, head=()):
+def ops(*lines, head=(), version="VCL 0.3"):
     """A small spec around OP lines, with one TEST, to watch the interpreter."""
-    return "\n".join(["VCL 0.3", "TASK", "PROC     P", "KIND     Function", "MODULE   modP",
+    return "\n".join([version, "TASK", "PROC     P", "KIND     Function", "MODULE   modP",
                       "ARGS     ws As Worksheet", "RET      Long", "VAR      n As Long", *head, "MODIFIES $ws"]
                      + ["OP       " + o for o in lines]
                      + ["OP       RETURN(n)", "ERR      standard", FIXTURE,
@@ -113,7 +138,7 @@ def cells(result, sheet="Data"):
 
 class Samples(unittest.TestCase):
     def test_they_validate_pass_and_catch_every_mutant(self):
-        for name, text in (("GRADE", GRADE), ("MARKS", MARKS)):
+        for name, text in (("GRADE", GRADE), ("MARKS", MARKS), ("DEDUPE", DEDUPE)):
             with self.subTest(name):
                 self.assertEqual([p.message for p in validator.validate_text(text)], [])
                 results = run_tests(text)
@@ -137,6 +162,9 @@ class Samples(unittest.TestCase):
         self.assertIn("v = forgeCell_v.Value", vba)                       # the loop variable is the value
         self.assertIn('ForgeLastRow(ThisWorkbook.Worksheets("Notes"), 1)', vba)
         self.assertIn("ForgeFileName(ForgeTrim(ws.Cells(2, 3).Value))", vba)
+        vba = compile_text(DEDUPE)
+        self.assertEqual(lint(assemble([vba])), [])
+        self.assertIn('ForgeDedupe ForgeUsedRange(ws), Array(ForgeCol(ws, "Seam"), ForgeCol(ws, "Welder")), True', vba)
 
     def test_log_and_msg_are_never_errors(self):
         grade, marks = run_tests(GRADE)[0], run_tests(MARKS)[0]
@@ -201,6 +229,60 @@ class Interpreter(unittest.TestCase):
         self.assertEqual(run(text).result, 1)
 
 
+def errors(text):
+    """The errors on the OP lines (the small specs of ops() break the spec-wide TEST rules on purpose)."""
+    first_op = text.splitlines().index(next(line for line in text.splitlines() if line.startswith("OP "))) + 1
+    return [p.message for p in validator.validate_text(text) if p.severity == "error" and p.line >= first_op
+            and "TEST" not in p.message]
+
+
+class Dedupe(unittest.TestCase):
+    KEYS = 'FIXTURE  t_01.xlsx sheet=Data cols=A:Key,B:Qty rows=6 data=A:values("a"x2,"A"x1,"b"x2,""x1)+boundary("a","A","b","a","","b");B:values("1"x5,"2"x1)+boundary("1","1","1","2","1","1")'
+
+    def run_keys(self, op, version="VCL 0.4"):
+        text = ops(op, head=[], version=version).replace(FIXTURE, self.KEYS)
+        return run(text)
+
+    def test_the_first_row_of_each_key_stays(self):
+        r = self.run_keys("DEDUPE(USED_RANGE($ws), cols=[1, 2], header=yes)")
+        self.assertEqual(r.errors, 0)
+        rows = [(cells(r).get((i, 1)), cells(r).get((i, 2))) for i in range(1, 7)]
+        self.assertEqual(rows, [("Key", "Qty"), ("a", "1"), ("b", "1"), ("a", "2"), (None, "1"), (None, None)])
+
+    def test_one_key_column_and_no_header(self):
+        r = self.run_keys("DEDUPE(USED_RANGE($ws), cols=1, header=no)")
+        self.assertEqual([cells(r).get((i, 1)) for i in range(1, 6)], ["Key", "a", "b", None, None])
+
+    def test_the_old_form_means_the_same_before_0_4(self):
+        old = self.run_keys("DEDUPE(USED_RANGE($ws), cols=1,2, header=yes)", version="VCL 0.3")
+        new = self.run_keys("DEDUPE(USED_RANGE($ws), cols=[1, 2], header=yes)")
+        self.assertEqual(old.state, new.state)
+
+    def test_a_key_column_beyond_the_sheet_is_an_error(self):
+        for cols in ("[1, 16385]", "[0, 1]"):
+            with self.subTest(cols):
+                r = self.run_keys(f"DEDUPE(USED_RANGE($ws), cols={cols}, header=yes)")
+                self.assertEqual((r.result, r.errors), (-2, 1))
+        r = self.run_keys("DEDUPE(CELL($ws, 1, 1), cols=[0], header=yes)")   # no row to check: nothing read
+        self.assertEqual(r.errors, 0)
+
+    def test_the_validator_and_the_version_line(self):
+        dedupe = "DEDUPE(USED_RANGE($ws), {}, header=yes)"
+        self.assertIn("DEDUPE cols=[...] is VCL 0.4: start the spec with 'VCL 0.4' to use it",
+                      errors(ops(dedupe.format("cols=[1, 2]"))))
+        self.assertIn("DEDUPE cols=1,2 is ambiguous (G3): write cols=[1, 2]",
+                      errors(ops(dedupe.format("cols=1,2"), version="VCL 0.4")))
+        self.assertIn("unbalanced brackets: '[' without ']'", errors(ops(dedupe.format("cols=[1, 2"), version="VCL 0.4")))
+        self.assertIn("a list [...] is only allowed as DEDUPE cols=", errors(ops("LET(n, [1, 2])", version="VCL 0.4")))
+        for form in ("cols=1", "cols=[1, n + 1]"):
+            with self.subTest(form):
+                self.assertEqual(errors(ops(dedupe.format(form), version="VCL 0.4")), [])
+
+    def test_key_columns_are_numbers(self):
+        found = check_text(ops("DEDUPE(USED_RANGE($ws), cols=[1, CELL($ws, 1, 2)], header=yes)", version="VCL 0.4"))
+        self.assertTrue(any("raw cell value" in m for _, m in found), found)
+
+
 class ForgeLib(unittest.TestCase):
     def body(self, name):
         for kind in ("Function", "Sub"):
@@ -214,6 +296,10 @@ class ForgeLib(unittest.TestCase):
         self.assertIn("ws.Rows(rowNo).ClearFormats", self.body("ForgeInsertRow"))
         self.assertIn("If rng.Cells.CountLarge = 1 Then", self.body("ForgeReadArray"))
         self.assertIn('ForgeFileName = Mid$(s, InStrRev(s, "\\") + 1)', self.body("ForgeFileName"))
+        dedupe = self.body("ForgeDedupe")
+        self.assertLess(dedupe.index("key = ForgeRowKey(parts)"), dedupe.index("Step -1"))   # marked first, deleted after
+        self.assertIn("If doomed(r) Then rng.Worksheet.Rows(rng.Row + r - 1).Delete", dedupe)
+        self.assertIn("If ForgeIsEmpty(values(i)) Or ForgeIsError(values(i)) Then", self.body("ForgeRowKey"))
 
 
 if __name__ == "__main__":
