@@ -135,6 +135,15 @@ class Book:
         self.sheets.update(items)
         return new
 
+    def copy(self, src, name, after=None):
+        """COPY_SHEET (D41): a copy of src (values, fills and number formats) with this name, placed as
+        ADD_SHEET places a sheet, and checked the same way before anything is copied."""
+        if not any(sh is src for sh in self.sheets.values()):
+            raise VclError("COPY_SHEET: the sheet to copy is not in this TEST's workbook")
+        new = self.add(name, after)
+        new.cells, new.fills, new.formats = dict(src.cells), dict(src.fills), dict(src.formats)
+        return new
+
 
 EXCEL_ROWS, EXCEL_COLS = 1048576, 16384   # the size of an Excel 2016 sheet (XFD1048576)
 A1_REF = re.compile(r"\$?([A-Za-z]{1,3})\$?(\d+)(?::\$?([A-Za-z]{1,3})\$?(\d+))?")
@@ -548,8 +557,12 @@ class Machine:
                     seen.add(key)
             for r in reversed(doomed):   # ... deleted bottom up, as ForgeDedupe does
                 delete_row(rng.sheet, r)
-        elif name == "ADD_SHEET":   # VCL 0.4 (D40): never a replacement
-            new = e(pos[0]).add(e(opts["name"]), e(opts["after"]) if "after" in opts else None)
+        elif name in ("ADD_SHEET", "COPY_SHEET"):   # VCL 0.4 (D40, D41): never a replacement
+            after = e(opts["after"]) if "after" in opts else None
+            if name == "ADD_SHEET":
+                new = e(pos[0]).add(e(opts["name"]), after)
+            else:
+                new = self.book.copy(e(pos[0]), e(opts["name"]), after)
             if "into" in opts:
                 self.assign(str(opts["into"]), new)
         elif name == "DICT_ADD":

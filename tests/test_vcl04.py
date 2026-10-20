@@ -2,7 +2,7 @@
 compiled: INSERT_ROW, READ_ARRAY, WRITE_ARRAY, ARR, ROWS, COLS, SELECT_CASE, LOG, MSG, RANGE, SHEET,
 FILE_NAME and FOR_EACH over SHEETS and CELLS (D36, D37). Phase 2: the VCL 0.4 line, lists in
 DEDUPE cols=[...] and DEDUPE itself (S21, D38). Phase 3: FIND, IS_NOTHING and NOTHING (S22, D39). Phase 4a: Workbook
-arguments, MODIFIES $book sheets, ADD_SHEET and SHEET_EXISTS (S23, D40)."""
+arguments, MODIFIES $book sheets, ADD_SHEET and SHEET_EXISTS (S23, D40). Phase 4b: COPY_SHEET (D41)."""
 import sys
 import unittest
 from pathlib import Path
@@ -175,6 +175,38 @@ TEST     fixture=ncr_02.xlsx call=AddNcrSummary(ncr_02.xlsx, Ncr) assert=RESULT 
 TEST     fixture=ncr_01.xlsx call=AddNcrSummary(ncr_01.xlsx, Other) assert=RESULT = -1 AND ERROR_COUNT = 1
 """
 
+# COPY_SHEET (VCL 0.4): a job sheet copied from Template, named by the job number.
+COPY_SHEET = r"""VCL 0.4
+TASK
+# ASSUME: a job sheet is a copy of Template named by the job number (TRIM), placed after Template
+# ASSUME: an existing job sheet is left as it is; the copy gets "Job" in C1 and the job number in C2
+PROC     NewJobSheet
+KIND     Function
+MODULE   modJobs
+ARGS     book As Workbook, tpl As Worksheet, jobNo As String
+RET      Long
+VAR      job As Worksheet
+VAR      title As String
+PRE      COL($tpl, "Item") > 0
+MODIFIES $book sheets
+OP       LET(title, TRIM($jobNo))
+OP       IF SHEET_EXISTS($book, title) THEN RETURN(0)
+OP       COPY_SHEET($tpl, name=title, after=$tpl, into=job)
+OP       SET_VALUE(CELL(job, 1, 3), "Job")
+OP       SET_VALUE(CELL(job, 2, 3), title)
+OP       RETURN(LASTROW(job, 1))
+ERR      standard
+FIXTURE  job_01.xlsx sheet=Template cols=A:Item,B:Qty rows=3 data=A:values("Bolt"x1,"Nut"x1,"Pipe"x1)+boundary("Bolt","Nut","Pipe");B:values("5"x2,""x1)+boundary("5","5","")
+FIXTURE  job_01.xlsx sheet=Other cols=A:Note rows=1 data=A:values("x"x1)
+FIXTURE  job_02.xlsx sheet=Template cols=A:Item rows=1 data=A:values("Bolt"x1)
+FIXTURE  job_02.xlsx sheet=J101 cols=A:Old rows=1 data=A:values("keep"x1)
+TEST     fixture=job_01.xlsx call=NewJobSheet(job_01.xlsx, Template, " J101 ") assert=RESULT = 4 AND ERROR_COUNT = 0 AND SHEET_EXISTS("J101") AND VALUE(J101!A2) = "Bolt" AND VALUE(J101!A4) = "Pipe" AND VALUE(J101!C1) = "Job" AND VALUE(J101!C2) = "J101" AND COUNTA(Template!C:C) = PRE_COUNTA(Template!C:C)
+TEST     fixture=job_01.xlsx call=NewJobSheet(job_01.xlsx, Template, "J101") runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND VALUE(J101!C2) = "J101"
+TEST     fixture=job_02.xlsx call=NewJobSheet(job_02.xlsx, Template, "j101") assert=RESULT = 0 AND ERROR_COUNT = 0 AND VALUE(J101!A2) = "keep"
+TEST     fixture=job_01.xlsx call=NewJobSheet(job_01.xlsx, Template, "J/101") assert=RESULT = -2 AND ERROR_COUNT = 1
+TEST     fixture=job_01.xlsx call=NewJobSheet(job_01.xlsx, Other, "J102") assert=RESULT = -1 AND ERROR_COUNT = 1
+"""
+
 FIXTURE = 'FIXTURE  t_01.xlsx sheet=Data cols=A:Key,B:Qty rows=4 data=A:values("a"x2,"b"x2);B:int(1,9)'
 
 
@@ -199,7 +231,7 @@ def cells(result, sheet="Data"):
 class Samples(unittest.TestCase):
     def test_they_validate_pass_and_catch_every_mutant(self):
         for name, text in (("GRADE", GRADE), ("MARKS", MARKS), ("DEDUPE", DEDUPE), ("FIND", FIND),
-                           ("ADD_SHEET", ADD_SHEET)):
+                           ("ADD_SHEET", ADD_SHEET), ("COPY_SHEET", COPY_SHEET)):
             with self.subTest(name):
                 self.assertEqual([p.message for p in validator.validate_text(text)], [])
                 results = run_tests(text)
@@ -235,6 +267,9 @@ class Samples(unittest.TestCase):
         self.assertIn("Public Function AddNcrSummary(ByVal book As Workbook, ByVal ncr As Worksheet) As Long", vba)
         self.assertIn('If ForgeSheetExists(book, "Summary") Then', vba)
         self.assertIn('Set out = ForgeAddSheet(book, "Summary", ncr)', vba)
+        vba = compile_text(COPY_SHEET)
+        self.assertEqual(lint(assemble([vba])), [])
+        self.assertIn("Set job = ForgeCopySheet(tpl, title, tpl)", vba)
 
     def test_log_and_msg_are_never_errors(self):
         grade, marks = run_tests(GRADE)[0], run_tests(MARKS)[0]
@@ -438,7 +473,34 @@ class Sheets(unittest.TestCase):
                       errors(ops('IF SHEET_EXISTS(THIS_BOOK, "Data") THEN LET(n, 1)')))
         found = problems(book_ops('ADD_SHEET($book, name="Totals", into=out)', "LET(out, $ws)", "SET_VALUE(CELL(out, 1, 1), 1)",
                                   head=["VAR      out As Worksheet"]))
-        self.assertTrue(any(m.startswith("out holds the sheet ADD_SHEET made") for m in found), found)
+        self.assertTrue(any(m.startswith("out holds the sheet made on line") for m in found), found)
+
+    def test_copy_sheet_copies_values_fills_and_formats(self):
+        r = run(book_ops("FORMAT(CELL($ws, 2, 1), fill=red)", 'COPY_SHEET($ws, name="Copy", into=c)',
+                         "SET_VALUE(CELL(c, 1, 3), 1)", head=["VAR      c As Worksheet"],
+                         modifies="MODIFIES $book sheets\nMODIFIES $ws fills"))
+        self.assertEqual((r.errors, r.failed), (0, []))
+        self.assertEqual(list(r.state), ["Data", "Copy"])
+        data, copy = r.state["Data"], r.state["Copy"]
+        self.assertEqual(copy[0], sorted(data[0] + [((1, 3), "1")]))   # the values, and the new one
+        self.assertEqual(copy[1], data[1])                              # the fill
+        for name in ("Data", "Copy?"):
+            with self.subTest(name):
+                r = run(book_ops(f'COPY_SHEET($ws, name="{name}")'))
+                self.assertEqual((r.result, r.errors, list(r.state)), (-2, 1, ["Data"]))
+
+    def test_copy_sheet_rules(self):
+        def problems(text):
+            return [p.message for p in validator.validate_text(text) if p.severity == "error"
+                    and "(rule 5)" not in p.message and "(rule 16)" not in p.message]
+        self.assertEqual(problems(book_ops('COPY_SHEET($ws, name="Copy")')), [])
+        self.assertIn("COPY_SHEET adds a sheet to the workbook of the sheet it copies: give the spec a Workbook "
+                      "argument $book and declare MODIFIES $book sheets",
+                      problems(book_ops('COPY_SHEET($ws, name="Copy")', modifies="MODIFIES $ws")))
+        self.assertIn("COPY_SHEET needs name=: Excel's own name for a copy (Template (2)) is not one a TEST can rely on",
+                      problems(book_ops("COPY_SHEET($ws)")))
+        found = check_text(book_ops('COPY_SHEET($book, name="Copy")'))
+        self.assertTrue(any("COPY_SHEET: $book is not a sheet" in m for _, m in found), found)
 
     def test_an_added_sheet_needs_modifies_sheets_at_run_time_too(self):
         r = run(book_ops('ADD_SHEET($book, name="Totals")', modifies="MODIFIES $ws"))
@@ -494,6 +556,8 @@ class ForgeLib(unittest.TestCase):
         add = self.body("ForgeAddSheet")
         self.assertLess(add.index("already exists"), add.index("book.Worksheets.Add(After:=after)"))   # checked first
         self.assertIn("If Not ForgeSheetNameOk(s) Then Err.Raise 1004", add)
+        copy = self.body("ForgeCopySheet")
+        self.assertLess(copy.index("already exists"), copy.index("src.Copy After:=after"))   # checked first
         find = self.body("ForgeFind")
         self.assertIn("For Each cell In rng.Cells", find)
         self.assertNotIn(".Find(", find)   # Range.Find keeps the settings of the last search

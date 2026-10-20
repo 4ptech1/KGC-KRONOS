@@ -367,7 +367,7 @@ class Checker:
                 self.assign(v, vt, opts["into"], vflow, line)
         elif name in FILE_OPS and "into" in opts:
             drop_var(str(opts["into"]))
-        elif name == "ADD_SHEET" and "into" in opts:   # the new sheet (D40)
+        elif name in ("ADD_SHEET", "COPY_SHEET") and "into" in opts:   # the new sheet (D40, D41)
             drop_var(str(opts["into"]))
             self.assign(str(opts["into"]), "Sheet", opts["into"], vflow, line)
         elif name in ("SET_VALUE", "CLEAR"):
@@ -422,14 +422,15 @@ class Checker:
                     self.need_num(self.ty(c, facts, vflow, line), c, line)
             for p in pos:
                 self.ty(p, facts, vflow, line)
-        elif name == "ADD_SHEET":   # ADD_SHEET(<book>, name=<text>, after=<sheet>, into=<Worksheet VAR>)
+        elif name in ("ADD_SHEET", "COPY_SHEET"):   # (<book> or <sheet>, name=<text>, after=<sheet>, into=<VAR>)
             opts = {str(a.children[0]): a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"}
-            if pos and self.ty(pos[0], facts, vflow, line) not in ("Book", "?"):
-                self.err(line, f"ADD_SHEET: {canon(pos[0])} is not a workbook")
+            first = "Book" if name == "ADD_SHEET" else "Sheet"
+            if pos and self.ty(pos[0], facts, vflow, line) not in (first, "?"):
+                self.err(line, f"{name}: {canon(pos[0])} is not a {'workbook' if first == 'Book' else 'sheet'}")
             if "name" in opts and self.ty(opts["name"], facts, vflow, line) not in TEXTLIKE | {"?"}:
-                self.err(line, f"ADD_SHEET: name={canon(opts['name'])} is not text")
+                self.err(line, f"{name}: name={canon(opts['name'])} is not text")
             if "after" in opts and self.ty(opts["after"], facts, vflow, line) not in ("Sheet", "?"):
-                self.err(line, f"ADD_SHEET: after={canon(opts['after'])} is not a sheet")
+                self.err(line, f"{name}: after={canon(opts['after'])} is not a sheet")
         elif name == "WRITE_ROW" and len(pos) >= 3:
             st = self.ty(pos[0], facts, vflow, line)
             if st not in ("Sheet", "?"):

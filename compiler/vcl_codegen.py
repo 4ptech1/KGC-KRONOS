@@ -371,11 +371,12 @@ class Gen:
             asc = "True" if str(opts.get("order", "asc")) == "asc" else "False"
             hdr = "True" if str(opts.get("header", "yes")) == "yes" else "False"
             return [f"ForgeSort {self.rng(pos[0])}, {self.as_num(opts['key'])[0]}, {asc}, {hdr}"]
-        if name == "ADD_SHEET":   # VCL 0.4 (D40): checks the name before it adds anything
-            call = f"ForgeAddSheet({e(pos[0])}, {e(opts['name'])}, {e(opts['after']) if 'after' in opts else 'Nothing'})"
+        if name in ("ADD_SHEET", "COPY_SHEET"):   # VCL 0.4 (D40, D41): checks the name before it adds anything
+            helper = "ForgeAddSheet" if name == "ADD_SHEET" else "ForgeCopySheet"
+            args = f"{e(pos[0])}, {e(opts['name'])}, {e(opts['after']) if 'after' in opts else 'Nothing'}"
             if "into" in opts:
-                return [f"Set {vba_name(str(opts['into']))} = {call}"]
-            return [call.replace("ForgeAddSheet(", "ForgeAddSheet ", 1)[:-1]]
+                return [f"Set {vba_name(str(opts['into']))} = {helper}({args})"]
+            return [f"{helper} {args}"]
         if name == "DEDUPE":   # S21 keys, whole rows deleted bottom up (D38)
             cols = opts["cols"]
             items = cols.children if isinstance(cols, Tree) and cols.data == "list_lit" else [cols]
