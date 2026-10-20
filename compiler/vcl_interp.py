@@ -856,6 +856,11 @@ def writes_anything(spec):
     return any(name in WRITE_OPS for name in calls(spec["ops"]))
 
 
+def needs_unchanged_check(spec, modifies):
+    """MODIFIES lines, or (VCL 0.2 and later, D20) a spec that writes nothing: it may change nothing."""
+    return bool(modifies) or (spec.get("version", "VCL 0.1") != "VCL 0.1" and not writes_anything(spec))
+
+
 def _letters(c):
     out = ""
     while c:
@@ -1047,7 +1052,7 @@ def run_tests(text, today=None):
             if not ok:
                 failed.append(cond)
         modifies = modifies_of(spec)
-        if modifies or (spec.get("version") in ("VCL 0.2", "VCL 0.3") and not writes_anything(spec)):
+        if needs_unchanged_check(spec, modifies):
             sheet_args = {}
             for pname, v in zip(params, call_vals):
                 if isinstance(v, Token) and v.type == "NAME":
