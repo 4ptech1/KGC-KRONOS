@@ -128,3 +128,9 @@ Dataset count: 0 verified pairs
   write VCL, never VBA, and the compiler stays the only thing that writes VBA, so every model
   output is proven by the toolchain without Excel. Planned VCL changes (a `GOAL` line, a
   formatter, error codes, fewer NOTE steps) come after the MVP.
+- **2026-10-20:** Job-Pack Router Phase 4a: `specs/task_12.vcl` RouteJobPacks, the router MVP
+  spec (VCL 0.3). For each tracker row it makes the job's folder and copies the job's report into
+  it from the dump folder, never overwriting or deleting, and writes the status back. Its TESTs
+  show every status on a row of its own, a re-run, and two PRE failures, and catch all 29 of its
+  mutants. 12 specs; snapshot mutation score 95.4% (418 of 438). Next: 4b, the switch of the
+  reference text and the Orchestrator prompt to VCL 0.3 (D32).

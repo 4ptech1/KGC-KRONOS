@@ -138,12 +138,13 @@ class VersionLine(unittest.TestCase):
         self.assertEqual(validator.parse_spec(NAMES).version, "VCL 0.3")
 
     def test_every_vcl_02_spec_stays_valid_under_0_3(self):
-        paths = sorted(glob.glob(os.path.join(ROOT, "specs", "*.vcl")))
-        self.assertGreaterEqual(len(paths), 11)
-        for path in paths:
-            text = Path(path).read_text(encoding="utf-8")
-            with self.subTest(spec=os.path.basename(path)):
-                self.assertTrue(text.startswith("VCL 0.2\n"))
+        texts = {os.path.basename(p): Path(p).read_text(encoding="utf-8")
+                 for p in sorted(glob.glob(os.path.join(ROOT, "specs", "*.vcl")))}
+        self.assertEqual(sorted(n for n, t in texts.items() if not t.startswith("VCL 0.2\n")), ["task_12.vcl"])
+        for name, text in texts.items():
+            if name == "task_12.vcl":   # the router, written for VCL 0.3 (router Phase 4)
+                continue
+            with self.subTest(spec=name):
                 newer = text.replace("VCL 0.2", "VCL 0.3", 1)
                 self.assertEqual([(p.line, p.severity, p.message) for p in validator.validate_text(text)],
                                  [(p.line, p.severity, p.message) for p in validator.validate_text(newer)])
@@ -628,6 +629,31 @@ class Router(unittest.TestCase):
         killed, total, survivors = mutate_report(ROUTER, snapshot=True)
         self.assertEqual((killed, total), (29, 31))
         self.assertEqual(survivors, [(20, "step deleted"), (23, "'OR' -> 'AND'")])
+
+
+class Task12(unittest.TestCase):
+    """Router Phase 4: specs/task_12.vcl RouteJobPacks, the MVP spec (D32)."""
+
+    TEXT = (ROOT / "specs" / "task_12.vcl").read_text(encoding="utf-8")
+
+    def test_every_status_on_its_row(self):
+        results = run_tests(self.TEXT)
+        self.assertTrue(all(r.passed for r in results), [(r.line, r.failed) for r in results])
+        self.assertEqual([r.result for r in results], [3, 3, -1, -1])
+        status = {row: v for (row, col), v in results[0].state["Tracker"][0] if col == 3 and row > 1}
+        self.assertEqual(status, {2: "Copied", 3: "Conflict", 4: "Locked", 5: "Bad name", 6: "Blocked by file",
+                                  7: "old", 8: "Missing", 9: "Copied", 10: "Bad name", 11: "Already there"})
+        folders = {path for path, kind, _, _ in results[0].files if kind == "folder"}
+        self.assertNotIn("Jobs\\J-106", folders)   # a bad Report File: nothing is made for the row
+        self.assertTrue({"Jobs\\J-103", "Jobs\\J-105"} <= folders)   # made, though the copy failed
+
+    def test_its_tests_catch_every_mutant(self):
+        self.assertEqual(mutate_report(self.TEXT, snapshot=True), (29, 29, []))
+
+    def test_it_compiles_with_a_sandbox_builder(self):
+        vba = compile_text(self.TEXT, "task_12.vcl")
+        self.assertEqual(lint(assemble([vba])), [])
+        self.assertIn("ForgeSandbox_jobpacks_01", fixtures_module([("task_12.vcl", fixture_trees(self.TEXT))]))
 
 
 class Interpreter(unittest.TestCase):

@@ -69,7 +69,8 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
    Orchestrator prompt) are done: VCL 0.2 core is complete.**
 4. **The Job-Pack Router MVP (VCL 0.3 file ops), approved 17 Oct 2026:** `docs/vep-0.3-file-ops.md`,
    Phases 0 to 5. Phases 0 to 3 (the compiler, ForgeLib and the sandbox builder: D29, D30) are
-   done; Phase 4 waits for Boss's go. It comes before the rest of item 5.
+   done, and Phase 4a (task_12 RouteJobPacks, D32) too; 4b (the switch to VCL 0.3) is next. It
+   comes before the rest of item 5.
 5. **The rest of rev 3** in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives

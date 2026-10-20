@@ -262,7 +262,7 @@ class Finding6NoFilesFails(unittest.TestCase):
     def test_wildcards_work_without_a_shell(self):
         result = self.run_validator("specs/*.vcl")
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertIn("11 files checked: 0 errors, 1 warning", result.stdout)
+        self.assertIn("12 files checked: 0 errors, 1 warning", result.stdout)
 
 
 class Finding7KnownGaps(unittest.TestCase):
@@ -521,9 +521,9 @@ class SkipIfNeedsBlanks(unittest.TestCase):
 
 
 class RealSpecs(unittest.TestCase):
-    def test_all_eleven_specs(self):
+    def test_all_twelve_specs(self):
         paths = sorted(glob.glob(os.path.join(ROOT, "specs", "task_*.vcl")))
-        self.assertEqual(len(paths), 11)
+        self.assertEqual(len(paths), 12)
         for path in paths:
             name = os.path.basename(path)
             with self.subTest(spec=name):
