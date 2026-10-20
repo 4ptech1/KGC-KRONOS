@@ -27,6 +27,7 @@ from vcl_types import Checker as TypeChecker
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "vcl"))
 from semantics import safe_name, sheet_name_ok  # noqa: E402
+from vcl_formula import formula_problems  # noqa: E402
 
 TYPES = {"Long", "Double", "String", "Boolean", "Date", "Variant", "Range", "Worksheet", "Workbook",
          "Dictionary", "Collection"}
@@ -114,7 +115,7 @@ VBA_LEAKS = ["Dim ", "Set ", "End If", ".Value", "Cells(", "Range(", "Next ", "W
 
 # TEST assertion functions and the kind of each argument
 ASSERT_FUNCS = {"COUNTIF", "COUNTIFS", "COUNTA", "SUM", "SUMIFS", "VALUE", "ROWS_USED", "SHEET_EXISTS",
-                "FILE_EXISTS", "FILL_COUNT", "FILE_COUNT", "VISIBLE_COUNT"}
+                "FILE_EXISTS", "FILL_COUNT", "FILE_COUNT", "VISIBLE_COUNT", "FORMULA"}
 ASSERT_COMPARE = {"=", "<>", "<", ">", "<=", ">=", "+", "-", "*", "/"}
 
 KEYWORD = re.compile(r"[A-Z][A-Z0-9_]+")
@@ -313,6 +314,7 @@ class TaskChecker:
         self.new_sheets = {}       # Worksheet VAR -> line: set by ADD_SHEET or COPY_SHEET into= (D40, D41)
         self.var_sets = []         # (line, VAR) set by LET or any other into=
         self.row_order_ops = {}    # "FILTER" / "SORT" -> first line: a spec may not use both (D42)
+        self.row_moves = {}        # SET_FORMULA and the ops that move rows -> first line (D43)
         self.file_paths = []       # (line, op, "from" or "to", root arg or None, bare root?)
 
     def error(self, message, line=None):
@@ -343,6 +345,10 @@ class TaskChecker:
                          "else changed: declare each sheet it changes with MODIFIES", self.writes[0][0])
         self.check_file_ops()
         self.check_sheet_adds()
+        moves = sorted(op for op in self.row_moves if op != "SET_FORMULA")
+        if "SET_FORMULA" in self.row_moves and moves:
+            self.error(f"a spec may not both SET_FORMULA and {' or '.join(moves)}: Excel rewrites formula references "
+                       "when rows move, which a TEST can't prove (D43)", self.row_moves["SET_FORMULA"])
         if len(self.row_order_ops) == 2:
             self.error("a spec may not both FILTER and SORT: how Excel sorts rows that FILTER hid can't be proven "
                        "by a TEST (D42); sort in one spec and filter in another", self.row_order_ops["FILTER"])
@@ -982,6 +988,10 @@ class TaskChecker:
                 if not (len(items) == 1 and is_tok(items[0], "string")):
                     self.error(f'{name} needs a "quoted" {"formula" if name == "SET_FORMULA" else "pattern"} '
                                "as its second argument")
+                elif name == "SET_FORMULA":   # D43: Excel 2016 only, this workbook only
+                    r1c1 = any(k.text == "style" and show(v) == "r1c1" for k, v in call.options)
+                    for problem in formula_problems(items[0].text[1:-1].replace('""', '"'), r1c1):
+                        self.error(f"SET_FORMULA: {problem}")
             else:
                 self.check_expr(items, f"{name} argument")
         if name == "RETURN":
@@ -993,6 +1003,8 @@ class TaskChecker:
             self.sheet_ops = True
         if name in ("FILTER", "SORT"):
             self.row_order_ops.setdefault(name, self.line)
+        if name in ("SET_FORMULA", "INSERT_ROW", "DELETE_ROW", "DEDUPE", "SORT"):
+            self.row_moves.setdefault(name, self.line)
         if name == "LET" and positional and len(positional[0]) == 1 and is_tok(positional[0][0], "name"):
             self.var_sets.append((self.line, positional[0][0].text))
         for key, items in options:
@@ -1389,8 +1401,8 @@ class AssertionChecker:
             self.error(f"{call.name} has no options")
         if name == "FILE_COUNT" and not self.c.at_least("VCL 0.3"):
             self.error("FILE_COUNT is VCL 0.3: start the spec with 'VCL 0.3' to use it")
-        if name == "VISIBLE_COUNT" and not self.c.at_least("VCL 0.4"):
-            self.error("VISIBLE_COUNT is VCL 0.4: start the spec with 'VCL 0.4' to use it")
+        if name in ("VISIBLE_COUNT", "FORMULA") and not self.c.at_least("VCL 0.4"):
+            self.error(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it")
         args = call.positional
         n = len(args)
         if name == "COUNTIFS":
@@ -1404,7 +1416,8 @@ class AssertionChecker:
         else:
             kinds = {"COUNTIF": ["range", "crit"], "COUNTA": ["range"], "SUM": ["range"], "VALUE": ["cell"],
                      "ROWS_USED": ["sheet"], "SHEET_EXISTS": ["string"], "FILE_EXISTS": ["path"],
-                     "FILL_COUNT": ["range", "hex"], "FILE_COUNT": ["path"], "VISIBLE_COUNT": ["range"]}[name]
+                     "FILL_COUNT": ["range", "hex"], "FILE_COUNT": ["path"], "VISIBLE_COUNT": ["range"],
+                     "FORMULA": ["cell"]}[name]
             ok = n == len(kinds)
             want = f"{len(kinds)} argument{'s' if len(kinds) > 1 else ''}"
         if not ok:

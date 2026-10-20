@@ -3,7 +3,7 @@ compiled: INSERT_ROW, READ_ARRAY, WRITE_ARRAY, ARR, ROWS, COLS, SELECT_CASE, LOG
 FILE_NAME and FOR_EACH over SHEETS and CELLS (D36, D37). Phase 2: the VCL 0.4 line, lists in
 DEDUPE cols=[...] and DEDUPE itself (S21, D38). Phase 3: FIND, IS_NOTHING and NOTHING (S22, D39). Phase 4a: Workbook
 arguments, MODIFIES $book sheets, ADD_SHEET and SHEET_EXISTS (S23, D40). Phase 4b: COPY_SHEET (D41). Phase 5:
-FILTER, hidden rows and VISIBLE_COUNT (D42)."""
+FILTER, hidden rows and VISIBLE_COUNT (D42). Phase 6: SET_FORMULA, the formula check and FORMULA (D43)."""
 import sys
 import unittest
 from pathlib import Path
@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "compiler"))
 import validator  # noqa: E402
 from vba_lint import lint  # noqa: E402
 from vcl_codegen import assemble, compile_text  # noqa: E402
+from vcl_formula import formula_problems  # noqa: E402
 from vcl_interp import modifies_of, needs_unchanged_check, run_tests  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
@@ -236,6 +237,35 @@ TEST     fixture=welds_01.xlsx call=ShowWelderWelds(Welds, "W9") assert=RESULT =
 TEST     fixture=welds_01.xlsx call=ShowWelderWelds(Other, "W1") assert=RESULT = -1 AND ERROR_COUNT = 1
 """
 
+# SET_FORMULA (D43): the same R1C1 formula in every Total cell, checked by its text.
+FORMULA = r"""VCL 0.4
+TASK
+# ASSUME: each Total cell gets the formula Qty * Rate, written in R1C1 style so every row has the same text
+# ASSUME: the rows are 2 to the last Item row; the result is how many formulas were written
+PROC     AddLineTotals
+KIND     Function
+MODULE   modTotals
+ARGS     ws As Worksheet
+RET      Long
+VAR      cTotal As Long
+VAR      n As Long
+PRE      COL($ws, "Item") > 0; COL($ws, "Qty") > 0; COL($ws, "Rate") > 0; COL($ws, "Total") > 0
+MODIFIES $ws["Total"]
+OP       LET(cTotal, COL($ws, "Total"))
+OP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, COL($ws, "Item")) var=r
+OP         SET_FORMULA(CELL($ws, r, cTotal), "=RC[-2]*RC[-1]", style=r1c1)
+OP         LET(n, n + 1)
+OP       RETURN(n)
+ERR      standard
+FIXTURE  lines_01.xlsx sheet=Lines cols=A:Item,B:Qty,C:Rate,D:Total rows=5 data=A:seq(1,1);B:int(1,9);C:int(10,99)
+FIXTURE  lines_01.xlsx sheet=Bare cols=A:Item,B:Qty,C:Rate,D:Total rows=0
+FIXTURE  lines_01.xlsx sheet=Other cols=A:Item rows=1 data=A:seq(1,1)
+TEST     fixture=lines_01.xlsx call=AddLineTotals(Lines) assert=RESULT = 5 AND ERROR_COUNT = 0 AND FORMULA(Lines!D2) = "=RC[-2]*RC[-1]" AND FORMULA(Lines!D6) = "=RC[-2]*RC[-1]" AND COUNTA(Lines!D:D) = 6 AND FORMULA(Lines!D7) = ""
+TEST     fixture=lines_01.xlsx call=AddLineTotals(Lines) runs=2 assert=RESULT = 5 AND ERROR_COUNT = 0 AND COUNTA(Lines!B:B) = PRE_COUNTA(Lines!B:B)
+TEST     fixture=lines_01.xlsx call=AddLineTotals(Bare) assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTA(Bare!D:D) = 1
+TEST     fixture=lines_01.xlsx call=AddLineTotals(Other) assert=RESULT = -1 AND ERROR_COUNT = 1
+"""
+
 FIXTURE = 'FIXTURE  t_01.xlsx sheet=Data cols=A:Key,B:Qty rows=4 data=A:values("a"x2,"b"x2);B:int(1,9)'
 
 
@@ -260,7 +290,8 @@ def cells(result, sheet="Data"):
 class Samples(unittest.TestCase):
     def test_they_validate_pass_and_catch_every_mutant(self):
         for name, text in (("GRADE", GRADE), ("MARKS", MARKS), ("DEDUPE", DEDUPE), ("FIND", FIND),
-                           ("ADD_SHEET", ADD_SHEET), ("COPY_SHEET", COPY_SHEET), ("FILTER", FILTER)):
+                           ("ADD_SHEET", ADD_SHEET), ("COPY_SHEET", COPY_SHEET), ("FILTER", FILTER),
+                           ("FORMULA", FORMULA)):
             with self.subTest(name):
                 self.assertEqual([p.message for p in validator.validate_text(text)], [])
                 results = run_tests(text)
@@ -302,6 +333,9 @@ class Samples(unittest.TestCase):
         vba = compile_text(FILTER)
         self.assertEqual(lint(assemble([vba])), [])
         self.assertIn("ForgeFilter ForgeUsedRange(ws), cWelder, welder", vba)
+        vba = compile_text(FORMULA)
+        self.assertEqual(lint(assemble([vba])), [])
+        self.assertIn('ForgeSetFormula ws.Cells(r, cTotal), "=RC[-2]*RC[-1]", True', vba)
 
     def test_log_and_msg_are_never_errors(self):
         grade, marks = run_tests(GRADE)[0], run_tests(MARKS)[0]
@@ -370,7 +404,7 @@ def errors(text):
     """The errors on the OP lines (the small specs of ops() break the spec-wide TEST rules on purpose)."""
     first_op = text.splitlines().index(next(line for line in text.splitlines() if line.startswith("OP "))) + 1
     return [p.message for p in validator.validate_text(text) if p.severity == "error" and p.line >= first_op
-            and "TEST" not in p.message]
+            and "(rule 5)" not in p.message and "(rule 16)" not in p.message]
 
 
 class Dedupe(unittest.TestCase):
@@ -575,6 +609,41 @@ class Filter(unittest.TestCase):
                       [p.message for p in validator.validate_text(both)])
 
 
+class Formulas(unittest.TestCase):
+    def test_the_excel_2016_list(self):
+        for ok in ("=SUM(B2:B9)", '=IFERROR(VLOOKUP(A2,Rates!A:B,2,FALSE),"none")', "='Rev (2)'!A1+1",
+                   "=IF(A1=#N/A,1,0)", "=sumifs(c:c,a:a,\"x\")"):
+            with self.subTest(ok):
+                self.assertEqual(formula_problems(ok), [])
+        self.assertEqual(formula_problems("=RC[-2]*RC[-1]", r1c1=True), [])
+        for bad, why in (("=XLOOKUP(A2,B:B,C:C)", "XLOOKUP is not on"), ("=TEXTJOIN(\",\",TRUE,A1:A3)", "TEXTJOIN is not on"),
+                         ("=LET(x,1,x)", "LET is not on"), ('=INDIRECT("A1")', "INDIRECT is not on"),
+                         ('=TEXT(A1,"yyyy")', "TEXT is not on"), ("=[Book1.xlsx]Sheet1!A1", "another workbook"),
+                         ("=Table1[Qty]", "or a table"), ("=RC[-2]", "another workbook"), ("=@A1:A5", "@ is"),
+                         ("=A1#", "spill"), ("=_xlfn.CONCAT(A1,B1)", "_xlfn."), ("SUM(A1)", "starts with =")):
+            with self.subTest(bad):
+                self.assertTrue(any(why in p for p in formula_problems(bad)), formula_problems(bad))
+
+    def test_formula_cells_have_no_value_in_the_interpreter(self):
+        set_c2 = 'SET_FORMULA(CELL($ws, 2, 3), "=B2*2")'
+        self.assertEqual(run(ops(set_c2, "LET(n, 1)")).errors, 0)
+        r = run(ops(set_c2, "IF IS_EMPTY(CELL($ws, 2, 3)) THEN LET(n, 1)"))
+        self.assertEqual((r.result, r.errors), (-2, 1))                          # read as a value: stops
+        r = run(ops('SET_FORMULA(ROW_RANGE($ws, 2, 3, 4), "=B2*2")'))          # a1 on two cells
+        self.assertEqual((r.result, r.errors), (-2, 1))
+        r = run(ops('SET_FORMULA(ROW_RANGE($ws, 2, 3, 4), "=RC[-1]*2", style=r1c1)'))
+        self.assertEqual((cells(r)[(2, 3)], cells(r)[(2, 4)]), ("=RC[-1]*2", "=RC[-1]*2"))
+
+    def test_the_validator(self):
+        found = errors(ops('SET_FORMULA(CELL($ws, 2, 3), "=XLOOKUP(A2,B:B,C:C)")'))
+        self.assertIn("SET_FORMULA: XLOOKUP is not on the Excel 2016 list of SET_FORMULA functions (D43)", found)
+        found = errors(ops('SET_FORMULA(CELL($ws, 2, 3), "=B2*2")', "DELETE_ROW($ws, 3)"))
+        self.assertIn("a spec may not both SET_FORMULA and DELETE_ROW: Excel rewrites formula references when rows "
+                      "move, which a TEST can't prove (D43)", found)
+        self.assertIn("assertion: FORMULA is VCL 0.4: start the spec with 'VCL 0.4' to use it",
+                      [p.message for p in validator.validate_text(FORMULA.replace("VCL 0.4", "VCL 0.3", 1))])
+
+
 class Unchanged(unittest.TestCase):
     def test_a_spec_that_writes_nothing_changes_nothing_from_0_2_on(self):   # D20, for every later version too
         for version, want in (("VCL 0.1", False), ("VCL 0.2", True), ("VCL 0.3", True), ("VCL 0.4", True)):
@@ -624,6 +693,7 @@ class ForgeLib(unittest.TestCase):
         add = self.body("ForgeAddSheet")
         self.assertLess(add.index("already exists"), add.index("book.Worksheets.Add(After:=after)"))   # checked first
         self.assertIn("If Not ForgeSheetNameOk(s) Then Err.Raise 1004", add)
+        self.assertNotIn("FormulaLocal", self.body("ForgeSetFormula").split("\n", 3)[-1])
         flt = self.body("ForgeFilter")
         self.assertNotIn("AutoFilter", flt.split("\n", 4)[-1])     # below the comment: no AutoFilter
         self.assertIn("ws.Rows(r).Hidden = Not ForgeSame(ws.Cells(r, col).Value, crit)", flt)

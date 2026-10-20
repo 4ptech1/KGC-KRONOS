@@ -224,6 +224,28 @@ def copy_file(fs, src, dst):
     return "Copied"
 
 
+@dataclass(frozen=True)
+class Formula:
+    """A cell SET_FORMULA wrote (D43): its formula text as written, in the style it was written. The
+    interpreter can't calculate it, so reading it as a value stops the TEST; FORMULA(...) checks it."""
+    text: str
+    r1c1: bool = False
+
+
+def value(sh, r, c):
+    """A cell's value for an op. A formula has no value here: only an Excel run can prove what it gives."""
+    v = sh.get(r, c)
+    if isinstance(v, Formula):
+        raise VclError(f"{sh.name}!{_letters(c)}{r} holds a formula ({v.text}), which the interpreter can't "
+                       "calculate: a TEST checks it with FORMULA(...)")
+    return v
+
+
+def cell_text(v):
+    """A cell's text in the TEST state: a formula's own text, any other value as S6 text."""
+    return v.text if isinstance(v, Formula) else S.text_of(v)
+
+
 def delete_row(sh, row):
     """Delete a whole sheet row: the rows below move up, with their fills, formats and hidden state."""
     sh.cells = {(r - (r > row), c): v for (r, c), v in sh.cells.items() if r != row}
@@ -373,7 +395,7 @@ class Machine:
         e = self.ev
         if name == "CELL":
             sh, r, c = e(pos[0]), self.index(e(pos[1])), self.index(e(pos[2]))
-            return Rng(sh, r, c, r, c) if as_target else sh.get(r, c)
+            return Rng(sh, r, c, r, c) if as_target else value(sh, r, c)
         if name == "ROW_RANGE":
             sh = e(pos[0])
             r, c1, c2 = self.index(e(pos[1])), self.index(e(pos[2])), self.index(e(pos[3]))
@@ -383,7 +405,7 @@ class Machine:
             return Rng(sh, 1, 1, sh.max_row(), sh.max_col())
         if name == "COL":
             sh = e(pos[0])
-            return S.col([sh.get(1, c) for c in range(1, sh.max_col() + 1)], e(pos[1]))
+            return S.col([value(sh, 1, c) for c in range(1, sh.max_col() + 1)], e(pos[1]))
         if name == "LASTROW":
             sh, c = e(pos[0]), self.index(e(pos[1]))
             return S.last_row([sh.get(r, c) for r in range(1, sh.max_row() + 1)])
@@ -446,7 +468,7 @@ class Machine:
             return list(e(pos[0]).sheets.values())
         if name == "CELLS":
             rng = self.target(pos[0])
-            return [rng.sheet.get(r, c) for r, c in rng.cells()]   # row by row, as For Each
+            return [value(rng.sheet, r, c) for r, c in rng.cells()]   # row by row, as For Each
         if name == "ARR":
             return e(pos[0]).get(self.index(e(pos[1])), self.index(e(pos[2])))
         if name == "ROWS":
@@ -458,7 +480,7 @@ class Machine:
         if name == "FIND":   # S22: the first matching cell, row by row, or NOTHING (D39)
             rng = self.target(pos[0])
             cells = list(rng.cells())
-            i = S.find([rng.sheet.get(r, c) for r, c in cells], e(pos[1]), str(opts_of(args).get("match", "whole")))
+            i = S.find([value(rng.sheet, r, c) for r, c in cells], e(pos[1]), str(opts_of(args).get("match", "whole")))
             return Rng(rng.sheet, *cells[i - 1], *cells[i - 1]) if i else None
         if name == "IS_NOTHING":
             return e(pos[0]) is None
@@ -523,7 +545,7 @@ class Machine:
             src, r, dst, r2 = e(pos[0]), self.index(e(pos[1])), e(pos[2]), self.index(e(pos[3]))
             n = self.index(e(opts["cols"]))
             for c in range(1, n + 1):
-                dst.set(r2, c, src.get(r, c))
+                dst.set(r2, c, value(src, r, c))
         elif name == "INSERT_ROW":   # a new empty row, no fill, no number format (D36)
             sh, row = e(pos[0]), self.index(e(pos[1]))
             sh.cells = {(r + (r >= row), c): v for (r, c), v in sh.cells.items()}
@@ -532,7 +554,7 @@ class Machine:
             sh.hidden = {r + (r >= row) for r in sh.hidden}   # the new row is visible (ForgeInsertRow)
         elif name == "READ_ARRAY":   # always 2-D and 1-based, even for one cell (ForgeReadArray)
             rng = self.target(pos[0])
-            data = {(r - rng.r1 + 1, c - rng.c1 + 1): rng.sheet.get(r, c) for r, c in rng.cells()}
+            data = {(r - rng.r1 + 1, c - rng.c1 + 1): value(rng.sheet, r, c) for r, c in rng.cells()}
             self.assign(str(opts["into"]), Arr(rng.r2 - rng.r1 + 1, rng.c2 - rng.c1 + 1, data))
         elif name == "WRITE_ARRAY":   # from the top-left cell of to=; text stays text (S17)
             arr, top = e(pos[0]), self.target(opts["to"])
@@ -553,20 +575,28 @@ class Machine:
                 raise VclError(f"Excel error 1004: DEDUPE cols= column {bad[0]} is outside the sheet")
             seen, doomed = set(), []
             for r in range(first, rng.r2 + 1):   # marked top down ...
-                key = S.row_key([rng.sheet.get(r, c) for c in keys])
+                key = S.row_key([value(rng.sheet, r, c) for c in keys])
                 if key is not None and key in seen:
                     doomed.append(r)
                 elif key is not None:
                     seen.add(key)
             for r in reversed(doomed):   # ... deleted bottom up, as ForgeDedupe does
                 delete_row(rng.sheet, r)
+        elif name == "SET_FORMULA":   # D43: the formula text as written; the interpreter never calculates it
+            rng, r1c1 = self.target(pos[0]), str(opts.get("style", "a1")) == "r1c1"
+            cells = list(rng.cells())
+            if len(cells) > 1 and not r1c1:
+                raise VclError("SET_FORMULA style=a1 on more than one cell: Excel shifts each relative reference, "
+                               "which the interpreter doesn't model; write it with style=r1c1")
+            for r, c in cells:
+                rng.sheet.set(r, c, Formula(str(pos[1])[1:-1].replace('""', '"'), r1c1))
         elif name == "FILTER":   # D42: below the range's first row, a row stays visible when SAME, else hidden
             rng, crit = self.target(pos[0]), e(opts["crit"])
             col = self.index(e(opts["col"]))
             if col > EXCEL_COLS:
                 raise VclError(f"Excel error 1004: FILTER col= column {col} is beyond column XFD")
             for r in range(rng.r1 + 1, rng.r2 + 1):
-                if S.same(rng.sheet.get(r, col), crit):
+                if S.same(value(rng.sheet, r, col), crit):
                     rng.sheet.hidden.discard(r)
                 else:
                     rng.sheet.hidden.add(r)
@@ -614,7 +644,7 @@ class Machine:
     def sort(self, rng, key, ascending, header):
         sh = rng.sheet
         first = rng.r1 + (1 if header else 0)
-        rows = [{c: sh.get(r, c) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
+        rows = [{c: value(sh, r, c) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
         fills = [{c: sh.fills.get((r, c)) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
         formats = [{c: sh.formats.get((r, c)) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
 
@@ -801,7 +831,7 @@ class Asserter:
 
     def values(self, ref, pre):
         sh, pts = self.cells(ref, pre)
-        return [sh.get(r, c) for r, c in pts]
+        return [value(sh, r, c) for r, c in pts]
 
     def ev(self, t):
         if isinstance(t, Token):
@@ -828,8 +858,13 @@ class Asserter:
             pre = name.startswith("PRE_")
             fn = name[4:] if pre else name
             args = t.children[1:]
-            if fn == "COUNTA":
-                return sum(1 for v in self.values(args[0], pre) if v is not None)
+            if fn == "COUNTA":   # a formula cell counts, as in Excel, without being calculated
+                sh, pts = self.cells(args[0], pre)
+                return sum(1 for r, c in pts if sh.get(r, c) is not None)
+            if fn == "FORMULA":   # D43: the formula text as written, or "" when the cell holds none
+                sh, pts = self.cells(args[0], pre)
+                v = sh.get(*pts[0])
+                return v.text if isinstance(v, Formula) else ""
             if fn == "COUNTIF":
                 return sum(1 for v in self.values(args[0], pre) if _crit_match(v, self.ev(args[1])))
             if fn == "SUM":
@@ -934,6 +969,8 @@ def _letters(c):
 def _kind(v):
     if v is None:
         return "empty"
+    if isinstance(v, Formula):
+        return "formula"
     if isinstance(v, bool):
         return "bool"
     if isinstance(v, (int, float)):
@@ -948,6 +985,8 @@ def _kind(v):
 def _show(v):
     if v is None:
         return "(empty)"
+    if isinstance(v, Formula):
+        return v.text
     return '"' + v + '"' if isinstance(v, str) else S.text_of(v)
 
 
@@ -976,7 +1015,7 @@ def unchanged_problems(modifies, sheet_args, before, after, stopped_at_pre, limi
         cols = {c for c in range(1, b.max_col() + 1) if S.header_key(b.get(1, c)) in wanted and b.get(1, c) is not None}
         for (r, c) in sorted(set(b.cells) | set(a.cells)):
             bv, av = b.cells.get((r, c)), a.cells.get((r, c))
-            if (r >= 2 and c in cols) or (_kind(bv), S.text_of(bv)) == (_kind(av), S.text_of(av)):
+            if (r >= 2 and c in cols) or (_kind(bv), cell_text(bv)) == (_kind(av), cell_text(av)):
                 continue
             found.append(f"UNCHANGED: {name}!{_letters(c)}{r} was {_show(bv)}, now {_show(av)}")
         for r in sorted(b.hidden ^ a.hidden):   # FILTER hides rows (D42)
@@ -1137,7 +1176,7 @@ def run_tests(text, today=None):
             roots = [bound[a] for a, kinds in modifies.items() if kinds.get("files") and isinstance(bound.get(a), str)]
             failed += file_unchanged_problems(roots, fs_before, fs, stopped_at_pre)
         failed += sandbox_length_problems(file_paths)
-        state = {name: (sorted((rc, S.text_of(v)) for rc, v in sh.cells.items()), sorted(sh.fills.items()),
+        state = {name: (sorted((rc, cell_text(v)) for rc, v in sh.cells.items()), sorted(sh.fills.items()),
                         sorted(sh.formats.items()))
                  for name, sh in book.items()}
         hidden = {name: sorted(sh.hidden) for name, sh in book.items() if sh.hidden}

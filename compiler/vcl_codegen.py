@@ -377,6 +377,9 @@ class Gen:
             if "into" in opts:
                 return [f"Set {vba_name(str(opts['into']))} = {helper}({args})"]
             return [f"{helper} {args}"]
+        if name == "SET_FORMULA":   # the English formula, as the validator checked it (D43)
+            r1c1 = "True" if str(opts.get("style", "a1")) == "r1c1" else "False"
+            return [f"ForgeSetFormula {self.rng(pos[0])}, {e(pos[1])}, {r1c1}"]
         if name == "FILTER":   # rows hidden by SAME, never AutoFilter (D42)
             return [f"ForgeFilter {self.rng(pos[0])}, {self.as_num(opts['col'])[0]}, {e(opts['crit'])}"]
         if name == "DEDUPE":   # S21 keys, whole rows deleted bottom up (D38)

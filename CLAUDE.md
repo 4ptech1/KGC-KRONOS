@@ -82,7 +82,8 @@ specs/               one .vcl file per task (task_01.vcl, ...)
 compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_parse.py (grammar),
                      vcl_types.py (types), vcl_interp.py (reference interpreter),
                      vcl_codegen.py (VBA compiler), vcl_fixtures.py (the one fixture
-                     generator), vba_lint.py, vcl_mutate.py, gen_semantics_doc.py
+                     generator), vba_lint.py, vcl_mutate.py, gen_semantics_doc.py,
+                     vcl_formula.py (the SET_FORMULA check)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
                      forge_pilot.bas are committed
@@ -195,8 +196,9 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    the last language phase, so Boss updates the Orchestrator once. Phase 3 is done (D39): FIND
    and IS_NOTHING (S22). Phase 4a is done (D40): Workbook arguments, `MODIFIES $book sheets`,
    ADD_SHEET and SHEET_EXISTS (S23). Phase 4b is done (D41): COPY_SHEET with `name=`. Phase 5 is
-   done (D42): FILTER hides rows by SAME, never by AutoFilter, with VISIBLE_COUNT. **Next: Phase 6**
-   (SET_FORMULA, tested by its formula text).
+   done (D42): FILTER hides rows by SAME, never by AutoFilter, with VISIBLE_COUNT. Phase 6 is done
+   (D43): SET_FORMULA with an Excel 2016 allowlist, tested by its text with FORMULA. **Next:
+   Phase 7** (text files in the sandbox), then spec.md and the prompt move to VCL 0.4.
 3. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts after the MVP; no training before March 2027.

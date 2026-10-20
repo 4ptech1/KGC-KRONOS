@@ -4,7 +4,7 @@ Status: **design, 20 Oct 2026** (Boss said "go item 2"). Choices that needed Bos
 made the conservative way and recorded in `DECISIONS.md` D36, as CLAUDE.md asks; Boss can
 overrule any of them. Phase 1 changes no language; later phases change VCL and follow the usual
 rule (spec.md and the prompt together, every check, one Orchestrator update per switch).
-Phases 1 (D37), 2 (D38), 3 (D39), 4 (D40, D41) and 5 (D42) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
+Phases 1 (D37), 2 (D38), 3 (D39), 4 (D40, D41), 5 (D42) and 6 (D43) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
 prompt move to 0.4 after the last language phase (D38).
 
 ## The problem
@@ -90,7 +90,7 @@ and the dataset (item 7).
   snapshot compares them; a new assertion VISIBLE_COUNT(<Sheet>!<range>) counts the visible
   rows.
 
-### Phase 6: SET_FORMULA (decision D36)
+### Phase 6: SET_FORMULA (decision D36; done: D43)
 
 - The interpreter can't calculate Excel formulas, so a TEST can only check what was written:
   a new assertion FORMULA(<Sheet>!<cell>) = "<formula>" compares the formula text. The
