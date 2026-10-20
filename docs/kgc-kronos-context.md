@@ -93,12 +93,12 @@ CLAUDE.md                 standing brief for Claude Code (rules, status, next st
 DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D25)
 README.md                 overview, how to run the checks, progress log, dataset count
 requirements.txt          one pinned dependency: lark==1.3.1 (with hash)
-vcl/spec.md               THE language reference (VCL 0.2)
+vcl/spec.md               THE language reference (VCL 0.3)
 vcl/orchestrator_prompt.txt  the Orchestrator's instructions; shares the reference text with spec.md
 vcl/grammar.lark          formal LALR grammar
 vcl/semantics.py          reference meaning of the value functions (S1-S17)
 vcl/examples/             example1_rev3.vcl (= the prompt's Example 1), build_example.vcl (a sketch, invalid)
-specs/task_01..10.vcl     the 10 KGC task specs (VCL 0.2)
+specs/task_01..12.vcl     the 12 task specs (11 in VCL 0.2; task_12, the router, in 0.3)
 compiler/vclc.py          the toolchain CLI: check, test, build, all, mutate
 compiler/parser.py        hand-written parser   compiler/validator.py  rules, plus grammar and type stages
 compiler/vcl_parse.py     grammar parser        compiler/vcl_types.py  type checker (guards, narrowing)
@@ -114,7 +114,7 @@ tests/                    211 unit tests; conformance_cases.py is shared with th
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
-docs/vep-0.3-file-ops.md  file ops and Job-Pack Router design and roadmap (approved, Phases 0 to 2 done)
+docs/vep-0.3-file-ops.md  file ops and Job-Pack Router design and roadmap (approved, Phases 0 to 4 done)
 docs/vcl-semantics.md     generated conformance tables   docs/vcl-m2-findings.md  M2 research
 docs/VBA_Forge_Project_Roadmap.docx  the full roadmap (phases, gates)
 harness/, batches/        Excel batch runner, deferred (PR #4)
@@ -143,9 +143,9 @@ Before every commit Claude Code runs: the unit tests, the validator, `vclc all`,
 `gen_semantics_doc.py --check`. CI runs the same, and fails if `dist/forge_module.bas` or
 `docs/vcl-semantics.md` is stale.
 
-## 6. VCL 0.2 cheat sheet (summary only; the full text is in Appendix A)
+## 6. VCL 0.3 cheat sheet (summary only; the full text is in Appendix A)
 
-**TASK keys, in this order:** `VCL 0.2`, `TASK`, `# ASSUME:` lines, PROC, KIND (Sub or
+**TASK keys, in this order:** `VCL 0.3`, `TASK`, `# ASSUME:` lines, PROC, KIND (Sub or
 Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW, FIXTURE, TEST.
 - Arguments are written `$name`.
 - OP lines nest by 2 extra spaces.
@@ -164,7 +164,8 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
 - LET, READ_ARRAY, WRITE_ARRAY, DICT_ADD (mode=overwrite|keep|sum|count), DICT_GET
 - SORT, FILTER, DEDUPE
 - SET_VALUE, WRITE_ROW, SET_FORMULA, FORMAT, CLEAR, COPY_ROW, INSERT_ROW, DELETE_ROW
-- sheet and file ops: ADD_SHEET … WRITE_TEXT
+- files (VCL 0.3): MAKE_FOLDER and COPY_FILE, each writing a status into a String VAR
+- sheet and other file ops: ADD_SHEET … WRITE_TEXT
 - CALL, LOG, MSG, RETURN
 - NOTE (the escape hatch)
 
@@ -175,6 +176,7 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
 - checks: IS_EMPTY, IS_NUMBER, IS_DATE, IS_ERROR, IS_NOTHING
 - constants and files: TODAY, NOW, FILE_NAME
 - new in 0.2: SAME, CLEAN_TEXT, PARSE_DATE (with a required format), IIF, MOD
+- new in 0.3: SAFE_NAME, PATH_JOIN, FOLDER_EXISTS
 
 **Meanings that surprise people** (S1 to S17, with tables in `docs/vcl-semantics.md`):
 - **Emptiness and trimming:** IS_EMPTY is true for spaces-only text, including non-breaking
@@ -192,18 +194,24 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
 - **Exits and PRE:** EXIT_IF leaves the procedure. A failed PRE logs once, changes nothing, and
   makes a Function return -1.
 - **Writes:** SET_VALUE, WRITE_ROW and COPY_ROW keep text as text in Excel (S17).
+- **Files (VCL 0.3):** every path is `PATH_JOIN($root, SAFE_NAME(...), ...)`, written in place,
+  so no path can climb out of its root. MAKE_FOLDER and COPY_FILE never stop the run: they write
+  a status (`Created`, `Exists`, `Copied`, `Already there`, `Conflict`, `Locked`, `Missing`,
+  `No folder`, `Blocked by file`, `Bad name`, `Too long`). Nothing moves, overwrites or deletes
+  a file.
 
 **MODIFIES** (a key after PRE):
 - the three forms:
   - `MODIFIES $x`: the whole sheet
   - `MODIFIES $x["Header", ...]`: values in those columns, row 2 down
   - `MODIFIES $x fills`: fills only
+  - `MODIFIES $root files` (VCL 0.3): folders and files may be added below that String argument
 - **Before the run**, the validator checks every write against these lines.
 - **After every TEST**, the interpreter checks that nothing else changed (UNCHANGED).
 - **A spec that writes nothing** needs no MODIFIES lines, and every TEST checks it changed
   nothing.
 
-**The 20 hard rules (short form):**
+**The 21 hard rules (short form):**
 1. One `vcl` code block, nothing else.
 2. Never write VBA.
 3. Use only the defined syntax.
@@ -232,16 +240,22 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
     - repeated dictionary keys
     - `reldates` when the spec uses TODAY
     - blank cells in any column a SKIP_IF tests
-20. Declare every sheet the macro changes with MODIFIES.
+    - a `locked=` file when the spec copies files
+20. Declare every sheet the macro changes with MODIFIES (and `files` for a root it adds to).
+21. Files only through MAKE_FOLDER and COPY_FILE on `PATH_JOIN($root, SAFE_NAME(...))` paths;
+    every root checked with FOLDER_EXISTS in PRE; nothing moves, overwrites or deletes a file.
 
 **FIXTURE syntax:**
 `FIXTURE <file>.xlsx sheet=<Name> cols=A:Header,... rows=<n> [stale=<n>] data=<col>:<rule>;...`
 - Rules: values("a"x3,...), seq, int, num, dates, reldates, text.
 - Modifiers, in this order: `+boundary(...)`, `+blank(n)`, `+dupes(n)`.
 - The data is deterministic: each column has its own seed, made from file, sheet and column.
+- VCL 0.3 folders: `FIXTURE <file>.xlsx folder=<Name> files=a.pdf:120,J-1\b.pdf locked=a.pdf`;
+  TESTs pass the folder bare, like a sheet. They live in a sandbox, never on real folders.
 
 **TEST assertions:**
 - measures: COUNTIF, COUNTIFS, COUNTA, SUM, SUMIFS, VALUE, ROWS_USED, FILL_COUNT
+- files (VCL 0.3): `FILE_EXISTS("Folder\path")`, `FILE_COUNT("Folder")`
 - run results: RESULT, ERROR_COUNT
 - PRE_<measure>, taken before the run
 - ranges by header: `Sheet![Header]` and `Sheet![Header]<row>`
@@ -253,7 +267,7 @@ of it. A spec outside this subset passes the validator but fails at test or buil
 
 | Fully supported (validate, test, compile) | Compile only (no interpreter yet) | Not built yet |
 | --- | --- | --- |
-| LET, SET_VALUE, WRITE_ROW, CLEAR, FORMAT, COPY_ROW, DELETE_ROW, DICT_ADD, DICT_GET, SORT, RETURN; LOOP_ROWS, LOOP_COLS, FOR_EACH over KEYS(...), IF/ELSE, EXIT_IF, SKIP_IF, EXIT_LOOP_IF; CELL, COL, LASTROW, LASTCOL, ROW_RANGE, USED_RANGE, TRIM, UPPER, LOWER, LEN, LEFT, RIGHT, IS_EMPTY, IS_NUMBER, IS_DATE, IS_ERROR, SAME, CLEAN_TEXT, PARSE_DATE, IIF, MOD, COUNT, EXISTS, KEYS; MODIFIES | INSERT_ROW, READ_ARRAY, WRITE_ARRAY, CALL, LOG, MSG, SELECT_CASE, ARR, ROWS, COLS, SHEET, RANGE, IS_NOTHING, FILE_NAME; FOR_EACH over SHEETS, CELLS or ITEMS | FILTER, DEDUPE, SET_FORMULA, ADD_SHEET, COPY_SHEET, OPEN_BOOK, SAVE_AS, CLOSE_BOOK, LIST_FILES, READ_TEXT, WRITE_TEXT, FIND, NOTE; assertions SHEET_EXISTS, FILE_EXISTS; BUILD specs |
+| LET, SET_VALUE, WRITE_ROW, CLEAR, FORMAT, COPY_ROW, DELETE_ROW, DICT_ADD, DICT_GET, SORT, RETURN, MAKE_FOLDER, COPY_FILE (VCL 0.3); LOOP_ROWS, LOOP_COLS, FOR_EACH over KEYS(...), IF/ELSE, EXIT_IF, SKIP_IF, EXIT_LOOP_IF; CELL, COL, LASTROW, LASTCOL, ROW_RANGE, USED_RANGE, TRIM, UPPER, LOWER, LEN, LEFT, RIGHT, IS_EMPTY, IS_NUMBER, IS_DATE, IS_ERROR, SAME, CLEAN_TEXT, PARSE_DATE, IIF, MOD, COUNT, EXISTS, KEYS, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS; MODIFIES (with `files`); folder FIXTUREs; assertions FILE_EXISTS, FILE_COUNT | INSERT_ROW, READ_ARRAY, WRITE_ARRAY, CALL, LOG, MSG, SELECT_CASE, ARR, ROWS, COLS, SHEET, RANGE, IS_NOTHING, FILE_NAME; FOR_EACH over SHEETS, CELLS or ITEMS | FILTER, DEDUPE, SET_FORMULA, ADD_SHEET, COPY_SHEET, OPEN_BOOK, SAVE_AS, CLOSE_BOOK, LIST_FILES, READ_TEXT, WRITE_TEXT, FIND, NOTE; assertion SHEET_EXISTS; BUILD specs |
 
 **Fill colours:** `fill=` takes `none`, a name (black, white, red, green, blue, yellow, magenta,
 cyan) or `#RRGGBB`. Each name is the colour of the VBA constant of that name (red = `#FF0000`), so
@@ -272,7 +286,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
 | Verified pairs | 0 (none has been run in Excel yet) |
-| Orchestrator Project | updated to the VCL 0.2 prompt; its replies start with `VCL 0.2` and use MODIFIES and SAME |
+| Orchestrator Project | the VCL 0.3 prompt is ready (router Phase 4b); once Boss pastes it in, replies start with `VCL 0.3` and can copy files |
 
 The 12 specs:
 
@@ -307,6 +321,12 @@ The 12 specs:
 - #17: this context file.
 - #18: FORMAT fill names (`fill=red`) work in the interpreter and compiler.
 - #19: task_11 HighlightRejectedWelds, Boss's weld-log spec from the Orchestrator.
+- #20 and #21: this context file brought up to date; D25 (our own model, from zero).
+- #22 to #24: router Phases 1 and 2 (the VCL 0.3 language surface and the mock file system).
+- #25 and #26: router Phase 3 (the compiler, ForgeLib's file helpers, the sandbox builder).
+- #27: the AI plan, D31 (the model writes VCL, never VBA).
+- #28: task_12 RouteJobPacks, the router MVP spec.
+- #29: spec.md and the prompt teach VCL 0.3.
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -337,8 +357,8 @@ Boss's decisions:
 | 2 | A mock file system in fixtures and the interpreter; FOLDER_EXISTS and the file ops run on it with their statuses (E11); FILE_EXISTS and FILE_COUNT assertions (F7); UNCHANGED for files | **Done** (PR #24) |
 | 3a | Compiler and ForgeLib: late-bound FSO helpers that return the interpreter's statuses and never overwrite, delete or move; lint bans Kill, Shell, deleting, moving, the registry and SaveAs, and allows file writes only inside the helpers (D29) | **Done** (PR #25) |
 | 3b | A sandbox builder in `%TEMP%` for the folder FIXTUREs (`ForgeSandbox_<file>()`); a TEST fails when Excel's longer sandbox root could change a Too long status (D30) | **Done** (PR #26) |
-| 4a | `specs/task_12.vcl` RouteJobPacks: every status on a row of its own, a re-run, two PRE failures; 29 of 29 mutants caught (D32) | **Done** |
-| 4b | The shared reference text and the prompt switch to 0.3, and Boss updates the Orchestrator again (exact clicks) | **Next** (Boss said "go Phase 4" on 20 Oct 2026) |
+| 4a | `specs/task_12.vcl` RouteJobPacks: every status on a row of its own, a re-run, two PRE failures; 29 of 29 mutants caught (D32) | **Done** (PR #28) |
+| 4b | The shared reference text and the prompt switch to 0.3 (hard rule 21, Example 3), and Boss updates the Orchestrator again (exact clicks) (D33) | **Done** (PR #29); Boss pastes the prompt |
 | 5 | Excel pilot kit: a ForgeLib self-test of the conformance cases, a sandbox, and a 5-step guide for Boss | Planned, optional |
 
 The key safety design for files:
@@ -429,7 +449,7 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 
 | Term | Meaning |
 | --- | --- |
-| VCL | VBA Command Language: the spec language (`vcl/spec.md`). Current version 0.2; 0.3 is being built (router Phases 1 to 4). |
+| VCL | VBA Command Language: the spec language (`vcl/spec.md`). Current version 0.3 (20 Oct 2026). |
 | Spec | One `.vcl` file: one TASK (a procedure) or one BUILD (several procedures). |
 | Orchestrator | The claude.ai Project that writes specs from plain requests. |
 | ForgeLib | `vba/ForgeLib.bas`, the VBA runtime. Every VCL meaning is a Forge* helper. |
@@ -440,10 +460,10 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 | Mutant | A copy of a spec with one deliberate bug. "Caught" means a TEST notices it. |
 | Equivalent mutant | A mutant that can't change any result, so no test can ever catch it (D14). |
 | VEP | A design document for a language change, written before any code (`docs/vep-*.md`). |
-| Verified pair | A spec plus its VBA, proven by the toolchain; the training data for March 2027. |
+| Verified pair | A task in plain English plus its proven spec (and the compiler's VBA); the training data for March 2027 (D31). |
 | Gate 0 | The Phase 0 exit test: everything validates, passes, compiles and lints, in CI. |
 
-## Appendix A: the full VCL 0.2 reference
+## Appendix A: the full VCL 0.3 reference
 
 Copied word for word from `vcl/spec.md`, the same text the Orchestrator prompt contains. A unit
 test fails if this copy ever differs from spec.md. The parts of spec.md not copied here are the
@@ -493,18 +513,25 @@ exact fixture algorithm and the changelogs.
     whose fills it owns) stale=<n> rows, put the values that sit exactly on each <, <=, >
     or >= comparison in the first rows with +boundary(...), repeat dictionary keys with
     +dupes(<n>) or values() counts of 2 or more, and use reldates(lo, hi) when the spec
-    uses TODAY. Prefer exact assertions to ranges.
+    uses TODAY. Give each column a SKIP_IF IS_EMPTY tests at least one blank cell
+    (+blank(<n>) or a "" boundary value), and give a spec that copies files a locked= file
+    in a FIXTURE folder. Prefer exact assertions to ranges.
 20. Declare every sheet the macro changes with MODIFIES: the whole sheet when it is
     rebuilt, cleared, sorted or has rows added or removed; ["<header>", ...] when only
-    those columns' values change; fills when only fills change. A spec that changes
+    those columns' values change; fills when only fills change; files for a String
+    argument whose folder the macro adds folders or files to. A spec that changes
     nothing has no MODIFIES lines.
+21. Work with files only through MAKE_FOLDER and COPY_FILE, on paths built in place as
+    PATH_JOIN($<root>, SAFE_NAME(...), ...) from a String argument. Check every root with
+    FOLDER_EXISTS in PRE, and write each file op's status where the user can see it. No op
+    moves, renames, overwrites or deletes a file.
 ```
 
 ### Reference
 
 ```text
 TASK FORMAT  (keys in this order; (opt) = optional)
-VCL 0.2
+VCL 0.3
 TASK
 # ASSUME: <assumption>                        (opt, one line each)
 PROC     <PascalCase name>
@@ -514,7 +541,7 @@ ARGS     <name> As <Type>, ...                (opt)
 RET      <Type>                               (Function only)
 VAR      <name> As <Type>                     (opt, one line per local variable)
 PRE      <condition>; <condition>             (opt, checked before any change)
-MODIFIES $<arg> | $<arg>["<header>", ...] | $<arg> fills   (opt, one line each; see MODIFIES)
+MODIFIES $<arg> | $<arg>["<header>", ...] | $<arg> fills | $<arg> files   (opt, one line each)
 OP       <step>                               (one or more)
 PERF     screen_off calc_manual events_off    (opt, any of these)
 ERR      standard
@@ -530,7 +557,7 @@ automatically; never repeat them in VAR.
 For form events: MODULE is the form, PROC is <control>_<Event> (btnRun_Click).
 
 BUILD FORMAT
-VCL 0.2
+VCL 0.3
 BUILD
 # ASSUME: <assumption>                        (opt)
 NAME     <PascalCase tool name>
@@ -543,7 +570,7 @@ FLOW     <caller> -> <callee> -> ...          (call order)
 FIXTURE  ...                                  (opt)
 TEST     fixture=<name>.xlsx call=modMain.RunHeadless(<args>) assert=...   (two or more)
 ---
-<one complete TASK spec per SIG, each starting with VCL 0.2, separated by lines
+<one complete TASK spec per SIG, each starting with VCL 0.3, separated by lines
 containing only --->
 
 BUILD rules: modMain always has RunHeadless (runs the whole tool without the form, so the
@@ -588,7 +615,9 @@ Every other op is a call, NAME(arguments, key=value):
           OPEN_BOOK(<path>, readonly=yes|no, into=<var>)
           SAVE_AS(<book>, <path>, format=xlsx|xlsm|csv)
           CLOSE_BOOK(<book>, save=yes|no)
-  Files   LIST_FILES(<folder>, "<pattern>", into=<var>)
+  Files   MAKE_FOLDER(<path>, into=<status>)       (the folder, and any missing ones below its root)
+          COPY_FILE(<from>, <to>, into=<status>)   (one file; never overwrites, never deletes)
+          LIST_FILES(<folder>, "<pattern>", into=<var>)
           READ_TEXT(<path>, into=<var>)
           WRITE_TEXT(<path>, <expr>, mode=new|append)
   Calls   CALL(<module>.<Proc>, <args>)
@@ -613,6 +642,9 @@ Value functions:
   PARSE_DATE(<expr>, "<format>")   a real date, or empty when it isn't one in that format;
                        formats: "dd/mm/yyyy" "dd-mm-yyyy" "dd.mm.yyyy" "mm/dd/yyyy" "yyyy-mm-dd"
   IIF(<condition>, <expr>, <expr>)  MOD(<expr>, <expr>)
+  SAFE_NAME(<expr>)   CLEAN_TEXT of it, or "" when that is not safe as one file or folder name
+  PATH_JOIN($<root>, <part>, ...)   $<root>, then each part, joined by backslashes
+  FOLDER_EXISTS(<path>)   TRUE when that folder exists
 Arguments are written $name. Variables and loop variables are bare names.
 Text uses "double quotes"; write a quote inside text as two quotes: "Say ""hi""".
 Also numbers, TRUE, FALSE, NOTHING.
@@ -668,19 +700,47 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               RETURN(<value>) to return something else)
   AND / OR    both sides are always evaluated, so a guard on the left does not protect the
               right: guard risky comparisons with a nested IF on the check itself
+  SAFE_NAME   "" when the CLEAN_TEXT result is empty, over 100 characters, holds any of
+              \ / : * ? " < > |, is "." or "..", ends with a dot, or is a device name (CON,
+              PRN, AUX, NUL, COM1-COM9, LPT1-LPT9, any case, any extension: con.txt)
+  PATH_JOIN   trailing backslashes on $<root> are dropped; "" when $<root> is empty or a
+              part is empty or not exactly its own SAFE_NAME, and a file op given "" reports
+              Bad name
+  Paths       a file op's path is PATH_JOIN($<root>, ...) of a String argument, never a bare
+              root, and every part after the root is SAFE_NAME(...) or a quoted literal that
+              is its own safe name, written in place (never a variable or a cell), so no path
+              can climb out of its root. A SAFE_NAME result or a path is text elsewhere
+  FOLDER_EXISTS  TRUE only for a folder, FALSE for a file or ""; in Excel the path must be
+              written in full (C:\Jobs, not Jobs or C:\Jobs\)
+  MAKE_FOLDER writes one status into its String VAR, checked in this order: Bad name ("" or
+              with * or ?), Too long (over 247 characters), Exists, Blocked by file (a file
+              has the folder's name, or the name of a folder on the way; then nothing is
+              made), No folder (the root is missing), Created (with every missing folder
+              between it and the root, never the root itself)
+  COPY_FILE   writes, in this order: Bad name, Too long (over 258 characters), Missing (no
+              file at <from>), No folder (make the folder first), Already there (same size:
+              a re-run is safe), Conflict (another size, or a folder: never overwritten),
+              Locked (open in another program), Copied (<from> stays). In Excel also Check
+              copy (the copy came out a different size; it is kept) and Failed (logged to
+              ForgeLog). A file op never stops the run
 
 MODIFIES  (one line per sheet the macro changes, or per kind of change)
   MODIFIES $<arg>                     anything on that sheet: values, fills, formats, rows
   MODIFIES $<arg>["<header>", ...]    values in those columns, row 2 down
   MODIFIES $<arg> fills               fills anywhere on that sheet
+  MODIFIES $<arg> files               folders and files may be added below that String
+                                      argument; nothing else on disk may change
   An argument has one whole-sheet line, or at most one [headers] line and one fills line.
   Every write op must go through a $sheet argument whose lines allow that change: values
   need [headers] or the whole sheet, fill-only FORMATs need fills, and anything else
   (other FORMATs, CLEAR what=all or formats, SORT, INSERT_ROW, DELETE_ROW, DEDUPE, FILTER)
   needs the whole sheet. Write through CELL, ROW_RANGE, USED_RANGE or RANGE of a $sheet.
+  MAKE_FOLDER's folder and COPY_FILE's <to> must be below a root with a files line;
+  COPY_FILE's <from> may be below any String argument.
   Every TEST then checks that nothing else changed: each other cell keeps its value, fill
-  and number format, and the header row never changes. A spec that changes nothing has no
-  MODIFIES lines and gets the same check.
+  and number format, and the header row never changes; on disk nothing is removed or
+  changed, and new folders and files appear only below a files root. A spec that changes
+  nothing has no MODIFIES lines and gets the same check.
 
 TEST ASSERTIONS  (checked on the test workbook after the run)
   COUNTIF(<Sheet>!<range>, <criteria>)  COUNTA(<Sheet>!<range>)  SUM(<Sheet>!<range>)
@@ -688,7 +748,9 @@ TEST ASSERTIONS  (checked on the test workbook after the run)
                  rows where every range meets its criteria
   SUMIFS(<Sheet>!<sumRange>, <Sheet>!<range>, <criteria>, ...)
                  sum of sumRange over the rows where every range meets its criteria
-  VALUE(<Sheet>!<cell>)  ROWS_USED(<Sheet>)  SHEET_EXISTS("<name>")  FILE_EXISTS("<path>")
+  VALUE(<Sheet>!<cell>)  ROWS_USED(<Sheet>)  SHEET_EXISTS("<name>")
+  FILE_EXISTS("<Folder>\<path>")   that file exists below a FIXTURE folder of the TEST
+  FILE_COUNT("<Folder>[\<path>]")  files in that folder and in every folder below it
   FILL_COUNT(<Sheet>!<range>, #RRGGBB)   cells in the range with that fill colour
   RESULT         the Function's return value (from the last run)
   ERROR_COUNT    errors written to ForgeLog during the run
@@ -702,7 +764,7 @@ Ranges by header: <Sheet>![Header] is the whole column under that row-1 header;
 runs=<n> calls the procedure n times on the same test workbook before checking
 (default 1).
 Combine assertions with AND. In TEST call arguments, a bare sheet name (Orders) means that
-worksheet in the test workbook.
+worksheet in the test workbook, and a bare folder name (Dump) means that FIXTURE folder.
 fixture=<name>.xlsx names a FIXTURE file from this spec; the harness builds it fresh for
 every TEST. fixture=target and real workbooks are not allowed.
 
@@ -723,6 +785,15 @@ FIXTURE SPEC
   values stay.
   values(...) counts add up to rows. rows=0 creates the sheet with its header row only.
   Repeat FIXTURE lines with the same file name to add more sheets.
+  FIXTURE <name>.xlsx folder=<Name> [files=<path>[:<bytes>],...] [locked=<path>,...]
+  adds a synthetic folder to the same test file: each file below it (\ between folders,
+  each part a safe name of letters, digits, _ . and -), with that size or one from its own
+  seed. locked= files act as if another program has them open. A folder exists when a
+  file is below it. <Name> is one word and not a sheet's name. Nothing real is read or
+  written: the folders sit in a sandbox (C:\KRONOS_SANDBOX in the interpreter, a new
+  folder below %TEMP% in Excel, whose root may be up to 120 characters), so a TEST fails
+  when a file op path could be Too long in Excel but not in the interpreter: keep paths
+  far over or well under the limits.
   Sheet names have no spaces, so TEST calls can use them bare. They may be short forms of
   the real sheet names (WelderPerf for "Welder Performance"); ASSUME lines describe the
   real workbook.

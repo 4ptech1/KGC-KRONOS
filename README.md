@@ -134,3 +134,8 @@ Dataset count: 0 verified pairs
   show every status on a row of its own, a re-run, and two PRE failures, and catch all 29 of its
   mutants. 12 specs; snapshot mutation score 95.4% (418 of 438). Next: 4b, the switch of the
   reference text and the Orchestrator prompt to VCL 0.3 (D32).
+- **2026-10-20:** Job-Pack Router Phase 4b: spec.md and the Orchestrator prompt teach VCL 0.3.
+  They have the file ops and their statuses, a new hard rule 21 for files, rule 19's checks for
+  blank cells and locked files, a corrected ROLE line (the compiler writes the VBA), and a
+  proven Example 3 that copies files (D33). Boss pastes the new prompt into the Orchestrator
+  Project once.
