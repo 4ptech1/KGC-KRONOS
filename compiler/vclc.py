@@ -109,7 +109,8 @@ def cmd_build(files, out_dir, today):
                                "error_count": r.errors,
                                "final_state": {sheet: {"cells": [[rc[0], rc[1], v] for rc, v in cells],
                                                        "fills": [[rc[0], rc[1], f] for rc, f in fills],
-                                                       "number_formats": [[rc[0], rc[1], f] for rc, f in formats]}
+                                                       "number_formats": [[rc[0], rc[1], f] for rc, f in formats],
+                                                       **({"hidden_rows": r.hidden[sheet]} if sheet in r.hidden else {})}
                                                for sheet, (cells, fills, formats) in r.state.items()},
                                **({"final_files": [list(f) for f in r.files]} if r.files else {})}
                               for r in run_tests(text, run_day)]}

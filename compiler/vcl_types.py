@@ -422,6 +422,14 @@ class Checker:
                     self.need_num(self.ty(c, facts, vflow, line), c, line)
             for p in pos:
                 self.ty(p, facts, vflow, line)
+        elif name == "FILTER":   # FILTER(<range>, col=<sheet column>, crit=<value>) (D42)
+            opts = {str(a.children[0]): a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"}
+            if pos and self.ty(pos[0], facts, vflow, line) not in ("Range", "?"):
+                self.err(line, f"FILTER: {canon(pos[0])} is not a range")
+            if "col" in opts:
+                self.need_num(self.ty(opts["col"], facts, vflow, line), opts["col"], line)
+            if "crit" in opts and self.ty(opts["crit"], facts, vflow, line) not in SCALAR | {"?"}:
+                self.err(line, f"FILTER: crit={canon(opts['crit'])} is not a value")
         elif name in ("ADD_SHEET", "COPY_SHEET"):   # (<book> or <sheet>, name=<text>, after=<sheet>, into=<VAR>)
             opts = {str(a.children[0]): a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"}
             first = "Book" if name == "ADD_SHEET" else "Sheet"

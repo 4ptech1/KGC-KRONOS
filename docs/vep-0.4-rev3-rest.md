@@ -4,7 +4,7 @@ Status: **design, 20 Oct 2026** (Boss said "go item 2"). Choices that needed Bos
 made the conservative way and recorded in `DECISIONS.md` D36, as CLAUDE.md asks; Boss can
 overrule any of them. Phase 1 changes no language; later phases change VCL and follow the usual
 rule (spec.md and the prompt together, every check, one Orchestrator update per switch).
-Phases 1 (D37), 2 (D38), 3 (D39) and 4 (D40, D41) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
+Phases 1 (D37), 2 (D38), 3 (D39), 4 (D40, D41) and 5 (D42) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
 prompt move to 0.4 after the last language phase (D38).
 
 ## The problem
@@ -81,7 +81,7 @@ and the dataset (item 7).
   form, `MODIFIES $book sheets`: new sheets may be added, and every existing sheet stays as it
   was. A name that is already used is an error, never a replacement.
 
-### Phase 5: FILTER (decision D36)
+### Phase 5: FILTER (decision D36; done: D42)
 
 - FILTER hides the rows of a range whose column doesn't match; it never deletes. The match is
   SAME (exact text, case and spaces at the ends ignored), done by ForgeFilter setting

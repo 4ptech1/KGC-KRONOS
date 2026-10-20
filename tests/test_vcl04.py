@@ -2,7 +2,8 @@
 compiled: INSERT_ROW, READ_ARRAY, WRITE_ARRAY, ARR, ROWS, COLS, SELECT_CASE, LOG, MSG, RANGE, SHEET,
 FILE_NAME and FOR_EACH over SHEETS and CELLS (D36, D37). Phase 2: the VCL 0.4 line, lists in
 DEDUPE cols=[...] and DEDUPE itself (S21, D38). Phase 3: FIND, IS_NOTHING and NOTHING (S22, D39). Phase 4a: Workbook
-arguments, MODIFIES $book sheets, ADD_SHEET and SHEET_EXISTS (S23, D40). Phase 4b: COPY_SHEET (D41)."""
+arguments, MODIFIES $book sheets, ADD_SHEET and SHEET_EXISTS (S23, D40). Phase 4b: COPY_SHEET (D41). Phase 5:
+FILTER, hidden rows and VISIBLE_COUNT (D42)."""
 import sys
 import unittest
 from pathlib import Path
@@ -207,6 +208,34 @@ TEST     fixture=job_01.xlsx call=NewJobSheet(job_01.xlsx, Template, "J/101") as
 TEST     fixture=job_01.xlsx call=NewJobSheet(job_01.xlsx, Other, "J102") assert=RESULT = -1 AND ERROR_COUNT = 1
 """
 
+# FILTER (D42): only one welder's welds stay visible; nothing is deleted.
+FILTER = r"""VCL 0.4
+TASK
+# ASSUME: only the welds of one welder stay visible, matched with SAME on the Welder column
+# ASSUME: nothing is deleted and the header row stays visible; the result is the number of visible welds
+PROC     ShowWelderWelds
+KIND     Function
+MODULE   modFilter
+ARGS     ws As Worksheet, welder As String
+RET      Long
+VAR      cWelder As Long
+VAR      n As Long
+PRE      COL($ws, "Welder") > 0
+MODIFIES $ws
+OP       LET(cWelder, COL($ws, "Welder"))
+OP       FILTER(USED_RANGE($ws), col=cWelder, crit=$welder)
+OP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, cWelder) var=r
+OP         IF SAME(CELL($ws, r, cWelder), $welder) THEN LET(n, n + 1)
+OP       RETURN(n)
+ERR      standard
+FIXTURE  welds_01.xlsx sheet=Welds cols=A:Seam,B:Welder rows=6 data=A:seq(1,1);B:values("W1"x2," w1"x1,"W2"x2,""x1)+boundary("W1","W2"," w1","W2","","W1")
+FIXTURE  welds_01.xlsx sheet=Other cols=A:Item rows=1 data=A:seq(1,1)
+TEST     fixture=welds_01.xlsx call=ShowWelderWelds(Welds, " w1 ") assert=RESULT = 3 AND ERROR_COUNT = 0 AND VISIBLE_COUNT(Welds!A:A) = 4 AND COUNTA(Welds!A:A) = PRE_COUNTA(Welds!A:A)
+TEST     fixture=welds_01.xlsx call=ShowWelderWelds(Welds, "W2") runs=2 assert=RESULT = 2 AND ERROR_COUNT = 0 AND VISIBLE_COUNT(Welds!B:B) = 3
+TEST     fixture=welds_01.xlsx call=ShowWelderWelds(Welds, "W9") assert=RESULT = 0 AND ERROR_COUNT = 0 AND VISIBLE_COUNT(Welds!A:A) = 1
+TEST     fixture=welds_01.xlsx call=ShowWelderWelds(Other, "W1") assert=RESULT = -1 AND ERROR_COUNT = 1
+"""
+
 FIXTURE = 'FIXTURE  t_01.xlsx sheet=Data cols=A:Key,B:Qty rows=4 data=A:values("a"x2,"b"x2);B:int(1,9)'
 
 
@@ -231,7 +260,7 @@ def cells(result, sheet="Data"):
 class Samples(unittest.TestCase):
     def test_they_validate_pass_and_catch_every_mutant(self):
         for name, text in (("GRADE", GRADE), ("MARKS", MARKS), ("DEDUPE", DEDUPE), ("FIND", FIND),
-                           ("ADD_SHEET", ADD_SHEET), ("COPY_SHEET", COPY_SHEET)):
+                           ("ADD_SHEET", ADD_SHEET), ("COPY_SHEET", COPY_SHEET), ("FILTER", FILTER)):
             with self.subTest(name):
                 self.assertEqual([p.message for p in validator.validate_text(text)], [])
                 results = run_tests(text)
@@ -270,6 +299,9 @@ class Samples(unittest.TestCase):
         vba = compile_text(COPY_SHEET)
         self.assertEqual(lint(assemble([vba])), [])
         self.assertIn("Set job = ForgeCopySheet(tpl, title, tpl)", vba)
+        vba = compile_text(FILTER)
+        self.assertEqual(lint(assemble([vba])), [])
+        self.assertIn("ForgeFilter ForgeUsedRange(ws), cWelder, welder", vba)
 
     def test_log_and_msg_are_never_errors(self):
         grade, marks = run_tests(GRADE)[0], run_tests(MARKS)[0]
@@ -507,6 +539,42 @@ class Sheets(unittest.TestCase):
         self.assertIn("UNCHANGED: sheet Totals was added", r.failed)
 
 
+class Filter(unittest.TestCase):
+    GRID = ('FIXTURE  t_01.xlsx sheet=Data cols=A:Key,B:Qty rows=4 data=A:values("a"x2,"b"x2)+boundary("a","b","a","b");'
+            'B:values("1"x4)+boundary("1","1","1","1")')
+
+    def run_grid(self, *lines, modifies="MODIFIES $ws"):
+        text = ops(*lines, version="VCL 0.4").replace(FIXTURE, self.GRID)
+        return run(text if modifies == "MODIFIES $ws" else text.replace("MODIFIES $ws", modifies))
+
+    def test_hides_rows_both_ways_and_keeps_the_header(self):
+        r = self.run_grid('FILTER(USED_RANGE($ws), col=1, crit="a")')
+        self.assertEqual((r.errors, r.hidden), (0, {"Data": [3, 5]}))
+        r = self.run_grid('FILTER(USED_RANGE($ws), col=1, crit="a")', 'FILTER(USED_RANGE($ws), col=1, crit=" B ")')
+        self.assertEqual(r.hidden, {"Data": [2, 4]})                 # the second FILTER shows rows again
+        r = self.run_grid('FILTER(USED_RANGE($ws), col=1, crit="zz")')
+        self.assertEqual(r.hidden, {"Data": [2, 3, 4, 5]})           # row 1, the header, stays
+        self.assertEqual(len(cells(r)), 10)                          # nothing deleted
+
+    def test_row_ops_carry_hidden_rows(self):
+        r = self.run_grid('FILTER(USED_RANGE($ws), col=1, crit="a")', "DELETE_ROW($ws, 2)", "INSERT_ROW($ws, 2)")
+        self.assertEqual(r.hidden, {"Data": [3, 5]})                 # 3 -> 2 -> 3 and 5 -> 4 -> 5; row 2 is new
+        r = self.run_grid('FILTER(USED_RANGE($ws), col=1, crit="a")', "INSERT_ROW($ws, 3)")
+        self.assertEqual(r.hidden, {"Data": [4, 6]})                 # the new row 3 is visible
+
+    def test_unchanged_sees_hidden_rows(self):
+        r = self.run_grid('FILTER(USED_RANGE($ws), col=1, crit="a")', modifies="MODIFIES $ws fills")
+        self.assertIn("UNCHANGED: Data row 3 was visible, now hidden", r.failed)
+
+    def test_visible_count_and_the_rules(self):
+        self.assertIn("assertion: VISIBLE_COUNT is VCL 0.4: start the spec with 'VCL 0.4' to use it",
+                      [p.message for p in validator.validate_text(FILTER.replace("VCL 0.4", "VCL 0.3", 1))])
+        both = FILTER.replace("OP       RETURN(n)", "OP       SORT(USED_RANGE($ws), key=1)\nOP       RETURN(n)")
+        self.assertIn("a spec may not both FILTER and SORT: how Excel sorts rows that FILTER hid can't be proven "
+                      "by a TEST (D42); sort in one spec and filter in another",
+                      [p.message for p in validator.validate_text(both)])
+
+
 class Unchanged(unittest.TestCase):
     def test_a_spec_that_writes_nothing_changes_nothing_from_0_2_on(self):   # D20, for every later version too
         for version, want in (("VCL 0.1", False), ("VCL 0.2", True), ("VCL 0.3", True), ("VCL 0.4", True)):
@@ -556,6 +624,12 @@ class ForgeLib(unittest.TestCase):
         add = self.body("ForgeAddSheet")
         self.assertLess(add.index("already exists"), add.index("book.Worksheets.Add(After:=after)"))   # checked first
         self.assertIn("If Not ForgeSheetNameOk(s) Then Err.Raise 1004", add)
+        flt = self.body("ForgeFilter")
+        self.assertNotIn("AutoFilter", flt.split("\n", 4)[-1])     # below the comment: no AutoFilter
+        self.assertIn("ws.Rows(r).Hidden = Not ForgeSame(ws.Cells(r, col).Value, crit)", flt)
+        last = self.body("ForgeLastRow")
+        self.assertIn("To last + 1 Step -1", last)                  # rows below End(xlUp) are checked too
+        self.assertIn("ws.Rows(rowNo).Hidden = False", self.body("ForgeInsertRow"))
         copy = self.body("ForgeCopySheet")
         self.assertLess(copy.index("already exists"), copy.index("src.Copy After:=after"))   # checked first
         find = self.body("ForgeFind")

@@ -142,6 +142,7 @@ class Book:
             raise VclError("COPY_SHEET: the sheet to copy is not in this TEST's workbook")
         new = self.add(name, after)
         new.cells, new.fills, new.formats = dict(src.cells), dict(src.fills), dict(src.formats)
+        new.hidden = set(src.hidden)
         return new
 
 
@@ -224,10 +225,11 @@ def copy_file(fs, src, dst):
 
 
 def delete_row(sh, row):
-    """Delete a whole sheet row: the rows below move up, with their fills and formats."""
+    """Delete a whole sheet row: the rows below move up, with their fills, formats and hidden state."""
     sh.cells = {(r - (r > row), c): v for (r, c), v in sh.cells.items() if r != row}
     sh.fills = {(r - (r > row), c): v for (r, c), v in sh.fills.items() if r != row}
     sh.formats = {(r - (r > row), c): v for (r, c), v in sh.formats.items() if r != row}
+    sh.hidden = {r - (r > row) for r in sh.hidden if r != row}
 
 
 class Machine:
@@ -527,6 +529,7 @@ class Machine:
             sh.cells = {(r + (r >= row), c): v for (r, c), v in sh.cells.items()}
             sh.fills = {(r + (r >= row), c): v for (r, c), v in sh.fills.items()}
             sh.formats = {(r + (r >= row), c): v for (r, c), v in sh.formats.items()}
+            sh.hidden = {r + (r >= row) for r in sh.hidden}   # the new row is visible (ForgeInsertRow)
         elif name == "READ_ARRAY":   # always 2-D and 1-based, even for one cell (ForgeReadArray)
             rng = self.target(pos[0])
             data = {(r - rng.r1 + 1, c - rng.c1 + 1): rng.sheet.get(r, c) for r, c in rng.cells()}
@@ -557,6 +560,16 @@ class Machine:
                     seen.add(key)
             for r in reversed(doomed):   # ... deleted bottom up, as ForgeDedupe does
                 delete_row(rng.sheet, r)
+        elif name == "FILTER":   # D42: below the range's first row, a row stays visible when SAME, else hidden
+            rng, crit = self.target(pos[0]), e(opts["crit"])
+            col = self.index(e(opts["col"]))
+            if col > EXCEL_COLS:
+                raise VclError(f"Excel error 1004: FILTER col= column {col} is beyond column XFD")
+            for r in range(rng.r1 + 1, rng.r2 + 1):
+                if S.same(rng.sheet.get(r, col), crit):
+                    rng.sheet.hidden.discard(r)
+                else:
+                    rng.sheet.hidden.add(r)
         elif name in ("ADD_SHEET", "COPY_SHEET"):   # VCL 0.4 (D40, D41): never a replacement
             after = e(opts["after"]) if "after" in opts else None
             if name == "ADD_SHEET":
@@ -841,6 +854,9 @@ class Asserter:
                 return sum(1 for p in pts if sh.fills.get(p, "").upper() == color)
             if fn == "ROWS_USED":
                 return (self.before if pre else self.after)[str(args[0])].max_row()
+            if fn == "VISIBLE_COUNT":   # the non-empty cells of the range in rows not hidden (D42)
+                sh, pts = self.cells(args[0], pre)
+                return sum(1 for r, c in pts if r not in sh.hidden and sh.get(r, c) is not None)
             if fn == "SHEET_EXISTS":   # after the run, case ignored as Excel does (D40)
                 return Book(self.before if pre else self.after).exists(self.ev(args[0]))
             if fn in ("FILE_EXISTS", "FILE_COUNT"):   # a path below the sandbox, starting with a FIXTURE folder
@@ -963,6 +979,9 @@ def unchanged_problems(modifies, sheet_args, before, after, stopped_at_pre, limi
             if (r >= 2 and c in cols) or (_kind(bv), S.text_of(bv)) == (_kind(av), S.text_of(av)):
                 continue
             found.append(f"UNCHANGED: {name}!{_letters(c)}{r} was {_show(bv)}, now {_show(av)}")
+        for r in sorted(b.hidden ^ a.hidden):   # FILTER hides rows (D42)
+            found.append(f"UNCHANGED: {name} row {r} was {'hidden' if r in b.hidden else 'visible'}, "
+                         f"now {'hidden' if r in a.hidden else 'visible'}")
         stores = [("number format", b.formats, a.formats)]
         if not allowed.get("fills"):
             stores.insert(0, ("fill", b.fills, a.fills))
@@ -987,6 +1006,7 @@ class TestResult:
     state: dict = field(default_factory=dict)
     files: list = field(default_factory=list)   # VCL 0.3: the mock file system after the last run
     messages: list = field(default_factory=list)   # LOG and MSG texts of the last run (D36)
+    hidden: dict = field(default_factory=dict)   # sheet -> the rows hidden after the last run (D42)
 
 
 def files_of(fs):
@@ -1120,8 +1140,9 @@ def run_tests(text, today=None):
         state = {name: (sorted((rc, S.text_of(v)) for rc, v in sh.cells.items()), sorted(sh.fills.items()),
                         sorted(sh.formats.items()))
                  for name, sh in book.items()}
+        hidden = {name: sorted(sh.hidden) for name, sh in book.items() if sh.hidden}
         results.append(TestResult(k["line"], not failed, result, len(log), failed, list(log), state, files_of(fs),
-                                   list(machine.messages)))
+                                   list(machine.messages), hidden))
     return results
 
 

@@ -377,6 +377,8 @@ class Gen:
             if "into" in opts:
                 return [f"Set {vba_name(str(opts['into']))} = {helper}({args})"]
             return [f"{helper} {args}"]
+        if name == "FILTER":   # rows hidden by SAME, never AutoFilter (D42)
+            return [f"ForgeFilter {self.rng(pos[0])}, {self.as_num(opts['col'])[0]}, {e(opts['crit'])}"]
         if name == "DEDUPE":   # S21 keys, whole rows deleted bottom up (D38)
             cols = opts["cols"]
             items = cols.children if isinstance(cols, Tree) and cols.data == "list_lit" else [cols]

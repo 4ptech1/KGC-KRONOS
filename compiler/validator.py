@@ -114,7 +114,7 @@ VBA_LEAKS = ["Dim ", "Set ", "End If", ".Value", "Cells(", "Range(", "Next ", "W
 
 # TEST assertion functions and the kind of each argument
 ASSERT_FUNCS = {"COUNTIF", "COUNTIFS", "COUNTA", "SUM", "SUMIFS", "VALUE", "ROWS_USED", "SHEET_EXISTS",
-                "FILE_EXISTS", "FILL_COUNT", "FILE_COUNT"}
+                "FILE_EXISTS", "FILL_COUNT", "FILE_COUNT", "VISIBLE_COUNT"}
 ASSERT_COMPARE = {"=", "<>", "<", ">", "<=", ">=", "+", "-", "*", "/"}
 
 KEYWORD = re.compile(r"[A-Z][A-Z0-9_]+")
@@ -312,6 +312,7 @@ class TaskChecker:
         self.sheet_adds = []       # (line, op, $book, None or "*" for COPY_SHEET's own workbook) (VCL 0.4)
         self.new_sheets = {}       # Worksheet VAR -> line: set by ADD_SHEET or COPY_SHEET into= (D40, D41)
         self.var_sets = []         # (line, VAR) set by LET or any other into=
+        self.row_order_ops = {}    # "FILTER" / "SORT" -> first line: a spec may not use both (D42)
         self.file_paths = []       # (line, op, "from" or "to", root arg or None, bare root?)
 
     def error(self, message, line=None):
@@ -342,6 +343,9 @@ class TaskChecker:
                          "else changed: declare each sheet it changes with MODIFIES", self.writes[0][0])
         self.check_file_ops()
         self.check_sheet_adds()
+        if len(self.row_order_ops) == 2:
+            self.error("a spec may not both FILTER and SORT: how Excel sorts rows that FILTER hid can't be proven "
+                       "by a TEST (D42); sort in one spec and filter in another", self.row_order_ops["FILTER"])
         for line, arg, header in self.op_cols:
             if (arg, norm(header)) not in self.pre_cols:
                 self.error(f'header "{header}" on ${arg} is used but not checked in PRE (rule 14)', line)
@@ -987,6 +991,8 @@ class TaskChecker:
                 self.error("a Sub can't RETURN a value")
         if name in ("ADD_SHEET", "COPY_SHEET"):
             self.sheet_ops = True
+        if name in ("FILTER", "SORT"):
+            self.row_order_ops.setdefault(name, self.line)
         if name == "LET" and positional and len(positional[0]) == 1 and is_tok(positional[0][0], "name"):
             self.var_sets.append((self.line, positional[0][0].text))
         for key, items in options:
@@ -1383,6 +1389,8 @@ class AssertionChecker:
             self.error(f"{call.name} has no options")
         if name == "FILE_COUNT" and not self.c.at_least("VCL 0.3"):
             self.error("FILE_COUNT is VCL 0.3: start the spec with 'VCL 0.3' to use it")
+        if name == "VISIBLE_COUNT" and not self.c.at_least("VCL 0.4"):
+            self.error("VISIBLE_COUNT is VCL 0.4: start the spec with 'VCL 0.4' to use it")
         args = call.positional
         n = len(args)
         if name == "COUNTIFS":
@@ -1396,7 +1404,7 @@ class AssertionChecker:
         else:
             kinds = {"COUNTIF": ["range", "crit"], "COUNTA": ["range"], "SUM": ["range"], "VALUE": ["cell"],
                      "ROWS_USED": ["sheet"], "SHEET_EXISTS": ["string"], "FILE_EXISTS": ["path"],
-                     "FILL_COUNT": ["range", "hex"], "FILE_COUNT": ["path"]}[name]
+                     "FILL_COUNT": ["range", "hex"], "FILE_COUNT": ["path"], "VISIBLE_COUNT": ["range"]}[name]
             ok = n == len(kinds)
             want = f"{len(kinds)} argument{'s' if len(kinds) > 1 else ''}"
         if not ok:
