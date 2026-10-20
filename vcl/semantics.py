@@ -316,3 +316,16 @@ def same_row_key(a, b):
     DEDUPE never deletes a row because data is missing."""
     key = row_key(a)
     return key is not None and key == row_key(b)
+
+
+def find(values, x, match="whole"):
+    """S22 (VEP 0.4, D39): FIND(range, x, match=...) looks at the cells row by row, left to right,
+    and gives the first that matches, or NOTHING. match=whole (the default): the cell is SAME as x
+    (S12). match=part: the cell's text holds TRIM(x), ignoring case (letter by letter, as LOWER);
+    an empty TRIM(x) finds NOTHING, because every cell would hold it. Here: the 1-based position
+    of that cell among values, or 0 for NOTHING."""
+    want = trim(x).lower()
+    for i, v in enumerate(values, start=1):
+        if same(v, x) if match == "whole" else (want and want in text_of(v).lower()):
+            return i
+    return 0

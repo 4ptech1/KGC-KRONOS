@@ -251,6 +251,8 @@ class Machine:
                 return name == "TRUE"
             if name in ("THIS_BOOK", "ACTIVE_BOOK"):
                 return self.book
+            if name == "NOTHING":
+                return None
             if name == "ACTIVE_SHEET":
                 raise VclError("ACTIVE_SHEET depends on what was active in Excel: pass the sheet as an argument")
             if name in self.vars:
@@ -324,6 +326,8 @@ class Machine:
     def target(self, t):
         """A range used as the target of SET_VALUE, CLEAR, FORMAT, SORT."""
         v = self.ev_call(t, as_target=True) if isinstance(t, Tree) and t.data == "call" else self.ev(t)
+        if v is None:   # NOTHING, as FIND gives when no cell matches
+            raise VclError("object variable not set (VBA error 91): the range is NOTHING; test it with IS_NOTHING first")
         if not isinstance(v, Rng):
             raise VclError("expected a range")
         return v
@@ -417,6 +421,13 @@ class Machine:
             return e(pos[0]).cols
         if name == "FILE_NAME":
             return S.file_name(e(pos[0]))
+        if name == "FIND":   # S22: the first matching cell, row by row, or NOTHING (D39)
+            rng = self.target(pos[0])
+            cells = list(rng.cells())
+            i = S.find([rng.sheet.get(r, c) for r, c in cells], e(pos[1]), str(opts_of(args).get("match", "whole")))
+            return Rng(rng.sheet, *cells[i - 1], *cells[i - 1]) if i else None
+        if name == "IS_NOTHING":
+            return e(pos[0]) is None
         raise VclError(f"{name} is not supported by the MVP interpreter")
 
     # ---------- statements ----------

@@ -160,3 +160,7 @@ Dataset count: 0 verified pairs
 - **2026-10-20:** Item 2, Phase 2: DEDUPE runs everywhere (interpreter, compiler, ForgeLib), with
   key columns as a list, `cols=[1, 2]`, in the new `VCL 0.4` line. It keeps the first row of each
   key and never deletes a row with a blank or error key cell (S21, D38).
+- **2026-10-20:** Item 2, Phase 3: FIND and IS_NOTHING run everywhere. FIND gives the first cell,
+  row by row, that is SAME as the value (or holds it, with `match=part`), or NOTHING; ForgeFind
+  loops itself instead of using Excel's Range.Find (S22, D39). Also fixed: the type checker now
+  forgets cell guards after WRITE_ARRAY (#35).

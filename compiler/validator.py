@@ -240,6 +240,20 @@ def split_args(items):
     return args
 
 
+def target_sheet(items):
+    """The $sheet argument a write target is on: $ws, CELL/ROW_RANGE/USED_RANGE/RANGE($ws, ...), or
+    FIND(<one of those>, ...) written in place (D39). None when it can't be told."""
+    if len(items) == 1 and is_tok(items[0], "arg"):
+        return items[0].text[1:]
+    if len(items) == 1 and isinstance(items[0], Call) and items[0].name in SHEET_FUNCS | {"FIND"}:
+        first = items[0].positional[:1]
+        if first and items[0].name == "FIND":
+            return target_sheet(first[0]) if isinstance(first[0][0], Call) else None
+        if first and len(first[0]) == 1 and is_tok(first[0][0], "arg"):
+            return first[0][0].text[1:]
+    return None
+
+
 def is_tok(item, kind, text=None):
     return isinstance(item, Token) and item.kind == kind and (text is None or item.text == text)
 
@@ -575,13 +589,7 @@ class TaskChecker:
             return
         if name == "SET_VALUE" and len(target) == 1 and isinstance(target[0], Call) and target[0].name == "ARR":
             return   # an array element, not a cell
-        arg = None
-        if len(target) == 1 and is_tok(target[0], "arg"):
-            arg = target[0].text[1:]
-        elif len(target) == 1 and isinstance(target[0], Call) and target[0].name in SHEET_FUNCS:
-            first = target[0].positional[:1]
-            if first and len(first[0]) == 1 and is_tok(first[0][0], "arg"):
-                arg = first[0][0].text[1:]
+        arg = target_sheet(target)
         keys = {k.text for k, _ in options}
         what = dict((k.text, show(v)) for k, v in options).get("what", "all")
         if name in ROW_OPS:
@@ -604,7 +612,7 @@ class TaskChecker:
         for line, name, arg, change in self.writes:
             if arg is None:
                 self.error(f"{name}: MODIFIES can't tell which sheet this changes; write through CELL, "
-                           "ROW_RANGE, USED_RANGE or RANGE of a $sheet argument", line)
+                           "ROW_RANGE, USED_RANGE, RANGE or FIND of a $sheet argument", line)
                 continue
             written.add(arg)
             declared = self.modifies.get(arg)

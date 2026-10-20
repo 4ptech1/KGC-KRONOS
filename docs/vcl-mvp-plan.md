@@ -74,7 +74,8 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
 5. **The rest of rev 3** in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax. Designed in `docs/vep-0.4-rev3-rest.md`
    (D36), seven phases; OPEN_BOOK, SAVE_AS and CLOSE_BOOK wait until March. Phase 1 (the
-   interpreter catches up, D37) and Phase 2 (list syntax and DEDUPE, D38) are done.
+   interpreter catches up, D37), Phase 2 (list syntax and DEDUPE, D38) and Phase 3 (FIND, D39)
+   are done.
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
    VCL 0.2 packs.
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's

@@ -29,6 +29,7 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S19 (VCL 0.3) | `path_join` | PATH_JOIN(base, name, ...) is base, then each name, separated by \ (a trailing \ characters on base are dropped). It is "" (empty) when base is empty or any name is not already a safe name (SAFE_NAME(name) = name), so an empty or unsafe part can never become a path; a file op given "" reports Bad name. |
 | S20 (VEP 0.4, D36) | `file_name` | FILE_NAME(path) is the text after the last backslash, or all of the text when it has none; a path ending in a backslash gives "". Only \ separates: a / is part of the name. |
 | S21 (VEP 0.4, D38) | `same_row_key` | DEDUPE treats two rows as the same when both have a key and the keys are equal. A row's key is the values of its key cells, each compared as a dictionary key (S10: its canonical text, case ignored, no TRIM). A row with an empty or error key cell has no key, so DEDUPE never deletes a row because data is missing. |
+| S22 (VEP 0.4, D39) | `find` | FIND(range, x, match=...) looks at the cells row by row, left to right, and gives the first that matches, or NOTHING. match=whole (the default): the cell is SAME as x (S12). match=part: the cell's text holds TRIM(x), ignoring case (letter by letter, as LOWER); an empty TRIM(x) finds NOTHING, because every cell would hold it. Here: the 1-based position of that cell among values, or 0 for NOTHING. |
 
 ## Conformance cases
 
@@ -332,3 +333,20 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | ["S1", "  "], ["S1", "  "] | False | a key cell of spaces only counts as empty |
 | [#N/A], [#N/A] | False | an error in a key cell: never a duplicate |
 | [date 2026-10-15], [date 2026-10-15] | True | the same date |
+
+### FIND (revision 3, VEP 0.4)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| ["Seam", "Welder"], "welder", "whole" | 2 | whole: SAME, so case is ignored |
+| [" W1 ", "W1"], "W1", "whole" | 1 | whole: spaces at the ends are ignored |
+| ["W12", "W1"], "W1", "whole" | 2 | whole: all of the text must match |
+| [25, "25"], "25.0", "whole" | 0 | numbers compare as text: 25.0 is not 25 |
+| [25], "25", "whole" | 1 | a number and the same number as text |
+| ["a", (empty), "b"], "", "whole" | 2 | whole: an empty x finds the first empty cell |
+| ["a", "b"], "c", "whole" | 0 | not there: NOTHING |
+| ["W12", "W1"], "W1", "part" | 1 | part: the first cell that holds the text |
+| ["Seam S-12 repair"], " s-12 ", "part" | 1 | part: TRIM(x), case ignored |
+| [1250], 25, "part" | 1 | part: a number is its text |
+| ["a", "b"], "  ", "part" | 0 | part: nothing to look for finds NOTHING |
+| [date 2026-10-15], "2026-10-15", "whole" | 1 | a date is its yyyy-mm-dd text |

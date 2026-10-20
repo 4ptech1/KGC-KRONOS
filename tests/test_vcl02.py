@@ -493,7 +493,7 @@ class Modifies(unittest.TestCase):
         text = text.replace("OP         SET_VALUE(CELL($ws, r, cBal), bal)",
                             "OP         LET(target, ROW_RANGE($ws, r, cBal, cBal))\nOP         SET_VALUE(target, bal)")
         self.assertIn("SET_VALUE: MODIFIES can't tell which sheet this changes; write through CELL, ROW_RANGE, "
-                      "USED_RANGE or RANGE of a $sheet argument", errors(text))
+                      "USED_RANGE, RANGE or FIND of a $sheet argument", errors(text))
 
     def test_the_whole_workbook_is_compared(self):
         before = {"Data": Sheet("Data"), "Other": Sheet("Other")}
