@@ -154,3 +154,6 @@ Dataset count: 0 verified pairs
 - **2026-10-20:** Item 2 of the MVP plan, the rest of revision 3, is designed in
   `docs/vep-0.4-rev3-rest.md` (D36): seven phases, starting with the interpreter catching up
   with what already compiles. Ops that would open or save real workbooks wait until March.
+- **2026-10-20:** Item 2, Phase 1: the interpreter now runs the array ops, INSERT_ROW,
+  SELECT_CASE, LOG, MSG, RANGE, SHEET, FILE_NAME (S20) and FOR_EACH over SHEETS and CELLS, so
+  specs that use them can be proven by TESTs. No language change (D37).

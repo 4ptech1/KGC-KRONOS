@@ -113,7 +113,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
-tests/                    211 unit tests; conformance_cases.py is shared with the docs
+tests/                    311 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -270,7 +270,7 @@ of it. A spec outside this subset passes the validator but fails at test or buil
 
 | Fully supported (validate, test, compile) | Compile only (no interpreter yet) | Not built yet |
 | --- | --- | --- |
-| LET, SET_VALUE, WRITE_ROW, CLEAR, FORMAT, COPY_ROW, DELETE_ROW, DICT_ADD, DICT_GET, SORT, RETURN, MAKE_FOLDER, COPY_FILE (VCL 0.3); LOOP_ROWS, LOOP_COLS, FOR_EACH over KEYS(...), IF/ELSE, EXIT_IF, SKIP_IF, EXIT_LOOP_IF; CELL, COL, LASTROW, LASTCOL, ROW_RANGE, USED_RANGE, TRIM, UPPER, LOWER, LEN, LEFT, RIGHT, IS_EMPTY, IS_NUMBER, IS_DATE, IS_ERROR, SAME, CLEAN_TEXT, PARSE_DATE, IIF, MOD, COUNT, EXISTS, KEYS, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS; MODIFIES (with `files`); folder FIXTUREs; assertions FILE_EXISTS, FILE_COUNT | INSERT_ROW, READ_ARRAY, WRITE_ARRAY, CALL, LOG, MSG, SELECT_CASE, ARR, ROWS, COLS, SHEET, RANGE, IS_NOTHING, FILE_NAME; FOR_EACH over SHEETS, CELLS or ITEMS | FILTER, DEDUPE, SET_FORMULA, ADD_SHEET, COPY_SHEET, OPEN_BOOK, SAVE_AS, CLOSE_BOOK, LIST_FILES, READ_TEXT, WRITE_TEXT, FIND, NOTE; assertion SHEET_EXISTS; BUILD specs |
+| LET, SET_VALUE, WRITE_ROW, CLEAR, FORMAT, COPY_ROW, DELETE_ROW, DICT_ADD, DICT_GET, SORT, RETURN, MAKE_FOLDER, COPY_FILE (VCL 0.3); LOOP_ROWS, LOOP_COLS, FOR_EACH over KEYS(...), IF/ELSE, EXIT_IF, SKIP_IF, EXIT_LOOP_IF; CELL, COL, LASTROW, LASTCOL, ROW_RANGE, USED_RANGE, TRIM, UPPER, LOWER, LEN, LEFT, RIGHT, IS_EMPTY, IS_NUMBER, IS_DATE, IS_ERROR, SAME, CLEAN_TEXT, PARSE_DATE, IIF, MOD, COUNT, EXISTS, KEYS, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS; MODIFIES (with `files`); folder FIXTUREs; assertions FILE_EXISTS, FILE_COUNT; and since item 2 Phase 1 (D37): INSERT_ROW, READ_ARRAY, WRITE_ARRAY, LOG, MSG, SELECT_CASE, ARR, ROWS, COLS, SHEET, RANGE (a cell or a block), FILE_NAME, THIS_BOOK, ACTIVE_BOOK; FOR_EACH over SHEETS or CELLS | CALL, IS_NOTHING; FOR_EACH over ITEMS | FILTER, DEDUPE, SET_FORMULA, ADD_SHEET, COPY_SHEET, OPEN_BOOK, SAVE_AS, CLOSE_BOOK, LIST_FILES, READ_TEXT, WRITE_TEXT, FIND, NOTE; assertion SHEET_EXISTS; BUILD specs |
 
 **Fill colours:** `fill=` takes `none`, a name (black, white, red, green, blue, yellow, magenta,
 cyan) or `#RRGGBB`. Each name is the colour of the VBA constant of that name (red = `#FF0000`), so
@@ -284,7 +284,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 278 pass |
+| Unit tests | 311 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the ~40 guideline; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -331,6 +331,8 @@ The 12 specs:
 - #28: task_12 RouteJobPacks, the router MVP spec.
 - #29: spec.md and the prompt teach VCL 0.3.
 - #30 and #31: the Excel pilot kit (the ForgeLib self-test; the task_12 pilot and `pilot-check`).
+- #32: the design of item 2, the rest of revision 3 (`docs/vep-0.4-rev3-rest.md`, D36).
+- #33: item 2 Phase 1, the interpreter catches up with what already compiles (D37).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -382,7 +384,8 @@ The key safety design for files:
    2026), designed in `docs/vep-0.4-rev3-rest.md` (D36): first the interpreter catches up with
    what already compiles, then list syntax with DEDUPE, FIND, the sheet ops, FILTER (it hides
    rows by SAME, never by AutoFilter criteria), SET_FORMULA (tested by its text) and text files
-   (new files only). OPEN_BOOK, SAVE_AS and CLOSE_BOOK wait until March 2027.
+   (new files only). OPEN_BOOK, SAVE_AS and CLOSE_BOOK wait until March 2027. Phase 1 is done
+   (D37); next is Phase 2, list syntax and DEDUPE.
 2. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
 3. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
    Mutants double as "read carefully" contrast pairs.

@@ -23,7 +23,7 @@ Public Sub ForgeSelfTest()
     SelfTestPart4
     SelfTestPart5
     SelfTestFlush
-    total = 163
+    total = 169
     For r = 2 To total + 1
         If gWs.Cells(r, 6).Value = "PASS" Then
             passed = passed + 1
@@ -498,5 +498,17 @@ Private Sub SelfTestPart5()
     SelfTestCheck ForgePathJoin("C:\Jobs", Array("A\B")), ""
     SelfTestCase 163, "path_join", "no root, no path"
     SelfTestCheck ForgePathJoin("", Array("J-101")), ""
+    SelfTestCase 164, "file_name", "the part after the last backslash"
+    SelfTestCheck ForgeFileName("C:\Jobs\J-101\r1.pdf"), "r1.pdf"
+    SelfTestCase 165, "file_name", "no backslash: all of it"
+    SelfTestCheck ForgeFileName("r1.pdf"), "r1.pdf"
+    SelfTestCase 166, "file_name", "a folder path ending in a backslash"
+    SelfTestCheck ForgeFileName("C:\Jobs\"), ""
+    SelfTestCase 167, "file_name", "a network path; spaces are kept"
+    SelfTestCheck ForgeFileName("\\server\share\a b.pdf"), "a b.pdf"
+    SelfTestCase 168, "file_name", "only a backslash separates"
+    SelfTestCheck ForgeFileName("C:/Jobs/r1.pdf"), "C:/Jobs/r1.pdf"
+    SelfTestCase 169, "file_name", "empty"
+    SelfTestCheck ForgeFileName(Empty), ""
     SelfTestFlush
 End Sub

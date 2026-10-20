@@ -27,6 +27,7 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S17 (VCL 0.2) | `needs_text_guard` | SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text. Excel would turn some text into something else when it is written to a cell: a number, date, time, TRUE/FALSE, error value or formula. Such text is written with a ' prefix, which Excel hides, so the cell holds the text unchanged. Being careful, the prefix goes on any text with a digit or a character above code 127, any text starting with = + - @ ' or #, and TRUE or FALSE after TRIM in any case. "" is never prefixed: it empties the cell. |
 | S18 (VCL 0.3) | `safe_name` | SAFE_NAME(x) is CLEAN_TEXT(x) when that is a safe Windows file or folder name, else "" (empty). Unsafe: empty, longer than 100 characters, any of \ / : * ? " < > /, the names . and .., a trailing dot, or a reserved device name (CON, PRN, AUX, NUL, COM1 to COM9, LPT1 to LPT9), ignoring case and any extension (con.txt is reserved). A name can never climb out of its folder, because it can't contain a separator or be .. |
 | S19 (VCL 0.3) | `path_join` | PATH_JOIN(base, name, ...) is base, then each name, separated by \ (a trailing \ characters on base are dropped). It is "" (empty) when base is empty or any name is not already a safe name (SAFE_NAME(name) = name), so an empty or unsafe part can never become a path; a file op given "" reports Bad name. |
+| S20 (VEP 0.4, D36) | `file_name` | FILE_NAME(path) is the text after the last backslash, or all of the text when it has none; a path ending in a backslash gives "". Only \ separates: a / is part of the name. |
 
 ## Conformance cases
 
@@ -303,3 +304,14 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | "C:\Jobs", ".." | "" | an unsafe part gives an empty path |
 | "C:\Jobs", "A\B" | "" | a part may not hide a separator |
 | "", "J-101" | "" | no root, no path |
+
+### FILE_NAME (revision 3, VEP 0.4)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| "C:\Jobs\J-101\r1.pdf" | "r1.pdf" | the part after the last backslash |
+| "r1.pdf" | "r1.pdf" | no backslash: all of it |
+| "C:\Jobs\" | "" | a folder path ending in a backslash |
+| "\\server\share\a b.pdf" | "a b.pdf" | a network path; spaces are kept |
+| "C:/Jobs/r1.pdf" | "C:/Jobs/r1.pdf" | only a backslash separates |
+| (empty) | "" | empty |

@@ -442,8 +442,44 @@ Public Sub ForgeSort(ByVal rng As Range, ByVal keyCol As Long, ByVal ascending A
 End Sub
 
 Public Sub ForgeWriteArray(ByVal arr As Variant, ByVal topLeft As Range)
-    topLeft.Resize(UBound(arr, 1) - LBound(arr, 1) + 1, UBound(arr, 2) - LBound(arr, 2) + 1).Value = arr
+    ' S17 also for WRITE_ARRAY (D36): text Excel would convert gets the hidden ' prefix, in a copy.
+    Dim out As Variant
+    Dim r As Long
+    Dim c As Long
+    out = arr
+    For r = LBound(out, 1) To UBound(out, 1)
+        For c = LBound(out, 2) To UBound(out, 2)
+            If VarType(out(r, c)) = vbString Then
+                If ForgeNeedsTextGuard(out(r, c)) Then out(r, c) = "'" & out(r, c)
+            End If
+        Next c
+    Next r
+    topLeft.Resize(UBound(out, 1) - LBound(out, 1) + 1, UBound(out, 2) - LBound(out, 2) + 1).Value = out
 End Sub
+
+Public Function ForgeReadArray(ByVal rng As Range) As Variant
+    ' READ_ARRAY (D36): always a 2-D array from 1, even for one cell, whose .Value is not an array.
+    Dim one(1 To 1, 1 To 1) As Variant
+    If rng.Cells.CountLarge = 1 Then
+        one(1, 1) = rng.Value
+        ForgeReadArray = one
+    Else
+        ForgeReadArray = rng.Value
+    End If
+End Function
+
+Public Sub ForgeInsertRow(ByVal ws As Worksheet, ByVal rowNo As Long)
+    ' INSERT_ROW (D36): a blank row with no fill and no number format, whatever the row above holds.
+    ws.Rows(rowNo).Insert
+    ws.Rows(rowNo).ClearFormats
+End Sub
+
+Public Function ForgeFileName(ByVal path As Variant) As String
+    ' FILE_NAME (S20): the text after the last backslash; all of it when there is none.
+    Dim s As String
+    s = ForgeText(path)
+    ForgeFileName = Mid$(s, InStrRev(s, "\") + 1)
+End Function
 
 ' ---- S10: dictionaries with canonical-text keys, case ignored ----
 

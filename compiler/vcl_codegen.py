@@ -82,6 +82,8 @@ class Gen:
         self.label_k = {}
         self.facts = {}
         self.loops = []   # innermost last: [SKIP_IF label, whether a SKIP_IF jumps to it]
+        self.selectors = []   # SELECT_CASE selector variables, innermost last
+        self.temps = {}   # compiler-made Variant variables (the selectors): name -> kind
         self.checker = Checker(spec)
 
     # ---------- output ----------
@@ -102,6 +104,8 @@ class Gen:
             return self.facts.get(name, k) if k == "raw" else k
         if name in self.loopvars:
             return self.loopvars[name]
+        if name in self.temps:
+            return self.temps[name]
         return None
 
     def ex(self, t):
@@ -282,7 +286,7 @@ class Gen:
         if name == "COLS":
             return f"(UBound({e(0)}, 2) - LBound({e(0)}, 2) + 1)", "num"
         if name == "FILE_NAME":
-            return f"Mid$({e(0)}, InStrRev({e(0)}, \"\\\") + 1)", "text"
+            return f"ForgeFileName({e(0)})", "text"
         raise CompileError(f"{name} is not supported by the MVP compiler")
 
     # ---------- statements ----------
@@ -345,8 +349,8 @@ class Gen:
             return [f"ForgeCopyRow {e(pos[0])}, {self.as_num(pos[1])[0]}, {e(pos[2])}, {self.as_num(pos[3])[0]}, {self.as_num(opts['cols'])[0]}"]
         if name == "DELETE_ROW":
             return [f"{e(pos[0])}.Rows({self.as_num(pos[1])[0]}).Delete"]
-        if name == "INSERT_ROW":
-            return [f"{e(pos[0])}.Rows({self.as_num(pos[1])[0]}).Insert"]
+        if name == "INSERT_ROW":   # a blank row, whatever the row above holds (D36)
+            return [f"ForgeInsertRow {e(pos[0])}, {self.as_num(pos[1])[0]}"]
         if name == "DICT_ADD":
             return [f'ForgeDictAdd {e(pos[0])}, {e(pos[1])}, {e(pos[2])}, "{opts["mode"]}"']
         if name == "DICT_GET":
@@ -362,8 +366,8 @@ class Gen:
             asc = "True" if str(opts.get("order", "asc")) == "asc" else "False"
             hdr = "True" if str(opts.get("header", "yes")) == "yes" else "False"
             return [f"ForgeSort {self.rng(pos[0])}, {self.as_num(opts['key'])[0]}, {asc}, {hdr}"]
-        if name == "READ_ARRAY":
-            return [f"{vba_name(str(opts['into']))} = {self.rng(pos[0])}.Value"]
+        if name == "READ_ARRAY":   # always a 2-D array, even for one cell (D36)
+            return [f"{vba_name(str(opts['into']))} = ForgeReadArray({self.rng(pos[0])})"]
         if name == "WRITE_ARRAY":
             return [f"ForgeWriteArray {e(pos[0])}, {self.rng(opts['to'])}"]
         if name in ("MAKE_FOLDER", "COPY_FILE"):   # a status into a String VAR (E11), never an error
@@ -499,19 +503,32 @@ class Gen:
                     coll = f"{self.rng(spos[0])}.Cells"
                 else:
                     raise CompileError(f"line {line}: FOR_EACH over {fn} is not supported")
-                self.loopvars[var] = "text" if fn == "KEYS" else "raw"
-                self.emit(f"For Each {vba_name(var)} In {coll}", depth, line)
+                self.loopvars[var] = {"KEYS": "text", "SHEETS": "obj"}.get(fn, "raw")
+                # over CELLS the loop variable is the cell's value, as in the interpreter (D36)
+                walker = f"forgeCell_{var}" if fn == "CELLS" else vba_name(var)
+                if fn == "CELLS":
+                    self.loopvars[walker] = "obj"
+                self.emit(f"For Each {walker} In {coll}", depth, line)
+                if fn == "CELLS":
+                    self.emit(f"{vba_name(var)} = {walker}.Value", depth + 1, line)
                 saved = dict(self.facts)
                 self.facts = {k: v for k, v in self.facts.items() if not mentions(k, var)}
                 self.loop_body(n["children"], depth + 1, line)
                 self.facts = {k: v for k, v in saved.items() if not mentions(k, var)}
-                self.emit(f"Next {vba_name(var)}", depth)
-            elif kind == "select_case":
-                self.emit(f"Select Case {self.ex(s.children[0])[0]}", depth, line)
+                self.emit(f"Next {walker}", depth)
+            elif kind == "select_case":   # each CASE value is compared as = does (S7), not by VBA (D36)
+                sel = f"forgeSel{len(self.temps) + 1}"   # the selector is evaluated once
+                code, self.temps[sel] = self.ex(s.children[0])
+                self.emit(f"{sel} = {code}", depth, line)
+                self.emit("Select Case True", depth, line)
+                self.selectors.append(Token("NAME", sel))
                 self.block(n["children"], depth + 1)
+                self.selectors.pop()
                 self.emit("End Select", depth)
             elif kind == "case_line":
-                self.emit("Case " + ", ".join(self.ex(c)[0] for c in s.children), depth)
+                tests = [self.ex_compare(Tree("comparison", [self.selectors[-1], Token("COMP_OP", "="), c]))[0]
+                         for c in s.children]
+                self.emit("Case " + ", ".join(tests), depth, line)
                 self.block(n["children"], depth + 1)
             elif kind == "case_else":
                 self.emit("Case Else", depth)
@@ -543,6 +560,8 @@ class Gen:
         for name, k in self.loopvars.items():
             if name not in self.vars:
                 out.append(f"{'':<6}    Dim {vba_name(name)} As {'Long' if k == 'num' else 'Variant'}")
+        for name in self.temps:
+            out.append(f"{'':<6}    Dim {name} As Variant")
         out += [f"{'':<6}    Dim forgeScreen As Boolean", f"{'':<6}    Dim forgeCalc As Long",
                 f"{'':<6}    Dim forgeEvents As Boolean",
                 f"{'':<6}    forgeScreen = Application.ScreenUpdating",

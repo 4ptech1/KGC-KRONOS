@@ -35,6 +35,7 @@ CALLS = {
     "same": "ForgeSame({0}, {1})", "clean_text": "ForgeCleanText({0})",
     "parse_date": "ForgeParseDate({0}, {1})", "iif": "ForgeIif({0}, {1}, {2})", "mod": "ForgeMod({0}, {1})",
     "needs_text_guard": "ForgeNeedsTextGuard({0})", "safe_name": "ForgeSafeName({0})",
+    "file_name": "ForgeFileName({0})",
 }
 XL_ERRORS = {"#N/A": "xlErrNA", "#DIV/0!": "xlErrDiv0", "#VALUE!": "xlErrValue", "#REF!": "xlErrRef",
              "#NAME?": "xlErrName", "#NUM!": "xlErrNum", "#NULL!": "xlErrNull"}
