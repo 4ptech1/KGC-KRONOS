@@ -11,7 +11,8 @@ sys.path.insert(0, str(ROOT / "compiler"))
 import validator  # noqa: E402
 from vba_lint import lint  # noqa: E402
 from vcl_codegen import assemble, compile_text  # noqa: E402
-from vcl_interp import run_tests  # noqa: E402
+from vcl_interp import modifies_of, needs_unchanged_check, run_tests  # noqa: E402
+from vcl_parse import parse  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
 from vcl_types import check_text  # noqa: E402
 
@@ -349,6 +350,15 @@ class Find(unittest.TestCase):
         found = errors(ops('LET(hit, FIND(USED_RANGE($ws), "a"))', "SET_VALUE(hit, 1)", head=["VAR      hit As Range"]))
         self.assertIn("SET_VALUE: MODIFIES can't tell which sheet this changes; write through CELL, ROW_RANGE, "
                       "USED_RANGE, RANGE or FIND of a $sheet argument", found)
+
+
+class Unchanged(unittest.TestCase):
+    def test_a_spec_that_writes_nothing_changes_nothing_from_0_2_on(self):   # D20, for every later version too
+        for version, want in (("VCL 0.1", False), ("VCL 0.2", True), ("VCL 0.3", True), ("VCL 0.4", True)):
+            with self.subTest(version):
+                spec, problems = parse(ops("LET(n, 1)", version=version).replace("MODIFIES $ws\n", ""))
+                self.assertEqual(problems, [])
+                self.assertEqual(needs_unchanged_check(spec, modifies_of(spec)), want)
 
 
 class Facts(unittest.TestCase):
