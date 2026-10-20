@@ -38,6 +38,7 @@ CALLS = {
     "file_name": "ForgeFileName({0})",
     "same_row_key": "ForgeSameRowKey({0}, {1})", "find": "SelfTestFind({0}, {1}, {2})",
     "sheet_name_ok": "ForgeSheetNameOk({0})",
+    "text_ok": "ForgeIsTextOk({0})", "file_text": "SelfTestFileText({0})",
 }
 XL_ERRORS = {"#N/A": "xlErrNA", "#DIV/0!": "xlErrDiv0", "#VALUE!": "xlErrValue", "#REF!": "xlErrRef",
              "#NAME?": "xlErrName", "#NUM!": "xlErrNum", "#NULL!": "xlErrNull"}
@@ -247,6 +248,12 @@ Private Function SelfTestFind(ByVal values As Variant, ByVal x As Variant, ByVal
     Set found = ForgeFind(gScratch.Range(gScratch.Cells(1, 1), gScratch.Cells(1, UBound(values) - LBound(values) + 1)), _
         x, match = "whole")
     If Not found Is Nothing Then SelfTestFind = found.Column
+End Function
+
+Private Function SelfTestFileText(ByVal raw As Variant) As Variant
+    ' S25: ForgeFileText gives Null for what is not text; the cases write that as Empty.
+    SelfTestFileText = ForgeFileText(raw)
+    If IsNull(SelfTestFileText) Then SelfTestFileText = Empty
 End Function
 
 Private Function SelfTestJoin(ByVal names As Collection) As String

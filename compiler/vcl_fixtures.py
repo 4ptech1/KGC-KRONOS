@@ -371,8 +371,14 @@ class MockFS:
     def add_folder(self, path):
         self.entries.setdefault(path.casefold(), {"path": path, "kind": "folder", "size": None, "locked": False})
 
-    def add_file(self, path, size, locked=False):
-        self.entries[path.casefold()] = {"path": path, "kind": "file", "size": size, "locked": locked}
+    def add_file(self, path, size, locked=False, text=None):
+        """text: what the file holds (VCL 0.4, D45); None for a dummy report, size times "x"."""
+        self.entries[path.casefold()] = {"path": path, "kind": "file", "size": size, "locked": locked, "text": text}
+
+    def text_of(self, path):
+        """What a file holds: its text, or a dummy report's size times "x" (as SandboxFile writes it)."""
+        entry = self.get(path)
+        return entry["text"] if entry["text"] is not None else "x" * entry["size"]
 
     def files_in(self, folder):
         """The names of the files directly in the folder (LIST_FILES, D44)."""
@@ -392,14 +398,18 @@ class MockFS:
 
 
 def parse_folder(tree):
-    """A folder_fixture tree -> (file, folder, [(path, size or None)], [locked path])."""
+    """A folder_fixture tree -> (file, folder, [(path, size or None, text or None)], [locked path])."""
     file, folder = str(tree.children[0]), str(tree.children[1])
     files, locked = [], []
     for item in tree.children[2:]:
         if item.data == "folder_files":
             for entry in item.children:
-                size = entry.children[1] if len(entry.children) > 1 else None
-                files.append((str(entry.children[0]), int(size) if size is not None else None))
+                extra = entry.children[1] if len(entry.children) > 1 else None
+                if extra is not None and extra.type == "STRING":   # VCL 0.4: the file's text (D45)
+                    text = str(extra)[1:-1].replace('""', '"')
+                    files.append((str(entry.children[0]), len(text), text))
+                else:
+                    files.append((str(entry.children[0]), int(extra) if extra is not None else None, None))
         else:
             locked = [str(t) for t in item.children]
     return file, folder, files, locked
@@ -421,12 +431,12 @@ def build_folders(fixture_trees):
         base = SANDBOX + "\\" + folder
         fs.add_folder(base)
         locked = {p.casefold() for p in locked}
-        for path, size in files:
+        for path, size, text in files:
             parts = path.split("\\")
             for i in range(1, len(parts)):
                 fs.add_folder(base + "\\" + "\\".join(parts[:i]))
             fs.add_file(base + "\\" + path, default_size(file, folder, path) if size is None else size,
-                        path.casefold() in locked)
+                        path.casefold() in locked, text)
     return systems
 
 
@@ -549,7 +559,7 @@ def vba_for_folders(file, folder_trees):
         _, folder, files, locked = parse_folder(tree)
         fits(folder, MAX_FOLDER_PATH)
         out.append(f'    SandboxFolder root & "\\{folder}"')
-        for path, size in files:
+        for path, size, text in files:
             fits(folder + "\\" + path, MAX_FILE_PATH)
             parts = path.split("\\")
             for i in range(1, len(parts)):
@@ -558,6 +568,9 @@ def vba_for_folders(file, folder_trees):
                     made.add(sub.casefold())
                     fits(sub, MAX_FOLDER_PATH)
                     out.append(f'    SandboxFolder root & "\\{sub}"')
+            if text is not None:   # VCL 0.4: exactly this text, printable ASCII (D45)
+                out.append(f'    SandboxText root & "\\{folder}\\{path}", "{text.replace(chr(34), chr(34) * 2)}"')
+                continue
             size = default_size(file, folder, path) if size is None else size
             if size > MAX_SANDBOX_FILE:
                 raise ValueError(f"FIXTURE {file} folder {folder}: {path} has {size} bytes; a dummy file may "
@@ -639,6 +652,18 @@ Private Sub SandboxFile(ByVal path As String, ByVal bytes As Long)
     f = FreeFile
     Open path For Output As #f
     Print #f, String$(bytes, "x");
+    Close #f
+End Sub
+
+Private Sub SandboxText(ByVal path As String, ByVal text As String)
+    ' A text file holding exactly text (one line of printable ASCII, no line break), as its FIXTURE says.
+    Dim f As Long
+    If SandboxFso().FileExists(path) Or SandboxFso().FolderExists(path) Then
+        Err.Raise vbObjectError + 515, "SandboxText", path & " is already there"
+    End If
+    f = FreeFile
+    Open path For Output As #f
+    Print #f, text;
     Close #f
 End Sub
 

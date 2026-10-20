@@ -148,6 +148,18 @@ Private Sub SandboxFile(ByVal path As String, ByVal bytes As Long)
     Close #f
 End Sub
 
+Private Sub SandboxText(ByVal path As String, ByVal text As String)
+    ' A text file holding exactly text (one line of printable ASCII, no line break), as its FIXTURE says.
+    Dim f As Long
+    If SandboxFso().FileExists(path) Or SandboxFso().FolderExists(path) Then
+        Err.Raise vbObjectError + 515, "SandboxText", path & " is already there"
+    End If
+    f = FreeFile
+    Open path For Output As #f
+    Print #f, text;
+    Close #f
+End Sub
+
 Private Sub SandboxLock(ByVal path As String)
     ' locked=: held open with no sharing, as if another program had it, until ForgeSandboxUnlock.
     Dim f As Long

@@ -354,3 +354,24 @@ def list_files(names, pattern):
     pattern, sorted by LOWER(name) and then by the name as written, so the order is the same on every PC.
     Here: from the names of the files in the folder."""
     return sorted((n for n in names if name_matches(n, pattern)), key=lambda n: (n.lower(), n))
+
+
+TEXT_MAX = 32767   # the most characters a cell holds, and so the most READ_TEXT and WRITE_TEXT take
+
+
+def text_ok(v):
+    """S25 (VEP 0.4, D45): text that READ_TEXT and WRITE_TEXT handle: printable ASCII (codes 32 to
+    126), tabs and line breaks, at most 32,767 characters. Any other character would read or write
+    differently with each PC's code page."""
+    s = text_of(v)
+    return len(s) <= TEXT_MAX and all(32 <= ord(ch) <= 126 or ch in "\t\r\n" for ch in s)
+
+
+def file_text(raw):
+    """S25 (VEP 0.4, D45): what READ_TEXT gives for a file's contents: the text with one final line
+    break (CR LF, or LF) dropped, as editors add one; None when it isn't text (S25), which READ_TEXT
+    reports as Not text."""
+    if not text_ok(raw):
+        return None
+    s = text_of(raw)
+    return s[:-2] if s.endswith("\r\n") else s[:-1] if s.endswith("\n") else s

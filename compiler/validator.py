@@ -66,8 +66,8 @@ OPS = {
     "SAVE_AS": (2, 2, {"format": ("xlsx", "xlsm", "csv")}, ()),
     "CLOSE_BOOK": (1, 1, {"save": YES_NO}, ()),
     "LIST_FILES": (2, 2, {"into": "var"}, ("into",)),
-    "READ_TEXT": (1, 1, {"into": "var"}, ("into",)),
-    "WRITE_TEXT": (2, 2, {"mode": ("new", "append")}, ()),
+    "READ_TEXT": (2, 2, {"into": "var"}, ("into",)),    # D45: (path, String VAR, into=status)
+    "WRITE_TEXT": (2, 2, {"into": "var"}, ("into",)),   # D45: new files only, so no mode=
     "CALL": (1, None, {}, ()),
     "LOG": (1, 1, {}, ()),
     "MSG": (1, 1, {}, ()),
@@ -99,7 +99,7 @@ VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
 VCL_03_FUNCS = {"SAFE_NAME", "PATH_JOIN", "FOLDER_EXISTS"}
 VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
 VCL_04_FUNCS = {"SHEET_EXISTS"}
-VCL_04_OPS = {"LIST_FILES"}   # D44: S24 and the path rules of VCL 0.3
+VCL_04_OPS = {"LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # D44, D45: S24, S25 and the path rules of VCL 0.3
 VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4}
 # MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
 SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE"}
@@ -116,7 +116,7 @@ VBA_LEAKS = ["Dim ", "Set ", "End If", ".Value", "Cells(", "Range(", "Next ", "W
 
 # TEST assertion functions and the kind of each argument
 ASSERT_FUNCS = {"COUNTIF", "COUNTIFS", "COUNTA", "SUM", "SUMIFS", "VALUE", "ROWS_USED", "SHEET_EXISTS",
-                "FILE_EXISTS", "FILL_COUNT", "FILE_COUNT", "VISIBLE_COUNT", "FORMULA"}
+                "FILE_EXISTS", "FILL_COUNT", "FILE_COUNT", "VISIBLE_COUNT", "FORMULA", "FILE_TEXT"}
 ASSERT_COMPARE = {"=", "<>", "<", ">", "<=", ">=", "+", "-", "*", "/"}
 
 KEYWORD = re.compile(r"[A-Z][A-Z0-9_]+")
@@ -700,7 +700,8 @@ class TaskChecker:
                 continue  # not a path: the type checker says why (T4)
             used.setdefault(root, line)
             if bare and role != "list":
-                what = "the folder to make" if name == "MAKE_FOLDER" else f"the file to copy {role}"
+                what = ("the folder to make" if name == "MAKE_FOLDER" else "the file to read" if name == "READ_TEXT"
+                        else "the file to write" if name == "WRITE_TEXT" else f"the file to copy {role}")
                 self.error(f"{name}: {what} must be PATH_JOIN(${root}, ...), not the root ${root} itself, "
                            "which must already exist", line)
             if role == "to":
@@ -1046,6 +1047,16 @@ class TaskChecker:
                 self.file_paths.append((self.line, name, role) + path_root(items))
         if name == "LIST_FILES" and positional:   # D44: it reads a folder, the root itself or one below it
             self.file_paths.append((self.line, name, "list") + path_root(positional[0]))
+        if name in ("READ_TEXT", "WRITE_TEXT") and positional:   # D45: a file below a root
+            self.file_paths.append((self.line, name, "from" if name == "READ_TEXT" else "to")
+                                   + path_root(positional[0]))
+        if name == "READ_TEXT" and len(positional) > 1:   # D45: the text goes into a declared VAR
+            given = positional[1]
+            if not (len(given) == 1 and is_tok(given[0], "name") and given[0].text in self.vars):
+                self.error(f"READ_TEXT needs a declared String VAR second, which gets the file's text, "
+                           f"got '{show(given)}'")
+            else:
+                self.var_sets.append((self.line, given[0].text))
         if name == "SET_VALUE" and len(positional) == 2:
             target, value = positional
             arg = self.row1_arg(target)
@@ -1412,7 +1423,7 @@ class AssertionChecker:
             self.error(f"{call.name} has no options")
         if name == "FILE_COUNT" and not self.c.at_least("VCL 0.3"):
             self.error("FILE_COUNT is VCL 0.3: start the spec with 'VCL 0.3' to use it")
-        if name in ("VISIBLE_COUNT", "FORMULA") and not self.c.at_least("VCL 0.4"):
+        if name in ("VISIBLE_COUNT", "FORMULA", "FILE_TEXT") and not self.c.at_least("VCL 0.4"):
             self.error(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it")
         args = call.positional
         n = len(args)
@@ -1428,7 +1439,7 @@ class AssertionChecker:
             kinds = {"COUNTIF": ["range", "crit"], "COUNTA": ["range"], "SUM": ["range"], "VALUE": ["cell"],
                      "ROWS_USED": ["sheet"], "SHEET_EXISTS": ["string"], "FILE_EXISTS": ["path"],
                      "FILL_COUNT": ["range", "hex"], "FILE_COUNT": ["path"], "VISIBLE_COUNT": ["range"],
-                     "FORMULA": ["cell"]}[name]
+                     "FORMULA": ["cell"], "FILE_TEXT": ["path"]}[name]
             ok = n == len(kinds)
             want = f"{len(kinds)} argument{'s' if len(kinds) > 1 else ''}"
         if not ok:
@@ -1519,7 +1530,12 @@ def check_folders(checker, folders, fixtures):
                           line)
         seen.add((ff.file, ff.folder))
         paths, shown = [], {}
-        for path, _ in ff.files:
+        for path, _, text in ff.files:
+            if text is not None and not checker.at_least("VCL 0.4"):
+                checker.error(f'FIXTURE files: {path}:"..." (a text file) is VCL 0.4: start the spec with '
+                              "'VCL 0.4' to use it", line)
+            elif text is not None and any(not 32 <= ord(ch) <= 126 for ch in text):
+                checker.error(f"FIXTURE files: the text of {path} must be one line of printable ASCII (D45)", line)
             parts = path.split("\\")
             bad = next((part for part in parts if safe_name(part) != part), None)
             if bad is not None:

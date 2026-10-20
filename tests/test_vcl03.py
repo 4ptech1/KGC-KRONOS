@@ -291,8 +291,10 @@ class FolderFixtures(unittest.TestCase):
     def test_the_parser_reads_them(self):
         dump, jobs = validator.parse_spec(ROUTER).folders
         self.assertEqual((dump.file, dump.folder, dump.files, dump.locked),
-                         ("router_01.xlsx", "Dump", [("r1.pdf", 120), ("r2.pdf", 80), ("r3.pdf", None)], ["r3.pdf"]))
-        self.assertEqual((jobs.folder, jobs.files, jobs.locked), ("Jobs", [("J-102\\r2.pdf", 99), ("J-104", 5)], []))
+                         ("router_01.xlsx", "Dump", [("r1.pdf", 120, None), ("r2.pdf", 80, None), ("r3.pdf", None, None)],
+                          ["r3.pdf"]))
+        self.assertEqual((jobs.folder, jobs.files, jobs.locked),
+                         ("Jobs", [("J-102\\r2.pdf", 99, None), ("J-104", 5, None)], []))
         self.assertEqual(problems(router(("folder=Jobs files=J-102\\r2.pdf:99,J-104:5", "folder=Jobs"))), [])
 
     def test_bad_lines(self):
@@ -312,8 +314,8 @@ class FolderFixtures(unittest.TestCase):
             (("files=r1.pdf:120,", "files=r 1.pdf:120,"), "a folder FIXTURE must look like: <name>.xlsx "
                                                           "folder=<Name> [files=<path>[:<bytes>],...] "
                                                           "[locked=<path>,...]"),
-            (("files=r1.pdf:120,", "files=r1.pdf:big,"), "FIXTURE files: expected <path> or <path>:<bytes>, "
-                                                         "got 'r1.pdf:big'"),
+            (("files=r1.pdf:120,", "files=r1.pdf:big,"), 'FIXTURE files: expected <path>, <path>:<bytes> or '
+                                                         '<path>:"<text>", got \'r1.pdf:big\''),
         ]
         for edit, message in cases:
             with self.subTest(edit=edit):

@@ -59,7 +59,8 @@ FUNCS = {
     # VCL 0.4
     "SHEET_EXISTS": (["Book", "T"], "Bool"),
 }
-FILE_OPS = {"MAKE_FOLDER", "COPY_FILE", "LIST_FILES"}   # every path argument is checked by shape (T4)
+FILE_OPS = {"MAKE_FOLDER", "COPY_FILE", "LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # paths by shape (T4)
+ONE_PATH = {"LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # a path, then something that isn't one
 
 
 def tok(t):
@@ -370,6 +371,8 @@ class Checker:
                 self.assign(v, vt, opts["into"], vflow, line)
         elif name in FILE_OPS and "into" in opts:
             drop_var(str(opts["into"]))
+            if name == "READ_TEXT" and len(pos) > 1 and tok(pos[1]):   # D45: the text VAR too
+                drop_var(str(pos[1]))
         elif name in ("ADD_SHEET", "COPY_SHEET") and "into" in opts:   # the new sheet (D40, D41)
             drop_var(str(opts["into"]))
             self.assign(str(opts["into"]), "Sheet", opts["into"], vflow, line)
@@ -455,7 +458,7 @@ class Checker:
             if "col" in opts:
                 self.need_num(self.ty(opts["col"], facts, vflow, line), opts["col"], line)
         elif name in FILE_OPS:   # VCL 0.3: paths by shape (T4); the status goes into a String VAR
-            for a in (pos[:1] if name == "LIST_FILES" else pos):   # LIST_FILES: a folder, then its pattern
+            for a in (pos[:1] if name in ONE_PATH else pos):
                 problem = self.path_problem(a)
                 if problem:
                     self.err(line, f"{name}: {problem}")
@@ -469,6 +472,13 @@ class Checker:
                                "declare it As Collection")
             elif name != "LIST_FILES" and declared not in (None, "Text"):
                 self.err(line, f"{name}: into={into} is {declared}, but the status is text: declare it As String")
+            if name == "READ_TEXT" and len(pos) > 1:   # D45: the text goes into a String VAR
+                if self.vars.get(str(pos[1])) not in ("Text", None) or not tok(pos[1]):
+                    self.err(line, f"READ_TEXT: {canon(pos[1])} must be a String VAR, which gets the file's text")
+            if name == "WRITE_TEXT" and len(pos) > 1:
+                wt = self.ty(pos[1], facts, vflow, line)
+                if wt not in TEXTLIKE | {"?"}:
+                    self.err(line, f"WRITE_TEXT: {canon(pos[1])} is {wt}, expected text")
         elif name == "RETURN" and pos:
             rt = self.ty(pos[0], facts, vflow, line)
             if self.ret and rt not in (self.ret, "?"):

@@ -82,7 +82,7 @@ class FolderFixture:
     line: int
     file: str
     folder: str
-    files: list   # [(path below the folder, size in bytes or None)]
+    files: list   # [(path below the folder, size in bytes or None, text or None (VCL 0.4))]
     locked: list  # [path]
 
 
@@ -217,9 +217,9 @@ def split_top(text, sep):
 
 FIXTURE_RE = re.compile(r"(?P<file>\S+)\s+sheet=(?P<sheet>\S+)\s+cols=(?P<cols>.+?)\s+rows=(?P<rows>\S+)"
                         r"(?:\s+stale=(?P<stale>\S+))?(?:\s+data=(?P<data>.*))?")
-FOLDER_RE = re.compile(r"(?P<file>\S+)\s+folder=(?P<folder>\S+)(?:\s+files=(?P<files>\S+))?"
+FOLDER_RE = re.compile(r"(?P<file>\S+)\s+folder=(?P<folder>\S+)(?:\s+files=(?P<files>(?:\"(?:[^\"]|\"\")*\"|[^\s\"])+))?"
                        r"(?:\s+locked=(?P<locked>\S+))?")
-FILE_ENTRY_RE = re.compile(r"(?P<path>[^:]+)(?::(?P<size>\d+))?")
+FILE_ENTRY_RE = re.compile(r"(?P<path>[^:\"]+)(?::(?:(?P<size>\d+)|(?P<text>\"(?:[^\"]|\"\")*\")))?")
 CALL_HEAD_RE = re.compile(r"(\w+)\(")
 TEST_RE = re.compile(r"fixture=(?P<fixture>\S+)\s+call=(?P<proc>[A-Za-z_][\w.]*)\((?P<args>[^()]*)\)"
                      r"(?:\s+runs=(?P<runs>\S+))?\s+assert=(?P<assertion>.+)")
@@ -422,12 +422,13 @@ def _folder_fixture(spec, n, value):
                       "[files=<path>[:<bytes>],...] [locked=<path>,...]")
         return
     files = []
-    for item in m["files"].split(",") if m["files"] else []:
+    for item in split_top(m["files"], ",") if m["files"] else []:
         entry = FILE_ENTRY_RE.fullmatch(item)
         if not entry:
-            spec.error(n, f"FIXTURE files: expected <path> or <path>:<bytes>, got '{item}'")
+            spec.error(n, f'FIXTURE files: expected <path>, <path>:<bytes> or <path>:"<text>", got \'{item}\'')
             continue
-        files.append((entry["path"], int(entry["size"]) if entry["size"] else None))
+        text = entry["text"][1:-1].replace('""', '"') if entry["text"] else None
+        files.append((entry["path"], int(entry["size"]) if entry["size"] else None, text))
     locked = m["locked"].split(",") if m["locked"] else []
     spec.folders.append(FolderFixture(n, m["file"], m["folder"], files, locked))
 

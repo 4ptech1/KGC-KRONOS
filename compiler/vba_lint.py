@@ -20,7 +20,7 @@ BANNED = [(r"\.Select\b", "Select is banned"), (r"\.Activate\b", "Activate is ba
           (r"\bSelection\b", "Selection is banned"), (r"\bSendKeys\b", "SendKeys is banned"),
           (r"\bAs\s+Integer\b", "use Long, not Integer"), (r"^\s*End\s*$", "bare End statement"),
           (r"(?i)\b(Kill|RmDir|MkDir|ChDir|ChDrive|Shell|GetObject|Declare)\b", "file, process and API statements are banned"),
-          (r"(?i)\.(DeleteFile|DeleteFolder|MoveFile|MoveFolder|CopyFolder|CreateTextFile|OpenTextFile)\b",
+          (r"(?i)\.(DeleteFile|DeleteFolder|MoveFile|MoveFolder|CopyFolder|OpenTextFile)\b",
            "this file system method is banned"),
           (r"(?i)\b(SaveSetting|GetSetting|GetAllSettings|DeleteSetting)\b", "registry access is banned"),
           (r"(?i)\.(SaveAs|SaveCopyAs)\b", "SaveAs is banned"),
@@ -31,11 +31,12 @@ CREATE_OBJECT = {"Scripting.Dictionary": {"ForgeNewDict"}, "Scripting.FileSystem
 ONLY_IN = [("CopyFile", r"\bCopyFile\b", {"ForgeCopyFile"}),
            ("CreateFolder", r"\bCreateFolder\b", {"ForgeMakeFolder", "SandboxFolder"}),
            ("ForgeFso", r"\bForgeFso\b", {"ForgeFso", "ForgeFolderExists", "ForgeBelowRoot", "ForgeMakeFolder",
-                                         "ForgeCopyFile", "ForgeListFiles"}),
+                                         "ForgeCopyFile", "ForgeListFiles", "ForgeReadText", "ForgeWriteText"}),
            ("SandboxFso", r"\bSandboxFso\b", {"SandboxFso", "SandboxNewRoot", "SandboxFolder", "SandboxFile",
-                                             "PilotFiles"}),
+                                             "SandboxText", "PilotFiles"}),
            ("Writing files with Open", r"(?i)^Open\s+.*\bFor\s+(Output|Append|Binary|Random)\b",
-            {"SandboxFile", "SandboxLock"})]
+            {"SandboxFile", "SandboxText", "SandboxLock", "ForgeReadRaw"}),
+           ("CreateTextFile", r"\bCreateTextFile\b", {"ForgeWriteText"})]
 KNOWN_GLOBALS = {"Application", "ThisWorkbook", "ActiveWorkbook", "ActiveSheet", "Err", "Debug", "Date",
                  "Now", "True", "False", "Nothing", "Empty", "Null"}
 

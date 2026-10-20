@@ -217,6 +217,47 @@ def list_files(fs, root, folder, pattern):
     return S.list_files(fs.files_in(folder), pattern)
 
 
+def read_text(fs, root, path):
+    """READ_TEXT (D45): (status, text), in ForgeReadText's order; the text is "" unless Read."""
+    if not path or any(ch in path for ch in WILDCARDS):
+        return "Bad name", ""
+    if len(path) > MAX_FILE_PATH:
+        return "Too long", ""
+    if not path.casefold().startswith(root.rstrip("\\").casefold() + "\\"):
+        return "Bad name", ""
+    if not fs.is_file(path):
+        return "Missing", ""
+    if fs.get(path)["size"] > S.TEXT_MAX:
+        return "Too big", ""
+    if fs.get(path)["locked"]:
+        return "Locked", ""
+    text = S.file_text(fs.text_of(path))
+    return ("Not text", "") if text is None else ("Read", text)
+
+
+def write_text(fs, root, path, text):
+    """WRITE_TEXT (D45): a new file holding exactly text, never over anything; ForgeWriteText's order."""
+    if not path or any(ch in path for ch in WILDCARDS):
+        return "Bad name"
+    if len(path) > MAX_FILE_PATH:
+        return "Too long"
+    if not path.casefold().startswith(root.rstrip("\\").casefold() + "\\"):
+        return "Bad name"
+    if not S.text_ok(text):
+        return "Not text"
+    if "\\" not in path or not fs.is_folder(path.rsplit("\\", 1)[0]):
+        return "No folder"
+    entry = fs.get(path)
+    if entry is not None and (entry["kind"] == "folder" or entry["size"] != len(text)):
+        return "Conflict"
+    if entry is not None:   # a file of the same size: read it, as ForgeWriteText does
+        if entry["locked"]:
+            return "Locked"
+        return "Already there" if fs.text_of(path) == text else "Conflict"
+    fs.add_file(path, len(text), text=text)
+    return "Written"
+
+
 def copy_file(fs, src, dst):
     """COPY_FILE's status (E11). One attempt; it never overwrites, deletes or makes folders."""
     if not src or not dst or any(ch in src + dst for ch in WILDCARDS):
@@ -646,6 +687,18 @@ class Machine:
             root = S.text_of(e(pos_of(call_args(target))[0] if is_join else target))
             pattern = str(pos[1])[1:-1].replace('""', '"')
             self.assign(str(opts["into"]), list_files(self.fs, root, S.text_of(e(target)), pattern))
+        elif name in ("READ_TEXT", "WRITE_TEXT"):   # D45: a status into into=, never an error
+            target = pos[0]
+            is_join = isinstance(target, Tree) and target.data == "call" and str(target.children[0]) == "PATH_JOIN"
+            root = S.text_of(e(pos_of(call_args(target))[0] if is_join else target))
+            path = S.text_of(e(target))
+            self.file_paths.append((path, MAX_FILE_PATH))
+            if name == "READ_TEXT":
+                status, text = read_text(self.fs, root, path)
+                self.assign(str(pos[1]), text)
+            else:
+                status = write_text(self.fs, root, path, S.text_of(e(pos[1])))
+            self.assign(str(opts["into"]), status)
         elif name == "MAKE_FOLDER":
             target = pos[0]
             is_join = isinstance(target, Tree) and target.data == "call" and str(target.children[0]) == "PATH_JOIN"
@@ -915,6 +968,10 @@ class Asserter:
                 return sum(1 for r, c in pts if r not in sh.hidden and sh.get(r, c) is not None)
             if fn == "SHEET_EXISTS":   # after the run, case ignored as Excel does (D40)
                 return Book(self.before if pre else self.after).exists(self.ev(args[0]))
+            if fn == "FILE_TEXT":   # D45: what a file holds, exactly; "" when there is none
+                fs = self.fs_before if pre else self.fs_after
+                path = SANDBOX + "\\" + self.ev(args[0])
+                return fs.text_of(path) if fs.is_file(path) else ""
             if fn in ("FILE_EXISTS", "FILE_COUNT"):   # a path below the sandbox, starting with a FIXTURE folder
                 fs = self.fs_before if pre else self.fs_after
                 path = SANDBOX + "\\" + self.ev(args[0])
@@ -1067,6 +1124,7 @@ class TestResult:
     files: list = field(default_factory=list)   # VCL 0.3: the mock file system after the last run
     messages: list = field(default_factory=list)   # LOG and MSG texts of the last run (D36)
     hidden: dict = field(default_factory=dict)   # sheet -> the rows hidden after the last run (D42)
+    texts: list = field(default_factory=list)    # (path below the sandbox, text) of every text file (D45)
 
 
 def files_of(fs):
@@ -1074,6 +1132,13 @@ def files_of(fs):
     prefix = SANDBOX.casefold() + "\\"
     return sorted((e["path"][len(prefix):], e["kind"], e["size"], e["locked"])
                   for k, e in fs.entries.items() if k.startswith(prefix))
+
+
+def texts_of(fs):
+    """Every file that holds text (from a FIXTURE or WRITE_TEXT), as (path below the sandbox, text)."""
+    prefix = SANDBOX.casefold() + "\\"
+    return sorted((e["path"][len(prefix):], e["text"]) for k, e in fs.entries.items()
+                  if k.startswith(prefix) and e["kind"] == "file" and e.get("text") is not None)
 
 
 def file_unchanged_problems(roots, before, after, stopped_at_pre, limit=5):
@@ -1202,7 +1267,7 @@ def run_tests(text, today=None):
                  for name, sh in book.items()}
         hidden = {name: sorted(sh.hidden) for name, sh in book.items() if sh.hidden}
         results.append(TestResult(k["line"], not failed, result, len(log), failed, list(log), state, files_of(fs),
-                                   list(machine.messages), hidden))
+                                   list(machine.messages), hidden, texts_of(fs)))
     return results
 
 

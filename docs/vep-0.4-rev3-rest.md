@@ -4,7 +4,7 @@ Status: **design, 20 Oct 2026** (Boss said "go item 2"). Choices that needed Bos
 made the conservative way and recorded in `DECISIONS.md` D36, as CLAUDE.md asks; Boss can
 overrule any of them. Phase 1 changes no language; later phases change VCL and follow the usual
 rule (spec.md and the prompt together, every check, one Orchestrator update per switch).
-Phases 1 (D37), 2 (D38), 3 (D39), 4 (D40, D41), 5 (D42), 6 (D43) and 7a (D44) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
+Phases 1 to 7 are done (D37 to D45): every phase of item 2 is in the toolchain. The toolchain accepts the `VCL 0.4` line; spec.md and the
 prompt move to 0.4 after the last language phase (D38).
 
 ## The problem
@@ -98,7 +98,7 @@ and the dataset (item 7).
   SEQUENCE, TEXTJOIN, IFS and the like), as CLAUDE.md requires. A formula's value is proven
   only by an Excel run (the pilot of router Phase 5).
 
-### Phase 7: text files in the sandbox (decision D36; 7a done: S24, D44; 7b planned)
+### Phase 7: text files in the sandbox (decision D36; done: 7a S24, D44; 7b S25, D45)
 
 Two PRs (D44): 7a lists files, 7b reads and writes text.
 
@@ -111,20 +111,23 @@ Two PRs (D44): 7a lists files, 7b reads and writes text.
   Windows short names (`*.pdf` finds `x.pdfa`). A bad, missing or too long folder gives an empty
   list: listing never raises and changes nothing. The names are names, not paths, so a spec that
   copies a listed file builds its path with PATH_JOIN and SAFE_NAME, as T4 asks.
-- **7b (planned): READ_TEXT and WRITE_TEXT**, each with a status into `into=`, as MAKE_FOLDER
+- **7b (done): READ_TEXT and WRITE_TEXT**, each with a status into `into=`, as MAKE_FOLDER
   and COPY_FILE have (E11), so a missing or locked file never stops a run halfway. No new option
   word is added: `status` would become a reserved word (G2), and three specs have a VAR of that
   name.
   - `READ_TEXT(<path>, <String VAR>, into=<status VAR>)`: the file's text goes into the String
     VAR ("" unless the status is `Read`). Statuses in check order: `Bad name`, `Too long`,
-    `Missing`, `Too big` (more than 32,767 characters, what a cell holds), `Not text` (anything
-    but printable ASCII, tabs and line breaks: other bytes read differently with each PC's code
-    page), `Locked`, `Read`; in Excel also `Failed`. One final line break is dropped.
+    `Missing`, `Too big` (more than 32,767 characters, what a cell holds), `Locked` (before Not
+    text: a locked file can't be read to tell), `Not text` (anything but printable ASCII, tabs and
+    line breaks: other bytes read differently with each PC's code page, S25), `Read`; in Excel also
+    `Failed`. One final line break is dropped.
   - `WRITE_TEXT(<path>, <text>, into=<status VAR>)` writes a **new** file below a
     `MODIFIES $root files` root, never over one: `Bad name`, `Too long`, `Not text`, `No folder`,
-    `Already there` (the same text is there), `Conflict` (a different file is there), `Written`;
-    in Excel also `Failed`. `mode=append` is refused, because it changes a file that is there.
+    `Conflict` (a folder or a different file is there), `Locked` (a file of the same size that
+    can't be read to compare), `Already there` (the same text is there), `Written`; in Excel also
+    `Check write` and `Failed`. `mode=` is gone: append changes a file that is there.
   - Folder FIXTUREs gain file contents, `files=notes\a.txt:"text"`: one line of printable ASCII.
+    The assertion FILE_TEXT("<path>") gives a file's exact text.
 
 ### Deferred (decision D36)
 
