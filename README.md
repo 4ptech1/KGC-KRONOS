@@ -39,6 +39,8 @@ exits 1 if there is any error or no files were given; warnings alone exit 0.
 
 - `dist/forge_selftest.bas` (committed): the ForgeLib self-test, every conformance case run
   through ForgeLib in Excel (D34)
+- `dist/forge_pilot.bas` (committed): the Excel pilot of task_12; paste its results back for
+  `python compiler/vclc.py pilot-check RESULTS specs/task_12.vcl` (D35, `docs/excel-pilot.md`)
 - `dist/forge_module.bas`: one paste-ready module, the ForgeLib runtime plus one procedure per
   spec. It is committed, so you can copy it any time; CI fails if it is out of date.
 - `dist/forge_fixtures.bas`: one `ForgeFixture_<file>(wb)` builder per fixture file, with exactly
@@ -145,3 +147,7 @@ Dataset count: 0 verified pairs
   Pasted next to `forge_module.bas` in Excel, it runs all 163 conformance cases through ForgeLib
   and writes PASS or FAIL for each, plus one line to paste back. It is the first check of ForgeLib
   in real Excel 2016, and it runs only when Boss chooses (D34).
+- **2026-10-20:** Job-Pack Router Phase 5b: `dist/forge_pilot.bas` runs task_12's TESTs in Excel,
+  each on fresh synthetic sheets and a new sandbox, and writes lines to paste back;
+  `vclc pilot-check` compares them with the interpreter line by line. `docs/excel-pilot.md`
+  gives the steps. The router MVP is complete; running it in Excel is optional (D35).

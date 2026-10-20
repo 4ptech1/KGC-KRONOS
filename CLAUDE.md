@@ -84,7 +84,8 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      vcl_codegen.py (VBA compiler), vcl_fixtures.py (the one fixture
                      generator), vba_lint.py, vcl_mutate.py, gen_semantics_doc.py
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
-dist/                vclc build output; only forge_module.bas and forge_selftest.bas are committed
+dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
+                     forge_pilot.bas are committed
 templates/           one .bas template per op pattern (later)
 harness/             Excel batch runner (deferred: PR #4)
 batches/             generated batch modules (later)
@@ -116,8 +117,8 @@ logs/
   python compiler/vclc.py all specs/*.vcl -o dist
   python compiler/gen_semantics_doc.py --check
   ```
-  and commit `dist/forge_module.bas` and `dist/forge_selftest.bas` if they changed. CI runs the
-  same and fails if either is stale.
+  and commit `dist/forge_module.bas`, `dist/forge_selftest.bas` and `dist/forge_pilot.bas` if they
+  changed. CI runs the same and fails if any of them is stale.
 
 **VBA (anything that will run in Excel)**
 - `Option Explicit`, Excel 2016 compatible, late-bound `Scripting.Dictionary` (no References).
@@ -179,9 +180,12 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    length check; D30, PR #26). Boss said "go Phase 4" on 20 Oct 2026, and Phase 4 is done: 4a
    (`specs/task_12.vcl` RouteJobPacks; D32, PR #28) and 4b (spec.md and the Orchestrator prompt
    teach VCL 0.3: hard rule 21, Example 3, the new ROLE line; D33). Boss pastes the new prompt
-   into the Orchestrator Project. Boss said "go Phase 5" on 20 Oct 2026: 5a (the ForgeLib
-   self-test, `dist/forge_selftest.bas`; D34) is done; **next is 5b**, the task_12 pilot runner,
-   the results checker and `docs/excel-pilot.md`. Running the kit in Excel stays optional.
+   into the Orchestrator Project. Boss said "go Phase 5" on 20 Oct 2026, and Phase 5 is done:
+   5a (the ForgeLib self-test, `dist/forge_selftest.bas`; D34, PR #30) and 5b (the task_12 pilot,
+   `dist/forge_pilot.bas`, `vclc pilot-check` and `docs/excel-pilot.md`; D35). **The router MVP
+   is complete.** Running the kit in Excel is optional, whenever Boss chooses; when he pastes
+   results back, save them to a file and run `vclc pilot-check`. **Next: ask Boss** before
+   starting item 2.
 2. The rest of revision 3 in the compiler and interpreter (DEDUPE with `cols=[...]`, FILTER,
    SET_FORMULA, sheet and file ops), plus list syntax.
 3. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the

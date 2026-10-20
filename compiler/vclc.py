@@ -5,6 +5,7 @@
   python compiler/vclc.py build  FILES... [-o DIR]   compile, assemble, lint, write expected results
   python compiler/vclc.py mutate FILES... [--snapshot]   mutation score of each spec's tests
   python compiler/vclc.py all    FILES... [-o DIR]   check + test + build, stop at the first failure
+  python compiler/vclc.py pilot-check RESULTS FILES...  compare an Excel pilot run with the interpreter
 
 Options: -o DIR (default dist) and --today YYYY-MM-DD, which pins TODAY for test, build and
 mutate runs (default: the real date).
@@ -13,6 +14,8 @@ build writes into DIR:
   forge_module.bas      one paste-ready module: the ForgeLib runtime plus one procedure per spec
   forge_selftest.bas    the ForgeLib self-test: every conformance case, run through ForgeLib in
                         Excel (vcl_selftest.py)
+  forge_pilot.bas       the Excel pilot of the specs in vcl_pilot.PILOT_SPECS: runs their TESTs
+                        and writes lines to paste back for pilot-check (vcl_pilot.py)
   forge_fixtures.bas    the fixture builders: ForgeFixture_<file>(wb) rebuilds each synthetic
                         test workbook with exactly the data the interpreter tested on, and
                         ForgeSandbox_<file>() builds its VCL 0.3 folders in a new %TEMP% sandbox
@@ -35,6 +38,7 @@ from vcl_codegen import FORGELIB, CompileError, assemble, compile_text, module_t
 from vcl_fixtures import fixtures_module  # noqa: E402
 from vcl_interp import VclError, run_tests  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
+from vcl_pilot import PILOT_SPECS, check as pilot_check, pilot_module  # noqa: E402
 from vcl_selftest import selftest_module  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from validator import validate_file  # noqa: E402
@@ -115,8 +119,11 @@ def cmd_build(files, out_dir, today):
     if not procs:
         return False
     ok = lint_report(out / "forge_module.bas", assemble(procs, module_title(len(procs)))) and ok
-    ok = lint_report(out / "forge_selftest.bas", selftest_module(),
-                     public_helpers(FORGELIB.read_text(encoding="utf-8"))) and ok
+    forgelib_helpers = public_helpers(FORGELIB.read_text(encoding="utf-8"))
+    ok = lint_report(out / "forge_selftest.bas", selftest_module(), forgelib_helpers) and ok
+    piloted = [(Path(p).name, Path(p).read_text(encoding="utf-8")) for p in files if Path(p).name in PILOT_SPECS]
+    if piloted:
+        ok = lint_report(out / "forge_pilot.bas", pilot_module(piloted), forgelib_helpers) and ok
     try:
         fixtures = fixtures_module(fixture_sets)
     except ValueError as e:
@@ -139,10 +146,20 @@ def cmd_mutate(files, snapshot, today):
 
 
 def main(argv):
-    if len(argv) < 2 or argv[1] not in ("check", "test", "build", "mutate", "all"):
+    if len(argv) < 2 or argv[1] not in ("check", "test", "build", "mutate", "all", "pilot-check"):
         print(__doc__)
         return 1
     cmd = argv[1]
+    if cmd == "pilot-check":
+        if len(argv) < 4:
+            print("pilot-check needs the pasted results file and the piloted spec files")
+            return 1
+        pasted = Path(argv[2]).read_text(encoding="utf-8").splitlines()
+        problems = pilot_check(pasted, [(Path(p).name, Path(p).read_text(encoding="utf-8")) for p in argv[3:]])
+        for problem in problems:
+            print(problem)
+        print("PILOT OK: Excel and the interpreter agree" if not problems else f"PILOT: {len(problems)} differences")
+        return 0 if not problems else 1
     out_dir = "dist"
     today = None
     files = []
