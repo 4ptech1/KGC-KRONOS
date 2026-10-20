@@ -1,4 +1,4 @@
-"""Validate VCL 0.1, 0.2 and 0.3 specs against vcl/spec.md.
+"""Validate VCL 0.1 to 0.4 specs against vcl/spec.md.
 
 Usage:  python compiler/validator.py specs/*.vcl
 
@@ -95,7 +95,7 @@ VCL_02_FUNCS = {"SAME", "CLEAN_TEXT", "IS_ERROR", "PARSE_DATE", "IIF", "MOD"}
 VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
 VCL_03_FUNCS = {"SAFE_NAME", "PATH_JOIN", "FOLDER_EXISTS"}
 VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
-VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3}
+VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4}
 # MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
 SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE"}
 ROW_OPS = {"INSERT_ROW", "DELETE_ROW", "SORT", "DEDUPE", "FILTER"}   # these move or hide rows
@@ -162,40 +162,55 @@ class Group:
         self.items = items
 
 
+class ListLit:
+    """[a, b, ...]: a list (VCL 0.4), so far only as DEDUPE cols= (D38). elements: one items list each."""
+
+    def __init__(self, items):
+        self.elements = split_on(items, ",")
+
+
 class Unbalanced(Exception):
     pass
+
+
+OPENER = {")": "(", "]": "["}
 
 
 def build(tokens):
     """Group tokens into Calls and Groups. Returns (items, error message)."""
     pos = 0
 
-    def sequence(inside):
+    def sequence(closer):
         nonlocal pos
         items = []
         while pos < len(tokens):
             tok = tokens[pos]
-            if tok.kind == "op" and tok.text == ")":
-                if inside:
+            if tok.kind == "op" and tok.text in (")", "]"):
+                if tok.text == closer:
                     return items
-                raise Unbalanced("unbalanced brackets: ')' without '('")
+                if closer:
+                    raise Unbalanced(f"unbalanced brackets: '{OPENER[closer]}' without '{closer}'")
+                raise Unbalanced(f"unbalanced brackets: '{tok.text}' without '{OPENER[tok.text]}'")
             pos += 1
             if tok.kind == "op" and tok.text == "(":
                 prev = items[-1] if items else None
-                inner = sequence(True)
+                inner = sequence(")")
                 pos += 1  # the closing ")"
                 if isinstance(prev, Token) and prev.kind == "name" and not tok.spaced:
                     items[-1] = Call(prev, split_args(inner))
                 else:
                     items.append(Group(inner))
+            elif tok.kind == "op" and tok.text == "[":
+                items.append(ListLit(sequence("]")))
+                pos += 1  # the closing "]"
             else:
                 items.append(tok)
-        if inside:
-            raise Unbalanced("unbalanced brackets: '(' without ')'")
+        if closer:
+            raise Unbalanced(f"unbalanced brackets: '{OPENER[closer]}' without '{closer}'")
         return items
 
     try:
-        return sequence(False), ""
+        return sequence(None), ""
     except Unbalanced as exc:
         return [], str(exc)
 
@@ -236,6 +251,8 @@ def show(items):
             out.append(f"{item.name}(...)")
         elif isinstance(item, Group):
             out.append("(...)")
+        elif isinstance(item, ListLit):
+            out.append("[...]")
         else:
             out.append(item.text)
     return " ".join(out)
@@ -957,8 +974,17 @@ class TaskChecker:
         elif kind == "width":
             if not (len(items) == 1 and (is_tok(items[0], "name", "auto") or is_tok(items[0], "number"))):
                 self.error(f"{name} width= must be auto or a number, got '{text}'")
+        elif kind == "cols" and len(items) == 1 and isinstance(items[0], ListLit):   # D38
+            if not self.at_least("VCL 0.4"):
+                self.error(f"{name} cols=[...] is VCL 0.4: start the spec with 'VCL 0.4' to use it")
+            for part in items[0].elements:
+                self.check_expr(part, f"{name} cols= list value")
         elif kind == "cols":
-            for part in split_on(items, ","):
+            parts = split_on(items, ",")
+            if len(parts) > 1 and self.at_least("VCL 0.4"):
+                self.error(f"{name} cols={text.replace(' , ', ',')} is ambiguous (G3): write "
+                           f"cols=[{', '.join(show(p) for p in parts)}]")
+            for part in parts:
                 self.check_expr(part, f"{name} cols= value")
         else:
             self.check_expr(items, f"{name} {key}= value")
@@ -985,7 +1011,9 @@ class TaskChecker:
             self.error(f"{what} ends with an operator")
 
     def check_operand(self, item):
-        if isinstance(item, Group):
+        if isinstance(item, ListLit):
+            self.error("a list [...] is only allowed as DEDUPE cols=")
+        elif isinstance(item, Group):
             self.check_expr(item.items)
         elif isinstance(item, Call):
             self.check_value_call(item)
@@ -1233,7 +1261,9 @@ class AssertionChecker:
             self.error("ends with an operator")
 
     def operand(self, item):
-        if isinstance(item, Group):
+        if isinstance(item, ListLit):
+            self.error("a list [...] can't be used in an assertion")
+        elif isinstance(item, Group):
             self.expr(item.items)
         elif isinstance(item, Call):
             self.function(item)

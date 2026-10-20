@@ -157,3 +157,6 @@ Dataset count: 0 verified pairs
 - **2026-10-20:** Item 2, Phase 1: the interpreter now runs the array ops, INSERT_ROW,
   SELECT_CASE, LOG, MSG, RANGE, SHEET, FILE_NAME (S20) and FOR_EACH over SHEETS and CELLS, so
   specs that use them can be proven by TESTs. No language change (D37).
+- **2026-10-20:** Item 2, Phase 2: DEDUPE runs everywhere (interpreter, compiler, ForgeLib), with
+  key columns as a list, `cols=[1, 2]`, in the new `VCL 0.4` line. It keeps the first row of each
+  key and never deletes a row with a blank or error key cell (S21, D38).

@@ -28,6 +28,7 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S18 (VCL 0.3) | `safe_name` | SAFE_NAME(x) is CLEAN_TEXT(x) when that is a safe Windows file or folder name, else "" (empty). Unsafe: empty, longer than 100 characters, any of \ / : * ? " < > /, the names . and .., a trailing dot, or a reserved device name (CON, PRN, AUX, NUL, COM1 to COM9, LPT1 to LPT9), ignoring case and any extension (con.txt is reserved). A name can never climb out of its folder, because it can't contain a separator or be .. |
 | S19 (VCL 0.3) | `path_join` | PATH_JOIN(base, name, ...) is base, then each name, separated by \ (a trailing \ characters on base are dropped). It is "" (empty) when base is empty or any name is not already a safe name (SAFE_NAME(name) = name), so an empty or unsafe part can never become a path; a file op given "" reports Bad name. |
 | S20 (VEP 0.4, D36) | `file_name` | FILE_NAME(path) is the text after the last backslash, or all of the text when it has none; a path ending in a backslash gives "". Only \ separates: a / is part of the name. |
+| S21 (VEP 0.4, D38) | `same_row_key` | DEDUPE treats two rows as the same when both have a key and the keys are equal. A row's key is the values of its key cells, each compared as a dictionary key (S10: its canonical text, case ignored, no TRIM). A row with an empty or error key cell has no key, so DEDUPE never deletes a row because data is missing. |
 
 ## Conformance cases
 
@@ -315,3 +316,19 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | "\\server\share\a b.pdf" | "a b.pdf" | a network path; spaces are kept |
 | "C:/Jobs/r1.pdf" | "C:/Jobs/r1.pdf" | only a backslash separates |
 | (empty) | "" | empty |
+
+### DEDUPE keys (VCL 0.4)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| ["S1", "W1"], ["S1", "W1"] | True | the same values in every key column |
+| ["S1", "W1"], ["s1", "w1"] | True | case is ignored, as in dictionary keys (S10) |
+| [1001], ["1001"] | True | a number and the same number as text |
+| [2.5], ["2.50"] | False | text is compared as typed: 2.50 is not 2.5 |
+| ["S1"], ["S1 "] | False | no TRIM: a trailing space makes another key |
+| ["S1", "W1"], ["S1", "W2"] | False | one key column differs |
+| ["ab", "c"], ["a", "bc"] | False | the columns stay apart |
+| [(empty)], [(empty)] | False | an empty key: never a duplicate (data is missing) |
+| ["S1", "  "], ["S1", "  "] | False | a key cell of spaces only counts as empty |
+| [#N/A], [#N/A] | False | an error in a key cell: never a duplicate |
+| [date 2026-10-15], [date 2026-10-15] | True | the same date |

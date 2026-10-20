@@ -523,6 +523,63 @@ Public Function ForgeDictExists(ByVal d As Object, ByVal key As Variant) As Bool
     ForgeDictExists = d.Exists(ForgeText(key))
 End Function
 
+' ---- S21: DEDUPE keys (VEP 0.4 Phase 2, D38) ----
+
+Public Function ForgeRowKey(ByVal values As Variant) As Variant
+    ' The key of a row: each key value as a dictionary key (S10), its length first so the columns
+    ' stay apart. Null when a key cell is empty or an error: such a row is never a duplicate.
+    Dim i As Long
+    Dim k As String
+    Dim out As String
+    For i = LBound(values) To UBound(values)
+        If ForgeIsEmpty(values(i)) Or ForgeIsError(values(i)) Then
+            ForgeRowKey = Null
+            Exit Function
+        End If
+        k = ForgeText(values(i))
+        out = out & Len(k) & ":" & k
+    Next i
+    ForgeRowKey = out
+End Function
+
+Public Function ForgeSameRowKey(ByVal a As Variant, ByVal b As Variant) As Boolean
+    Dim ka As Variant
+    Dim kb As Variant
+    ka = ForgeRowKey(a)
+    kb = ForgeRowKey(b)
+    If IsNull(ka) Or IsNull(kb) Then Exit Function
+    ForgeSameRowKey = (StrComp(ka, kb, vbTextCompare) = 0)
+End Function
+
+Public Sub ForgeDedupe(ByVal rng As Range, ByVal cols As Variant, ByVal hasHeader As Boolean)
+    ' DEDUPE: keeps the first row of each key; each later row with that key is deleted as a whole
+    ' sheet row, bottom up, so the rows below move up. cols are sheet column numbers, as SORT key= is.
+    Dim seen As Object
+    Dim doomed() As Boolean
+    Dim parts() As Variant
+    Dim key As Variant
+    Dim first As Long
+    Dim r As Long
+    Dim i As Long
+    Set seen = ForgeNewDict()
+    If hasHeader Then first = 2 Else first = 1
+    If rng.Rows.Count < first Then Exit Sub
+    ReDim doomed(first To rng.Rows.Count)
+    ReDim parts(LBound(cols) To UBound(cols))
+    For r = first To rng.Rows.Count
+        For i = LBound(cols) To UBound(cols)
+            parts(i) = rng.Worksheet.Cells(rng.Row + r - 1, cols(i)).Value
+        Next i
+        key = ForgeRowKey(parts)
+        If Not IsNull(key) Then
+            If seen.Exists(key) Then doomed(r) = True Else seen.Add key, True
+        End If
+    Next r
+    For r = rng.Rows.Count To first Step -1
+        If doomed(r) Then rng.Worksheet.Rows(rng.Row + r - 1).Delete
+    Next r
+End Sub
+
 ' ---- VCL 0.3: S18 SAFE_NAME, S19 PATH_JOIN, FOLDER_EXISTS and the file ops (E11) ----
 ' One attempt, then a status: the file ops never raise, overwrite, delete or retry.
 

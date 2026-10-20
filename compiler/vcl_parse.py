@@ -1,7 +1,7 @@
-"""Grammar-based parser for VCL 0.1, 0.2 and 0.3 (prototype for milestone M2).
+"""Grammar-based parser for VCL 0.1 to 0.4 (prototype for milestone M2).
 
 parse(text) -> (spec, problems)
-  spec: dict with kind (TASK, BUILD, QUESTION), version ("VCL 0.1", "VCL 0.2" or "VCL 0.3"), assumes,
+  spec: dict with kind (TASK, BUILD, QUESTION), version ("VCL 0.1" to "VCL 0.4"), assumes,
         keys, ops (a nested tree) and the parsed Lark trees for every line.
   problems: list of (line_no, message). Parsing never raises on bad input.
 """
@@ -23,7 +23,7 @@ START = {"PROC": "proc_value", "KIND": "kind_value", "MODULE": "module_value",
          "FIXTURE": "fixture_value", "TEST": "test_value", "NAME": "name_value",
          "TARGET": "target_value", "ENTRY": "entry_value", "FORM": "form_value",
          "SIG": "sig_value", "FLOW": "flow_value"}
-VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3")
+VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4")
 OPENERS = {"loop_rows", "loop_cols", "for_each", "if_block", "select_case", "case_line",
            "case_else"}
 # G2: option names are reserved words, read from the grammar's OPTKEY terminal so there is one list.
@@ -31,6 +31,32 @@ OPTION_WORDS = tuple(re.search(r"OPTKEY\.2: /\(([a-z|]+)\)\(\?==\)/",
                                GRAMMAR.read_text(encoding="utf-8")).group(1).split("|"))
 
 _parser = None
+
+
+def fold_dedupe_cols(tree):
+    """Before VCL 0.4, DEDUPE wrote two key columns as cols=1,2, which the grammar reads as cols=1
+    and a positional 2 (G3). Fold those numbers into a list, so every stage sees cols=[1, 2] (D38);
+    the validator refuses the old form in a VCL 0.4 spec."""
+    calls = [t for t in tree.iter_subtrees() if t.data == "call" and str(t.children[0]) == "DEDUPE"
+             and len(t.children) > 1]
+    for call in calls:
+        out, made, cols = [], [], None
+        for item in call.children[1].children:
+            if cols is not None and isinstance(item, Token) and item.type == "NUMBER":
+                cols.children.append(item)   # cols=1,2: the 2 belongs to cols
+                continue
+            cols = None
+            out.append(item)
+            if (isinstance(item, Tree) and item.data == "option" and str(item.children[0]) == "cols"
+                    and isinstance(item.children[1], Token) and item.children[1].type == "NUMBER"):
+                cols = Tree("list_lit", [item.children[1]])
+                item.children[1] = cols
+                made.append(item)
+        for option in made:   # a single number stays a number
+            if len(option.children[1].children) == 1:
+                option.children[1] = option.children[1].children[0]
+        call.children[1].children = out
+    return tree
 
 
 def parser():
@@ -84,6 +110,8 @@ def _parse_task(lines, first_no, problems, version):
         after_key = raw[len(key):]
         value = after_key.lstrip(" ")
         tree = _parse_value(START[key], value, line_no, problems)
+        if key == "OP" and tree is not None:
+            fold_dedupe_cols(tree)
         entry = {"key": key, "line": line_no, "text": value, "tree": tree}
         spec["keys"].append(entry)
         if key != "OP" or tree is None:
@@ -137,7 +165,8 @@ def _parse_lines(lines, first_no, problems, allow_build=True, want=None):
     if want and version != want:
         problems.append((first_no + head_i, f"line 1 must be '{want}', as in the BUILD"))
     elif version not in VERSIONS:
-        problems.append((first_no + head_i, "line 1 must be 'VCL 0.1', 'VCL 0.2' or 'VCL 0.3'"))
+        problems.append((first_no + head_i, "line 1 must be " + ", ".join(f"'{v}'" for v in VERSIONS[:-1])
+                         + f" or '{VERSIONS[-1]}'"))
         version = VERSIONS[0]
     kind_i = nonblank[1][0] if len(nonblank) > 1 else head_i + 1
     kind = lines[kind_i].strip() if kind_i < len(lines) else ""

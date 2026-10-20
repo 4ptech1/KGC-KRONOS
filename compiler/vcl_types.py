@@ -1,4 +1,4 @@
-"""Prototype type checker for VCL 0.1, 0.2 and 0.3 with flow-sensitive narrowing (milestone M2).
+"""Prototype type checker for VCL 0.1 to 0.4 with flow-sensitive narrowing (milestone M2).
 
 Types: Num, Text, Date, Bool, Cell (a raw cell value: empty, number, text, date or error),
 Sheet, Book, Range, Dict, Coll, Arr, Iter.
@@ -371,7 +371,7 @@ class Checker:
                 del facts[k]
         elif name in ("COPY_ROW",) and len(pos) >= 3:
             drop_sheet_of(pos[2])
-        elif name in ("DELETE_ROW", "INSERT_ROW", "SORT"):
+        elif name in ("DELETE_ROW", "INSERT_ROW", "SORT", "DEDUPE"):
             drop_sheet_of(pos[0])
 
     def assign(self, v, vt, src, vflow, line):
@@ -405,6 +405,15 @@ class Checker:
                 vt = "Num"
             self.dict_values.setdefault(str(pos[0]), set()).add(vt if vt in SCALAR else "Cell")
             self.ty(pos[1], facts, vflow, line)
+        elif name == "DEDUPE":   # cols= is a sheet column number or a list of them (D38)
+            opts = {str(a.children[0]): a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"}
+            cols = opts.get("cols")
+            items = cols.children if isinstance(cols, Tree) and cols.data == "list_lit" else [cols]
+            for c in items:
+                if c is not None:
+                    self.need_num(self.ty(c, facts, vflow, line), c, line)
+            for p in pos:
+                self.ty(p, facts, vflow, line)
         elif name == "WRITE_ROW" and len(pos) >= 3:
             st = self.ty(pos[0], facts, vflow, line)
             if st not in ("Sheet", "?"):

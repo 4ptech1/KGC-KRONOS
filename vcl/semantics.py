@@ -300,3 +300,19 @@ def file_name(path):
     when it has none; a path ending in a backslash gives "". Only \\ separates: a / is part of
     the name."""
     return text_of(path).rsplit("\\", 1)[-1]
+
+
+def row_key(values):
+    """The DEDUPE key of a row from its key cells' values (S21), or None when it has none."""
+    if any(is_empty(v) or is_error(v) for v in values):
+        return None
+    return "".join(f"{len(k)}:{k}" for k in map(dict_key, values))   # the lengths keep "ab","c" from "a","bc"
+
+
+def same_row_key(a, b):
+    """S21 (VEP 0.4, D38): DEDUPE treats two rows as the same when both have a key and the keys are
+    equal. A row's key is the values of its key cells, each compared as a dictionary key (S10: its
+    canonical text, case ignored, no TRIM). A row with an empty or error key cell has no key, so
+    DEDUPE never deletes a row because data is missing."""
+    key = row_key(a)
+    return key is not None and key == row_key(b)
