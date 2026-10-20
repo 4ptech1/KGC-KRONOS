@@ -30,6 +30,7 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S20 (VEP 0.4, D36) | `file_name` | FILE_NAME(path) is the text after the last backslash, or all of the text when it has none; a path ending in a backslash gives "". Only \ separates: a / is part of the name. |
 | S21 (VEP 0.4, D38) | `same_row_key` | DEDUPE treats two rows as the same when both have a key and the keys are equal. A row's key is the values of its key cells, each compared as a dictionary key (S10: its canonical text, case ignored, no TRIM). A row with an empty or error key cell has no key, so DEDUPE never deletes a row because data is missing. |
 | S22 (VEP 0.4, D39) | `find` | FIND(range, x, match=...) looks at the cells row by row, left to right, and gives the first that matches, or NOTHING. match=whole (the default): the cell is SAME as x (S12). match=part: the cell's text holds TRIM(x), ignoring case (letter by letter, as LOWER); an empty TRIM(x) finds NOTHING, because every cell would hold it. Here: the 1-based position of that cell among values, or 0 for NOTHING. |
+| S23 (VEP 0.4, D40) | `sheet_name_ok` | a name ADD_SHEET may give a new sheet: 1 to 31 characters, no spaces at the ends (TRIM leaves it as it is), none of \ / ? * [ ] :, no apostrophe first or last, no character below code 32, and not History, which Excel keeps for itself (case ignored). Stricter than Excel where Excel allows lookalikes, so a name never differs from what a TEST asserts. |
 
 ## Conformance cases
 
@@ -350,3 +351,23 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | [1250], 25, "part" | 1 | part: a number is its text |
 | ["a", "b"], "  ", "part" | 0 | part: nothing to look for finds NOTHING |
 | [date 2026-10-15], "2026-10-15", "whole" | 1 | a date is its yyyy-mm-dd text |
+
+### Sheet names for ADD_SHEET (VCL 0.4)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| "Summary" | True | a plain name |
+| "NCR Log 2026-10" | True | spaces inside, digits and a dash |
+| "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" | True | 31 characters, the most Excel allows |
+| "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" | False | 32 characters is one too many |
+| "" | False | empty |
+| " Summary" | False | a space at the start |
+| "Summary " | False | a space at the end |
+| "Q1/Q2" | False | a slash |
+| "Rev[2]" | False | square brackets |
+| "Time 10:30" | False | a colon |
+| "What?" | False | a question mark |
+| "'Draft" | False | an apostrophe first |
+| "Bob's" | True | an apostrophe inside is fine |
+| "history" | False | History is kept by Excel, in any case |
+| 2026 | True | a number is its text |

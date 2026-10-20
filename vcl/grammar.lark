@@ -25,7 +25,8 @@ var_value: NAME "As" TYPE
 pre_value: expr (";" expr)*
 // VCL 0.2: MODIFIES $arg (the whole sheet) | $arg["Header", ...] (values in those columns) | $arg fills
 // VCL 0.3: | $root files (folders and files may be added below a String argument)
-modifies_value: ARG (modifies_cols | FILLS_WORD | FILES_WORD)?
+// VCL 0.4: | $book sheets (sheets may be added to a Workbook argument)
+modifies_value: ARG (modifies_cols | FILLS_WORD | FILES_WORD | SHEETS_WORD)?
 modifies_cols: "[" STRING ("," STRING)* "]"
 op_value: statement
 perf_value: PERF_FLAG+
@@ -103,7 +104,7 @@ list_lit: "[" expr ("," expr)* "]"
 
 // ---------- TEST pieces ----------
 call_target: NAME | QUALNAME
-?call_arg: NAME | STRING | NUMBER | neg_number
+?call_arg: NAME | STRING | NUMBER | neg_number | FILENAME   // VCL 0.4: a Workbook argument is its fixture file
 neg_number: "-" NUMBER
 assertion: a_cond ("AND" a_cond)*
 a_cond: a_sum (COMP_OP a_sum)?
@@ -154,6 +155,7 @@ PERF_FLAG: "screen_off" | "calc_manual" | "events_off"
 ERR_WORD: "standard"
 FILLS_WORD: "fills"
 FILES_WORD: "files"
+SHEETS_WORD: "sheets"
 ALLOW_WORD: "file_delete" | "file_overwrite" | "shell" | "http"
 TARGET_WORD: "xlsm" | "xlam"
 CONTROL_TYPE: "TextBox" | "CommandButton" | "Label" | "ListBox" | "ComboBox" | "CheckBox" | "OptionButton"
@@ -168,7 +170,7 @@ NUMBER: /\d+(\.\d+)?/
 SIGNED_NUM: /-?\d+(\.\d+)?/
 INT: /\d+/
 COLOR: /#[0-9A-Fa-f]{6}/
-FILENAME: /[a-z0-9_]+\.xlsx/
+FILENAME.2: /[a-z0-9_]+\.xlsx/   // above NAME, so a_01.xlsx is one token (VCL 0.4 Workbook arguments)
 FILE_PATH: /[A-Za-z0-9_.\-]+(\\[A-Za-z0-9_.\-]+)*/
 COLLETTER: /[A-Z]{1,3}/
 HEADER_TEXT: /[^,\r\n]+?(?=,[A-Z]{1,3}:| rows=|$)/

@@ -56,6 +56,8 @@ FUNCS = {
     "MOD": (["Num!", "Num!"], "Num"),
     # VCL 0.3; PATH_JOIN and FOLDER_EXISTS are checked by shape in ty_call (T4)
     "SAFE_NAME": (["T"], "Name"), "PATH_JOIN": (None, "Path"), "FOLDER_EXISTS": (None, "Bool"),
+    # VCL 0.4
+    "SHEET_EXISTS": (["Book", "T"], "Bool"),
 }
 FILE_OPS = {"MAKE_FOLDER", "COPY_FILE"}   # VCL 0.3: every path argument is checked by shape (T4)
 
@@ -365,6 +367,9 @@ class Checker:
                 self.assign(v, vt, opts["into"], vflow, line)
         elif name in FILE_OPS and "into" in opts:
             drop_var(str(opts["into"]))
+        elif name == "ADD_SHEET" and "into" in opts:   # the new sheet (D40)
+            drop_var(str(opts["into"]))
+            self.assign(str(opts["into"]), "Sheet", opts["into"], vflow, line)
         elif name in ("SET_VALUE", "CLEAR"):
             drop_sheet_of(pos[0])
         elif name == "WRITE_ROW" and pos:
@@ -417,6 +422,14 @@ class Checker:
                     self.need_num(self.ty(c, facts, vflow, line), c, line)
             for p in pos:
                 self.ty(p, facts, vflow, line)
+        elif name == "ADD_SHEET":   # ADD_SHEET(<book>, name=<text>, after=<sheet>, into=<Worksheet VAR>)
+            opts = {str(a.children[0]): a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"}
+            if pos and self.ty(pos[0], facts, vflow, line) not in ("Book", "?"):
+                self.err(line, f"ADD_SHEET: {canon(pos[0])} is not a workbook")
+            if "name" in opts and self.ty(opts["name"], facts, vflow, line) not in TEXTLIKE | {"?"}:
+                self.err(line, f"ADD_SHEET: name={canon(opts['name'])} is not text")
+            if "after" in opts and self.ty(opts["after"], facts, vflow, line) not in ("Sheet", "?"):
+                self.err(line, f"ADD_SHEET: after={canon(opts['after'])} is not a sheet")
         elif name == "WRITE_ROW" and len(pos) >= 3:
             st = self.ty(pos[0], facts, vflow, line)
             if st not in ("Sheet", "?"):

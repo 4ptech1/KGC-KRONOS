@@ -22,8 +22,9 @@ Public Sub ForgeSelfTest()
     SelfTestPart3
     SelfTestPart4
     SelfTestPart5
+    SelfTestPart6
     SelfTestFlush
-    total = 192
+    total = 207
     For r = 2 To total + 1
         If gWs.Cells(r, 6).Value = "PASS" Then
             passed = passed + 1
@@ -569,5 +570,41 @@ Private Sub SelfTestPart5()
     SelfTestCheck SelfTestFind(Array("a", "b"), "  ", "part"), 0#
     SelfTestCase 192, "find", "a date is its yyyy-mm-dd text"
     SelfTestCheck SelfTestFind(Array(DateSerial(2026, 10, 15)), "2026-10-15", "whole"), 1#
+    SelfTestCase 193, "sheet_name_ok", "a plain name"
+    SelfTestCheck ForgeSheetNameOk("Summary"), True
+    SelfTestCase 194, "sheet_name_ok", "spaces inside, digits and a dash"
+    SelfTestCheck ForgeSheetNameOk("NCR Log 2026-10"), True
+    SelfTestCase 195, "sheet_name_ok", "31 characters, the most Excel allows"
+    SelfTestCheck ForgeSheetNameOk("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), True
+    SelfTestCase 196, "sheet_name_ok", "32 characters is one too many"
+    SelfTestCheck ForgeSheetNameOk("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), False
+    SelfTestCase 197, "sheet_name_ok", "empty"
+    SelfTestCheck ForgeSheetNameOk(""), False
+    SelfTestCase 198, "sheet_name_ok", "a space at the start"
+    SelfTestCheck ForgeSheetNameOk(" Summary"), False
+    SelfTestCase 199, "sheet_name_ok", "a space at the end"
+    SelfTestCheck ForgeSheetNameOk("Summary "), False
+    SelfTestCase 200, "sheet_name_ok", "a slash"
+    SelfTestCheck ForgeSheetNameOk("Q1/Q2"), False
+    SelfTestFlush
+End Sub
+
+Private Sub SelfTestPart6()
+    ' A call that raises an error goes to the next line; SelfTestFlush records it.
+    On Error Resume Next
+    SelfTestCase 201, "sheet_name_ok", "square brackets"
+    SelfTestCheck ForgeSheetNameOk("Rev[2]"), False
+    SelfTestCase 202, "sheet_name_ok", "a colon"
+    SelfTestCheck ForgeSheetNameOk("Time 10:30"), False
+    SelfTestCase 203, "sheet_name_ok", "a question mark"
+    SelfTestCheck ForgeSheetNameOk("What?"), False
+    SelfTestCase 204, "sheet_name_ok", "an apostrophe first"
+    SelfTestCheck ForgeSheetNameOk("'Draft"), False
+    SelfTestCase 205, "sheet_name_ok", "an apostrophe inside is fine"
+    SelfTestCheck ForgeSheetNameOk("Bob's"), True
+    SelfTestCase 206, "sheet_name_ok", "History is kept by Excel, in any case"
+    SelfTestCheck ForgeSheetNameOk("history"), False
+    SelfTestCase 207, "sheet_name_ok", "a number is its text"
+    SelfTestCheck ForgeSheetNameOk(2026#), True
     SelfTestFlush
 End Sub

@@ -112,6 +112,29 @@ class Book:
                 return sh
         raise VclError(f"subscript out of range (VBA error 9): no sheet {S.text_of(name)!r} in the workbook")
 
+    def exists(self, name):
+        """SHEET_EXISTS: a sheet of that name, case ignored as Excel does."""
+        return any(key.casefold() == S.text_of(name).casefold() for key in self.sheets)
+
+    def add(self, name, after=None):
+        """ADD_SHEET (D40): a new empty sheet after `after` (else after the last one). A bad name or one
+        already used is an error before anything is added. The dict is changed in place, so the TEST's
+        state and assertions see the new sheet."""
+        text = S.text_of(name)
+        if not S.sheet_name_ok(text):
+            raise VclError(f"Excel error 1004: ADD_SHEET: {text!r} is not a valid sheet name (S23)")
+        if self.exists(text):
+            raise VclError(f"Excel error 1004: ADD_SHEET: a sheet named {text!r} already exists")
+        items = list(self.sheets.items())
+        at = len(items) if after is None else next((i + 1 for i, (_, sh) in enumerate(items) if sh is after), None)
+        if at is None:
+            raise VclError("Excel error 1004: ADD_SHEET: after= is not a sheet of this workbook")
+        new = Sheet(text)
+        items.insert(at, (text, new))
+        self.sheets.clear()
+        self.sheets.update(items)
+        return new
+
 
 EXCEL_ROWS, EXCEL_COLS = 1048576, 16384   # the size of an Excel 2016 sheet (XFD1048576)
 A1_REF = re.compile(r"\$?([A-Za-z]{1,3})\$?(\d+)(?::\$?([A-Za-z]{1,3})\$?(\d+))?")
@@ -202,7 +225,7 @@ class Machine:
     def __init__(self, spec, bound_args, log, today=None, fs=None, book=None):
         self.spec = spec
         self.log = log
-        self.book = Book(book if book is not None else {})
+        self.book = book if isinstance(book, Book) else Book(book if book is not None else {})
         self.messages = []   # LOG and MSG texts: never errors, never part of ERROR_COUNT (D36)
         self.fs = fs if fs is not None else MockFS()
         self.args = bound_args
@@ -428,6 +451,8 @@ class Machine:
             return Rng(rng.sheet, *cells[i - 1], *cells[i - 1]) if i else None
         if name == "IS_NOTHING":
             return e(pos[0]) is None
+        if name == "SHEET_EXISTS":   # VCL 0.4 (D40)
+            return e(pos[0]).exists(e(pos[1]))
         raise VclError(f"{name} is not supported by the MVP interpreter")
 
     # ---------- statements ----------
@@ -523,6 +548,10 @@ class Machine:
                     seen.add(key)
             for r in reversed(doomed):   # ... deleted bottom up, as ForgeDedupe does
                 delete_row(rng.sheet, r)
+        elif name == "ADD_SHEET":   # VCL 0.4 (D40): never a replacement
+            new = e(pos[0]).add(e(opts["name"]), e(opts["after"]) if "after" in opts else None)
+            if "into" in opts:
+                self.assign(str(opts["into"]), new)
         elif name == "DICT_ADD":
             d, k, v = e(pos[0]), e(pos[1]), e(pos[2])
             mode = str(opts["mode"])
@@ -799,6 +828,8 @@ class Asserter:
                 return sum(1 for p in pts if sh.fills.get(p, "").upper() == color)
             if fn == "ROWS_USED":
                 return (self.before if pre else self.after)[str(args[0])].max_row()
+            if fn == "SHEET_EXISTS":   # after the run, case ignored as Excel does (D40)
+                return Book(self.before if pre else self.after).exists(self.ev(args[0]))
             if fn in ("FILE_EXISTS", "FILE_COUNT"):   # a path below the sandbox, starting with a FIXTURE folder
                 fs = self.fs_before if pre else self.fs_after
                 path = SANDBOX + "\\" + self.ev(args[0])
@@ -832,13 +863,15 @@ def modifies_of(spec):
             entry.setdefault("cols", []).extend(str(h)[1:-1].replace('""', '"') for h in kids[1].children)
         elif kids[1].type == "FILES_WORD":
             entry["files"] = True   # VCL 0.3: a root folder, checked on the mock file system (router Phase 2)
+        elif kids[1].type == "SHEETS_WORD":
+            entry["sheets"] = True   # VCL 0.4: new sheets may be added to a Workbook argument (D40)
         else:
             entry["fills"] = True
     return out
 
 
 WRITE_OPS = {"SET_VALUE", "WRITE_ROW", "FORMAT", "CLEAR", "COPY_ROW", "INSERT_ROW", "DELETE_ROW", "SORT",
-             "WRITE_ARRAY", "SET_FORMULA", "DEDUPE", "FILTER"}
+             "WRITE_ARRAY", "SET_FORMULA", "DEDUPE", "FILTER", "ADD_SHEET", "COPY_SHEET"}
 
 
 def writes_anything(spec):
@@ -889,12 +922,16 @@ def _show(v):
     return '"' + v + '"' if isinstance(v, str) else S.text_of(v)
 
 
-def unchanged_problems(modifies, sheet_args, before, after, stopped_at_pre, limit=5):
+def unchanged_problems(modifies, sheet_args, before, after, stopped_at_pre, limit=5, book_args=()):
     """Cells MODIFIES doesn't allow to change that did change, as "UNCHANGED: ..." lines.
-    sheet_args maps each sheet name to the arguments the TEST passed it as. When every run
-    stopped at PRE, nothing may change at all."""
+    sheet_args maps each sheet name to the arguments the TEST passed it as; book_args are the
+    Workbook arguments (VCL 0.4), whose MODIFIES $book sheets lets new sheets appear (D40). When
+    every run stopped at PRE, nothing may change at all."""
     found = []
+    may_add = not stopped_at_pre and any(modifies.get(arg, {}).get("sheets") for arg in book_args)
     for name in sorted(set(before) | set(after)):
+        if name not in before and may_add:
+            continue   # a new sheet: everything on it is new
         if name not in before or name not in after:
             found.append(f"UNCHANGED: sheet {name} was {'added' if name in after else 'removed'}")
             continue
@@ -1020,9 +1057,15 @@ def run_tests(text, today=None):
         fs = systems[fixture].snapshot()
         fs_before = fs.snapshot()
         params = [str(p.children[0]) for kk in spec["keys"] if kk["key"] == "ARGS" for p in kk["tree"].children]
-        bound = {}
+        wb = Book(book)   # THIS_BOOK, ACTIVE_BOOK and every Workbook argument: this TEST's fixture file
+        bound, book_args = {}, []
         for pname, v in zip(params, call_vals):
-            if isinstance(v, Token) and v.type == "NAME" and str(v) in book:
+            if isinstance(v, Token) and v.type == "FILENAME":   # VCL 0.4 (D40)
+                if str(v) != fixture:
+                    raise VclError(f"TEST passes {v} for ${pname}, but its fixture is {fixture}")
+                bound[pname] = wb
+                book_args.append(pname)
+            elif isinstance(v, Token) and v.type == "NAME" and str(v) in book:
                 bound[pname] = book[str(v)]
             elif isinstance(v, Token) and v.type == "NAME":   # a FIXTURE folder (F6)
                 if not fs.is_folder(SANDBOX + "\\" + str(v)):
@@ -1038,7 +1081,7 @@ def run_tests(text, today=None):
         file_paths = []
         for _ in range(runs):
             log.clear()
-            machine = Machine(spec, bound, log, today, fs, book)
+            machine = Machine(spec, bound, log, today, fs, wb)
             result = machine.run()
             stopped_at_pre = stopped_at_pre and machine.pre_failed
             file_paths += machine.file_paths
@@ -1057,7 +1100,7 @@ def run_tests(text, today=None):
             for pname, v in zip(params, call_vals):
                 if isinstance(v, Token) and v.type == "NAME":
                     sheet_args.setdefault(str(v), []).append(pname)
-            failed += unchanged_problems(modifies, sheet_args, before, book, stopped_at_pre)
+            failed += unchanged_problems(modifies, sheet_args, before, book, stopped_at_pre, book_args=book_args)
             roots = [bound[a] for a, kinds in modifies.items() if kinds.get("files") and isinstance(bound.get(a), str)]
             failed += file_unchanged_problems(roots, fs_before, fs, stopped_at_pre)
         failed += sandbox_length_problems(file_paths)

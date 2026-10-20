@@ -329,3 +329,13 @@ def find(values, x, match="whole"):
         if same(v, x) if match == "whole" else (want and want in text_of(v).lower()):
             return i
     return 0
+
+
+def sheet_name_ok(v):
+    """S23 (VEP 0.4, D40): a name ADD_SHEET may give a new sheet: 1 to 31 characters, no spaces at
+    the ends (TRIM leaves it as it is), none of \\ / ? * [ ] :, no apostrophe first or last, no
+    character below code 32, and not History, which Excel keeps for itself (case ignored). Stricter
+    than Excel where Excel allows lookalikes, so a name never differs from what a TEST asserts."""
+    s = text_of(v)
+    return (1 <= len(s) <= 31 and trim(s) == s and not any(ch in '\\/?*[]:' or ord(ch) < 32 for ch in s)
+            and not s.startswith("'") and not s.endswith("'") and s.lower() != "history")
