@@ -378,8 +378,11 @@ The key safety design for files:
 - **No overwrite, no delete, no retry loops.**
 
 **After the MVP** (`docs/vcl-mvp-plan.md`):
-1. The rest of revision 3 in the interpreter and compiler: DEDUPE with `cols=[...]`, FILTER,
-   SET_FORMULA, sheet and file ops, list syntax.
+1. The rest of revision 3 in the interpreter and compiler (Boss said "go item 2" on 20 Oct
+   2026), designed in `docs/vep-0.4-rev3-rest.md` (D36): first the interpreter catches up with
+   what already compiles, then list syntax with DEDUPE, FIND, the sheet ops, FILTER (it hides
+   rows by SAME, never by AutoFilter criteria), SET_FORMULA (tested by its text) and text files
+   (new files only). OPEN_BOOK, SAVE_AS and CLOSE_BOOK wait until March 2027.
 2. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
 3. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
    Mutants double as "read carefully" contrast pairs.
@@ -396,8 +399,7 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 (Boss's daily use).
 
 **Pending Boss decisions right now:**
-1. "go item 2" (the rest of revision 3 in the compiler and interpreter); Claude Code waits.
-2. When, if ever, to run the optional Excel pilot (`docs/excel-pilot.md`).
+1. When, if ever, to run the optional Excel pilot (`docs/excel-pilot.md`).
 3. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
    skipped column A, no TEST would notice. Closing it needs a FIXTURE whose last row has a value
    only in column A. That is a spec change, so it waits for Boss.

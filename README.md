@@ -151,3 +151,6 @@ Dataset count: 0 verified pairs
   each on fresh synthetic sheets and a new sandbox, and writes lines to paste back;
   `vclc pilot-check` compares them with the interpreter line by line. `docs/excel-pilot.md`
   gives the steps. The router MVP is complete; running it in Excel is optional (D35).
+- **2026-10-20:** Item 2 of the MVP plan, the rest of revision 3, is designed in
+  `docs/vep-0.4-rev3-rest.md` (D36): seven phases, starting with the interpreter catching up
+  with what already compiles. Ops that would open or save real workbooks wait until March.
