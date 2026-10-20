@@ -213,4 +213,17 @@ CASES = [
     ("same_row_key", [["S1", "  "], ["S1", "  "]], False, "a key cell of spaces only counts as empty"),
     ("same_row_key", [[NA], [NA]], False, "an error in a key cell: never a duplicate"),
     ("same_row_key", [[D], [D]], True, "the same date"),
+    # S22 FIND (VEP 0.4 Phase 3)
+    ("find", [["Seam", "Welder"], "welder", "whole"], 2, "whole: SAME, so case is ignored"),
+    ("find", [[" W1 ", "W1"], "W1", "whole"], 1, "whole: spaces at the ends are ignored"),
+    ("find", [["W12", "W1"], "W1", "whole"], 2, "whole: all of the text must match"),
+    ("find", [[25, "25"], "25.0", "whole"], 0, "numbers compare as text: 25.0 is not 25"),
+    ("find", [[25], "25", "whole"], 1, "a number and the same number as text"),
+    ("find", [["a", None, "b"], "", "whole"], 2, "whole: an empty x finds the first empty cell"),
+    ("find", [["a", "b"], "c", "whole"], 0, "not there: NOTHING"),
+    ("find", [["W12", "W1"], "W1", "part"], 1, "part: the first cell that holds the text"),
+    ("find", [["Seam S-12 repair"], " s-12 ", "part"], 1, "part: TRIM(x), case ignored"),
+    ("find", [[1250], 25, "part"], 1, "part: a number is its text"),
+    ("find", [["a", "b"], "  ", "part"], 0, "part: nothing to look for finds NOTHING"),
+    ("find", [[D], "2026-10-15", "whole"], 1, "a date is its yyyy-mm-dd text"),
 ]

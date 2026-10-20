@@ -23,7 +23,7 @@ Public Sub ForgeSelfTest()
     SelfTestPart4
     SelfTestPart5
     SelfTestFlush
-    total = 180
+    total = 192
     For r = 2 To total + 1
         If gWs.Cells(r, 6).Value = "PASS" Then
             passed = passed + 1
@@ -135,6 +135,19 @@ Private Function SelfTestLastRow(ByVal values As Variant) As Long
         If Not IsEmpty(values(i)) Then ForgeSetValue gScratch.Cells(i - LBound(values) + 1, 1), values(i)
     Next i
     SelfTestLastRow = ForgeLastRow(gScratch, 1)
+End Function
+
+Private Function SelfTestFind(ByVal values As Variant, ByVal x As Variant, ByVal match As String) As Long
+    ' FIND on row 1 of a scratch sheet holding these values (Empty: a blank cell): the column found, or 0.
+    Dim i As Long
+    Dim found As Range
+    gScratch.Cells.Clear
+    For i = LBound(values) To UBound(values)
+        If Not IsEmpty(values(i)) Then ForgeSetValue gScratch.Cells(1, i - LBound(values) + 1), values(i)
+    Next i
+    Set found = ForgeFind(gScratch.Range(gScratch.Cells(1, 1), gScratch.Cells(1, UBound(values) - LBound(values) + 1)), _
+        x, match = "whole")
+    If Not found Is Nothing Then SelfTestFind = found.Column
 End Function
 
 Private Function SelfTestDictHas(ByVal key As Variant, ByVal want As String) As Boolean
@@ -532,5 +545,29 @@ Private Sub SelfTestPart5()
     SelfTestCheck ForgeSameRowKey(Array(CVErr(xlErrNA)), Array(CVErr(xlErrNA))), False
     SelfTestCase 180, "same_row_key", "the same date"
     SelfTestCheck ForgeSameRowKey(Array(DateSerial(2026, 10, 15)), Array(DateSerial(2026, 10, 15))), True
+    SelfTestCase 181, "find", "whole: SAME, so case is ignored"
+    SelfTestCheck SelfTestFind(Array("Seam", "Welder"), "welder", "whole"), 2#
+    SelfTestCase 182, "find", "whole: spaces at the ends are ignored"
+    SelfTestCheck SelfTestFind(Array(" W1 ", "W1"), "W1", "whole"), 1#
+    SelfTestCase 183, "find", "whole: all of the text must match"
+    SelfTestCheck SelfTestFind(Array("W12", "W1"), "W1", "whole"), 2#
+    SelfTestCase 184, "find", "numbers compare as text: 25.0 is not 25"
+    SelfTestCheck SelfTestFind(Array(25#, "25"), "25.0", "whole"), 0#
+    SelfTestCase 185, "find", "a number and the same number as text"
+    SelfTestCheck SelfTestFind(Array(25#), "25", "whole"), 1#
+    SelfTestCase 186, "find", "whole: an empty x finds the first empty cell"
+    SelfTestCheck SelfTestFind(Array("a", Empty, "b"), "", "whole"), 2#
+    SelfTestCase 187, "find", "not there: NOTHING"
+    SelfTestCheck SelfTestFind(Array("a", "b"), "c", "whole"), 0#
+    SelfTestCase 188, "find", "part: the first cell that holds the text"
+    SelfTestCheck SelfTestFind(Array("W12", "W1"), "W1", "part"), 1#
+    SelfTestCase 189, "find", "part: TRIM(x), case ignored"
+    SelfTestCheck SelfTestFind(Array("Seam S-12 repair"), " s-12 ", "part"), 1#
+    SelfTestCase 190, "find", "part: a number is its text"
+    SelfTestCheck SelfTestFind(Array(1250#), 25#, "part"), 1#
+    SelfTestCase 191, "find", "part: nothing to look for finds NOTHING"
+    SelfTestCheck SelfTestFind(Array("a", "b"), "  ", "part"), 0#
+    SelfTestCase 192, "find", "a date is its yyyy-mm-dd text"
+    SelfTestCheck SelfTestFind(Array(DateSerial(2026, 10, 15)), "2026-10-15", "whole"), 1#
     SelfTestFlush
 End Sub

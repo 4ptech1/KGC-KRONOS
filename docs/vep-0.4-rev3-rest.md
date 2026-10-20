@@ -4,7 +4,7 @@ Status: **design, 20 Oct 2026** (Boss said "go item 2"). Choices that needed Bos
 made the conservative way and recorded in `DECISIONS.md` D36, as CLAUDE.md asks; Boss can
 overrule any of them. Phase 1 changes no language; later phases change VCL and follow the usual
 rule (spec.md and the prompt together, every check, one Orchestrator update per switch).
-Phases 1 (D37) and 2 (D38) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
+Phases 1 (D37), 2 (D38) and 3 (D39) are done. The toolchain accepts the `VCL 0.4` line; spec.md and the
 prompt move to 0.4 after the last language phase (D38).
 
 ## The problem
@@ -66,7 +66,7 @@ and the dataset (item 7).
   Excel's RemoveDuplicates, whose comparison isn't documented. ForgeDedupe marks the rows top
   down and deletes them bottom up. It needs the whole sheet in MODIFIES (as today).
 
-### Phase 3: FIND
+### Phase 3: FIND (done: S22, D39)
 
 - FIND(range, x, match=whole) is the first cell, row by row, whose value is SAME as x;
   `match=part` is the first whose text contains TRIM(x), ignoring case. FIND gives a Range or

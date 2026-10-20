@@ -36,7 +36,7 @@ CALLS = {
     "parse_date": "ForgeParseDate({0}, {1})", "iif": "ForgeIif({0}, {1}, {2})", "mod": "ForgeMod({0}, {1})",
     "needs_text_guard": "ForgeNeedsTextGuard({0})", "safe_name": "ForgeSafeName({0})",
     "file_name": "ForgeFileName({0})",
-    "same_row_key": "ForgeSameRowKey({0}, {1})",
+    "same_row_key": "ForgeSameRowKey({0}, {1})", "find": "SelfTestFind({0}, {1}, {2})",
 }
 XL_ERRORS = {"#N/A": "xlErrNA", "#DIV/0!": "xlErrDiv0", "#VALUE!": "xlErrValue", "#REF!": "xlErrRef",
              "#NAME?": "xlErrName", "#NUM!": "xlErrNum", "#NULL!": "xlErrNull"}
@@ -230,6 +230,19 @@ Private Function SelfTestLastRow(ByVal values As Variant) As Long
         If Not IsEmpty(values(i)) Then ForgeSetValue gScratch.Cells(i - LBound(values) + 1, 1), values(i)
     Next i
     SelfTestLastRow = ForgeLastRow(gScratch, 1)
+End Function
+
+Private Function SelfTestFind(ByVal values As Variant, ByVal x As Variant, ByVal match As String) As Long
+    ' FIND on row 1 of a scratch sheet holding these values (Empty: a blank cell): the column found, or 0.
+    Dim i As Long
+    Dim found As Range
+    gScratch.Cells.Clear
+    For i = LBound(values) To UBound(values)
+        If Not IsEmpty(values(i)) Then ForgeSetValue gScratch.Cells(1, i - LBound(values) + 1), values(i)
+    Next i
+    Set found = ForgeFind(gScratch.Range(gScratch.Cells(1, 1), gScratch.Cells(1, UBound(values) - LBound(values) + 1)), _
+        x, match = "whole")
+    If Not found Is Nothing Then SelfTestFind = found.Column
 End Function
 
 Private Function SelfTestDictHas(ByVal key As Variant, ByVal want As String) As Boolean

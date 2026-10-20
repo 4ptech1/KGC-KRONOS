@@ -252,6 +252,9 @@ class Gen:
             return f"ForgeIsNumber({e(0)})", "bool"
         if name == "IS_DATE":
             return f"ForgeIsDate({e(0)})", "bool"
+        if name == "FIND":   # S22: Nothing when no cell matches (D39)
+            whole = "False" if str(opts.get("match", "whole")) == "part" else "True"
+            return f"ForgeFind({self.rng(pos[0])}, {e(1)}, {whole})", "obj"
         if name == "IS_NOTHING":
             return f"({e(0)} Is Nothing)", "bool"
         if name == "SAME":

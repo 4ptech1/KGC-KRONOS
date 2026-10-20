@@ -471,6 +471,27 @@ Public Sub ForgeInsertRow(ByVal ws As Worksheet, ByVal rowNo As Long)
     ws.Rows(rowNo).ClearFormats
 End Sub
 
+Public Function ForgeFind(ByVal rng As Range, ByVal x As Variant, ByVal whole As Boolean) As Range
+    ' FIND (S22): the first cell, row by row, that is SAME as x (whole) or whose text holds TRIM(x),
+    ' case ignored (part); Nothing when none does. It loops itself: Range.Find keeps LookIn, LookAt
+    ' and MatchCase from the last search, even one made by hand in Excel.
+    Dim cell As Range
+    Dim want As String
+    want = LCase$(ForgeTrim(x))
+    If Not whole And Len(want) = 0 Then Exit Function
+    For Each cell In rng.Cells
+        If whole Then
+            If ForgeSame(cell.Value, x) Then
+                Set ForgeFind = cell
+                Exit Function
+            End If
+        ElseIf InStr(1, LCase$(ForgeText(cell.Value)), want, vbBinaryCompare) > 0 Then
+            Set ForgeFind = cell
+            Exit Function
+        End If
+    Next cell
+End Function
+
 Public Function ForgeFileName(ByVal path As Variant) As String
     ' FILE_NAME (S20): the text after the last backslash; all of it when there is none.
     Dim s As String

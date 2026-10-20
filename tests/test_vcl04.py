@@ -1,7 +1,7 @@
 """VEP 0.4 (docs/vep-0.4-rev3-rest.md). Phase 1: the interpreter runs what the compiler already
 compiled: INSERT_ROW, READ_ARRAY, WRITE_ARRAY, ARR, ROWS, COLS, SELECT_CASE, LOG, MSG, RANGE, SHEET,
 FILE_NAME and FOR_EACH over SHEETS and CELLS (D36, D37). Phase 2: the VCL 0.4 line, lists in
-DEDUPE cols=[...] and DEDUPE itself (S21, D38)."""
+DEDUPE cols=[...] and DEDUPE itself (S21, D38). Phase 3: FIND, IS_NOTHING and NOTHING (S22, D39)."""
 import sys
 import unittest
 from pathlib import Path
@@ -115,6 +115,33 @@ TEST     fixture=welds_01.xlsx call=DropRepeatedWelds(Welds) runs=2 assert=RESUL
 TEST     fixture=welds_01.xlsx call=DropRepeatedWelds(Other) assert=RESULT = -1 AND ERROR_COUNT = 1 AND COUNTA(Other!A:A) = PRE_COUNTA(Other!A:A)
 """
 
+# FIND written in place, so MODIFIES can tell the sheet: highlight the first matching NCR.
+FIND = r"""VCL 0.3
+TASK
+# ASSUME: NCR numbers are in A2:A9 of the register and notes in B2:B9; the number is matched with SAME
+# ASSUME: the first matching NCR is highlighted yellow; a number that is not there gives 0 and changes nothing
+PROC     FlagNcr
+KIND     Function
+MODULE   modNcr
+ARGS     ws As Worksheet, ncrNo As String
+RET      Long
+VAR      n As Long
+PRE      COL($ws, "NCR No") > 0
+MODIFIES $ws fills
+OP       IF IS_NOTHING(FIND(RANGE($ws, "A2:A9"), $ncrNo, match=whole)) THEN RETURN(0)
+OP       FORMAT(FIND(RANGE($ws, "A2:A9"), $ncrNo, match=whole), fill=yellow)
+OP       LET(n, 1)
+OP       IF NOT IS_NOTHING(FIND(RANGE($ws, "B2:B9"), $ncrNo, match=part)) THEN LET(n, 2)
+OP       RETURN(n)
+ERR      standard
+FIXTURE  ncr_01.xlsx sheet=Ncr cols=A:NCR No,B:Note rows=8 data=A:values("NCR-001"x1,"NCR-0071"x1," NCR-007 "x1,"NCR-007"x1,"NCR-010"x1,""x1,"NCR-012"x1,"NCR-013"x1)+boundary("NCR-001","NCR-0071"," NCR-007 ","NCR-007","NCR-010","","NCR-012","NCR-013");B:values("ok"x5,"Rework per ncr-007"x1,""x2)+boundary("ok","ok","ok","ok","ok","Rework per ncr-007","","")
+FIXTURE  ncr_01.xlsx sheet=Other cols=A:Item rows=2 data=A:seq(1,1)
+TEST     fixture=ncr_01.xlsx call=FlagNcr(Ncr, "ncr-007") runs=2 assert=RESULT = 2 AND ERROR_COUNT = 0 AND FILL_COUNT(Ncr!A4, #FFFF00) = 1 AND FILL_COUNT(Ncr!A2:A9, #FFFF00) = 1
+TEST     fixture=ncr_01.xlsx call=FlagNcr(Ncr, "NCR-010") assert=RESULT = 1 AND ERROR_COUNT = 0 AND FILL_COUNT(Ncr!A6, #FFFF00) = 1 AND COUNTA(Ncr!A:A) = PRE_COUNTA(Ncr!A:A)
+TEST     fixture=ncr_01.xlsx call=FlagNcr(Ncr, "NCR-099") assert=RESULT = 0 AND ERROR_COUNT = 0 AND FILL_COUNT(Ncr!A2:B9, #FFFF00) = 0
+TEST     fixture=ncr_01.xlsx call=FlagNcr(Other, "NCR-001") assert=RESULT = -1 AND ERROR_COUNT = 1
+"""
+
 FIXTURE = 'FIXTURE  t_01.xlsx sheet=Data cols=A:Key,B:Qty rows=4 data=A:values("a"x2,"b"x2);B:int(1,9)'
 
 
@@ -138,7 +165,7 @@ def cells(result, sheet="Data"):
 
 class Samples(unittest.TestCase):
     def test_they_validate_pass_and_catch_every_mutant(self):
-        for name, text in (("GRADE", GRADE), ("MARKS", MARKS), ("DEDUPE", DEDUPE)):
+        for name, text in (("GRADE", GRADE), ("MARKS", MARKS), ("DEDUPE", DEDUPE), ("FIND", FIND)):
             with self.subTest(name):
                 self.assertEqual([p.message for p in validator.validate_text(text)], [])
                 results = run_tests(text)
@@ -165,6 +192,10 @@ class Samples(unittest.TestCase):
         vba = compile_text(DEDUPE)
         self.assertEqual(lint(assemble([vba])), [])
         self.assertIn('ForgeDedupe ForgeUsedRange(ws), Array(ForgeCol(ws, "Seam"), ForgeCol(ws, "Welder")), True', vba)
+        vba = compile_text(FIND)
+        self.assertEqual(lint(assemble([vba])), [])
+        self.assertIn('If (ForgeFind(ws.Range("A2:A9"), ncrNo, True) Is Nothing) Then', vba)
+        self.assertIn('If (Not (ForgeFind(ws.Range("B2:B9"), ncrNo, False) Is Nothing)) Then n = 2', vba)
 
     def test_log_and_msg_are_never_errors(self):
         grade, marks = run_tests(GRADE)[0], run_tests(MARKS)[0]
@@ -283,6 +314,43 @@ class Dedupe(unittest.TestCase):
         self.assertTrue(any("raw cell value" in m for _, m in found), found)
 
 
+class Find(unittest.TestCase):
+    def found(self, find):
+        """The cell FIND marks with SET_VALUE(..., "hit"), or None when it gave NOTHING."""
+        r = run(ops(f'IF NOT IS_NOTHING({find}) THEN SET_VALUE({find}, "hit")'))
+        self.assertEqual(r.errors, 0)
+        return next((rc for rc, v in cells(r).items() if v == "hit"), None)
+
+    def test_row_by_row_and_the_first_match(self):
+        self.assertEqual(self.found('FIND(USED_RANGE($ws), "b")'), (4, 1))         # rows 4 and 5 hold "b"
+        self.assertEqual(self.found('FIND(USED_RANGE($ws), "KEY", match=part)'), (1, 1))
+        self.assertEqual(self.found('FIND(RANGE($ws, "A2:B5"), "")'), None)       # no empty cell in A2:B5
+
+    def test_row_order_not_column_order(self):
+        grid = 'FIXTURE  t_01.xlsx sheet=Data cols=A:Key,B:Qty rows=2 data=A:values("x"x1,"y"x1)+boundary("x","y");B:values("y"x1,"x"x1)+boundary("y","x")'
+        r = run(ops('SET_VALUE(FIND(RANGE($ws, "A2:B3"), "y"), "hit")').replace(FIXTURE, grid))
+        self.assertEqual(cells(r)[(2, 2)], "hit")   # B2 comes before A3; column order would give A3
+
+    def test_nothing(self):
+        self.assertEqual(self.found('FIND(USED_RANGE($ws), "zz")'), None)
+        self.assertEqual(self.found('FIND(USED_RANGE($ws), " ", match=part)'), None)   # nothing to look for
+        self.assertEqual(run(ops("IF IS_NOTHING(NOTHING) THEN LET(n, 7)")).result, 7)
+        r = run(ops('SET_VALUE(FIND(USED_RANGE($ws), "zz"), 1)'))                   # VBA error 91
+        self.assertEqual((r.result, r.errors), (-2, 1))
+
+    def test_a_range_variable_holds_it(self):
+        text = ops('LET(hit, FIND(USED_RANGE($ws), "a"))', "IF NOT IS_NOTHING(hit) THEN LET(n, 1)",
+                   head=["VAR      hit As Range"])
+        self.assertEqual(run(text).result, 1)
+        self.assertIn('Set hit = ForgeFind(ForgeUsedRange(ws), "a", True)', compile_text(text))
+
+    def test_modifies_knows_the_sheet_of_find_in_place_only(self):
+        self.assertEqual(errors(ops('SET_VALUE(FIND(USED_RANGE($ws), "a"), 1)')), [])
+        found = errors(ops('LET(hit, FIND(USED_RANGE($ws), "a"))', "SET_VALUE(hit, 1)", head=["VAR      hit As Range"]))
+        self.assertIn("SET_VALUE: MODIFIES can't tell which sheet this changes; write through CELL, ROW_RANGE, "
+                      "USED_RANGE, RANGE or FIND of a $sheet argument", found)
+
+
 class Facts(unittest.TestCase):
     """An op that moves rows or writes a block forgets what the guards proved about that sheet."""
     GUARD = "IF IS_NUMBER(CELL($ws, 2, 2))"
@@ -320,6 +388,10 @@ class ForgeLib(unittest.TestCase):
         self.assertLess(dedupe.index("key = ForgeRowKey(parts)"), dedupe.index("Step -1"))   # marked first, deleted after
         self.assertIn("If doomed(r) Then rng.Worksheet.Rows(rng.Row + r - 1).Delete", dedupe)
         self.assertIn("If ForgeIsEmpty(values(i)) Or ForgeIsError(values(i)) Then", self.body("ForgeRowKey"))
+        find = self.body("ForgeFind")
+        self.assertIn("For Each cell In rng.Cells", find)
+        self.assertNotIn(".Find(", find)   # Range.Find keeps the settings of the last search
+        self.assertIn("If Not whole And Len(want) = 0 Then Exit Function", find)
 
 
 if __name__ == "__main__":
