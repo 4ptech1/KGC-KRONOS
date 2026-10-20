@@ -283,6 +283,26 @@ class Dedupe(unittest.TestCase):
         self.assertTrue(any("raw cell value" in m for _, m in found), found)
 
 
+class Facts(unittest.TestCase):
+    """An op that moves rows or writes a block forgets what the guards proved about that sheet."""
+    GUARD = "IF IS_NUMBER(CELL($ws, 2, 2))"
+
+    def test_the_type_checker_forgets(self):
+        for op in ("DEDUPE(USED_RANGE($ws), cols=1, header=yes)", "WRITE_ARRAY(a, to=CELL($ws, 1, 1))"):
+            with self.subTest(op):
+                text = ops(self.GUARD, "  READ_ARRAY(CELL($ws, 1, 1), into=a)", "  " + op,
+                           "  LET(n, CELL($ws, 2, 2) + 1)", head=["VAR      a As Variant"])
+                found = check_text(text)
+                self.assertTrue(any("raw cell value CELL($ws,2,2)" in m for _, m in found), found)
+
+    def test_a_text_test_after_it_compiles(self):   # before the fix: "can't compare Num with Text"
+        for op in ("DEDUPE(USED_RANGE($ws), cols=1, header=yes)", "WRITE_ARRAY(a, to=CELL($ws, 1, 1))"):
+            with self.subTest(op):
+                text = ops(self.GUARD, "  READ_ARRAY(CELL($ws, 1, 1), into=a)", "  " + op,
+                           '  IF CELL($ws, 2, 2) = "x" THEN LET(n, 1)', head=["VAR      a As Variant"])
+                self.assertIn('ForgeEq(ws.Cells(2, 2).Value, "x")', compile_text(text))
+
+
 class ForgeLib(unittest.TestCase):
     def body(self, name):
         for kind in ("Function", "Sub"):
