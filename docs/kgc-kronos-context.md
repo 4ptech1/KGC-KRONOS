@@ -109,6 +109,7 @@ compiler/vcl_migrate.py   VCL 0.1 to 0.2 rewriter, with --prove
 compiler/gen_semantics_doc.py  writes docs/vcl-semantics.md
 vba/ForgeLib.bas          the VBA runtime every generated procedure calls
 dist/forge_module.bas     committed build output: ForgeLib plus one procedure per spec (paste-ready)
+dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance case run in Excel (D34)
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
 tests/                    211 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
@@ -359,7 +360,8 @@ Boss's decisions:
 | 3b | A sandbox builder in `%TEMP%` for the folder FIXTUREs (`ForgeSandbox_<file>()`); a TEST fails when Excel's longer sandbox root could change a Too long status (D30) | **Done** (PR #26) |
 | 4a | `specs/task_12.vcl` RouteJobPacks: every status on a row of its own, a re-run, two PRE failures; 29 of 29 mutants caught (D32) | **Done** (PR #28) |
 | 4b | The shared reference text and the prompt switch to 0.3 (hard rule 21, Example 3), and Boss updates the Orchestrator again (exact clicks) (D33) | **Done** (PR #29); Boss pastes the prompt |
-| 5 | Excel pilot kit: a ForgeLib self-test of the conformance cases, a sandbox, and a 5-step guide for Boss | Planned, optional |
+| 5a | The ForgeLib self-test: every conformance case run through ForgeLib in Excel (`dist/forge_selftest.bas`, D34) | **Done** |
+| 5b | The task_12 pilot runner, the results checker and a step-by-step guide for Boss | **Next** (Boss said "go Phase 5" on 20 Oct 2026); running it stays optional |
 
 The key safety design for files:
 - **Every path is built** with `PATH_JOIN` from a `$root` argument and `SAFE_NAME` parts.
@@ -399,7 +401,8 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 
 - **D1:** one fixture generator, a SplitMix64 PRNG seeded from SHA-256 of
   "file|sheet|column". The data never depends on the Python version.
-- **D3:** only `dist/forge_module.bas` is committed. The expected results depend on TODAY.
+- **D3:** only `dist/forge_module.bas` is committed (and, since D34, `dist/forge_selftest.bas`).
+  The expected results depend on TODAY.
 - **D12, D20:** frozen copies are kept instead of rewriting pinned tests.
   `tests/data/specs_v01` proves the 0.1 to 0.2 migration in CI.
 - **D14:** the 15 surviving mutants are equivalent, and still count against the score.

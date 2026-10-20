@@ -37,6 +37,8 @@ exits 1 if there is any error or no files were given; warnings alone exit 0.
 
 `vclc all` runs the validator, then every TEST in the reference interpreter, then builds:
 
+- `dist/forge_selftest.bas` (committed): the ForgeLib self-test, every conformance case run
+  through ForgeLib in Excel (D34)
 - `dist/forge_module.bas`: one paste-ready module, the ForgeLib runtime plus one procedure per
   spec. It is committed, so you can copy it any time; CI fails if it is out of date.
 - `dist/forge_fixtures.bas`: one `ForgeFixture_<file>(wb)` builder per fixture file, with exactly
@@ -139,3 +141,7 @@ Dataset count: 0 verified pairs
   blank cells and locked files, a corrected ROLE line (the compiler writes the VBA), and a
   proven Example 3 that copies files (D33). Boss pastes the new prompt into the Orchestrator
   Project once.
+- **2026-10-20:** Job-Pack Router Phase 5a: `dist/forge_selftest.bas`, the ForgeLib self-test.
+  Pasted next to `forge_module.bas` in Excel, it runs all 163 conformance cases through ForgeLib
+  and writes PASS or FAIL for each, plus one line to paste back. It is the first check of ForgeLib
+  in real Excel 2016, and it runs only when Boss chooses (D34).

@@ -63,10 +63,16 @@ def strip_strings_and_comments(line):
     return "".join(out), in_str
 
 
-def lint(text):
+def public_helpers(text):
+    """The Forge* procedures a module makes public: what another module of the project may call."""
+    return set(re.findall(r"^Public (?:Function|Sub) (Forge\w+)", text, re.M))
+
+
+def lint(text, helpers=()):
+    """helpers: Forge* procedures defined Public in another module of the same VBA project."""
     problems = []
     lines = text.splitlines()
-    defined_helpers = set(re.findall(r"^Public (?:Function|Sub) (Forge\w+)", text, re.M))
+    defined_helpers = public_helpers(text) | set(helpers)
     defined_helpers |= set(re.findall(r"^Private (?:Function|Sub) (Forge\w+)", text, re.M))
     module_vars = set(re.findall(r"^(?:Private|Public|Dim) (\w+) As ", text, re.M))
     option_explicit_seen = False

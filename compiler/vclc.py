@@ -11,6 +11,8 @@ mutate runs (default: the real date).
 
 build writes into DIR:
   forge_module.bas      one paste-ready module: the ForgeLib runtime plus one procedure per spec
+  forge_selftest.bas    the ForgeLib self-test: every conformance case, run through ForgeLib in
+                        Excel (vcl_selftest.py)
   forge_fixtures.bas    the fixture builders: ForgeFixture_<file>(wb) rebuilds each synthetic
                         test workbook with exactly the data the interpreter tested on, and
                         ForgeSandbox_<file>() builds its VCL 0.3 folders in a new %TEMP% sandbox
@@ -28,11 +30,12 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from vba_lint import lint  # noqa: E402
-from vcl_codegen import CompileError, assemble, compile_text, module_title  # noqa: E402
+from vba_lint import lint, public_helpers  # noqa: E402
+from vcl_codegen import FORGELIB, CompileError, assemble, compile_text, module_title  # noqa: E402
 from vcl_fixtures import fixtures_module  # noqa: E402
 from vcl_interp import VclError, run_tests  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
+from vcl_selftest import selftest_module  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from validator import validate_file  # noqa: E402
 
@@ -69,8 +72,8 @@ def cmd_test(files, today):
     return bad == 0
 
 
-def lint_report(path, module):
-    found = lint(module)
+def lint_report(path, module, helpers=()):
+    found = lint(module, helpers)
     path.write_text(module, encoding="utf-8")
     print(f"{'OK  ' if not found else 'FAIL'} lint   {path}  ({len(module.splitlines())} lines)")
     for line, msg in found:
@@ -112,6 +115,8 @@ def cmd_build(files, out_dir, today):
     if not procs:
         return False
     ok = lint_report(out / "forge_module.bas", assemble(procs, module_title(len(procs)))) and ok
+    ok = lint_report(out / "forge_selftest.bas", selftest_module(),
+                     public_helpers(FORGELIB.read_text(encoding="utf-8"))) and ok
     try:
         fixtures = fixtures_module(fixture_sets)
     except ValueError as e:
