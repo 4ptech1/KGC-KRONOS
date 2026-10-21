@@ -8,8 +8,10 @@ formula_problems(text) -> a list of messages, empty when the formula may be writ
   - no reference to another workbook or a table ("[" outside text; with style=r1c1 an offset such
     as RC[-2] is a reference, not a bracket), no "@" (implicit intersection, Microsoft 365) and no
     spill reference (A1#);
-  - no _xlfn. or _xlws. prefix (how Excel stores functions newer than the file format).
-Text in "double quotes" and sheet names in 'single quotes' are not looked into.
+  - no _xlfn. or _xlws. prefix (how Excel stores functions newer than the file format);
+  - no 'quoted' name holding [ ] \\ / : ? or *: no sheet can have one, so it names a file (D51).
+Text in "double quotes" and sheet names in 'single quotes' are not otherwise looked into.
+sheet_names(text) gives the sheets a formula names, for the validator's TEST check (D51).
 """
 import re
 
@@ -28,6 +30,7 @@ TEXT_OR_SHEET = re.compile(r'"(?:[^"]|"")*"|\'(?:[^\']|\'\')*\'')
 FUNCTION = re.compile(r"([A-Za-z_][A-Za-z0-9_.]*)\s*\(")
 SPILL = re.compile(r"[A-Za-z0-9_$)]#")
 R1C1_OFFSET = re.compile(r"(?i)(?<=[RC])\[-?\d+\]")
+SHEET_REF = re.compile(r'"(?:[^"]|"")*"|\'((?:[^\']|\'\')*)\'!|(?<![A-Za-z0-9_.])([A-Za-z_][A-Za-z0-9_.]*)!')
 
 
 def formula_problems(text, r1c1=False):
@@ -37,6 +40,10 @@ def formula_problems(text, r1c1=False):
         problems.append("a formula starts with =")
     if len(text) > 8192:
         problems.append("a formula has at most 8192 characters")
+    for quoted in re.findall(r'"(?:[^"]|"")*"|\'((?:[^\']|\'\')*)\'', text):
+        if quoted and re.search(r"[\[\]\\/:?*]", quoted):
+            problems.append(f"'{quoted}' names another file (no sheet name holds [ ] \\ / : ? or *); "
+                            "a formula reads this workbook only")
     bare = TEXT_OR_SHEET.sub('""', text)
     if r1c1:
         bare = R1C1_OFFSET.sub("", bare)
@@ -52,3 +59,13 @@ def formula_problems(text, r1c1=False):
         if name.upper() not in EXCEL_2016:
             problems.append(f"{name.upper()} is not on the Excel 2016 list of SET_FORMULA functions (D43)")
     return problems
+
+
+def sheet_names(text):
+    """The sheets the formula names ('Weld Log'!A1 or Summary!B2), in order, each once (D51)."""
+    names = []
+    for quoted, plain in SHEET_REF.findall(text):
+        name = quoted.replace("''", "'") if quoted else plain
+        if name and name not in names:
+            names.append(name)
+    return names

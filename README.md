@@ -206,3 +206,7 @@ Dataset count: 0 verified pairs
   Function's result, MODIFIES follows the arguments, BUILD TESTs run in the interpreter, and the
   compiler writes one module per BUILD. Forms and add-ins wait. Five phases, then one switch to
   VCL 0.5.
+- **2026-10-21:** Fixes from a second ForgeLib review (D51): ForgeSort no longer inherits Excel's
+  last sort settings, LIST_FILES leaves out hidden and system files (such as `~$` owner files), the
+  linter bans 13 more risky statements (FileCopy, Workbooks.Open, ...), and a formula that names a
+  file or a sheet the test workbook lacks is refused. Every spec's result is unchanged.
