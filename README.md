@@ -220,3 +220,7 @@ Dataset count: 0 verified pairs
   modMain.RunHeadless. Each CALL runs its procedure with its own PRE and error handling, as the
   VBA will, and values convert to their parameter types. The UNCHANGED check covers the whole tool
   (D52). The sample BUILD proves its three TESTs.
+- **2026-10-21:** The AI context file grows to about 400 KB (Boss's cap is 3 MB). Its appendices
+  are copied from the repo by `compiler/gen_context.py`: the full language reference, every spec with
+  its VBA, DECISIONS.md, the semantics, ForgeLib, the brief, the plans and the designs. A unit test
+  and CI keep the copies up to date (D53).
