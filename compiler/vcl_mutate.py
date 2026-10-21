@@ -12,9 +12,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from vcl_interp import VclError, run_tests  # noqa: E402
+from vcl_interp import VclError, proc_name, run_tests  # noqa: E402
 from vcl_parse import parse  # noqa: E402
-from vcl_types import Checker  # noqa: E402
+from vcl_types import spec_problems  # noqa: E402
 
 SWAPS = [(" <= ", " < "), (" < ", " <= "), (" >= ", " > "), (" > ", " >= "), (" = ", " <> "),
          (" <> ", " = "), (" AND ", " OR "), (" OR ", " AND "), ("order=asc", "order=desc"),
@@ -22,10 +22,27 @@ SWAPS = [(" <= ", " < "), (" < ", " <= "), (" >= ", " > "), (" > ", " >= "), (" 
          ("mode=keep", "mode=overwrite"), ("mode=overwrite", "mode=keep")]
 
 
+def untested_lines(text):
+    """The OP lines of a BUILD's modMain.Run (0-based): no TEST calls Run, and E14 keeps it to
+    CALLing RunHeadless, LET, IF and MSG, so a mutant there can never be caught (D53)."""
+    spec, problems = parse(text)
+    if problems or not spec or spec.get("kind") != "BUILD":
+        return set()
+
+    def walk(nodes):
+        for n in nodes:
+            yield n["line"] - 1
+            yield from walk(n.get("children", []))
+            yield from walk(n.get("else", []))
+
+    return {i for task in spec["tasks"] if task and proc_name(task) == "modMain.Run" for i in walk(task["ops"])}
+
+
 def mutants(text):
     lines = text.splitlines()
+    skip = untested_lines(text)
     for i, line in enumerate(lines):
-        if not line.startswith("OP "):
+        if not line.startswith("OP ") or i in skip:
             continue
         body = line[2:]
         for old, new in SWAPS:
@@ -69,7 +86,7 @@ def mutate_report(text, snapshot=False, today=None):
             new_lines[i] = "OP" + new_body
         mutant = "\n".join(new_lines)
         spec, problems = parse(mutant)
-        if problems or not spec or Checker(spec).run():
+        if problems or not spec or spec_problems(mutant, spec):   # a BUILD: every TASK, with its SIGs
             continue
         total += 1
         try:
