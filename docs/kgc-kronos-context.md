@@ -375,7 +375,7 @@ The 12 specs:
 - #46: ForgeLib fixes from a VBA review: COPY_SHEET safety, sheet names, DEDUPE keys, formulas on Text cells, ASCII text-file paths (D48).
 - #47: the design of CALL and BUILD specs (`docs/vep-0.5-build.md`, D49).
 - #49: VEP 0.5 Phase 1, the `VCL 0.5` line, CALL `into=` and the BUILD rules (E13, E14, D50).
-- #48 and #50: a second review pass, from a parallel session, folded in by #50 (D51): ForgeSort
+- #48 and #51: a second review pass, from a parallel session, folded in by #51 (D51): ForgeSort
   gives every sort option, LIST_FILES leaves out hidden and system files, more lint bans, and
   more rules say what the toolchain checks.
 
