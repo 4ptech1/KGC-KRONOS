@@ -10,7 +10,6 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 import validator  # noqa: E402
 import vcl_fmt  # noqa: E402
-from vcl_goal import add_goals  # noqa: E402
 from vcl_fmt import FormatError, format_text, format_value, gap, tokens_of  # noqa: E402
 
 EXAMPLES = ROOT / "vcl" / "examples"
@@ -89,12 +88,11 @@ class Canonical(unittest.TestCase):
             self.assertEqual(format_text(once), once)
 
     def test_a_spec_with_a_goal_stays_canonical(self):
-        text = add_goals(read(EXAMPLES / "example4_build.vcl"),
-                         {"": "Mark old open NCRs Overdue and summarise them.", "Run": "Start the review on the real sheets.",
-                          "RunHeadless": "Run both steps of the review.", "MarkOverdue": "Mark the old open ones Overdue.",
-                          "WriteSummary": "Write the status summary sheet."})
-        self.assertEqual(format_text(text), text)
-        spaced = text.replace("GOAL     Mark the old open ones Overdue.", "GOAL   Mark   the old open   ones Overdue.  ")
+        text = read(EXAMPLES / "example4_build.vcl")   # a BUILD with five GOAL lines
+        self.assertEqual(text.count("\nGOAL "), 5)
+        spaced = text.replace("GOAL     Rebuild the summary sheet", "GOAL   Rebuild   the summary  sheet").replace(
+            "NCR status and how many NCRs have it.", "NCR status and how many NCRs have it.  ")
+        self.assertNotEqual(spaced, text)
         self.assertEqual(format_text(spaced), text)
 
 

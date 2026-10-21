@@ -56,7 +56,7 @@ specs, each with its VBA.
 
 ## Sources of truth
 
-- `vcl/spec.md`: VCL 0.5, the language reference.
+- `vcl/spec.md`: VCL 0.6, the language reference.
 - `vcl/orchestrator_prompt.txt`: the claude.ai prompt that writes specs. It contains the same
   reference text (a unit test keeps them identical), so the two always change together.
 - `vcl/grammar.lark`: the formal syntax. `vcl/semantics.py`: the reference meaning of the value
@@ -166,7 +166,7 @@ The Excel batch runner (`harness/ForgeTest.bas`, PR #4) is deferred; nothing dep
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, type-check, pass their
 TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
 
-Done: 12 specs (11 in VCL 0.2, task_12 in 0.3), VCL 0.5 in spec.md and the Orchestrator prompt (D58), the parser and validator, and the
+Done: 12 specs (11 in VCL 0.2, task_12 in 0.3), VCL 0.6 in spec.md and the Orchestrator prompt (D63), the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,
 `vclc`), with one fixture generator. Fixtures from the mutation evidence (revision 5:
 `stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). Every SKIP_IF has blank key rows
@@ -239,8 +239,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    data generator, 8 the benchmark. Phase 0 (the design), Phase 1 (error codes: every message
    has a stable code, `docs/error-codes.md`, D60) and Phase 2 (the toolchain reads `VCL 0.6` and the
    `GOAL` line, E15, D61; `vcl_goal.py` adds GOAL lines to a spec) and Phase 3 (`vclc fmt`: one
-   canonical text for every spec, which proves it changed nothing, D62) are done; no training
-   before March 2027.
+   canonical text for every spec, which proves it changed nothing, D62) and Phase 4 (the switch:
+   spec.md and the Orchestrator prompt teach VCL 0.6, with hard rule 24 for the GOAL line, D63;
+   Boss pastes the new prompt once) are done; Phase 5, the corpus tooling and the first pairs, is
+   next; no training before March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

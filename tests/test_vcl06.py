@@ -12,11 +12,12 @@ from vcl_codegen import compile_build, compile_text  # noqa: E402
 from vcl_goal import add_goals  # noqa: E402
 from vcl_interp import run_tests  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
+from vcl_samples import old_example  # noqa: E402
 
 DAY = datetime.date(2026, 10, 21)
 EXAMPLES = ROOT / "vcl" / "examples"
-BUILD = (EXAMPLES / "example4_build.vcl").read_text(encoding="utf-8")
-TASK = (EXAMPLES / "example1_rev3.vcl").read_text(encoding="utf-8")   # RemoveCancelledAndSortByDate
+BUILD = old_example("example4_build.vcl")   # the VCL 0.5 BUILD it was before its GOAL lines
+TASK = old_example("example1_rev3.vcl")   # RemoveCancelledAndSortByDate, as VCL 0.5
 GOALS = {"": "Mark old open NCRs Overdue and rebuild a summary of the statuses.",
          "Run": "Start the NCR review on the workbook's own sheets and show how many NCRs went Overdue.",
          "RunHeadless": "Run both steps of the NCR review on the sheets it is given.",
@@ -132,15 +133,14 @@ class GoalRules(unittest.TestCase):
 class Compatibility(unittest.TestCase):
     """A spec that was valid is still valid with a GOAL and the 0.6 line, and gives the same results."""
 
-    def paths(self):
-        return sorted((ROOT / "specs").glob("*.vcl")) + [EXAMPLES / n for n in ("example1_rev3.vcl", "example3_files.vcl",
-                                                                                "example4_build.vcl")]
+    def texts(self):
+        specs = [(p.name, p.read_text(encoding="utf-8")) for p in sorted((ROOT / "specs").glob("*.vcl"))]
+        return specs + [(n, old_example(n)) for n in ("example1_rev3.vcl", "example3_files.vcl", "example4_build.vcl")]
 
     def test_every_spec_and_example_gives_the_same_results_with_a_goal(self):
-        for path in self.paths():
-            text = path.read_text(encoding="utf-8")
+        for name, text in self.texts():
             old_version = text.split("\n", 1)[0]
-            with self.subTest(spec=path.name):
+            with self.subTest(spec=name):
                 newer = add_goals(text, goals_for(text))
                 self.assertEqual(problems(text), problems(newer))
                 self.assertEqual(outcome(text), outcome(newer))
@@ -148,9 +148,9 @@ class Compatibility(unittest.TestCase):
                 self.assertEqual(problems(same_lines), problems(newer))
                 self.assertEqual(outcome(same_lines), outcome(newer))
                 if "\nBUILD\n" in text:
-                    self.assertEqual(compile_build(same_lines, path.name), compile_build(newer, path.name))
+                    self.assertEqual(compile_build(same_lines, name), compile_build(newer, name))
                 else:
-                    self.assertEqual(compile_text(same_lines, path.name), compile_text(newer, path.name))
+                    self.assertEqual(compile_text(same_lines, name), compile_text(newer, name))
 
     def test_goal_lines_are_not_mutated(self):
         newer = add_goals(BUILD, GOALS)

@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 import validator  # noqa: E402
+from vcl_samples import old_example  # noqa: E402
 from vcl_interp import VclError, run_tests  # noqa: E402
 from vba_lint import lint  # noqa: E402
 from vcl_codegen import CompileError, compile_build  # noqa: E402
@@ -21,7 +22,7 @@ import vclc  # noqa: E402
 # Example 4 (D58) is a small tool: RunHeadless marks old open NCRs Overdue (modSteps.MarkOverdue)
 # and rebuilds a summary of the statuses (modSteps.WriteSummary); modMain.Run starts it on the
 # real sheets. The prompt's copy of it is kept equal to this file by tests/test_validator.py.
-NCR_REVIEW = (ROOT / "vcl" / "examples" / "example4_build.vcl").read_text(encoding="utf-8")
+NCR_REVIEW = old_example("example4_build.vcl")   # as the VCL 0.5 BUILD it was before its GOAL lines (D63)
 
 
 # Phase 4a (D55): ROW_OF finds the row of a FIND result; DEDUPE into= counts the rows it removed.
@@ -142,14 +143,13 @@ class VersionLine(unittest.TestCase):
         self.assertIn("CALL into= is VCL 0.5: start the spec with 'VCL 0.5' to use it", errors(older))
 
     def test_every_spec_and_example_gives_the_same_results_under_0_5(self):   # E13
-        paths = sorted((ROOT / "specs").glob("*.vcl")) + [ROOT / "vcl" / "examples" / name
-                                                         for name in ("example1_rev3.vcl", "example3_files.vcl")]
+        texts = [(p.name, p.read_text(encoding="utf-8")) for p in sorted((ROOT / "specs").glob("*.vcl"))]
+        texts += [(name, old_example(name)) for name in ("example1_rev3.vcl", "example3_files.vcl")]   # as 0.5, before GOAL (D63)
         day = datetime.date(2026, 10, 21)
-        for path in paths:
-            first, rest = path.read_text(encoding="utf-8").split("\n", 1)
-            with self.subTest(spec=path.name):
+        for name, text in texts:
+            first, rest = text.split("\n", 1)
+            with self.subTest(spec=name):
                 newer = "VCL 0.5\n" + rest
-                text = first + "\n" + rest
                 self.assertEqual(problems(text), problems(newer))
                 self.assertEqual(*[[(r.line, r.passed, r.result, r.errors, r.state, r.files, r.hidden, r.texts)
                                     for r in run_tests(t, day)] for t in (text, newer)])

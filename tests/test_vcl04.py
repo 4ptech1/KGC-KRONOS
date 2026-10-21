@@ -15,6 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 import validator  # noqa: E402
+from vcl_samples import old_example  # noqa: E402
 sys.path.insert(0, str(ROOT / "vcl"))
 import semantics as S  # noqa: E402
 from vba_lint import lint  # noqa: E402
@@ -829,13 +830,13 @@ class VersionSwitch(unittest.TestCase):
     problems and the same TEST results as under their own line (the examples were 0.3)."""
 
     def test_every_spec_and_example_gives_the_same_results_under_0_4(self):
-        paths = sorted((ROOT / "specs").glob("*.vcl")) + [ROOT / "vcl" / "examples" / name
-                                                         for name in ("example1_rev3.vcl", "example3_files.vcl")]
+        texts = [(p.name, p.read_text(encoding="utf-8")) for p in sorted((ROOT / "specs").glob("*.vcl"))]
+        texts += [(name, old_example(name)) for name in ("example1_rev3.vcl", "example3_files.vcl")]   # as 0.5, before GOAL (D63)
         day = datetime.date(2026, 10, 20)
-        for path in paths:
-            first, rest = path.read_text(encoding="utf-8").split("\n", 1)
-            with self.subTest(spec=path.name):
-                self.assertIn(first, ("VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5"))   # the examples are 0.5 (D58)
+        for name, text in texts:
+            first, rest = text.split("\n", 1)
+            with self.subTest(spec=name):
+                self.assertIn(first, ("VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5"))
                 older = ("VCL 0.3" if first in ("VCL 0.4", "VCL 0.5") else first) + "\n" + rest
                 newer = "VCL 0.4\n" + rest
                 self.assertEqual(*[[(p.line, p.severity, p.message) for p in validator.validate_text(t)]

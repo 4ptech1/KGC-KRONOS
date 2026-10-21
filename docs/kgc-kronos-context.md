@@ -1,6 +1,6 @@
 # KGC KRONOS: AI context file
 
-**Snapshot: 21 Oct 2026, after the review passes of item 2 (D47, D48, D51), CALL and BUILD specs (VEP 0.5, D50 to D58) with the switch to VCL 0.5, the design of the AI plan's Stage A (D59) and this file's generated appendices (D54).** Hand this file to any Claude chat or claude.ai
+**Snapshot: 21 Oct 2026, after the review passes of item 2 (D47, D48, D51), CALL and BUILD specs (VEP 0.5, D50 to D58) with the switch to VCL 0.5, the AI plan's Stage A language changes with the switch to VCL 0.6 (D59 to D63) and this file's generated appendices (D54).** Hand this file to any Claude chat or claude.ai
 Project that needs to understand the project. The repo is always the source of truth: if this
 file and the repo disagree, the repo wins, and the repo's `CLAUDE.md` has the current status.
 
@@ -107,7 +107,7 @@ CLAUDE.md                 standing brief for Claude Code (rules, status, next st
 DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D46)
 README.md                 overview, how to run the checks, progress log, dataset count
 requirements.txt          one pinned dependency: lark==1.3.1 (with hash)
-vcl/spec.md               THE language reference (VCL 0.5)
+vcl/spec.md               THE language reference (VCL 0.6)
 vcl/orchestrator_prompt.txt  the Orchestrator's instructions; shares the reference text with spec.md
 vcl/grammar.lark          formal LALR grammar
 vcl/semantics.py          reference meaning of the value functions (S1-S25)
@@ -166,12 +166,14 @@ Before every commit Claude Code runs: the unit tests, the validator, `vclc all`,
 `gen_semantics_doc.py --check`. CI runs the same, and fails if `dist/forge_module.bas` or
 `docs/vcl-semantics.md` is stale.
 
-## 6. VCL 0.5 cheat sheet (summary only; the full text is in Appendix A)
+## 6. VCL 0.6 cheat sheet (summary only; the full text is in Appendix A)
 
-**TASK keys, in this order:** `VCL 0.5`, `TASK`, `# ASSUME:` lines, PROC, KIND (Sub or
-Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW, FIXTURE, TEST.
+**TASK keys, in this order:** `VCL 0.6`, `TASK`, `# ASSUME:` lines, GOAL (one plain-English sentence,
+VCL 0.6), PROC, KIND (Sub or Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW, FIXTURE, TEST.
 - Arguments are written `$name`.
-- OP lines nest by 2 extra spaces.
+- OP lines nest by 2 extra spaces. Write every spec in the one canonical layout (`vclc fmt` prints and
+  checks it): keys padded to 9 characters, one space after a comma and around operators and keywords,
+  none inside brackets or around an option's `=`, no blank lines.
 - Option names (dir, from, to, var, in, mode, into, key, order, header, what, fill, numfmt,
   bold, width, style, cols, col, crit, readonly, format, save, after, name, match) are reserved
   words.
@@ -195,8 +197,8 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
 - no longer taught: OPEN_BOOK, SAVE_AS and CLOSE_BOOK (refused until March 2027), ACTIVE_BOOK
   and ACTIVE_SHEET (D46), FORM and TARGET xlam (D49)
 
-**BUILD** (VCL 0.5, hard rule 23): for a request one TASK can't do. Keys: `VCL 0.5`, `BUILD`, `# ASSUME:`,
-NAME, TARGET xlsm, ENTRY modMain.Run, MODULE lines, one SIG per procedure, FLOW lines, FIXTURE, TEST; then
+**BUILD** (VCL 0.5, hard rule 23): for a request one TASK can't do. Keys: `VCL 0.6`, `BUILD`, `# ASSUME:`,
+GOAL, NAME, TARGET xlsm, ENTRY modMain.Run, MODULE lines, one SIG per procedure, FLOW lines, FIXTURE, TEST; then
 `---` and one complete TASK spec per SIG, separated by `---`. `vcl/examples/example4_build.vcl` is the
 proven sample (Example 4).
 - modMain.RunHeadless runs the whole tool on the sheets it is given; every TEST calls it.
@@ -266,7 +268,7 @@ proven sample (Example 4).
 - **A spec that writes nothing** needs no MODIFIES lines, and every TEST checks it changed
   nothing.
 
-**The 23 hard rules (short form):**
+**The 24 hard rules (short form):**
 1. One `vcl` code block, nothing else.
 2. Never write VBA.
 3. Use only the defined syntax.
@@ -309,6 +311,9 @@ proven sample (Example 4).
     never in a cycle, with the caller's own `$arguments`; MODIFIES in every TASK that writes
     and on every argument a callee changes; FLOW = the CALLs; modMain.Run only CALLs
     RunHeadless; TARGET xlsm, no FORM.
+24. A GOAL line first in every TASK (and in a BUILD and each of its TASKs): one plain-English
+    sentence, 10 to 200 characters, saying what the spec does, not just the PROC name; the
+    canonical layout, no blank lines.
 
 **FIXTURE syntax:**
 `FIXTURE <file>.xlsx sheet=<Name> cols=A:Header,... rows=<n> [stale=<n>] data=<col>:<rule>;...`
@@ -359,7 +364,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
 | Verified pairs | 0 (none has been run in Excel yet) |
-| Orchestrator Project | the final VCL 0.5 prompt is ready (D58, which includes the D46 to D57 changes); once Boss pastes it in, replies start with `VCL 0.5`, use every op item 2 added (sheets, formulas, FILTER, DEDUPE, FIND, text files), and are one TASK, or a BUILD of TASKs joined by CALL when one TASK is too small (Example 4) |
+| Orchestrator Project | the final VCL 0.6 prompt is ready (D63, which includes the D46 to D58 changes); once Boss pastes it in, replies start with `VCL 0.6` and a GOAL line, in the canonical layout, use every op item 2 added (sheets, formulas, FILTER, DEDUPE, FIND, text files), and are one TASK, or a BUILD of TASKs joined by CALL when one TASK is too small (Example 4) |
 
 The 12 specs:
 
@@ -430,8 +435,9 @@ The 12 specs:
 - #59: VEP 0.5 Phase 5, a proven BUILD (Example 4) and the switch: spec.md and the prompt teach VCL 0.5 (D58). Item 3 is complete.
 - #60: item 4, the AI plan's Stage A, designed in `docs/vep-0.6-stage-a.md` (D59).
 - #61: Stage A Phase 1, stable error codes: every message of the checks carries one (V, G, T, X, R; D60).
-- #62: Stage A Phase 2, the toolchain reads `VCL 0.6` and the `GOAL` line (E15, D61); spec.md and the prompt still teach 0.5.
+- #62: Stage A Phase 2, the toolchain reads `VCL 0.6` and the `GOAL` line (E15, D61).
 - #63: Stage A Phase 3, `vclc fmt`: one canonical text per spec (D62).
+- #64: Stage A Phase 4, the switch: spec.md and the prompt teach VCL 0.6, with hard rule 24 (D63).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -511,7 +517,9 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    and from real failures, contrast pairs, filtered paraphrases); and the benchmark (15
    held-out tasks, hidden reference TESTs, `vclc bench`, Claude as the baseline). Phase 0 (the
    design), Phase 1 (error codes: 458 stable codes, `docs/error-codes.md`, D60) and Phase 2 (the toolchain
-   reads `VCL 0.6` and the `GOAL` line, E15, D61) and Phase 3 (`vclc fmt`, D62) are done.
+   reads `VCL 0.6` and the `GOAL` line, E15, D61), Phase 3 (`vclc fmt`, D62) and Phase 4 (the switch:
+   spec.md and the prompt teach VCL 0.6, hard rule 24, D63; Boss updates the Orchestrator once) are done.
+   Phase 5, the corpus tooling and the first pairs, is next.
 5. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
    VCL, never VBA (D31). Excel conformance runs.
 
@@ -525,7 +533,7 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 (Boss's daily use).
 
 **Pending Boss decisions right now:**
-1. Paste the VCL 0.5 prompt (`vcl/orchestrator_prompt.txt`) into the Orchestrator Project's
+1. Paste the VCL 0.6 prompt (`vcl/orchestrator_prompt.txt`) into the Orchestrator Project's
    instructions, once.
 2. When, if ever, to run the optional Excel pilot (`docs/excel-pilot.md`).
 3. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
@@ -565,6 +573,7 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
   printable ASCII only, and WRITE_TEXT never overwrites a file.
 - **D47:** `Sheet![Header]` is the header's whole column from row 1, the header cell included
   (as `A:A` is): 5 values under a header give COUNTA = 6. Committed specs count on it.
+- **D63:** the prompt teaches VCL 0.6: every spec starts with a GOAL line and is written in the canonical layout.
 - **D62:** `vclc fmt` gives every spec one canonical text (key padding, OP indentation, spacing) and proves it
   changed only layout; the committed specs are already canonical and a test keeps them so.
 - **D60:** every message of the checks has a stable code (V validator, G grammar, T type checker, X
@@ -614,7 +623,7 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 
 | Term | Meaning |
 | --- | --- |
-| VCL | VBA Command Language: the spec language (`vcl/spec.md`). Current version 0.5 (21 Oct 2026). |
+| VCL | VBA Command Language: the spec language (`vcl/spec.md`). Current version 0.6 (21 Oct 2026). |
 | Spec | One `.vcl` file: one TASK (a procedure) or one BUILD (several procedures). |
 | Orchestrator | The claude.ai Project that writes specs from plain requests. |
 | ForgeLib | `vba/ForgeLib.bas`, the VBA runtime. Every VCL meaning is a Forge* helper. |
@@ -630,7 +639,7 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 
 <!-- Everything below is generated by python compiler/gen_context.py from the repo: do not edit by hand. -->
 
-## Appendix A: the full VCL 0.5 reference
+## Appendix A: the full VCL 0.6 reference
 
 Copied word for word from `vcl/spec.md`, the same text the Orchestrator prompt contains. A unit
 test fails if this copy ever differs from spec.md. The parts of spec.md not copied here are the
@@ -656,13 +665,14 @@ exact fixture algorithm and the changelogs.
     specified at all, or when even a BUILD can't do all of it (rule 9). Then the code block
     contains only: # QUESTION: <one short question>
 8.  Use ALLOW only for risky actions the user explicitly asked for: file_delete,
-    file_overwrite, shell, http. No VCL 0.5 op deletes or overwrites a file, runs a program
+    file_overwrite, shell, http. No VCL 0.6 op deletes or overwrites a file, runs a program
     or uses the web, so design around them.
-9.  Write one TASK: one procedure of up to about 40 OP lines (about 60 lines of VBA). When
-    one TASK can't do the whole request (it needs several procedures or more OP lines),
-    write a BUILD of such TASKs joined by CALL (rule 23); never stretch one TASK past about
-    40 lines. When even a BUILD can't (it needs a UserForm, or ops one spec may not
-    combine), ask which part to do first (rule 7).
+9.  Write one TASK: one procedure of up to about 40 OP lines (about 60 lines of VBA). One
+    macro or one tool is no reason for a BUILD: a TASK is a macro. When one TASK can't do
+    the whole request (it needs several procedures or more OP lines), write a BUILD of such
+    TASKs joined by CALL (rule 23); never stretch one TASK past about 40 lines. When even a
+    BUILD can't (it needs a UserForm, or ops one spec may not combine), ask which part to do
+    first (rule 7).
 10. Delete rows only inside LOOP_ROWS dir=up or with DEDUPE, and only rows the user
     explicitly wants removed. Never delete rows because data is missing or pending: copy
     them to an exceptions sheet instead (DEDUPE never deletes a row with a blank key).
@@ -718,26 +728,33 @@ exact fixture algorithm and the changelogs.
     COL($ws, "Method") = 3, and it may name another sheet only when every TEST workbook has
     a sheet of that name. No op removes or replaces a sheet.
 23. Write a BUILD only under rule 9: one complete TASK spec per SIG, each starting with
-    VCL 0.5 and each with its own PRE, MODIFIES and ERR. CALL(<module>.<Proc>, <args>)
+    VCL 0.6 and each with its own GOAL, PRE, MODIFIES and ERR. CALL(<module>.<Proc>, <args>)
     runs another procedure of the same BUILD, never itself, directly or through others.
     Pass a Worksheet, Workbook or Range only as one of the caller's own $arguments, and
     keep a Function's result with into=<VAR>: a callee that stops at its PRE gives -1 and
-    one that fails gives -2, and the caller goes on, so check that VAR when the step
-    matters (IF n < 0), and give a TEST a fixture where the callee gives 0. Every TASK
-    that writes declares MODIFIES, and a caller declares on each
+    one that fails gives -2, and the caller goes on. Check that VAR (IF n < 0) only when the
+    callee has a PRE the caller doesn't; then a TEST needs a fixture where that PRE fails
+    and one where the callee gives 0. Every TASK that writes declares MODIFIES, and a
+    caller declares on each
     $argument it passes what its callees change. FLOW lists the CALLs and no others.
     modMain.Run is a Sub with no ARGS that only CALLs modMain.RunHeadless, with sheets
     written SHEET(THIS_BOOK, "<real sheet name>"), and LETs, IFs and MSGs; the TESTs call
     modMain.RunHeadless. A BUILD has no form: TARGET xlsm and no FORM line.
+24. Give every TASK a GOAL, the first key after the # ASSUME lines: one plain-English
+    sentence of 10 to 200 printable ASCII characters that says what the spec does, as a
+    person who has not seen the spec would say it, not just the PROC name. A BUILD has a
+    GOAL for itself and for each of its TASKs.
+    Lay the spec out as shown under Layout, with no blank lines.
 ```
 
 ### Reference
 
 ```text
 TASK FORMAT  (keys in this order; (opt) = optional)
-VCL 0.5
+VCL 0.6
 TASK
 # ASSUME: <assumption>                        (opt, one line each)
+GOAL     <one plain-English sentence: what the spec does>
 PROC     <PascalCase name>
 KIND     Sub | Function
 MODULE   <modName>
@@ -753,8 +770,11 @@ ALLOW    file_delete file_overwrite shell http  (opt)
 FIXTURE  <name>.xlsx <fixture spec>           (opt)
 TEST     fixture=<name>.xlsx call=<Proc>(<args>) [runs=<n>] assert=<assertion>   (two or more)
 
-Layout: pad keys with spaces so values line up. Nesting = 2 extra spaces after the key,
-relative to the enclosing OP line.
+Layout: write every spec in this one form. A key is padded with spaces to 9 characters, so
+values line up. Nesting = 2 extra spaces after the key, relative to the enclosing OP line;
+an ELSE sits level with its IF. One space after a comma or semicolon and around operators
+and keywords; none inside brackets, before a call's bracket or around the "=" of an option
+(dir=up). A FIXTURE or TEST is one line. No blank lines.
 Types: Long, Double, String, Boolean, Date, Variant, Range, Worksheet, Workbook,
 Dictionary, Collection. Loop variables from LOOP_ROWS, LOOP_COLS and FOR_EACH are declared
 automatically; never repeat them in VAR. READ_ARRAY fills a Variant VAR, LIST_FILES a
@@ -762,9 +782,10 @@ Collection, ADD_SHEET and COPY_SHEET a Worksheet; status VARs and READ_TEXT's te
 String. VARs start at 0, "" or FALSE; Dictionary and Collection VARs start empty.
 
 BUILD FORMAT  (rule 23; for a request one TASK can't do, rule 9)
-VCL 0.5
+VCL 0.6
 BUILD
 # ASSUME: <assumption>                        (opt)
+GOAL     <one plain-English sentence: what the tool does>
 NAME     <PascalCase tool name>
 TARGET   xlsm
 ENTRY    modMain.Run
@@ -774,14 +795,14 @@ FLOW     <caller> -> <callee> -> ...          (one line per chain of CALLs; ever
 FIXTURE  ...                                  (opt)
 TEST     fixture=<name>.xlsx call=modMain.RunHeadless(<args>) assert=...   (two or more)
 ---
-<one complete TASK spec per SIG, each starting with VCL 0.5, separated by lines
+<one complete TASK spec per SIG, each starting with VCL 0.6, separated by lines
 containing only --->
 
 BUILD rules: procedure names are unique in the whole BUILD, whatever their module.
 modMain has RunHeadless (runs the whole tool on the sheets it is given; every TEST calls
 it) and Run (a Sub with no ARGS that starts the tool on the real workbook, rule 23). FIXTURE
 and TEST lines go in the BUILD part only; the TESTs check the whole tool, with the same
-PRE_ measures and wrong-sheet TEST as a TASK (rule 5).
+PRE_ measures and wrong-sheet TEST as a TASK (rule 5; swap two of the sheets RunHeadless takes).
 
 OP SYNTAX
 Structural ops begin an OP line:
@@ -1035,7 +1056,7 @@ TEST ASSERTIONS  (checked on the test workbook after the run)
   ROWS_USED(<Sheet>)               the last used row (row 1, the headers, counts)
   FILE_EXISTS("<Folder>\<path>")   that file exists below a FIXTURE folder of the TEST
   FILE_COUNT("<Folder>[\<path>]")  files in that folder and in every folder below it
-  FILL_COUNT(<Sheet>!<range>, #RRGGBB)   cells in the range with that fill colour
+  FILL_COUNT(<Sheet>!<range>, #RRGGBB)   cells in the range with that fill colour (one cell: Sheet![Header]5)
   VISIBLE_COUNT(<Sheet>!<range>)   non-empty cells of the range in rows that are not hidden
   FORMULA(<Sheet>!<cell>)          the formula text as SET_FORMULA wrote it (A1 or R1C1), or ""
   FILE_TEXT("<Folder>\<path>")     the exact text of that file, or "" when there is none
@@ -1078,7 +1099,7 @@ FIXTURE SPEC
                           move up, so the counts stay the same.
     +blank(<n>)           leave n random cells below the boundary rows blank.
     +dupes(<n>)           give n random rows the value of another row (repeated keys).
-  stale=<n> marks n rows as leftovers of an earlier run, with a red fill: on a rows=0
+  stale=<n> marks n rows as leftovers of an earlier run, with a red fill across the whole row: on a rows=0
   sheet, n rows of the text "stale"; on a sheet with data, n random data rows, whose
   values stay.
   values(...) counts add up to rows. rows=0 creates the sheet with its header row only.
@@ -1109,11 +1130,11 @@ The parts of `vcl/orchestrator_prompt.txt` that are not in Appendix A: its role,
 and the final check it runs before every reply.
 
 ```text
-VBA FORGE ORCHESTRATOR · SYSTEM PROMPT · VCL 0.5
+VBA FORGE ORCHESTRATOR · SYSTEM PROMPT · VCL 0.6
 
 ROLE
 You are the Orchestrator for VBA Forge, an offline VBA code generator. You translate the
-user's Excel automation request into exactly one VCL 0.5 spec. The VBA Forge compiler turns
+user's Excel automation request into exactly one VCL 0.6 spec. The VBA Forge compiler turns
 your spec into VBA. A reference interpreter runs your TEST lines on synthetic test workbooks
 and folders built from your FIXTURE lines. A Python validator rejects any spec that breaks
 the rules below.
@@ -1125,11 +1146,12 @@ EXAMPLE 1
 User: "In the Orders sheet, delete every row whose Status says Cancelled, then sort what's
 left by Order Date, newest first."
 Reply (inside one vcl code block):
-VCL 0.5
+VCL 0.6
 TASK
 # ASSUME: Orders headers in row 1 include "Status" and "Order Date"
 # ASSUME: "Cancelled" is matched ignoring case and extra spaces
 # ASSUME: Order Date holds real dates; rows with a blank date sort to the bottom
+GOAL     Delete every cancelled order from the Orders sheet, then sort the rest by order date, newest first.
 PROC     RemoveCancelledAndSortByDate
 KIND     Function
 MODULE   modCleanup
@@ -1166,11 +1188,12 @@ User: "Each row of the Tracker sheet has a Job ID and a Report File. Copy each r
 the dump folder into a folder for its job inside the jobs folder, and write what happened
 in Status."
 Reply (inside one vcl code block):
-VCL 0.5
+VCL 0.6
 TASK
 # ASSUME: Tracker headers in row 1 include "Job ID", "Report File" and "Status"
 # ASSUME: both folders exist; each report is copied, never moved, and nothing is overwritten
 # ASSUME: a blank Job ID is skipped; an unsafe Job ID or Report File gets Status "Bad name"
+GOAL     Copy each job's report from the dump folder into that job's own folder and write what happened in the Status column.
 PROC     FileJobReports
 KIND     Function
 MODULE   modReports
@@ -1213,11 +1236,12 @@ User: "In the NCR sheet, every Open NCR that has been open more than 30 days mus
 Overdue, and a Summary sheet must show how many NCRs are in each status. Make it one tool I
 can start with one macro."
 Reply (inside one vcl code block):
-VCL 0.5
+VCL 0.6
 BUILD
 # ASSUME: NCR headers (row 1) include "NCR No", "Status" and "Days Open"
 # ASSUME: an Open NCR older than the limit becomes Overdue; Summary is rebuilt on every run
 # ASSUME: the real sheets are "NCR Register" and "NCR Summary"; the TESTs use NCR and Summary
+GOAL     Mark every Open NCR that has been open more than 30 days as Overdue and rebuild a summary of NCRs by status.
 NAME     NcrReview
 TARGET   xlsm
 ENTRY    modMain.Run
@@ -1235,8 +1259,9 @@ TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) runs=2 asser
 TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) assert=RESULT = 4 AND ERROR_COUNT = 0 AND COUNTA(NCR![NCR No]) = PRE_COUNTA(NCR![NCR No]) AND VALUE(NCR![Status]2) = "Overdue" AND VALUE(NCR![Status]3) = "Open" AND VALUE(Summary![Status]2) = "Overdue"
 TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(Summary, NCR) assert=RESULT = -1 AND ERROR_COUNT = 1
 ---
-VCL 0.5
+VCL 0.6
 TASK
+GOAL     Start the NCR review on the workbook's own sheets and tell the user how many NCRs were marked Overdue.
 PROC     Run
 KIND     Sub
 MODULE   modMain
@@ -1245,8 +1270,9 @@ OP       CALL(modMain.RunHeadless, SHEET(THIS_BOOK, "NCR Register"), SHEET(THIS_
 OP       MSG("NCRs marked Overdue: " & n)
 ERR      standard
 ---
-VCL 0.5
+VCL 0.6
 TASK
+GOAL     Run both steps of the NCR review on the two sheets it is given and return how many NCRs were marked Overdue.
 PROC     RunHeadless
 KIND     Function
 MODULE   modMain
@@ -1261,8 +1287,9 @@ OP       CALL(modSteps.WriteSummary, $ncr, $out)
 OP       RETURN(marked)
 ERR      standard
 ---
-VCL 0.5
+VCL 0.6
 TASK
+GOAL     Mark every Open NCR that has been open longer than the limit as Overdue and return how many were changed.
 PROC     MarkOverdue
 KIND     Function
 MODULE   modSteps
@@ -1284,8 +1311,9 @@ OP               LET(n, n + 1)
 OP       RETURN(n)
 ERR      standard
 ---
-VCL 0.5
+VCL 0.6
 TASK
+GOAL     Rebuild the summary sheet with one row for each NCR status and how many NCRs have it.
 PROC     WriteSummary
 KIND     Sub
 MODULE   modSteps
@@ -1313,6 +1341,8 @@ FINAL CHECK  (verify silently before every reply)
 - Only keys, ops and functions defined here are used
 - One TASK of up to about 40 OP lines, or a BUILD of such TASKs when one is too small (rules 9
   and 23)
+- A GOAL line before PROC in every TASK and before NAME in the BUILD: one plain sentence of
+  what it does, not the PROC name (rule 24); the layout as under Layout, no blank lines
 - Every name is an argument ($name), a VAR, or a loop variable
 - Every input column comes from COL() and its header is checked in PRE (a header your own
   spec writes to row 1 needs none, rule 14)
@@ -2958,6 +2988,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D60 | 21 Oct 2026 | **Stage A Phase 1: error codes (VEP 0.6, no language change).** (1) Every message the checks give has a stable code: 322 V (the hand parser, the validator and the formula check), 15 G (grammar), 45 T (type checker), 19 X (fixture builder) and 51 R (what a TEST run reports: failed assertions, UNCHANGED differences, run-time errors). They are in `docs/error-codes.md`, generated by `python compiler/gen_error_codes.py`, which also gives any new message its code; `--check` and a unit test fail on a message without a code, a code used twice or missing from `compiler/error_codes.json`, or a stale catalogue. A code is never reused or renumbered, and a deleted message shows as retired. (2) A code is written at the call site as `coded("message", "V012")`. `coded` makes a `str` subclass that carries its code, so everything that compares, searches or prints messages (about 400 tests) works unchanged, and `Problem.code` (not compared) reads it. Wrappers that add a prefix (`grammar:`, `fixture:`, `type:`) pass the underlying code on. (3) The command line shows the code after the message, `error: missing KIND [V060]`, not before it as the VEP sketched, so the existing `error: cannot read file` check and any grep on the old text still work; the VEP now says so. `vclc check` and `vclc test` show it too. (4) In the unit tests (`KGC_STRICT_CODES=1`, set by `tests/test_error_codes.py`) a Problem without a code raises, so a message the tool missed cannot hide. (5) One code can have a message with a variable part (`missing {key}` is V060 for KIND, MODULE and OP): a code stands for one message shape. (6) Not coded, as the VEP did not ask for it: compiler (CompileError) and VBA lint messages. The snapshot mutation score is unchanged at 95.4%. | Stable codes make repairs learnable and keep them valid when a message is reworded, and the call-site form is explicit and reviewable. Carrying the code on the string changes no existing test. |
 | D61 | 21 Oct 2026 | **Stage A Phase 2: the `GOAL` line and the `VCL 0.6` line in the tools (E15).** (1) GOAL is a key, not an op: the hand parser and the grammar stage know it as the first key of a TASK and of a BUILD, the grammar stage keeps it as text (`tree` is None, so it is free English, not parsed), the compiler and the interpreter skip it, and the mutation scorer never touches it. (2) The validator's `check_goal` enforces E15, with a warning when the GOAL only repeats the PROC or NAME. Its messages have codes V323 to V328. (3) `compiler/vcl_goal.py` (`add_goals`) moves a spec to 0.6: it adds the GOAL lines and the new version line and changes nothing else, so the 12 committed specs, which are inputs and stay as they are, can become pairs in `data/` as copies. (4) The compiled VBA labels its lines with the spec's line numbers (for Erl), so a GOAL line moves every label of the VBA it comes with by 10; the tests prove the compatibility by replacing each GOAL with a comment line (same numbering), which gives byte-identical VBA and the same results. (5) spec.md and the Orchestrator prompt still teach 0.5 and say nothing of GOAL: they move to 0.6 in Phase 4, after the formatter, so Boss updates the Orchestrator once. | The key is cheap to add and keeps every older spec valid; keeping GOAL out of the reference text until the switch avoids teaching a line the Orchestrator's reply would then fail on. |
 | D62 | 21 Oct 2026 | **Stage A Phase 3: the canonical formatter `vclc fmt` (`compiler/vcl_fmt.py`).** (1) `python compiler/vclc.py fmt FILE...` prints the canonical text, `--check` exits 1 and names each file that differs, `--write` rewrites in place. It formats only a spec the validator accepts (a spec with errors gets the validator's first message). (2) It changes layout only: key names padded to column 9; OP steps indented 2 spaces per level from column 9; one space after a comma or semicolon and around operators and keywords; none inside brackets, before a comma, before a call's bracket, or around the `=` of an option; a FIXTURE line has no spaces except before its `sheet=`, `cols=`, `rows=`, `stale=`, `data=`, `folder=`, `files=` and `locked=` fields (its header text depends on them); a TEST line keeps single spaces between its fields; a GOAL has its words joined by single spaces; `# ASSUME:` and `# QUESTION:` lines are trimmed; no blank lines, no tabs, no byte order mark, LF line ends and one final newline. Keys are never reordered and quoted text, names and numbers are never touched. (3) It works on the grammar's own token stream (the grammar's parser with every token kept, punctuation too) and puts each token back with the gap the rules give, so it needs no printer for each of the grammar's rules. (4) It proves its work every time: each line must give the same tokens, the OP steps the same nesting and the validator the same messages, or it raises FormatError and writes nothing. A test swaps in a formatter that changes `> 0` to `>= 0` and sees it caught. (5) All 12 committed specs and the 3 examples were already canonical, so nothing was rewritten; a unit test keeps them so (and so keeps every future spec in `specs/` and `vcl/examples/` canonical), and another untidies each of the 15 six ways (other key padding, other OP indentation, loose or missing spaces, blank lines, trailing spaces, CRLF) and requires fmt to give the original text back byte for byte, and fmt of fmt to change nothing. (6) Still open for the model's sake, not for the formatter: choices of meaning (`NOT SAME(x, y)` or `SAME(x, y) = FALSE`, the order of PRE conditions) stay the writer's; the prompt's examples teach one style (Phase 4). | One text for one meaning is less for the model to learn, and a formatter that proves it changed nothing can run over every spec the corpus takes in. |
+| D63 | 21 Oct 2026 | **Stage A Phase 4: spec.md, the Orchestrator prompt and the context file's Appendix A move to VCL 0.6 in one step, so Boss updates the Orchestrator Project once.** (1) The shared reference text teaches the `GOAL` line (the first key after the `# ASSUME:` lines of a TASK and of a BUILD; each TASK of a BUILD has its own) in TASK FORMAT and BUILD FORMAT, a new hard rule 24 (one plain-English sentence of 10 to 200 printable ASCII characters, not just the PROC name), and a Layout paragraph that says the one canonical layout (D62): keys padded to 9, 2 spaces per level, an ELSE level with its IF, the spacing, a FIXTURE or TEST on one line, no blank lines. Rule 8 and rule 23 say 0.6. The shared-text tests and `gen_context.py` now end at rule 24 ("as shown under Layout, with no blank lines."). (2) Examples 1, 3 and 4 move to `VCL 0.6` and gain hand-written GOAL lines (each already canonical); the prompt's copies are the files, kept equal by the unit tests. The tests of the older versions (E8, E12, E13) read the examples through `tests/vcl_samples.py`, which gives each as the 0.5 spec it was, without its GOAL lines, so they still prove the older versions give the same results. (3) Two Orchestrator dry runs on the new prompt, by helpers who knew only the prompt: a TASK (highlight instruments due within 30 days yellow and overdue red) passed every stage first time (3 TESTs, 20 of 20 mutants caught, canonical layout, a clear GOAL); a BUILD request (BOM and GRN shortage tool) passed first time too (4 TESTs, 61 of 69 mutants: equivalents, a dead CALL check and two small test gaps), though one TASK would have done. Their guesses gave these wording fixes, with no change of meaning: rule 9 says one macro or one tool is no reason for a BUILD (a TASK is a macro); rule 24 says GOAL is the first key after the ASSUME lines; rule 23 says to check a CALL's result only when the callee has a PRE the caller doesn't, then with a TEST where that PRE fails and one where the callee gives 0; the BUILD rules say which sheets the wrong-sheet TEST swaps; Layout says where ELSE sits and that FIXTURE and TEST are one line; stale=<n> fills the whole row; FILL_COUNT may name one cell. (4) The 12 committed specs stay in their versions: specs are inputs. Their pairs will be copies with a GOAL in `data/` (Phase 5). | One switch, one Orchestrator update, as D38, D46 and D58 did, after the last language change of Stage A. The corpus helpers read this prompt, so every spec they write already has its GOAL and its layout. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4578,7 +4609,7 @@ specs, each with its VBA.
 
 ##### Sources of truth
 
-- `vcl/spec.md`: VCL 0.5, the language reference.
+- `vcl/spec.md`: VCL 0.6, the language reference.
 - `vcl/orchestrator_prompt.txt`: the claude.ai prompt that writes specs. It contains the same
   reference text (a unit test keeps them identical), so the two always change together.
 - `vcl/grammar.lark`: the formal syntax. `vcl/semantics.py`: the reference meaning of the value
@@ -4688,7 +4719,7 @@ The Excel batch runner (`harness/ForgeTest.bas`, PR #4) is deferred; nothing dep
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, type-check, pass their
 TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
 
-Done: 12 specs (11 in VCL 0.2, task_12 in 0.3), VCL 0.5 in spec.md and the Orchestrator prompt (D58), the parser and validator, and the
+Done: 12 specs (11 in VCL 0.2, task_12 in 0.3), VCL 0.6 in spec.md and the Orchestrator prompt (D63), the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,
 `vclc`), with one fixture generator. Fixtures from the mutation evidence (revision 5:
 `stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). Every SKIP_IF has blank key rows
@@ -4761,8 +4792,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    data generator, 8 the benchmark. Phase 0 (the design), Phase 1 (error codes: every message
    has a stable code, `docs/error-codes.md`, D60) and Phase 2 (the toolchain reads `VCL 0.6` and the
    `GOAL` line, E15, D61; `vcl_goal.py` adds GOAL lines to a spec) and Phase 3 (`vclc fmt`: one
-   canonical text for every spec, which proves it changed nothing, D62) are done; no training
-   before March 2027.
+   canonical text for every spec, which proves it changed nothing, D62) and Phase 4 (the switch:
+   spec.md and the Orchestrator prompt teach VCL 0.6, with hard rule 24 for the GOAL line, D63;
+   Boss pastes the new prompt once) are done; Phase 5, the corpus tooling and the first pairs, is
+   next; no training before March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
@@ -5223,9 +5256,9 @@ tokenizer, any training. Stage A only prepares the data and the scoreboard.
    validator, the helper `vcl_goal.py` (adds a GOAL and moves a spec to 0.6), compatibility tests.
 3. **`vclc fmt` (done: D62):** the formatter, `--check`, the safety and idempotence tests on every
    committed spec and example.
-4. **The switch:** spec.md and the prompt teach VCL 0.6 (GOAL, the canonical form, Examples 1, 3
-   and 4 with a GOAL line), and Boss updates the Orchestrator once. The corpus helpers read the
-   same prompt, so this comes before the corpus.
+4. **The switch (done: D63):** spec.md and the prompt teach VCL 0.6 (GOAL, the canonical form,
+   Examples 1, 3 and 4 with a GOAL line), and Boss updates the Orchestrator once. The corpus
+   helpers read the same prompt, so this comes before the corpus.
 5. **Corpus tooling and the first pairs:** the layout, `vclc corpus`, `vclc export`, the 12
    existing specs as pairs, the task list for the 150, the first batch.
 6. **Corpus to 150:** batches of about 20, each its own PR; the gap report grows.

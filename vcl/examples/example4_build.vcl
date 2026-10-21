@@ -1,8 +1,9 @@
-VCL 0.5
+VCL 0.6
 BUILD
 # ASSUME: NCR headers (row 1) include "NCR No", "Status" and "Days Open"
 # ASSUME: an Open NCR older than the limit becomes Overdue; Summary is rebuilt on every run
 # ASSUME: the real sheets are "NCR Register" and "NCR Summary"; the TESTs use NCR and Summary
+GOAL     Mark every Open NCR that has been open more than 30 days as Overdue and rebuild a summary of NCRs by status.
 NAME     NcrReview
 TARGET   xlsm
 ENTRY    modMain.Run
@@ -20,8 +21,9 @@ TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) runs=2 asser
 TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) assert=RESULT = 4 AND ERROR_COUNT = 0 AND COUNTA(NCR![NCR No]) = PRE_COUNTA(NCR![NCR No]) AND VALUE(NCR![Status]2) = "Overdue" AND VALUE(NCR![Status]3) = "Open" AND VALUE(Summary![Status]2) = "Overdue"
 TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(Summary, NCR) assert=RESULT = -1 AND ERROR_COUNT = 1
 ---
-VCL 0.5
+VCL 0.6
 TASK
+GOAL     Start the NCR review on the workbook's own sheets and tell the user how many NCRs were marked Overdue.
 PROC     Run
 KIND     Sub
 MODULE   modMain
@@ -30,8 +32,9 @@ OP       CALL(modMain.RunHeadless, SHEET(THIS_BOOK, "NCR Register"), SHEET(THIS_
 OP       MSG("NCRs marked Overdue: " & n)
 ERR      standard
 ---
-VCL 0.5
+VCL 0.6
 TASK
+GOAL     Run both steps of the NCR review on the two sheets it is given and return how many NCRs were marked Overdue.
 PROC     RunHeadless
 KIND     Function
 MODULE   modMain
@@ -46,8 +49,9 @@ OP       CALL(modSteps.WriteSummary, $ncr, $out)
 OP       RETURN(marked)
 ERR      standard
 ---
-VCL 0.5
+VCL 0.6
 TASK
+GOAL     Mark every Open NCR that has been open longer than the limit as Overdue and return how many were changed.
 PROC     MarkOverdue
 KIND     Function
 MODULE   modSteps
@@ -69,8 +73,9 @@ OP               LET(n, n + 1)
 OP       RETURN(n)
 ERR      standard
 ---
-VCL 0.5
+VCL 0.6
 TASK
+GOAL     Rebuild the summary sheet with one row for each NCR status and how many NCRs have it.
 PROC     WriteSummary
 KIND     Sub
 MODULE   modSteps
