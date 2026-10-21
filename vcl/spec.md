@@ -62,20 +62,21 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     and guard every calculation and date comparison on a value from the workbook (a cell,
     an array element, a dictionary value) with IS_NUMBER or IS_DATE in a nested IF; your
     own counters need no guard. Guard with the check itself (IF IS_DATE(x)), never with a
-    flag variable set earlier.
+    flag variable set earlier. DEDUPE does not trim its keys: say so in an ASSUME.
 16. Make re-runs safe: rebuild output sheets from scratch, and recalculate totals from
     source data instead of adding to or subtracting from stored values. The goal TEST
     uses runs=2 to prove it.
 17. Prefer KIND Function returning a count (rows written, flagged or removed), so TESTs
-    can check RESULT.
+    can check RESULT. Put a second count in a cell: a TEST can read a cell, not a MSG.
 18. Always test with a named synthetic FIXTURE. Never use fixture=target or real workbooks.
 19. Make the FIXTURE able to catch a wrong macro: give each sheet the macro rebuilds (or
     whose fills it owns) stale=<n> rows, put the values that sit exactly on each <, <=, >
     or >= comparison in the first rows with +boundary(...), repeat dictionary keys with
     +dupes(<n>) or values() counts of 2 or more, and use reldates(lo, hi) when the spec
     uses TODAY. Give each column that a SKIP_IF IS_EMPTY tests at least one blank cell
-    (+blank(<n>) or a "" boundary value), and give a spec that copies or reads files a
-    locked= file in a FIXTURE folder. Prefer exact assertions to ranges.
+    (a "" boundary value in an early row, or +blank(<n>); LASTROW ignores a blank in the
+    last row), and give a spec that copies or reads files a locked= file in a FIXTURE
+    folder. Prefer exact assertions to ranges.
 20. Declare every sheet the macro changes with MODIFIES: the whole sheet when it is
     rebuilt, cleared, sorted, filtered or has rows added or removed; ["<header>", ...]
     when only those columns' values change; fills when only fills change; files for a
@@ -89,7 +90,9 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     moves, renames, overwrites or deletes a file.
 22. Add sheets only with ADD_SHEET or COPY_SHEET, each with name=, on a Workbook argument
     declared with MODIFIES $<book> sheets, and skip the add when SHEET_EXISTS says the
-    sheet is there, so a re-run is safe. Write formulas only with SET_FORMULA, using
+    sheet is there, so a re-run is safe. Only the run that adds a sheet can write to it,
+    so a tool that rebuilds an output sheet on every run takes that sheet as an argument
+    and ASSUMEs that it exists. Write formulas only with SET_FORMULA, using
     Excel 2016 functions; a TEST checks their text with FORMULA, never their value. A spec
     that SET_FORMULAs may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT. A formula's text can't
     use COL(), so check in PRE that each column it names holds its header, such as
@@ -101,7 +104,8 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     Pass a Worksheet, Workbook or Range only as one of the caller's own $arguments, and
     keep a Function's result with into=<VAR>: a callee that stops at its PRE gives -1 and
     one that fails gives -2, and the caller goes on, so check that VAR when the step
-    matters. Every TASK that writes declares MODIFIES, and a caller declares on each
+    matters (IF n < 0), and give a TEST a fixture where the callee gives 0. Every TASK
+    that writes declares MODIFIES, and a caller declares on each
     $argument it passes what its callees change. FLOW lists the CALLs and no others.
     modMain.Run is a Sub with no ARGS that only CALLs modMain.RunHeadless, with sheets
     written SHEET(THIS_BOOK, "<real sheet name>"), and LETs, IFs and MSGs; the TESTs call
@@ -248,6 +252,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   IS_NUMBER   true for numbers and for text that is a plain number after TRIM ("25",
               " -3.5 "); false for blanks, TRUE/FALSE, dates, errors, "1,250", "1e3", "25%"
   IS_DATE     true only for real Excel date values; text that looks like a date is false
+  Dates       TODAY + n and TODAY - n (a date plus or minus whole days) are dates n days
+              away; compare a date from the workbook only after IS_DATE
   Text        a value becomes text the same way everywhere (TRIM, UPPER, LOWER, LEN, LEFT,
               RIGHT, &, keys): whole numbers without ".0", "." as the decimal point, dates
               as yyyy-mm-dd, TRUE/FALSE, errors as their Excel text (#N/A)
@@ -278,8 +284,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   LASTROW     the last row holding any value (spaces too), like End(xlUp); 1 if the column
               is empty. LASTCOL works the same along a row
   Dictionary  keys are compared as text ignoring case, not trimmed (TRIM them first), so
-              1001 and "1001" are one key;
-              Dictionary and Collection VARs start empty
+              1001 and "1001" are one key; KEYS walks them in the order they were first
+              added; Dictionary and Collection VARs start empty
   PRE         if a condition is false: one ForgeLog entry, nothing changes, and a Function
               returns -1
   EXIT_IF     leaves the procedure; a Function then returns 0, "" or FALSE (use IF ... THEN
@@ -544,6 +550,10 @@ reasons: `DECISIONS.md` (E13, E14, D49 to D58).
 - An assertion names a sheet with spaces in single quotes, `'Open NCRs'!B1` (D57).
 - Examples 1 and 3 moved to 0.5 by their first line only; the new Example 4, a BUILD, is
   proven: its 3 TESTs pass and catch 34 of 34 mutants (D58).
+- After two Orchestrator dry runs, the wording says that DEDUPE keys are not trimmed (rule 15),
+  a second count goes in a cell (rule 17), a blank cell belongs early in its column (rule 19),
+  a sheet rebuilt on every run is an argument (rule 22), a TEST needs a fixture where a
+  checked callee gives 0 (rule 23), `TODAY - 14` is a date, and KEYS keeps insertion order.
 - The specs stay in their versions (11 in 0.2, task_12 in 0.3).
 
 ## Changes in VCL 0.4 (20 Oct 2026)

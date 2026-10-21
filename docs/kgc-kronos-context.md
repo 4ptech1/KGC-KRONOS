@@ -661,20 +661,21 @@ exact fixture algorithm and the changelogs.
     and guard every calculation and date comparison on a value from the workbook (a cell,
     an array element, a dictionary value) with IS_NUMBER or IS_DATE in a nested IF; your
     own counters need no guard. Guard with the check itself (IF IS_DATE(x)), never with a
-    flag variable set earlier.
+    flag variable set earlier. DEDUPE does not trim its keys: say so in an ASSUME.
 16. Make re-runs safe: rebuild output sheets from scratch, and recalculate totals from
     source data instead of adding to or subtracting from stored values. The goal TEST
     uses runs=2 to prove it.
 17. Prefer KIND Function returning a count (rows written, flagged or removed), so TESTs
-    can check RESULT.
+    can check RESULT. Put a second count in a cell: a TEST can read a cell, not a MSG.
 18. Always test with a named synthetic FIXTURE. Never use fixture=target or real workbooks.
 19. Make the FIXTURE able to catch a wrong macro: give each sheet the macro rebuilds (or
     whose fills it owns) stale=<n> rows, put the values that sit exactly on each <, <=, >
     or >= comparison in the first rows with +boundary(...), repeat dictionary keys with
     +dupes(<n>) or values() counts of 2 or more, and use reldates(lo, hi) when the spec
     uses TODAY. Give each column that a SKIP_IF IS_EMPTY tests at least one blank cell
-    (+blank(<n>) or a "" boundary value), and give a spec that copies or reads files a
-    locked= file in a FIXTURE folder. Prefer exact assertions to ranges.
+    (a "" boundary value in an early row, or +blank(<n>); LASTROW ignores a blank in the
+    last row), and give a spec that copies or reads files a locked= file in a FIXTURE
+    folder. Prefer exact assertions to ranges.
 20. Declare every sheet the macro changes with MODIFIES: the whole sheet when it is
     rebuilt, cleared, sorted, filtered or has rows added or removed; ["<header>", ...]
     when only those columns' values change; fills when only fills change; files for a
@@ -688,7 +689,9 @@ exact fixture algorithm and the changelogs.
     moves, renames, overwrites or deletes a file.
 22. Add sheets only with ADD_SHEET or COPY_SHEET, each with name=, on a Workbook argument
     declared with MODIFIES $<book> sheets, and skip the add when SHEET_EXISTS says the
-    sheet is there, so a re-run is safe. Write formulas only with SET_FORMULA, using
+    sheet is there, so a re-run is safe. Only the run that adds a sheet can write to it,
+    so a tool that rebuilds an output sheet on every run takes that sheet as an argument
+    and ASSUMEs that it exists. Write formulas only with SET_FORMULA, using
     Excel 2016 functions; a TEST checks their text with FORMULA, never their value. A spec
     that SET_FORMULAs may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT. A formula's text can't
     use COL(), so check in PRE that each column it names holds its header, such as
@@ -700,7 +703,8 @@ exact fixture algorithm and the changelogs.
     Pass a Worksheet, Workbook or Range only as one of the caller's own $arguments, and
     keep a Function's result with into=<VAR>: a callee that stops at its PRE gives -1 and
     one that fails gives -2, and the caller goes on, so check that VAR when the step
-    matters. Every TASK that writes declares MODIFIES, and a caller declares on each
+    matters (IF n < 0), and give a TEST a fixture where the callee gives 0. Every TASK
+    that writes declares MODIFIES, and a caller declares on each
     $argument it passes what its callees change. FLOW lists the CALLs and no others.
     modMain.Run is a Sub with no ARGS that only CALLs modMain.RunHeadless, with sheets
     written SHEET(THIS_BOOK, "<real sheet name>"), and LETs, IFs and MSGs; the TESTs call
@@ -847,6 +851,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   IS_NUMBER   true for numbers and for text that is a plain number after TRIM ("25",
               " -3.5 "); false for blanks, TRUE/FALSE, dates, errors, "1,250", "1e3", "25%"
   IS_DATE     true only for real Excel date values; text that looks like a date is false
+  Dates       TODAY + n and TODAY - n (a date plus or minus whole days) are dates n days
+              away; compare a date from the workbook only after IS_DATE
   Text        a value becomes text the same way everywhere (TRIM, UPPER, LOWER, LEN, LEFT,
               RIGHT, &, keys): whole numbers without ".0", "." as the decimal point, dates
               as yyyy-mm-dd, TRUE/FALSE, errors as their Excel text (#N/A)
@@ -877,8 +883,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   LASTROW     the last row holding any value (spaces too), like End(xlUp); 1 if the column
               is empty. LASTCOL works the same along a row
   Dictionary  keys are compared as text ignoring case, not trimmed (TRIM them first), so
-              1001 and "1001" are one key;
-              Dictionary and Collection VARs start empty
+              1001 and "1001" are one key; KEYS walks them in the order they were first
+              added; Dictionary and Collection VARs start empty
   PRE         if a condition is false: one ForgeLog entry, nothing changes, and a Function
               returns -1
   EXIT_IF     leaves the procedure; a Function then returns 0, "" or FALSE (use IF ... THEN
@@ -1309,7 +1315,10 @@ FINAL CHECK  (verify silently before every reply)
 - A BUILD: unique procedure names; every TASK has its own PRE, MODIFIES and ERR; a CALL passes
   only the caller's own $arguments and its into= result is checked when the step matters;
   FLOW lists exactly the CALLs; modMain.Run only CALLs RunHeadless with
-  SHEET(THIS_BOOK, "<real name>"); TARGET xlsm, no FORM (rule 23)
+  SHEET(THIS_BOOK, "<real name>"); TARGET xlsm, no FORM; a TEST fixture where a checked
+  callee gives 0 (rule 23)
+- An output sheet rebuilt on every run is an argument the ASSUME lines say exists; a sheet
+  ADD_SHEET makes is written only in the run that adds it (rule 22)
 - Sheets added only with ADD_SHEET or COPY_SHEET, with name=, skipped when SHEET_EXISTS,
   and MODIFIES $book sheets; formulas only with SET_FORMULA and Excel 2016 functions,
   tested with FORMULA, never beside INSERT_ROW, DELETE_ROW, DEDUPE or SORT (rule 22)
@@ -2923,6 +2932,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D55 | 21 Oct 2026 | VEP 0.5 Phase 4a, two of the review gaps (D47, D51). (1) `ROW_OF(<range>)` is the sheet row of the range's first cell (Range.Row), so a FIND result leads to another column of its row: `CELL($ws, ROW_OF(hit), cStatus)`. ROW_OF of NOTHING stops the run with a run-time error, as VBA's error 91 does, so the spec tests IS_NOTHING first; it compiles to plain `.Row`, as IS_NOTHING compiles to `Is Nothing`. (2) `DEDUPE(..., into=<var>)` sets the VAR to how many rows it deleted (0 when none); ForgeDedupe becomes a Function, and a DEDUPE without `into=` still calls it as a statement. (3) Both need `VCL 0.5`. (4) spec.md and the prompt teach VCL 0.4, which can't use them, so they are taught at the switch to 0.5 (Phase 5), and Boss updates the Orchestrator once. Until then the D47 drift guard lets a name of a version newer than spec.md's be untaught, but only if that version's VEP describes it; the moment spec.md moves up, the reference must teach it. (5) The work was started by the parallel session (its branch claude/tender-gates-vbdhjh, which called it D54) and finished here, after D54 went to the context file. A sample 0.5 TASK proves both: 4 TESTs pass and its TESTs catch 8 of 8 mutants. | A count and a row number were the two gaps that forced dry-run specs into workarounds; teaching them only at the switch keeps one Orchestrator update and never shows a 0.4 writer a function its specs can't use. |
 | D56 | 21 Oct 2026 | VEP 0.5 Phase 4b, the rule-14 gap (D47). (1) In a VCL 0.5 spec, a header the spec itself writes to row 1 of a sheet argument, as quoted text (`SET_VALUE(CELL($ws, 1, <col>), "<header>")` or a WRITE_ROW to row 1), counts as checked for rule 14, so `COL($ws, "<header>")` needs no PRE line. PRE can't check it: the header isn't there before the first run, so a PRE check would stop that run. (2) The match is exact: the same sheet argument, the same header (as COL matches it, S9), row 1, quoted text. A 0.4 spec keeps the rule-14 error, now with a hint that this needs VCL 0.5. (3) Found while proving it: `MODIFIES $ws ["<header>"]` on such a header passed the validator, but every TEST then failed, because the UNCHANGED check finds a column by its header before the run and the column isn't there yet. In 0.5 the validator now refuses that line and asks for the whole sheet (`MODIFIES $ws`), which is also the only form that lets the header row change (D47). (4) Nothing else changes: the type checker, the interpreter and the compiler already ran such specs, and an assertion could already name the new header (the validator counts row-1 writes). spec.md's rule 14 says so at the switch to 0.5 (Phase 5); until then the VEP describes it. A sample spec proves it: 3 TESTs pass and catch 18 of 18 mutants. | A macro that adds its own status column to a register is a common request; rule 14 must not force a PRE line that can only fail, and the column-MODIFIES trap should fail at the validator with the reason, not at a TEST. |
 | D57 | 21 Oct 2026 | VEP 0.5 Phase 4c, the last review gap (D47): an assertion couldn't name a sheet whose name has spaces, so a TEST couldn't look inside a sheet the macro adds as "Open NCRs". (1) In VCL 0.5 an assertion writes such a sheet in single quotes, as Excel writes it in a formula: `VALUE('Open NCRs'!B1)`, `COUNTA('Open NCRs'![NCR No])`, `ROWS_USED('Open NCRs')`; a quote in the name is written `''`. (2) One way to write each name: quotes only for a name that isn't one word (`'Ncr'!B2` is refused, write `Ncr!B2`), so the corpus never has two spellings of one reference. The name must be one ADD_SHEET could give (S23), so a TEST never names a sheet that can't exist. (3) FIXTURE sheets stay one word: a fixture is synthetic and its names are ours to choose, so only sheets the macro itself makes can have spaces. (4) Single quotes stay out of OP lines: text there is in double quotes, and a single-quoted text now gets a message that says so. (5) Changed: the tokenizer, the grammar, the validator's assertion checks and the interpreter's assertion reader; the compiler and ForgeLib don't read assertions. spec.md teaches it at the switch to 0.5 (Phase 5); until then the VEP describes it. A sample spec proves it: 3 TESTs pass and catch 13 of 13 mutants. | Excel's own quoting is the form a writer already knows, and it can name every sheet a macro may add. |
+| D58 | 21 Oct 2026 | **VEP 0.5 Phase 5: a proven BUILD and the switch to VCL 0.5 (item 3 complete).** (1) spec.md, the Orchestrator prompt and the context file's Appendix A move to VCL 0.5 in one step, so Boss updates the Orchestrator Project once. The shared reference text teaches everything 0.5 added: BUILD FORMAT without FORM and xlam and without "not yet tested" (unique procedure names, modMain.RunHeadless and Run, FLOW = the CALLs); CALL with `into=` and its SEMANTICS entry (-1 at the callee's PRE, -2 on its failure, values converted to the parameter's type); ROW_OF; DEDUPE `into=`; the rule-14 exception for a header the spec writes to row 1; the MODIFIES lines a caller needs and the rule that a header the spec adds can't be named in `[...]`; quoted sheet names in assertions. Hard rules: 7 (ask when even a BUILD can't do it), 8 (VCL 0.5), 9 (a request one TASK can't do becomes a BUILD of TASKs of about 40 OP lines), 14 (the exception), and a new rule 23 for BUILD and CALL. The shared-text tests now end at rule 23 ("and no FORM line."); `compiler/gen_context.py` too. FORM lines stay valid in the language and are refused by the compiler (D49), and the reference text no longer teaches them. (2) Example 4, `vcl/examples/example4_build.vcl`, is the NcrReview BUILD of the tests (D50, D52, D53), with `mode=sum` in DICT_ADD so no equivalent mutant survives: it is valid with no warnings, its 3 TESTs pass, it builds lint-clean, and its TESTs catch 34 of 34 mutants (modMain.Run is not mutated: no TEST can reach it). It is the prompt's new Example 4, a unit test keeps the two equal and proves it, and `tests/test_vcl05.py` now uses the file as its BUILD sample. Examples 1 and 3 moved to 0.5 by their first line only (E13); the migration and version tests were updated to say so, and still compare results. The 12 committed specs stay TASK specs in their versions: a BUILD joins `specs/` when a real request needs one. (3) Two Orchestrator dry runs (helpers who knew only the prompt) wrote a BUILD (a weld-chase tool with a summary sheet) and a TASK (duplicates, then FIND and ROW_OF); both passed check, test, build and lint, and the BUILD scored 61 of 62 (an equivalent), the TASK 20 of 22 (two equivalents). Their guesses led to wording fixes with no change of meaning: rule 15 says DEDUPE does not trim its keys (an ASSUME), rule 17 puts a second count in a cell, rule 19 puts the blank cell early in the column (LASTROW ignores a trailing blank), rule 22 says only the run that adds a sheet can write to it, so a sheet rebuilt on every run is an argument that the ASSUME lines say exists, rule 23 asks for a TEST where a checked callee gives 0, and SEMANTICS says `TODAY - 14` is a date and KEYS walks keys in the order they were first added. (4) Known gaps, left for a later VEP because each is a language change: a tool that must create a sheet if it is missing and rebuild it if it is there can be written only by calling RunHeadless twice from Run (the dry run found it); FIND needs a range, so looking one value up in another sheet's column goes through a Dictionary, since no function gives a column range by header; and `vclc mutate` prints "... and N more" without a way to list every survivor. | One switch, one Orchestrator update, as D38 and D46 did, after every language phase of item 3. A BUILD is only taught once a sample proves all three stages, and the dry runs showed which sentences a writer had to guess. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
