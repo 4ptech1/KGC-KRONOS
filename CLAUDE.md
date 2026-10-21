@@ -164,6 +164,8 @@ MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, m
 `stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). Every SKIP_IF has blank key rows
 (D22). FORMAT fill names work (D23). task_11 HighlightRejectedWelds is
 Boss's weld-log spec, unchanged (D24). task_12 RouteJobPacks is the router MVP spec, VCL 0.3 (D32).
+The review pass after item 2 is done (D47, PR #45): two Orchestrator dry runs and a ForgeLib
+review; the prompt now says what the toolchain does, and Boss pastes the final prompt once.
 Snapshot mutation score 95.4% (418 of 438); 19 of the 20 survivors are
 equivalents, and 1 (task_11 `LOOP_COLS from=1`) needs a fixture change, reported to Boss. The repo is KGC-KRONOS (renamed 17 Oct 2026). PR #4 (Excel pilot) is open with the `deferred`
 label.

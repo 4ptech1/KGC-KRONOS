@@ -1,6 +1,6 @@
 # KGC KRONOS: AI context file
 
-**Snapshot: 20 Oct 2026, after the review pass of item 2 (D47).** Hand this file to any Claude chat or claude.ai
+**Snapshot: 21 Oct 2026, after the review pass of item 2 (D47, PR #45).** Hand this file to any Claude chat or claude.ai
 Project that needs to understand the project. The repo is always the source of truth: if this
 file and the repo disagree, the repo wins, and the repo's `CLAUDE.md` has the current status.
 
@@ -114,7 +114,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
-tests/                    347 unit tests; conformance_cases.py is shared with the docs
+tests/                    354 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -309,12 +309,12 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 347 pass |
+| Unit tests | 354 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
 | Verified pairs | 0 (none has been run in Excel yet) |
-| Orchestrator Project | the VCL 0.4 prompt is ready (item 2 switch, D46); once Boss pastes it in, replies start with `VCL 0.4` and can use every op item 2 added (sheets, formulas, FILTER, DEDUPE, FIND, text files) |
+| Orchestrator Project | the final VCL 0.4 prompt is ready (D46, with the D47 review fixes); once Boss pastes it in, replies start with `VCL 0.4`, use every op item 2 added (sheets, formulas, FILTER, DEDUPE, FIND, text files), and are one TASK (no BUILD or CALL until they can be tested) |
 
 The 12 specs:
 
@@ -369,6 +369,9 @@ The 12 specs:
 - #42: item 2 Phase 7a, LIST_FILES and ITEMS (S24, D44).
 - #43: item 2 Phase 7b, READ_TEXT and WRITE_TEXT (S25, D45).
 - #44: spec.md and the prompt teach VCL 0.4, with hard rule 22 (E12, D46). Item 2 is complete.
+- #45: the review pass after item 2 (D47): two Orchestrator dry runs and a ForgeLib review; the
+  prompt now says what the toolchain does, and Excel risks in ForgeSort, LIST_FILES, formulas and
+  the linter are closed.
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -482,8 +485,13 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
   never its value (only Excel can calculate it).
 - **S24, S25:** LIST_FILES gives names in one fixed order. READ_TEXT and WRITE_TEXT handle
   printable ASCII only, and WRITE_TEXT never overwrites a file.
-- **D47:** `Sheet![Header]` is the header's whole column from row 1, the header cell included
-  (as `A:A` is): 5 values under a header give COUNTA = 6. Committed specs count on it.
+- **D47:** the review pass after item 2. `Sheet![Header]` is the header's whole column from row 1,
+  the header cell included (as `A:A` is): 5 values under a header give COUNTA = 6. The prompt
+  says what the toolchain does (a PRE_ measure in rule 5; no TRUE or FALSE in assertions; about
+  40 OP lines per TASK; no BUILD or CALL until they can be tested; a formula names only sheets
+  every TEST workbook has). ForgeSort gives every sort option; LIST_FILES leaves out hidden and
+  system files; the linter bans FileCopy, SetAttr, Workbooks.Open and more. Known gaps: Excel's
+  locale-aware text sort, hidden rows in a sort, vbTextCompare keys on a Turkish PC.
 
 ## 11. How to help (rules for the AI reading this)
 
@@ -608,7 +616,8 @@ exact fixture algorithm and the changelogs.
     Excel 2016 functions; a TEST checks their text with FORMULA, never their value. A spec
     that SET_FORMULAs may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT. A formula's text can't
     use COL(), so check in PRE that each column it names holds its header, such as
-    COL($ws, "Method") = 3. No op removes or replaces a sheet.
+    COL($ws, "Method") = 3, and it may name another sheet only when every TEST workbook has
+    a sheet of that name. No op removes or replaces a sheet.
 ```
 
 ### Reference
@@ -811,7 +820,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               matches the pattern (* any run of characters, ? one character, case ignored),
               sorted by lowercase name, into a Collection VAR (replacing what it held); a
               missing or bad folder gives an empty list. ITEMS walks them in that order. The
-              pattern is quoted text, never an expression
+              pattern is quoted text, never an expression. Hidden and system files (such as
+              the ~$ file Excel keeps for an open workbook) are left out
   Text        READ_TEXT and WRITE_TEXT handle printable ASCII, tabs and line breaks, at most
               32,767 characters; anything else is Not text, because it reads differently on
               each PC

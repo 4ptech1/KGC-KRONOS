@@ -27,7 +27,7 @@ from vcl_types import Checker as TypeChecker
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "vcl"))
 from semantics import safe_name, sheet_name_ok  # noqa: E402
-from vcl_formula import formula_problems  # noqa: E402
+from vcl_formula import formula_problems, sheet_names  # noqa: E402
 
 TYPES = {"Long", "Double", "String", "Boolean", "Date", "Variant", "Range", "Worksheet", "Workbook",
          "Dictionary", "Collection"}
@@ -304,6 +304,8 @@ class TaskChecker:
         self.header_copies = []    # (source arg, target arg) row 1 copied
         self.calls = []            # (line, "module.Proc", number of args)
         self.sheet_ops = False     # ADD_SHEET / COPY_SHEET can create sheets the fixture lacks
+        self.formula_sheets = []   # (line, sheet name) named in a SET_FORMULA formula (D47)
+        self.named_adds = set()    # casefolded name= of every ADD_SHEET / COPY_SHEET with a quoted name
         self.pre_conditions = []   # [(arg, header)] when every PRE condition is COL($x, "h") > 0
         self.pre_evaluable = True
         self.modifies = {}         # arg -> {"whole": line, "cols": line, "fills": line}
@@ -1002,8 +1004,10 @@ class TaskChecker:
                                    f"(not empty, none of \\ / : \" < > |)")
                 elif name == "SET_FORMULA":   # D43: Excel 2016 only, this workbook only
                     r1c1 = any(k.text == "style" and show(v) == "r1c1" for k, v in call.options)
-                    for problem in formula_problems(items[0].text[1:-1].replace('""', '"'), r1c1):
+                    formula = items[0].text[1:-1].replace('""', '"')
+                    for problem in formula_problems(formula, r1c1):
                         self.error(f"SET_FORMULA: {problem}")
+                    self.formula_sheets += [(self.line, sheet) for sheet in sheet_names(formula)]
             else:
                 self.check_expr(items, f"{name} argument")
         if name == "RETURN":
@@ -1031,6 +1035,8 @@ class TaskChecker:
                 self.sheet_adds.append((self.line, name, book[0].text[1:] if len(book) == 1 and is_tok(book[0], "arg")
                                         else None))
             given = dict((k.text, v) for k, v in options)
+            if len(given.get("name", [])) == 1 and is_tok(given["name"][0], "string"):
+                self.named_adds.add(given["name"][0].text[1:-1].replace('""', '"').casefold())
             into = given.get("into")
             if into and len(into) == 1 and is_tok(into[0], "name"):
                 self.new_sheets.setdefault(into[0].text, self.line)
@@ -1282,6 +1288,12 @@ class TaskChecker:
             sheets = {}   # a fixture of folders only
         if sheets is None:
             self.error(f"TEST uses fixture {test.fixture}, but no FIXTURE line builds it")
+        else:   # D47: in Excel a formula naming a missing sheet opens a file dialog and links to a file
+            have = {name.casefold() for name in sheets} | self.named_adds
+            for line, sheet in self.formula_sheets:
+                if sheet.casefold() not in have:
+                    self.error(f"SET_FORMULA names the sheet {sheet}, which the TEST workbook {test.fixture} "
+                               "doesn't have: in Excel the formula would ask for a file (D47)")
         proc = spec.value("PROC")
         if not self.in_build and test.procedure != proc:
             self.error(f"TEST calls {test.procedure}, but PROC is {proc}")

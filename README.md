@@ -191,3 +191,10 @@ Dataset count: 0 verified pairs
   SAVE_AS and CLOSE_BOOK until March 2027) are no longer taught. Every spec gives the same
   results under 0.4 (E12, D46). Boss pastes the new prompt into the Orchestrator Project once.
   Item 2 is complete.
+- **2026-10-21:** The review pass after item 2 (D47). Two Orchestrator dry runs wrote specs from the
+  prompt alone: one passed every stage, the other showed rules the prompt never stated (a PRE_
+  measure, no TRUE or FALSE in assertions) and a BUILD nothing can test. The prompt now says what
+  the toolchain does and asks for one TASK. A ForgeLib review fixed ForgeSort's left-over sort
+  settings, kept hidden files out of LIST_FILES, closed lint gaps (FileCopy, Workbooks.Open and
+  more) and stopped formulas that name a missing sheet. 354 tests; every spec's result is unchanged.
+  Boss pastes the final prompt into the Orchestrator Project once.

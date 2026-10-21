@@ -724,11 +724,14 @@ class Machine:
         fills = [{c: sh.fills.get((r, c)) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
         formats = [{c: sh.formats.get((r, c)) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
 
-        def rank(v):  # Excel: numbers and dates < text < booleans; blanks always last
+        def rank(v):  # Excel: numbers and dates < text < booleans < errors; blanks always last
             if isinstance(v, bool):
                 return (2, v)
-            if isinstance(v, (dt.date, dt.datetime)):
-                return (0, v.toordinal())
+            if S.is_error(v):   # D47: all equal, after booleans (they used to sort by memory address)
+                return (3, 0)
+            if isinstance(v, (dt.date, dt.datetime)):   # D47: by Excel's serial, time of day included
+                moment = v if isinstance(v, dt.datetime) else dt.datetime(v.year, v.month, v.day)
+                return (0, (moment - dt.datetime(1899, 12, 30)).total_seconds() / 86400)
             if isinstance(v, (int, float)):
                 return (0, v)
             return (1, str(v).casefold())

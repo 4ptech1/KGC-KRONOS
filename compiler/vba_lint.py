@@ -24,7 +24,12 @@ BANNED = [(r"\.Select\b", "Select is banned"), (r"\.Activate\b", "Activate is ba
            "this file system method is banned"),
           (r"(?i)\b(SaveSetting|GetSetting|GetAllSettings|DeleteSetting)\b", "registry access is banned"),
           (r"(?i)\.(SaveAs|SaveCopyAs)\b", "SaveAs is banned"),
-          (r"(?i)^Name\s+.+\s+As\s+", "the Name statement (rename) is banned")]
+          (r"(?i)(?:^|:\s*|\bThen\s+|\bElse\s+)Name\s+.+\s+As\s+", "the Name statement (rename) is banned"),
+          (r"(?i)\b(FileCopy|SetAttr|CallByName|ExecuteExcel4Macro)\b", "FileCopy, SetAttr, CallByName and ExecuteExcel4Macro are banned"),
+          (r"(?i)\.(Save|ExportAsFixedFormat|Run|OnTime|OnKey|AutoFilter|FormulaLocal|FormulaR1C1Local)\b",
+           "saving, exporting, running macros, AutoFilter and FormulaLocal are banned"),
+          (r"(?i)\bWorkbooks\.(Open|OpenText|OpenXML)\b", "opening a workbook is banned until March 2027"),
+          (r"(?i)\bSaveChanges\b", "closing with SaveChanges is banned")]
 # CreateObject: the only classes, and the procedures that make them.
 CREATE_OBJECT = {"Scripting.Dictionary": {"ForgeNewDict"}, "Scripting.FileSystemObject": {"ForgeFso", "SandboxFso"}}
 # (what, pattern, the only procedures where it may appear): every file write goes through these.
@@ -34,7 +39,8 @@ ONLY_IN = [("CopyFile", r"\bCopyFile\b", {"ForgeCopyFile"}),
                                          "ForgeCopyFile", "ForgeListFiles", "ForgeReadText", "ForgeWriteText"}),
            ("SandboxFso", r"\bSandboxFso\b", {"SandboxFso", "SandboxNewRoot", "SandboxFolder", "SandboxFile",
                                              "SandboxText", "PilotFiles"}),
-           ("Writing files with Open", r"(?i)^Open\s+.*\bFor\s+(Output|Append|Binary|Random)\b",
+           ("gForgeFso", r"\bgForgeFso\b", {"ForgeFso"}),
+           ("Open", r"(?i)(?:^|:\s*|\bThen\s+|\bElse\s+)Open\s",
             {"SandboxFile", "SandboxText", "SandboxLock", "ForgeReadRaw"}),
            ("CreateTextFile", r"\bCreateTextFile\b", {"ForgeWriteText"})]
 KNOWN_GLOBALS = {"Application", "ThisWorkbook", "ActiveWorkbook", "ActiveSheet", "Err", "Debug", "Date",
@@ -65,6 +71,17 @@ def strip_strings_and_comments(line):
     return "".join(out), in_str
 
 
+def code_keep_strings(line):
+    """The line without its comment, string literals kept (for CreateObject's class name)."""
+    in_str = False
+    for i, ch in enumerate(line):
+        if ch == '"':
+            in_str = not in_str
+        elif ch == "'" and not in_str:
+            return line[:i]
+    return line
+
+
 def public_helpers(text):
     """The Forge* procedures a module makes public: what another module of the project may call."""
     return set(re.findall(r"^Public (?:Function|Sub) (Forge\w+)", text, re.M))
@@ -86,18 +103,23 @@ def lint(text, helpers=()):
     labels = set()
     gotos = []
     continuation = ""
+    raw_cont = ""
     for no, raw in enumerate(lines, start=1):
         if any(ord(ch) > 127 for ch in raw):
             problems.append((no, "non-ASCII character"))
         code, open_str = strip_strings_and_comments(raw)
         if open_str:
             problems.append((no, "unbalanced quotes"))
+        keep = raw[:len(raw) - len(raw.lstrip())] + code_keep_strings(raw).strip()
         if continuation:
             code = continuation + " " + code.strip()
+            keep = raw_cont + " " + keep.strip()
         if code.rstrip().endswith(" _"):
             continuation = code.rstrip()[:-2]
+            raw_cont = keep.rstrip()[:-2]
             continue
         continuation = ""
+        raw_cont = ""
         stmt = code.strip()
         if not stmt:
             continue
@@ -123,13 +145,13 @@ def lint(text, helpers=()):
                 problems.append((no, msg))
         header = re.match(r"^(?:Public |Private )?(?:Function|Sub) (\w+)\(", stmt)
         here = header.group(1) if header else (proc[1] if proc else None)
-        for cls in re.findall(r"\bCreateObject\((\"[^\"]*\"|[^)]*)\)", raw.split("'")[0]):
+        for cls in re.findall(r"\bCreateObject\(\s*(\"[^\"]*\"|[^)]*)\)", keep):
             cls = cls.strip('"')
             if here not in CREATE_OBJECT.get(cls, ()):
                 problems.append((no, f"CreateObject({cls}) is only allowed for "
                                      + "; ".join(f"{k} in {', '.join(sorted(v))}" for k, v in CREATE_OBJECT.items())))
         for what, pat, allowed in ONLY_IN:
-            if re.search(pat, stmt) and here not in allowed:
+            if re.search(pat, stmt) and here is not None and here not in allowed:
                 problems.append((no, f"{what} is only allowed in {', '.join(sorted(allowed))}"))
         m = re.match(r"^(?:Public |Private )?(Function|Sub) (\w+)\((.*?)\)", stmt)
         if m:

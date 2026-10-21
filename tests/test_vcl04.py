@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "vcl"))
 import semantics as S  # noqa: E402
 from vba_lint import lint  # noqa: E402
 from vcl_codegen import CompileError, assemble, compile_text  # noqa: E402
-from vcl_formula import formula_problems  # noqa: E402
+from vcl_formula import formula_problems, sheet_names  # noqa: E402
 from vcl_fixtures import SANDBOX, MockFS  # noqa: E402
 from vcl_interp import VclError, modifies_of, needs_unchanged_check, read_text, run_tests, write_text  # noqa: E402
 from vcl_parse import parse  # noqa: E402
@@ -861,6 +861,55 @@ class VersionSwitch(unittest.TestCase):
             run_tests(MINIMAL_BUILD)
         self.assertEqual(str(caught.exception),
                          "a BUILD can't be tested yet: the interpreter runs TASK specs only (D36)")
+
+
+class ReviewPass(unittest.TestCase):
+    """D47: what the review pass after item 2 found in ForgeLib, the formula check and SORT."""
+
+    def test_forge_sort_gives_every_sticky_option(self):
+        # Range.Sort reuses the sheet's last Orientation, OrderCustom and MatchCase when they are left out.
+        start = FORGELIB.index("Public Sub ForgeSort(")
+        body = FORGELIB[start:FORGELIB.index("\nEnd Sub", start)]
+        for option in ("Orientation:=xlTopToBottom", "OrderCustom:=1", "MatchCase:=False", "DataOption1:=xlSortNormal"):
+            self.assertIn(option, body)
+
+    def test_list_files_leaves_out_hidden_and_system_files(self):   # ~$ owner files, Thumbs.db
+        start = FORGELIB.index("Public Function ForgeListFiles(")
+        self.assertIn("If (f.Attributes And 6) = 0 Then", FORGELIB[start:FORGELIB.index("\nEnd Function", start)])
+
+    def test_sort_puts_errors_after_booleans_and_dates_by_serial(self):
+        from vcl_fixtures import Sheet
+        from vcl_interp import Machine, Rng
+        sh = Sheet("Data")
+        column = ["Key", S.XlError("#N/A"), 5, datetime.datetime(2026, 1, 1, 15), "b",
+                  datetime.datetime(2026, 1, 1, 9), True, None, 46023, S.XlError("#DIV/0!")]
+        for r, v in enumerate(column, start=1):
+            if v is not None:
+                sh.set(r, 1, v)
+            sh.set(r, 2, r)
+        Machine.sort(None, Rng(sh, 1, 1, len(column), 2), 1, True, True)
+        # numbers and dates by Excel's serial (46023 is 1 Jan 2026), text, booleans, errors (kept in
+        # order), blanks; errors used to sort by their memory address, and times were ignored
+        self.assertEqual([sh.get(r, 2) for r in range(2, len(column) + 1)], [3, 9, 6, 4, 5, 7, 2, 10, 8])
+
+    def test_a_formula_names_no_file(self):
+        for bad in ("='C:\\x\\[Other.xlsx]Data'!A1", "='\\\\srv\\share\\[a.xlsx]S'!B2", "='a/b'!A1"):
+            with self.subTest(bad):
+                self.assertTrue(any("names another file" in p for p in formula_problems(bad)))
+        self.assertEqual(formula_problems("='Weld Log'!A1+'O''Neil'!B2"), [])
+        self.assertEqual(sheet_names("=SUM(Data!B2:B9)+'O''Neil'!A1+Data!C1"), ["Data", "O'Neil"])
+        self.assertEqual(sheet_names('="x!"&A1&RC[-1]'), [])
+
+    def test_a_formula_names_only_sheets_the_test_workbook_has(self):
+        text = ops('SET_FORMULA(CELL($ws, 2, 3), "=SUM(Data!A2:A3)+\'NDE Register\'!A1")', version="VCL 0.4")
+        found = [p.message for p in validator.validate_text(text) if p.severity == "error"]
+        self.assertIn("SET_FORMULA names the sheet NDE Register, which the TEST workbook t_01.xlsx doesn't have: "
+                      "in Excel the formula would ask for a file (D47)", found)
+        self.assertFalse(any("the sheet Data," in m for m in found))
+        added = ops('ADD_SHEET(THIS_BOOK, name="NDE Register", into=s)',
+                    'SET_FORMULA(CELL($ws, 2, 3), "=\'NDE Register\'!A1")', head=["VAR      s As Worksheet"],
+                    version="VCL 0.4")
+        self.assertFalse(any("SET_FORMULA names the sheet" in p.message for p in validator.validate_text(added)))
 
 
 class Facts(unittest.TestCase):

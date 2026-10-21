@@ -88,7 +88,8 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     Excel 2016 functions; a TEST checks their text with FORMULA, never their value. A spec
     that SET_FORMULAs may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT. A formula's text can't
     use COL(), so check in PRE that each column it names holds its header, such as
-    COL($ws, "Method") = 3. No op removes or replaces a sheet.
+    COL($ws, "Method") = 3, and it may name another sheet only when every TEST workbook has
+    a sheet of that name. No op removes or replaces a sheet.
 ```
 
 ## Reference
@@ -291,7 +292,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               matches the pattern (* any run of characters, ? one character, case ignored),
               sorted by lowercase name, into a Collection VAR (replacing what it held); a
               missing or bad folder gives an empty list. ITEMS walks them in that order. The
-              pattern is quoted text, never an expression
+              pattern is quoted text, never an expression. Hidden and system files (such as
+              the ~$ file Excel keeps for an open workbook) are left out
   Text        READ_TEXT and WRITE_TEXT handle printable ASCII, tabs and line breaks, at most
               32,767 characters; anything else is Not text, because it reads differently on
               each PC
