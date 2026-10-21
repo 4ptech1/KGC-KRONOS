@@ -1,0 +1,1 @@
+Count the instruments in the Calibration Tracker (Instrument ID, Type, Next Calibration Due) that are overdue, due in the next 30 days, and fine, and write the three numbers with labels on a Calibration Summary sheet. Instruments with no valid date are not counted in any of the three.

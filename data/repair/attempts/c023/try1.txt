@@ -1,0 +1,5 @@
+ 85.0%  mutate /tmp/claude-0/-home-user-KGC-KRONOS/a1a3ea24-e002-548b-adb1-cbffb5fc4e56/scratchpad/batch01/c023.vcl  (17/20)
+        survives: line 21: step deleted
+        survives: line 23: 2 -> 3
+        survives: line 24: step deleted
+Overall mutation score: 85.0%

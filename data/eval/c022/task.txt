@@ -1,0 +1,1 @@
+Compare the Welder Quals list (Welder ID, Process, Expiry Date) with the Weld Log (Weld Seam No, Welder ID, Process). In the Weld Log write Not qualified in the Remark column for every weld whose welder has no qualification row for that process, and clear the Remark on the others. Tell me how many welds are Not qualified.

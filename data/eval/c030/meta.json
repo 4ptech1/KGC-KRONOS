@@ -1,0 +1,25 @@
+{
+ "accepted_warnings": [],
+ "family": "find_filter",
+ "id": "c030",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 11,
+  "note": "",
+  "total": 11
+ },
+ "op_lines": 7,
+ "ops": [
+  "FILTER",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN"
+ ],
+ "registers": [
+  "itp"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 1)"
+}

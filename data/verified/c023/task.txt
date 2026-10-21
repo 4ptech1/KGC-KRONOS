@@ -1,0 +1,1 @@
+In the BOM sheet (Part No, Description, Required Qty) remove duplicate rows by Part No, keeping the first, and tell me how many duplicates I removed. Part numbers can have stray spaces, so don't treat 'P-100' and ' P-100 ' as different.

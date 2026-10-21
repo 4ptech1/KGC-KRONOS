@@ -265,3 +265,7 @@ Dataset count: 0 verified pairs
   pass, lint-clean build, at least 90% of the catchable mutants caught), `corpus-add` proves and stores a
   new one, and `export` writes the dataset with its VBA compiled fresh. `docs/corpus-plan.md` plans the
   other 138 (D64).
+- **2026-10-21:** Stage A Phase 6, batch 1: 20 more pairs (c013 to c032). Helpers who saw only the Orchestrator
+  prompt wrote the specs; each passed the whole toolchain before it was stored, 18 in `data/verified` and 2
+  held out in `data/eval`. The corpus has 32 of 150 pairs. The failed attempts are kept as repair seeds and
+  `data/gaps.md` logs what VCL could not say (D65).

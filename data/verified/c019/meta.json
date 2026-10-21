@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c019",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 29,
+  "note": "",
+  "total": 29
+ },
+ "op_lines": 16,
+ "ops": [
+  "CLEAR",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "calibration"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 1)"
+}

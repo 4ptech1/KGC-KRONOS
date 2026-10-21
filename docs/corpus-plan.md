@@ -47,3 +47,10 @@ Registers: `bom`, `grn`, `weld_log`, `nde`, `ncr`, `itp`, `welder_quals`, `calib
 
 Phase 6 makes the corpus in batches of about 20 requests, one PR each, with the gap report growing. The 12
 committed specs (`specs/task_01.vcl` to `task_12.vcl`) are `c001` to `c012`; new pairs continue from `c013`.
+Each batch keeps its requests, with registers, family and set, in `data/batches/batch_NN.json`; the failed
+attempts of stored pairs go to `data/repair/attempts/<id>/` (never those of a held-out pair); what VCL could not
+say goes to `data/gaps.md`.
+
+| Batch | Pairs | State |
+| --- | --- | --- |
+| 1 | c013 to c032 | stored (D65): 18 verified, 2 held out |

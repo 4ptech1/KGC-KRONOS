@@ -1,0 +1,1 @@
+In the ITP Tracker (ITP No, Point, Inspection Status) hide every row whose Inspection Status is Closed so that only the open points show, and tell me how many rows are visible below the headings. Running it again must show the rows that have been reopened.

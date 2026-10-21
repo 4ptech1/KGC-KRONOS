@@ -1,0 +1,3 @@
+ 90.0%  mutate /tmp/claude-0/-home-user-KGC-KRONOS/a1a3ea24-e002-548b-adb1-cbffb5fc4e56/scratchpad/batch01/c024.vcl  (9/10)
+        survives: line 18: 2 -> 3
+Overall mutation score: 90.0%

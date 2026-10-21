@@ -1,0 +1,24 @@
+{
+ "accepted_warnings": [],
+ "family": "sheets_formulas",
+ "id": "c029",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 12,
+  "note": "",
+  "total": 12
+ },
+ "op_lines": 7,
+ "ops": [
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_FORMULA",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "consumables"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 1)"
+}

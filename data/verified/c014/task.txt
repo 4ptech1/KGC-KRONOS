@@ -1,0 +1,1 @@
+On the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date, Status) write Late in Status for every row with no Actual Date and a Planned Date before today, and On time where the Actual Date is not later than the Planned Date. Leave the other rows alone and tell me how many are Late.

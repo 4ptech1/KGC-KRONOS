@@ -1,0 +1,1 @@
+In the Material Certs sheet the Heat No cells have stray spaces and some are in lowercase. Make every Heat No trimmed and upper case, change nothing else, and tell me how many cells I changed.

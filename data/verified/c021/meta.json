@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c021",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 27,
+  "note": "mode=keep changed to overwrite and the value 1 changed to 2 on a dictionary that only EXISTS reads",
+  "total": 29
+ },
+ "op_lines": 15,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "grn",
+  "material_certs"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 1)"
+}

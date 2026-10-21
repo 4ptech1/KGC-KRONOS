@@ -1,0 +1,4 @@
+/tmp/claude-0/-home-user-KGC-KRONOS/a1a3ea24-e002-548b-adb1-cbffb5fc4e56/scratchpad/batch01/c028.vcl:23: error: SET_FORMULA names the sheet Calibration Tracker, which the TEST workbook cal_01.xlsx doesn't have: in Excel the formula would ask for a file (D51) [V195]
+/tmp/claude-0/-home-user-KGC-KRONOS/a1a3ea24-e002-548b-adb1-cbffb5fc4e56/scratchpad/batch01/c028.vcl:24: error: SET_FORMULA names the sheet Calibration Tracker, which the TEST workbook cal_01.xlsx doesn't have: in Excel the formula would ask for a file (D51) [V195]
+/tmp/claude-0/-home-user-KGC-KRONOS/a1a3ea24-e002-548b-adb1-cbffb5fc4e56/scratchpad/batch01/c028.vcl:25: error: SET_FORMULA names the sheet Calibration Tracker, which the TEST workbook cal_01.xlsx doesn't have: in Excel the formula would ask for a file (D51) [V195]
+1 file checked: 3 errors, 0 warnings

@@ -1,0 +1,2 @@
+/tmp/claude-0/-home-user-KGC-KRONOS/a1a3ea24-e002-548b-adb1-cbffb5fc4e56/scratchpad/batch01/c025.vcl:43: warning: SKIP_IF skips blank "Job ID" cells, but FIXTURE sheet JobTracker has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]
+1 file checked: 0 errors, 1 warning

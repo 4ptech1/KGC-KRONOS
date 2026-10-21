@@ -1,0 +1,35 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c032",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 68,
+  "note": "LET(outRow, 2) changed to 3 and outRow + 1 changed to + 2: the SORT after them sends blank rows to the bottom",
+  "total": 72
+ },
+ "op_lines": 43,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "COPY_ROW",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FORMAT",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "weld_log"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 1)"
+}

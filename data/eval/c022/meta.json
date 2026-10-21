@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c022",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 29,
+  "note": "mode=keep changed to overwrite and the value 1 changed to 2 on a dictionary that only EXISTS reads",
+  "total": 31
+ },
+ "op_lines": 17,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "welder_quals",
+  "weld_log"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 1)"
+}

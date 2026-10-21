@@ -1,0 +1,1 @@
+In the NCR register (NCR No, Raised By, Issue Date, Category, Status) highlight in yellow the NCR No cell of every NCR that is still Open and was issued more than 30 days ago. Tell me how many. If I run it again, old highlights must not stay on NCRs that have been closed.

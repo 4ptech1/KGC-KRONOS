@@ -1,0 +1,8 @@
+OK   check  /tmp/claude-0/-home-user-KGC-KRONOS/a1a3ea24-e002-548b-adb1-cbffb5fc4e56/scratchpad/batch01/c026.vcl
+FAIL test   /tmp/claude-0/-home-user-KGC-KRONOS/a1a3ea24-e002-548b-adb1-cbffb5fc4e56/scratchpad/batch01/c026.vcl  (2/3 tests)
+       line 38: RESULT=4 ERROR_COUNT=0
+         ASSERT: RESULT = 3 is false (left 4, right 3) [R051]
+         ASSERT: COUNTIF(JobTracker![Folder Status], "Created") = 3 is false (left 4, right 3) [R051]
+         ASSERT: COUNTIF(JobTracker![Folder Status], "Exists") = 3 is false (left 2, right 3) [R051]
+
+STOPPED: see the FAIL lines above

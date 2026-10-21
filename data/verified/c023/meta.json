@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "clean",
+ "id": "c023",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 17,
+  "note": "to=2 changed to 3: row 2 is the first data row, so it can never be a later duplicate",
+  "total": 18
+ },
+ "op_lines": 13,
+ "ops": [
+  "DELETE_ROW",
+  "DICT_ADD",
+  "DICT_GET",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "bom"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 1)"
+}

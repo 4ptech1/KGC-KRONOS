@@ -1,0 +1,2 @@
+/tmp/claude-0/-home-user-KGC-KRONOS/a1a3ea24-e002-548b-adb1-cbffb5fc4e56/scratchpad/batch01/c021.vcl:42: warning: the spec adds to a dictionary, but no FIXTURE column repeats a key: add +dupes(n) so the TESTs see repeated keys (rule 19) [V057]
+1 file checked: 0 errors, 1 warning
