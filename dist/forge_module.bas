@@ -615,7 +615,7 @@ End Function
 Public Function ForgeDedupe(ByVal rng As Range, ByVal cols As Variant, ByVal hasHeader As Boolean) As Long
     ' DEDUPE: keeps the first row of each key; each later row with that key is deleted as a whole
     ' sheet row, bottom up, so the rows below move up. cols are sheet column numbers, as SORT key= is.
-    ' It gives the number of rows it deleted (DEDUPE into=, VCL 0.5, D54).
+    ' It gives the number of rows it deleted (DEDUPE into=, VCL 0.5, D55).
     Dim seen As Object
     Dim doomed() As Boolean
     Dim parts() As Variant

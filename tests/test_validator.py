@@ -585,7 +585,9 @@ class RealSpecs(unittest.TestCase):
         # D47: an op, function or assertion the validator knows is written in the reference text,
         # and nothing is written there that the validator doesn't know. ACTIVE_BOOK and
         # ACTIVE_SHEET are known but no longer taught (D46); the other three are only wording
-        # in the text (INT in MOD's meaning, NAME in the call shape, PRE_ examples).
+        # in the text (INT in MOD's meaning, NAME in the call shape, PRE_ examples). A name of a
+        # version newer than spec.md's waits for the switch to that version, so it must be in its
+        # VEP instead; once spec.md moves up, the reference must teach it (D55).
         import validator
         spec = read("vcl/spec.md")
         reference = spec[spec.index("TASK FORMAT"):spec.index("FIXTURE SPEC")]
@@ -593,7 +595,18 @@ class RealSpecs(unittest.TestCase):
                  | validator.CONSTANTS)
         written = set(re.findall(r"\b([A-Z][A-Z0-9_]+)\b", reference))
         called = set(re.findall(r"\b([A-Z][A-Z0-9_]{2,})\(", reference))
-        self.assertEqual(sorted(known - written - {"ACTIVE_BOOK", "ACTIVE_SHEET"}), [])
+        taught = validator.VERSION_RANK[re.match(r"# (VCL \d+\.\d+)", spec).group(1)]
+        newer = {}
+        for attr in dir(validator):
+            found = re.fullmatch(r"VCL_0(\d)_(FUNCS|OPS)", attr)
+            if found and int(found.group(1)) > taught:
+                for name in getattr(validator, attr):
+                    newer[name] = int(found.group(1))
+        for name, minor in newer.items():
+            with self.subTest(newer=name):
+                (vep,) = glob.glob(os.path.join(ROOT, "docs", f"vep-0.{minor}-*.md"))
+                self.assertTrue(name in read(vep), f"{name} is VCL 0.{minor}: describe it in {os.path.basename(vep)}")
+        self.assertEqual(sorted(known - written - {"ACTIVE_BOOK", "ACTIVE_SHEET"} - set(newer)), [])
         self.assertEqual(sorted(called - known - {"INT", "NAME", "PRE_COUNTA", "PRE_COUNTIFS"}), [])
 
     def test_the_context_file_carries_the_same_reference_text(self):

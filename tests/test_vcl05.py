@@ -117,7 +117,7 @@ ERR      standard
 """
 
 
-# Phase 4a (D54): ROW_OF finds the row of a FIND result; DEDUPE into= counts the rows it removed.
+# Phase 4a (D55): ROW_OF finds the row of a FIND result; DEDUPE into= counts the rows it removed.
 STOCK = r"""VCL 0.5
 TASK
 # ASSUME: Stock headers (row 1) include "Part No" and "Status"
@@ -353,7 +353,7 @@ class Compiler(unittest.TestCase):   # Phase 3: one lint-clean module per BUILD,
         self.assertEqual(len(run_lines), 2)   # modMain.Run's CALL and MSG: no TEST calls Run, so no mutant there
 
 
-class ReviewGaps(unittest.TestCase):   # Phase 4 (D54): the gaps the item 2 reviews found (D47, D51)
+class ReviewGaps(unittest.TestCase):   # Phase 4 (D55): the gaps the item 2 reviews found (D47, D51)
     def test_row_of_and_dedupe_into_are_proven(self):
         self.assertEqual(problems(STOCK), [])
         results = run_tests(STOCK, datetime.date(2026, 10, 21))

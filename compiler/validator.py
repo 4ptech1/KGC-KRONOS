@@ -52,7 +52,7 @@ OPS = {
     "DICT_GET": (2, 2, {"into": "var"}, ("into",)),
     "SORT": (1, 1, {"key": "expr", "order": ("asc", "desc"), "header": YES_NO}, ("key",)),
     "FILTER": (1, 1, {"col": "expr", "crit": "expr"}, ("col", "crit")),
-    "DEDUPE": (1, 1, {"cols": "cols", "header": YES_NO, "into": "var"}, ("cols",)),   # into= (VCL 0.5, D54)
+    "DEDUPE": (1, 1, {"cols": "cols", "header": YES_NO, "into": "var"}, ("cols",)),   # into= (VCL 0.5, D55)
     "SET_VALUE": (2, 2, {}, ()),
     "SET_FORMULA": (2, 2, {"style": ("a1", "r1c1")}, ()),
     "FORMAT": (1, 1, {"numfmt": "string", "bold": YES_NO, "fill": "fill", "width": "width"}, ()),
@@ -101,7 +101,7 @@ VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
 VCL_03_FUNCS = {"SAFE_NAME", "PATH_JOIN", "FOLDER_EXISTS"}
 VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
 VCL_04_FUNCS = {"SHEET_EXISTS"}
-VCL_05_FUNCS = {"ROW_OF"}   # D54
+VCL_05_FUNCS = {"ROW_OF"}   # D55
 VCL_04_OPS = {"LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # D44, D45: S24, S25 and the path rules of VCL 0.3
 VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4, "VCL 0.5": 5}
 # MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
