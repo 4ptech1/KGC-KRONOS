@@ -269,3 +269,7 @@ Dataset count: 0 verified pairs
   prompt wrote the specs; each passed the whole toolchain before it was stored, 18 in `data/verified` and 2
   held out in `data/eval`. The corpus has 32 of 150 pairs. The failed attempts are kept as repair seeds and
   `data/gaps.md` logs what VCL could not say (D65).
+- **2026-10-21:** Stage A Phase 6, batch 2: 20 more pairs (c033 to c052), 18 in `data/verified` and 2 held out in
+  `data/eval`, with 3 more BUILDs. The corpus has 52 of 150 pairs. The pairs catch 656 of the 657 catchable
+  mutants; every equivalent survivor was read against its spec. `data/gaps.md` grew with new language gaps, prompt
+  wording problems and a tooling table (D66).
