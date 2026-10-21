@@ -117,6 +117,39 @@ ERR      standard
 """
 
 
+# Phase 4a (D54): ROW_OF finds the row of a FIND result; DEDUPE into= counts the rows it removed.
+STOCK = r"""VCL 0.5
+TASK
+# ASSUME: Stock headers (row 1) include "Part No" and "Status"
+# ASSUME: a repeated Part No is a duplicate row; the first one stays
+PROC     CheckPart
+KIND     Function
+MODULE   modStock
+ARGS     ws As Worksheet, part As String
+RET      Long
+VAR      cPart As Long
+VAR      cStatus As Long
+VAR      hit As Range
+VAR      removed As Long
+PRE      COL($ws, "Part No") > 0; COL($ws, "Status") > 0
+MODIFIES $ws
+OP       LET(cPart, COL($ws, "Part No"))
+OP       LET(cStatus, COL($ws, "Status"))
+OP       DEDUPE(USED_RANGE($ws), cols=[cPart], header=yes, into=removed)
+OP       LET(hit, FIND(USED_RANGE($ws), $part))
+OP       IF NOT IS_NOTHING(hit)
+OP         SET_VALUE(CELL($ws, ROW_OF(hit), cStatus), "Checked")
+OP       RETURN(removed)
+ERR      standard
+FIXTURE  stock_01.xlsx sheet=Stock cols=A:Part No,B:Status rows=6 data=A:values("P-101"x2,"P-104"x2,"P-200"x1,""x1)+boundary("P-101","P-104","P-101","P-200","P-104","");B:values("New"x6)
+FIXTURE  stock_01.xlsx sheet=Notes cols=A:Note rows=2 data=A:text(6)
+TEST     fixture=stock_01.xlsx call=CheckPart(Stock, "P-104") runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTA(Stock![Part No]) = 4 AND VALUE(Stock![Status]3) = "Checked" AND COUNTIF(Stock![Status], "Checked") = 1
+TEST     fixture=stock_01.xlsx call=CheckPart(Stock, "P-104") assert=RESULT = 2 AND COUNTA(Stock![Status]) = PRE_COUNTA(Stock![Status]) - 2 AND VALUE(Stock![Status]2) = "New"
+TEST     fixture=stock_01.xlsx call=CheckPart(Stock, "P-999") assert=RESULT = 2 AND COUNTIF(Stock![Status], "Checked") = 0
+TEST     fixture=stock_01.xlsx call=CheckPart(Notes, "P-104") assert=RESULT = -1 AND ERROR_COUNT = 1
+"""
+
+
 def problems(text):
     return [(p.severity, p.message) for p in validator.validate_text(text)]
 
@@ -318,6 +351,32 @@ class Compiler(unittest.TestCase):   # Phase 3: one lint-clean module per BUILD,
         self.assertIn("mode=count", line)   # the one survivor: DICT_ADD's value, which mode=count ignores
         run_lines = {i + 1 for i in untested_lines(NCR_REVIEW)}
         self.assertEqual(len(run_lines), 2)   # modMain.Run's CALL and MSG: no TEST calls Run, so no mutant there
+
+
+class ReviewGaps(unittest.TestCase):   # Phase 4 (D54): the gaps the item 2 reviews found (D47, D51)
+    def test_row_of_and_dedupe_into_are_proven(self):
+        self.assertEqual(problems(STOCK), [])
+        results = run_tests(STOCK, datetime.date(2026, 10, 21))
+        self.assertEqual([(r.passed, r.result) for r in results], [(True, 0), (True, 2), (True, 2), (True, -1)])
+        self.assertEqual(mutate_report(STOCK, snapshot=True, today=datetime.date(2026, 10, 21))[:2], (8, 8))
+
+    def test_they_compile(self):
+        from vcl_codegen import compile_text
+        vba = compile_text(STOCK)
+        self.assertIn("removed = ForgeDedupe(ForgeUsedRange(ws), Array(cPart), True)", vba)
+        self.assertIn("ws.Cells(hit.Row, cStatus)", vba)
+
+    def test_they_need_0_5(self):
+        older = STOCK.replace("VCL 0.5", "VCL 0.4", 1)
+        found = errors(older)
+        self.assertIn("ROW_OF is VCL 0.5: start the spec with 'VCL 0.5' to use it", found)
+        self.assertIn("DEDUPE into= is VCL 0.5: start the spec with 'VCL 0.5' to use it", found)
+
+    def test_row_of_nothing_stops_the_run(self):
+        text = STOCK.replace("OP       IF NOT IS_NOTHING(hit)\nOP         SET_VALUE", "OP       IF TRUE\nOP         SET_VALUE")
+        r = run_tests(text, datetime.date(2026, 10, 21))[2]   # P-999: FIND gives NOTHING
+        self.assertEqual((r.result, r.errors), (-2, 1))
+        self.assertIn("ROW_OF(NOTHING)", r.log[0][2])
 
 
 class Run(unittest.TestCase):
