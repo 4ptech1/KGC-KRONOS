@@ -41,11 +41,12 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
 8.  Use ALLOW only for risky actions the user explicitly asked for: file_delete,
     file_overwrite, shell, http. No VCL 0.6 op deletes or overwrites a file, runs a program
     or uses the web, so design around them.
-9.  Write one TASK: one procedure of up to about 40 OP lines (about 60 lines of VBA). When
-    one TASK can't do the whole request (it needs several procedures or more OP lines),
-    write a BUILD of such TASKs joined by CALL (rule 23); never stretch one TASK past about
-    40 lines. When even a BUILD can't (it needs a UserForm, or ops one spec may not
-    combine), ask which part to do first (rule 7).
+9.  Write one TASK: one procedure of up to about 40 OP lines (about 60 lines of VBA). One
+    macro or one tool is no reason for a BUILD: a TASK is a macro. When one TASK can't do
+    the whole request (it needs several procedures or more OP lines), write a BUILD of such
+    TASKs joined by CALL (rule 23); never stretch one TASK past about 40 lines. When even a
+    BUILD can't (it needs a UserForm, or ops one spec may not combine), ask which part to do
+    first (rule 7).
 10. Delete rows only inside LOOP_ROWS dir=up or with DEDUPE, and only rows the user
     explicitly wants removed. Never delete rows because data is missing or pending: copy
     them to an exceptions sheet instead (DEDUPE never deletes a row with a blank key).
@@ -105,17 +106,19 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     runs another procedure of the same BUILD, never itself, directly or through others.
     Pass a Worksheet, Workbook or Range only as one of the caller's own $arguments, and
     keep a Function's result with into=<VAR>: a callee that stops at its PRE gives -1 and
-    one that fails gives -2, and the caller goes on, so check that VAR when the step
-    matters (IF n < 0), and give a TEST a fixture where the callee gives 0. Every TASK
-    that writes declares MODIFIES, and a caller declares on each
+    one that fails gives -2, and the caller goes on. Check that VAR (IF n < 0) only when the
+    callee has a PRE the caller doesn't; then a TEST needs a fixture where that PRE fails
+    and one where the callee gives 0. Every TASK that writes declares MODIFIES, and a
+    caller declares on each
     $argument it passes what its callees change. FLOW lists the CALLs and no others.
     modMain.Run is a Sub with no ARGS that only CALLs modMain.RunHeadless, with sheets
     written SHEET(THIS_BOOK, "<real sheet name>"), and LETs, IFs and MSGs; the TESTs call
     modMain.RunHeadless. A BUILD has no form: TARGET xlsm and no FORM line.
-24. Start every TASK with GOAL, one plain-English sentence of 10 to 200 printable ASCII
-    characters that says what the spec does, as a person who has not seen the spec would
-    say it, not just the PROC name. A BUILD has a GOAL for itself and for each of its
-    TASKs. Lay the spec out as shown under Layout, with no blank lines.
+24. Give every TASK a GOAL, the first key after the # ASSUME lines: one plain-English
+    sentence of 10 to 200 printable ASCII characters that says what the spec does, as a
+    person who has not seen the spec would say it, not just the PROC name. A BUILD has a
+    GOAL for itself and for each of its TASKs.
+    Lay the spec out as shown under Layout, with no blank lines.
 ```
 
 ## Reference
@@ -142,9 +145,10 @@ FIXTURE  <name>.xlsx <fixture spec>           (opt)
 TEST     fixture=<name>.xlsx call=<Proc>(<args>) [runs=<n>] assert=<assertion>   (two or more)
 
 Layout: write every spec in this one form. A key is padded with spaces to 9 characters, so
-values line up. Nesting = 2 extra spaces after the key, relative to the enclosing OP line.
-One space after a comma or semicolon and around operators and keywords; none inside
-brackets, before a call's bracket or around the "=" of an option (dir=up). No blank lines.
+values line up. Nesting = 2 extra spaces after the key, relative to the enclosing OP line;
+an ELSE sits level with its IF. One space after a comma or semicolon and around operators
+and keywords; none inside brackets, before a call's bracket or around the "=" of an option
+(dir=up). A FIXTURE or TEST is one line. No blank lines.
 Types: Long, Double, String, Boolean, Date, Variant, Range, Worksheet, Workbook,
 Dictionary, Collection. Loop variables from LOOP_ROWS, LOOP_COLS and FOR_EACH are declared
 automatically; never repeat them in VAR. READ_ARRAY fills a Variant VAR, LIST_FILES a
@@ -172,7 +176,7 @@ BUILD rules: procedure names are unique in the whole BUILD, whatever their modul
 modMain has RunHeadless (runs the whole tool on the sheets it is given; every TEST calls
 it) and Run (a Sub with no ARGS that starts the tool on the real workbook, rule 23). FIXTURE
 and TEST lines go in the BUILD part only; the TESTs check the whole tool, with the same
-PRE_ measures and wrong-sheet TEST as a TASK (rule 5).
+PRE_ measures and wrong-sheet TEST as a TASK (rule 5; swap two of the sheets RunHeadless takes).
 
 OP SYNTAX
 Structural ops begin an OP line:
@@ -426,7 +430,7 @@ TEST ASSERTIONS  (checked on the test workbook after the run)
   ROWS_USED(<Sheet>)               the last used row (row 1, the headers, counts)
   FILE_EXISTS("<Folder>\<path>")   that file exists below a FIXTURE folder of the TEST
   FILE_COUNT("<Folder>[\<path>]")  files in that folder and in every folder below it
-  FILL_COUNT(<Sheet>!<range>, #RRGGBB)   cells in the range with that fill colour
+  FILL_COUNT(<Sheet>!<range>, #RRGGBB)   cells in the range with that fill colour (one cell: Sheet![Header]5)
   VISIBLE_COUNT(<Sheet>!<range>)   non-empty cells of the range in rows that are not hidden
   FORMULA(<Sheet>!<cell>)          the formula text as SET_FORMULA wrote it (A1 or R1C1), or ""
   FILE_TEXT("<Folder>\<path>")     the exact text of that file, or "" when there is none
@@ -469,7 +473,7 @@ FIXTURE SPEC
                           move up, so the counts stay the same.
     +blank(<n>)           leave n random cells below the boundary rows blank.
     +dupes(<n>)           give n random rows the value of another row (repeated keys).
-  stale=<n> marks n rows as leftovers of an earlier run, with a red fill: on a rows=0
+  stale=<n> marks n rows as leftovers of an earlier run, with a red fill across the whole row: on a rows=0
   sheet, n rows of the text "stale"; on a sheet with data, n random data rows, whose
   values stay.
   values(...) counts add up to rows. rows=0 creates the sheet with its header row only.
@@ -556,6 +560,10 @@ GOAL lines (E15). Details and reasons: `DECISIONS.md` (E15, D59 to D63).
   in `docs/error-codes.md` (D60). The reference text doesn't change for it.
 - Examples 1, 3 and 4 moved to 0.6 and gained their GOAL lines (D63). The 12 specs stay in
   their versions (11 in 0.2, task_12 in 0.3).
+- After two Orchestrator dry runs, the wording says that one macro or one tool is no reason
+  for a BUILD (rule 9), GOAL is the first key after the ASSUME lines (rule 24), a CALL's
+  result is checked only when the callee has a PRE the caller doesn't (rule 23), an ELSE
+  sits level with its IF, stale=<n> fills the whole row, and FILL_COUNT may name one cell.
 
 ## Changes in VCL 0.5 (21 Oct 2026)
 

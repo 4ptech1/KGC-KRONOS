@@ -255,3 +255,7 @@ Dataset count: 0 verified pairs
 - **2026-10-21:** Stage A Phase 3: `python compiler/vclc.py fmt` gives every spec one canonical text
   (`--check` and `--write` too), and proves each time that it changed only layout: the same tokens, the
   same nesting, the same validator messages. The committed specs and examples were already canonical (D62).
+- **2026-10-21:** Stage A Phase 4, the switch: spec.md and the Orchestrator prompt teach VCL 0.6. Every
+  spec starts with a GOAL line (hard rule 24) and is written in the one canonical layout; Examples 1, 3
+  and 4 have their GOAL lines. Two Orchestrator dry runs passed every stage first time and gave small
+  wording fixes. Boss pastes the new prompt into the Orchestrator Project once (D63).
