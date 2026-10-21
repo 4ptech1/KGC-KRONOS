@@ -1,0 +1,2 @@
+/tmp/claude-0/-home-user-KGC-KRONOS/a1a3ea24-e002-548b-adb1-cbffb5fc4e56/scratchpad/batch01/c026.vcl:34: error: A: +boundary uses " J-4 " 1 times, but values(...) has it 0 times [V264]
+1 file checked: 1 error, 0 warnings

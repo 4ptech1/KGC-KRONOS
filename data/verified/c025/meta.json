@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "rebuild",
+ "id": "c025",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 30,
+  "note": "outRow > 2 changed to >=: sorting a single data row changes nothing",
+  "total": 31
+ },
+ "op_lines": 16,
+ "ops": [
+  "CLEAR",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "job_tracker"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 1)"
+}

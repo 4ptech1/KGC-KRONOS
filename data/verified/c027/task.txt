@@ -1,0 +1,1 @@
+List the PDF files in the Dispatch Docs folder on a File List sheet, one per row, in name order, with the file name in column A. Tell me how many files there are.
