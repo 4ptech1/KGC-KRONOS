@@ -355,7 +355,8 @@ def name_matches(name, pattern):
 def list_files(names, pattern):
     """S24 (VEP 0.4, D44): LIST_FILES gives the names of the files directly in the folder that match the
     pattern, sorted by LOWER(name) and then by the name as written, so the order is the same on every PC.
-    Here: from the names of the files in the folder."""
+    Hidden and system files are left out (D51; FIXTURE folders hold none). Here: from the names of the
+    files in the folder."""
     return sorted((n for n in names if name_matches(n, pattern)), key=lambda n: (n.lower(), n))
 
 

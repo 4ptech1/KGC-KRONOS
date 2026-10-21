@@ -392,7 +392,7 @@ class Warnings(unittest.TestCase):
         forty_one = edit(MINIMAL, RETURN_LINE, extra * 36 + RETURN_LINE)
         self.assertEqual(errors(forty_one), [])
         self.assertEqual(warnings(forty_one),
-                         ["TASK has 41 OP lines (more than 40): consider splitting it into a BUILD (rule 9)"])
+                         ["TASK has 41 OP lines (more than 40): keep a TASK small, or ask which part to do first (rule 9)"])
 
     def test_allow_warns(self):
         text = edit(MINIMAL, "ERR      standard", "ERR      standard\nALLOW    file_delete")
@@ -533,8 +533,8 @@ class RealSpecs(unittest.TestCase):
                 self.assertEqual([p.message for p in problems if p.severity == "error"], [])
                 found = [(p.line, p.message) for p in problems if p.severity == "warning"]
                 if name == "task_04.vcl":
-                    self.assertEqual(found, [(29, "TASK has 48 OP lines (more than 40): consider splitting it "
-                                                  "into a BUILD (rule 9)")])
+                    self.assertEqual(found, [(29, "TASK has 48 OP lines (more than 40): keep a TASK small, or "
+                                                  "ask which part to do first (rule 9)")])
                 else:
                     self.assertEqual(found, [])
 

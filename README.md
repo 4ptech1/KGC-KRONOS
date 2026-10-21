@@ -211,3 +211,8 @@ Dataset count: 0 verified pairs
   `$arguments`, so MODIFIES follows them. There is no recursion, FLOW must match the CALLs, and
   modMain.Run only starts the tool. A sample BUILD (NcrReview) validates clean; Phase 2 will run its
   TESTs.
+- **2026-10-21:** A second review pass, done at the same time by another session (PR #48) and folded
+  in by #50 (D51). Two more Orchestrator dry runs; the prompt asks for one TASK until BUILD can be
+  tested, and states rule 5's PRE_ measure. ForgeSort gives every sort option, LIST_FILES leaves
+  out hidden files, the linter closes more gaps (FileCopy, Workbooks.Open and more), and formulas
+  can't name a missing sheet. Every spec's result is unchanged.

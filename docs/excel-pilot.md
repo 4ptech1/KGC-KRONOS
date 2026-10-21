@@ -4,7 +4,7 @@ Run this only when you choose; nothing waits for it. It takes about 15 minutes.
 
 **What it proves:**
 1. ForgeLib, the VBA runtime every generated macro calls, behaves in Excel 2016 the way our
-   Python reference says (163 cases).
+   Python reference says (229 cases).
 2. The router spec (task_12, RouteJobPacks) does in Excel what its TESTs say.
 
 **Why it's safe:**
@@ -54,11 +54,11 @@ here.
 **5. Run the self-test.** Go back to Excel (click its window), press **Alt+F8**, click
 **ForgeSelfTest**, then **Run**.
 *Expected:*
-- A message says `ForgeLib self-test: 163 of 163 cases pass.`
+- A message says `ForgeLib self-test: 229 of 229 cases pass.`
 - A new sheet, ForgeSelfTest, has one row per case.
 
 Click cell **H4** on that sheet, press **Ctrl+C**, and paste it to Claude. It looks like
-`SELFTEST 163/163 FAILED: none`.
+`SELFTEST 229/229 FAILED: none`.
 
 **6. Run the router pilot.** Press **Alt+F8**, click **ForgePilotRun**, then **Run**.
 *Expected:*
