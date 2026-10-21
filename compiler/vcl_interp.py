@@ -179,6 +179,12 @@ def call_args(call):
 WILDCARDS = "*?"        # FSO reads them as patterns, so a path with one is never used
 
 
+def ascii_path(path):
+    """READ_TEXT and WRITE_TEXT (D48): VBA's Open reads a path through the PC's code page, so a path
+    with any character outside printable ASCII is a Bad name, the same on every PC."""
+    return all(32 <= ord(ch) <= 126 for ch in path)
+
+
 def make_folder(fs, root, path):
     """MAKE_FOLDER's status (E11). It makes the folder and every missing folder between it and its
     root, never the root itself, and checks the whole way down before making anything."""
@@ -219,7 +225,7 @@ def list_files(fs, root, folder, pattern):
 
 def read_text(fs, root, path):
     """READ_TEXT (D45): (status, text), in ForgeReadText's order; the text is "" unless Read."""
-    if not path or any(ch in path for ch in WILDCARDS):
+    if not path or any(ch in path for ch in WILDCARDS) or not ascii_path(path):
         return "Bad name", ""
     if len(path) > MAX_FILE_PATH:
         return "Too long", ""
@@ -237,7 +243,7 @@ def read_text(fs, root, path):
 
 def write_text(fs, root, path, text):
     """WRITE_TEXT (D45): a new file holding exactly text, never over anything; ForgeWriteText's order."""
-    if not path or any(ch in path for ch in WILDCARDS):
+    if not path or any(ch in path for ch in WILDCARDS) or not ascii_path(path):
         return "Bad name"
     if len(path) > MAX_FILE_PATH:
         return "Too long"
@@ -644,6 +650,9 @@ class Machine:
             if len(cells) > 1 and not r1c1:
                 raise VclError("SET_FORMULA style=a1 on more than one cell: Excel shifts each relative reference, "
                                "which the interpreter doesn't model; write it with style=r1c1")
+            if any(rng.sheet.formats.get((r, c)) == "@" for r, c in cells):   # D48: Excel would keep it as text
+                raise VclError("SET_FORMULA on a cell formatted as Text (@): Excel would store the formula as "
+                               "text, not as a formula")
             for r, c in cells:
                 rng.sheet.set(r, c, Formula(str(pos[1])[1:-1].replace('""', '"'), r1c1))
         elif name == "FILTER":   # D42: below the range's first row, a row stays visible when SAME, else hidden

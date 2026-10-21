@@ -483,6 +483,12 @@ End Function
 Public Sub ForgeSetFormula(ByVal rng As Range, ByVal f As String, ByVal r1c1 As Boolean)
     ' SET_FORMULA (D43): Excel's own English form, .Formula or .FormulaR1C1 and never .FormulaLocal,
     ' so the same text means the same formula on every PC. The validator checked f against its list.
+    ' A cell formatted as Text (@) would keep the formula as text: refused before anything is written.
+    Dim c As Range
+    For Each c In rng.Cells
+        If c.NumberFormat = "@" Then Err.Raise 1004, "ForgeSetFormula", _
+            "SET_FORMULA: " & c.Address(False, False) & " is formatted as Text, so Excel would keep the formula as text"
+    Next c
     If r1c1 Then
         rng.FormulaR1C1 = f
     Else
@@ -592,7 +598,7 @@ Public Function ForgeRowKey(ByVal values As Variant) As Variant
             ForgeRowKey = Null
             Exit Function
         End If
-        k = ForgeText(values(i))
+        k = LCase$(ForgeText(values(i)))   ' compared exactly below: vbTextCompare follows the PC's locale (D48)
         out = out & Len(k) & ":" & k
     Next i
     ForgeRowKey = out
@@ -604,7 +610,7 @@ Public Function ForgeSameRowKey(ByVal a As Variant, ByVal b As Variant) As Boole
     ka = ForgeRowKey(a)
     kb = ForgeRowKey(b)
     If IsNull(ka) Or IsNull(kb) Then Exit Function
-    ForgeSameRowKey = (StrComp(ka, kb, vbTextCompare) = 0)
+    ForgeSameRowKey = (StrComp(ka, kb, vbBinaryCompare) = 0)
 End Function
 
 Public Sub ForgeDedupe(ByVal rng As Range, ByVal cols As Variant, ByVal hasHeader As Boolean)
@@ -618,6 +624,7 @@ Public Sub ForgeDedupe(ByVal rng As Range, ByVal cols As Variant, ByVal hasHeade
     Dim r As Long
     Dim i As Long
     Set seen = ForgeNewDict()
+    seen.CompareMode = vbBinaryCompare   ' the keys are already lower case (ForgeRowKey, D48)
     If hasHeader Then first = 2 Else first = 1
     If rng.Rows.Count < first Then Exit Sub
     ReDim doomed(first To rng.Rows.Count)
@@ -650,7 +657,7 @@ Public Function ForgeSheetNameOk(ByVal v As Variant) As Boolean
     If LCase$(s) = "history" Then Exit Function
     For i = 1 To Len(s)
         If InStr(1, "\/?*[]:", Mid$(s, i, 1), vbBinaryCompare) > 0 Then Exit Function
-        If AscW(Mid$(s, i, 1)) < 32 Then Exit Function
+        If (AscW(Mid$(s, i, 1)) And &HFFFF&) < 32 Then Exit Function   ' AscW is below 0 above &H7FFF
     Next i
     ForgeSheetNameOk = True
 End Function
@@ -676,7 +683,11 @@ Public Function ForgeAddSheet(ByVal book As Workbook, ByVal name As Variant, ByV
     s = ForgeText(name)
     If Not ForgeSheetNameOk(s) Then Err.Raise 1004, "ForgeAddSheet", "ADD_SHEET: '" & s & "' is not a valid sheet name (S23)"
     If ForgeSheetExists(book, s) Then Err.Raise 1004, "ForgeAddSheet", "ADD_SHEET: a sheet named '" & s & "' already exists"
-    If after Is Nothing Then Set after = book.Sheets(book.Sheets.Count)
+    If after Is Nothing Then
+        Set after = book.Sheets(book.Sheets.Count)
+    ElseIf Not after.Parent Is book Then
+        Err.Raise 1004, "ForgeAddSheet", "ADD_SHEET: after= must be a sheet of the same workbook"
+    End If
     Set ws = book.Worksheets.Add(After:=after)
     ws.Name = s
     Set ForgeAddSheet = ws
@@ -691,7 +702,13 @@ Public Function ForgeCopySheet(ByVal src As Worksheet, ByVal name As Variant, By
     s = ForgeText(name)
     If Not ForgeSheetNameOk(s) Then Err.Raise 1004, "ForgeCopySheet", "COPY_SHEET: '" & s & "' is not a valid sheet name (S23)"
     If ForgeSheetExists(book, s) Then Err.Raise 1004, "ForgeCopySheet", "COPY_SHEET: a sheet named '" & s & "' already exists"
-    If after Is Nothing Then Set after = book.Sheets(book.Sheets.Count)
+    If after Is Nothing Then
+        Set after = book.Sheets(book.Sheets.Count)
+    ElseIf Not after.Parent Is book Then
+        ' Copy After:= a sheet of another workbook puts the copy there, and the rename below would then
+        ' rename a sheet that was already here: refused before anything is copied (D48)
+        Err.Raise 1004, "ForgeCopySheet", "COPY_SHEET: after= must be a sheet of the copied sheet's own workbook"
+    End If
     src.Copy After:=after
     Set ForgeCopySheet = book.Sheets(after.Index + 1)
     ForgeCopySheet.Name = s
@@ -945,6 +962,18 @@ Public Function ForgeFileText(ByVal raw As Variant) As Variant
     End If
 End Function
 
+Private Function ForgeIsAsciiPath(ByVal path As String) As Boolean
+    ' READ_TEXT and WRITE_TEXT (D48): VBA's Open reads a path through the PC's code page, so a path
+    ' with any character outside printable ASCII is a Bad name, the same on every PC.
+    Dim i As Long
+    Dim code As Long
+    For i = 1 To Len(path)
+        code = AscW(Mid$(path, i, 1)) And &HFFFF&
+        If code < 32 Or code > 126 Then Exit Function
+    Next i
+    ForgeIsAsciiPath = True
+End Function
+
 Private Function ForgeReadRaw(ByVal path As String) As String
     ' A file's bytes, read only and shared with any other reader. An error (70 when another program
     ' holds the file) goes on to the caller, which turns it into a status; the file is closed first.
@@ -976,7 +1005,7 @@ Public Function ForgeReadText(ByVal root As String, ByVal path As String, ByRef 
     text = ""
     On Error GoTo FailedOp
     Set fso = ForgeFso()
-    If Len(path) = 0 Or ForgeHasWildcard(path) Then
+    If Len(path) = 0 Or ForgeHasWildcard(path) Or Not ForgeIsAsciiPath(path) Then
         ForgeReadText = "Bad name"
     ElseIf Len(path) > FORGE_MAX_FILE_PATH Then
         ForgeReadText = "Too long"
@@ -1017,7 +1046,7 @@ Public Function ForgeWriteText(ByVal root As String, ByVal path As String, ByVal
     On Error GoTo FailedOp
     Set fso = ForgeFso()
     slash = InStrRev(path, "\")
-    If Len(path) = 0 Or ForgeHasWildcard(path) Then
+    If Len(path) = 0 Or ForgeHasWildcard(path) Or Not ForgeIsAsciiPath(path) Then
         ForgeWriteText = "Bad name"
     ElseIf Len(path) > FORGE_MAX_FILE_PATH Then
         ForgeWriteText = "Too long"

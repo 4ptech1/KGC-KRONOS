@@ -197,3 +197,7 @@ Dataset count: 0 verified pairs
   have no NOT, and the VAR types, fill colours and formula references are spelled out. A failing
   TEST now says which assertion failed and what it measured. Stale docs refreshed, and a new test
   keeps the reference text and the validator in step (D47).
+- **2026-10-21:** ForgeLib fixes from a strict review of the item 2 VBA (D48). COPY_SHEET can no
+  longer rename a sheet of the wrong workbook. Excel and the interpreter now agree on sheet names
+  above U+7FFF and on DEDUPE keys. A formula never lands as text in a Text-formatted cell, and
+  text-file paths must be plain ASCII.

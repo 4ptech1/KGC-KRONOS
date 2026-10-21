@@ -114,7 +114,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
-tests/                    349 unit tests; conformance_cases.py is shared with the docs
+tests/                    353 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -311,7 +311,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 349 pass |
+| Unit tests | 353 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the ~40 guideline; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -372,6 +372,7 @@ The 12 specs:
 - #43: item 2 Phase 7b, READ_TEXT and WRITE_TEXT (S25, D45).
 - #44: spec.md and the prompt teach VCL 0.4, with hard rule 22 (E12, D46). Item 2 is complete.
 - #45: review pass after item 2: wording fixed where it differed from the tools, clearer TEST failures (D47).
+- #46: ForgeLib fixes from a VBA review: COPY_SHEET safety, sheet names, DEDUPE keys, formulas on Text cells, ASCII text-file paths (D48).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -485,6 +486,9 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
   printable ASCII only, and WRITE_TEXT never overwrites a file.
 - **D47:** `Sheet![Header]` is the header's whole column from row 1, the header cell included
   (as `A:A` is): 5 values under a header give COUNTA = 6. Committed specs count on it.
+- **D48:** a review of ForgeLib fixed five places where Excel would differ from the interpreter
+  (one a safety fix in COPY_SHEET). Non-ASCII dictionary keys may still group differently in
+  Excel; ASCII keys always agree.
 
 ## 11. How to help (rules for the AI reading this)
 
@@ -807,7 +811,7 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               walks them in that order
   Text        READ_TEXT and WRITE_TEXT handle printable ASCII, tabs and line breaks, at most
               32,767 characters; anything else is Not text, because it reads differently on
-              each PC
+              each PC. Their paths are printable ASCII too, else Bad name
   READ_TEXT   writes, in this order: Bad name, Too long, Missing, Too big, Locked, Not text,
               Read; with Read, <text var> holds the file's text without one final line
               break, else "". In Excel also Failed
@@ -826,8 +830,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   FILE_NAME   the text after the last backslash
   DEDUPE      keeps the first row of each key and deletes each later row with that key
               (whole sheet rows); cols= are sheet column numbers, as for SORT; key cells
-              compare as dictionary keys do (" W-1 " and "W-1" differ); a row with an empty
-              or error key cell stays
+              compare as their text, case ignored, not trimmed (" W-1 " and "W-1" differ); a
+              row with an empty or error key cell stays
   FIND        looks row by row, left to right: match=whole (the default) means SAME,
               match=part means the cell's text holds TRIM(<expr>), case ignored (an empty
               text finds NOTHING). Test it with IS_NOTHING before writing to it. FIND gives
@@ -843,7 +847,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               Later steps and TESTs can't read a formula's value; a spec that SET_FORMULAs
               may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT. The text is fixed, so its
               references are fixed columns or offsets: check them in PRE, such as
-              COL($ws, "Qty") = 3 for =RC3*RC4
+              COL($ws, "Qty") = 3 for =RC3*RC4. A cell formatted as Text (@) stops the run,
+              because Excel would keep the formula as text
   Sheet names ADD_SHEET and COPY_SHEET take 1 to 31 characters, no spaces at the ends, none
               of \ / ? * [ ] :, no apostrophe first or last, not History; a bad name or one
               already used (case ignored) stops the run before anything is added. Without

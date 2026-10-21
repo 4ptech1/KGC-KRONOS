@@ -855,6 +855,48 @@ class VersionSwitch(unittest.TestCase):
                 self.assertEqual(run(text).log[0][2], "runtime error: " + why)
 
 
+class VbaReviewFixes(unittest.TestCase):
+    """D48: what the ForgeLib review found, fixed in ForgeLib and, where it changes a meaning, in the
+    interpreter too."""
+
+    def body(self, name):
+        return forgelib_body(name)
+
+    def test_set_formula_refuses_a_cell_formatted_as_text(self):
+        r = run(ops('FORMAT(CELL($ws, 2, 3), numfmt="@")', 'SET_FORMULA(CELL($ws, 2, 3), "=1+1")', version="VCL 0.4"))
+        self.assertEqual((r.result, r.errors), (-2, 1))
+        self.assertIn("formatted as Text", r.log[0][2])
+        ok = run(ops('SET_FORMULA(CELL($ws, 2, 3), "=1+1")', version="VCL 0.4"))
+        self.assertEqual((ok.result, ok.errors), (0, 0))
+        body = self.body("ForgeSetFormula")
+        self.assertLess(body.index('c.NumberFormat = "@"'), body.index("rng.Formula"))   # checked before writing
+
+    def test_text_file_paths_are_printable_ascii(self):
+        root = SANDBOX + "\\Jobs"
+        fs = MockFS()
+        fs.add_folder(root)
+        fs.add_file(root + "\\a.txt", 4, text="Head")
+        self.assertEqual(read_text(fs, root, root + "\\a.txt"), ("Read", "Head"))
+        self.assertEqual(read_text(fs, root, root + "\\\u03a9.txt"), ("Bad name", ""))
+        self.assertEqual(write_text(fs, root, root + "\\\u00e9.txt", "x"), "Bad name")
+        for name in ("ForgeReadText", "ForgeWriteText"):
+            self.assertIn("Or Not ForgeIsAsciiPath(path) Then", self.body(name))
+
+    def test_sheet_ops_never_reach_another_workbook(self):
+        for name, change in (("ForgeAddSheet", "book.Worksheets.Add(After:=after)"), ("ForgeCopySheet", "src.Copy After:=after")):
+            with self.subTest(name):
+                body = self.body(name)
+                self.assertLess(body.index("ElseIf Not after.Parent Is book Then"), body.index(change))
+
+    def test_vba_keeps_the_meanings_of_the_python_reference(self):
+        self.assertIn("(AscW(Mid$(s, i, 1)) And &HFFFF&) < 32", self.body("ForgeSheetNameOk"))
+        self.assertIn("k = LCase$(ForgeText(values(i)))", self.body("ForgeRowKey"))
+        self.assertIn("vbBinaryCompare", self.body("ForgeSameRowKey"))
+        self.assertIn("seen.CompareMode = vbBinaryCompare", self.body("ForgeDedupe"))
+        self.assertFalse(S.same_row_key(["Stra\u00dfe"], ["STRASSE"]))
+        self.assertTrue(S.sheet_name_ok("\ubcf4\uace0\uc11c"))
+
+
 class FailureMessages(unittest.TestCase):
     """A failing TEST names each false assertion and what each side measured (review pass, D47)."""
 
@@ -894,14 +936,19 @@ class Facts(unittest.TestCase):
                 self.assertIn('ForgeEq(ws.Cells(2, 2).Value, "x")', compile_text(text))
 
 
+def forgelib_body(name):
+    """The text of one ForgeLib procedure, from its header to its End line."""
+    for kind in ("Function", "Sub"):
+        head = f"Public {kind} {name}("
+        if head in FORGELIB:
+            start = FORGELIB.index(head)
+            return FORGELIB[start:FORGELIB.index("\nEnd ", start)]
+    raise AssertionError(f"{name} is not in ForgeLib")
+
+
 class ForgeLib(unittest.TestCase):
     def body(self, name):
-        for kind in ("Function", "Sub"):
-            head = f"Public {kind} {name}("
-            if head in FORGELIB:
-                start = FORGELIB.index(head)
-                return FORGELIB[start:FORGELIB.index("\nEnd ", start)]
-        raise AssertionError(f"{name} is not in ForgeLib")
+        return forgelib_body(name)
 
     def test_the_new_helpers(self):
         self.assertIn("ws.Rows(rowNo).ClearFormats", self.body("ForgeInsertRow"))
