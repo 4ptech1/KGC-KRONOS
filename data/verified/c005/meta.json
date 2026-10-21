@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "rebuild",
+ "id": "c005",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 25,
+  "note": "",
+  "total": 25
+ },
+ "op_lines": 13,
+ "ops": [
+  "CLEAR",
+  "COPY_ROW",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "weld_log"
+ ],
+ "source": "committed spec specs/task_05.vcl"
+}

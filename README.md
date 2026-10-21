@@ -259,3 +259,9 @@ Dataset count: 0 verified pairs
   spec starts with a GOAL line (hard rule 24) and is written in the one canonical layout; Examples 1, 3
   and 4 have their GOAL lines. Two Orchestrator dry runs passed every stage first time and gave small
   wording fixes. Boss pastes the new prompt into the Orchestrator Project once (D63).
+- **2026-10-21:** Stage A Phase 5: the corpus tooling. `data/verified/` holds pairs of a plain-English
+  request and the spec the toolchain proved (`c001` to `c012` are the 12 committed specs, each with a
+  request and a GOAL line). `python compiler/vclc.py corpus` checks every pair (valid, canonical, TESTs
+  pass, lint-clean build, at least 90% of the catchable mutants caught), `corpus-add` proves and stores a
+  new one, and `export` writes the dataset with its VBA compiled fresh. `docs/corpus-plan.md` plans the
+  other 138 (D64).

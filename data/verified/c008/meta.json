@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c008",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 38,
+  "note": "LET(unknown, 0) deleted (a Long VAR starts at 0) and the mode of a dictionary only used through EXISTS (D14).",
+  "total": 40
+ },
+ "op_lines": 29,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "consumables"
+ ],
+ "source": "committed spec specs/task_08.vcl"
+}

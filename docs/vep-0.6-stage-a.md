@@ -151,8 +151,9 @@ tokenizer, any training. Stage A only prepares the data and the scoreboard.
 4. **The switch (done: D63):** spec.md and the prompt teach VCL 0.6 (GOAL, the canonical form,
    Examples 1, 3 and 4 with a GOAL line), and Boss updates the Orchestrator once. The corpus
    helpers read the same prompt, so this comes before the corpus.
-5. **Corpus tooling and the first pairs:** the layout, `vclc corpus`, `vclc export`, the 12
-   existing specs as pairs, the task list for the 150, the first batch.
+5. **Corpus tooling and the first pairs (done: D64):** the layout, `vclc corpus`, `corpus-add`,
+   `vclc export`, the 12 existing specs as pairs, and the plan for the 150 (`docs/corpus-plan.md`);
+   the first batch of new requests is Phase 6's first PR.
 6. **Corpus to 150:** batches of about 20, each its own PR; the gap report grows.
 7. **The data generator:** repairs, contrast pairs, paraphrases, the JSON Lines export.
 8. **The benchmark:** the 15 held-out items, contracts, `vclc bench`, the baseline.

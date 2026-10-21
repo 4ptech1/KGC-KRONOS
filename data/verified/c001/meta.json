@@ -1,0 +1,31 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c001",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 50,
+  "note": "",
+  "total": 50
+ },
+ "op_lines": 26,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "bom",
+  "grn"
+ ],
+ "source": "committed spec specs/task_01.vcl"
+}

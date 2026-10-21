@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c011",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 4,
+  "killed": 19,
+  "note": "lastRow is always raised to the lowest data row, so changes to its start value and '>' against '>=' cannot show, and LET(flagged, 0) deleted (D24); one real gap remains (LOOP_COLS from=1).",
+  "total": 24
+ },
+ "op_lines": 18,
+ "ops": [
+  "ELSE",
+  "FORMAT",
+  "IF",
+  "LET",
+  "LOOP_COLS",
+  "LOOP_ROWS",
+  "RETURN"
+ ],
+ "registers": [
+  "weld_log"
+ ],
+ "source": "committed spec specs/task_11.vcl"
+}

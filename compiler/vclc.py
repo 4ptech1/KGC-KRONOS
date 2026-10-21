@@ -7,6 +7,9 @@
   python compiler/vclc.py all    FILES... [-o DIR]   check + test + build, stop at the first failure
   python compiler/vclc.py pilot-check RESULTS FILES...  compare an Excel pilot run with the interpreter
   python compiler/vclc.py fmt [--check | --write] FILES...  the canonical text of each spec (vcl_fmt.py)
+  python compiler/vclc.py corpus [--mutation] [--report]    check every request and spec pair in data/ (vcl_corpus.py)
+  python compiler/vclc.py corpus-add --id ID --request FILE --spec FILE --registers a,b --family F   prove and store a pair
+  python compiler/vclc.py export [-o FILE]                  the pairs as JSON Lines, with their VBA compiled fresh
 
 Options: -o DIR (default dist) and --today YYYY-MM-DD, which pins TODAY for test, build and
 mutate runs (default: the real date).
@@ -161,10 +164,14 @@ def cmd_mutate(files, snapshot, today):
 
 
 def main(argv):
-    if len(argv) < 2 or argv[1] not in ("check", "test", "build", "mutate", "all", "pilot-check", "fmt"):
+    if len(argv) < 2 or argv[1] not in ("check", "test", "build", "mutate", "all", "pilot-check", "fmt", "corpus",
+                                        "corpus-add", "export"):
         print(__doc__)
         return 1
     cmd = argv[1]
+    if cmd in ("corpus", "corpus-add", "export"):
+        import vcl_corpus
+        return vcl_corpus.main(argv[1:])
     if cmd == "fmt":
         import vcl_fmt
         return vcl_fmt.main(argv[2:])

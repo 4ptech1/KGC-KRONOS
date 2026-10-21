@@ -1,0 +1,1 @@
+In the weld log, highlight in red every row where Visual isn't Accepted. Rows without a seam number should be left alone. Clear old highlights first and tell me how many rows are red.

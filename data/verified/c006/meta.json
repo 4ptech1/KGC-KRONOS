@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c006",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 28,
+  "note": "LET(flagged, 0) deleted: a Long VAR starts at 0 (D14).",
+  "total": 29
+ },
+ "op_lines": 23,
+ "ops": [
+  "DICT_ADD",
+  "DICT_GET",
+  "FORMAT",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "weld_log",
+  "welder_quals"
+ ],
+ "source": "committed spec specs/task_06.vcl"
+}
