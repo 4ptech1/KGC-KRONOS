@@ -1,0 +1,1 @@
+In the weld log delete every row where both Weld Seam No and Welder ID are blank (leftover empty rows) but keep any row that has at least one of them. Tell me how many rows I deleted.
