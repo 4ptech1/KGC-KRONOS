@@ -374,7 +374,7 @@ The 12 specs:
 - #45: review pass after item 2: wording fixed where it differed from the tools, clearer TEST failures (D47).
 - #46: ForgeLib fixes from a VBA review: COPY_SHEET safety, sheet names, DEDUPE keys, formulas on Text cells, ASCII text-file paths (D48).
 - #47: the design of CALL and BUILD specs (`docs/vep-0.5-build.md`, D49).
-- #48: VEP 0.5 Phase 1, the `VCL 0.5` line, CALL `into=` and the BUILD rules (E13, E14, D50).
+- #49: VEP 0.5 Phase 1, the `VCL 0.5` line, CALL `into=` and the BUILD rules (E13, E14, D50).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
