@@ -224,10 +224,12 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    Orchestrator prompt teach VCL 0.5 (hard rules 7, 9 and 14 changed, new hard rule 23 for BUILD
    and CALL), and Boss pastes the new prompt into the Orchestrator Project once. **Item 3 is
    complete.** FORM and xlam stay refused until after March 2027 (D49).
-4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
-   model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
-   the data generator and the benchmark) starts when Boss says go for it, as every earlier
-   item did (D51); no training before March 2027.
+4. The AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the model writes VCL,
+   never VBA. Boss said "go item 4" on 21 Oct 2026 for its Stage A, designed in
+   `docs/vep-0.6-stage-a.md` (D59): Phase 1 error codes, 2 the `GOAL` line (VCL 0.6), 3 the
+   formatter `vclc fmt`, 4 the switch of spec.md and the prompt to 0.6 (Boss updates the
+   Orchestrator once), 5 corpus tooling and the first pairs, 6 the corpus to 150 tasks, 7 the
+   data generator, 8 the benchmark. Phase 0 (the design) is done; no training before March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

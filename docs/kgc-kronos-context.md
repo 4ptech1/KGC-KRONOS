@@ -1,6 +1,6 @@
 # KGC KRONOS: AI context file
 
-**Snapshot: 21 Oct 2026, after the review passes of item 2 (D47, D48, D51), CALL and BUILD specs (VEP 0.5, D50 to D58) with the switch to VCL 0.5, and this file's generated appendices (D54).** Hand this file to any Claude chat or claude.ai
+**Snapshot: 21 Oct 2026, after the review passes of item 2 (D47, D48, D51), CALL and BUILD specs (VEP 0.5, D50 to D58) with the switch to VCL 0.5, the design of the AI plan's Stage A (D59) and this file's generated appendices (D54).** Hand this file to any Claude chat or claude.ai
 Project that needs to understand the project. The repo is always the source of truth: if this
 file and the repo disagree, the repo wins, and the repo's `CLAUDE.md` has the current status.
 
@@ -424,6 +424,7 @@ The 12 specs:
 - #56: VEP 0.5 Phase 4b, a header the spec writes counts as checked for rule 14 (D56).
 - #57: VEP 0.5 Phase 4c, sheet names with spaces in assertions, in quotes (D57).
 - #59: VEP 0.5 Phase 5, a proven BUILD (Example 4) and the switch: spec.md and the prompt teach VCL 0.5 (D58). Item 3 is complete.
+- #60: item 4, the AI plan's Stage A, designed in `docs/vep-0.6-stage-a.md` (D59).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -494,10 +495,16 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    spaces in quotes. Phase 5 is done (D58): a proven BUILD (Example 4, 34 of 34 mutants caught)
    and the switch: spec.md and the Orchestrator prompt teach VCL 0.5, and Boss updates the
    Orchestrator once. **Item 3 is complete.**
-4. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
-5. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
-   Mutants double as "read carefully" contrast pairs.
-6. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
+4. **The AI plan's Stage A** (Boss said "go item 4" on 21 Oct 2026), designed in
+   `docs/vep-0.6-stage-a.md` (D59), eight phases: error codes; the `GOAL` line (VCL 0.6); the
+   formatter `vclc fmt`; the switch of spec.md and the prompt to 0.6 (Boss updates the
+   Orchestrator once); corpus tooling and the first pairs; the corpus to 150 tasks, written by
+   helpers that see only the Orchestrator prompt and gated by the toolchain (valid, TESTs pass,
+   lint-clean build, mutation score of at least 90%); the data generator (repairs from mutants
+   and from real failures, contrast pairs, filtered paraphrases); and the benchmark (15
+   held-out tasks, hidden reference TESTs, `vclc bench`, Claude as the baseline). Phase 0, the
+   design, is done.
+5. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
    VCL, never VBA (D31). Excel conformance runs.
 
 **The AI plan** (`docs/ai-plan.md`, D31, approved by Boss on 19 Oct 2026): the model's jobs are
@@ -2933,6 +2940,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D56 | 21 Oct 2026 | VEP 0.5 Phase 4b, the rule-14 gap (D47). (1) In a VCL 0.5 spec, a header the spec itself writes to row 1 of a sheet argument, as quoted text (`SET_VALUE(CELL($ws, 1, <col>), "<header>")` or a WRITE_ROW to row 1), counts as checked for rule 14, so `COL($ws, "<header>")` needs no PRE line. PRE can't check it: the header isn't there before the first run, so a PRE check would stop that run. (2) The match is exact: the same sheet argument, the same header (as COL matches it, S9), row 1, quoted text. A 0.4 spec keeps the rule-14 error, now with a hint that this needs VCL 0.5. (3) Found while proving it: `MODIFIES $ws ["<header>"]` on such a header passed the validator, but every TEST then failed, because the UNCHANGED check finds a column by its header before the run and the column isn't there yet. In 0.5 the validator now refuses that line and asks for the whole sheet (`MODIFIES $ws`), which is also the only form that lets the header row change (D47). (4) Nothing else changes: the type checker, the interpreter and the compiler already ran such specs, and an assertion could already name the new header (the validator counts row-1 writes). spec.md's rule 14 says so at the switch to 0.5 (Phase 5); until then the VEP describes it. A sample spec proves it: 3 TESTs pass and catch 18 of 18 mutants. | A macro that adds its own status column to a register is a common request; rule 14 must not force a PRE line that can only fail, and the column-MODIFIES trap should fail at the validator with the reason, not at a TEST. |
 | D57 | 21 Oct 2026 | VEP 0.5 Phase 4c, the last review gap (D47): an assertion couldn't name a sheet whose name has spaces, so a TEST couldn't look inside a sheet the macro adds as "Open NCRs". (1) In VCL 0.5 an assertion writes such a sheet in single quotes, as Excel writes it in a formula: `VALUE('Open NCRs'!B1)`, `COUNTA('Open NCRs'![NCR No])`, `ROWS_USED('Open NCRs')`; a quote in the name is written `''`. (2) One way to write each name: quotes only for a name that isn't one word (`'Ncr'!B2` is refused, write `Ncr!B2`), so the corpus never has two spellings of one reference. The name must be one ADD_SHEET could give (S23), so a TEST never names a sheet that can't exist. (3) FIXTURE sheets stay one word: a fixture is synthetic and its names are ours to choose, so only sheets the macro itself makes can have spaces. (4) Single quotes stay out of OP lines: text there is in double quotes, and a single-quoted text now gets a message that says so. (5) Changed: the tokenizer, the grammar, the validator's assertion checks and the interpreter's assertion reader; the compiler and ForgeLib don't read assertions. spec.md teaches it at the switch to 0.5 (Phase 5); until then the VEP describes it. A sample spec proves it: 3 TESTs pass and catch 13 of 13 mutants. | Excel's own quoting is the form a writer already knows, and it can name every sheet a macro may add. |
 | D58 | 21 Oct 2026 | **VEP 0.5 Phase 5: a proven BUILD and the switch to VCL 0.5 (item 3 complete).** (1) spec.md, the Orchestrator prompt and the context file's Appendix A move to VCL 0.5 in one step, so Boss updates the Orchestrator Project once. The shared reference text teaches everything 0.5 added: BUILD FORMAT without FORM and xlam and without "not yet tested" (unique procedure names, modMain.RunHeadless and Run, FLOW = the CALLs); CALL with `into=` and its SEMANTICS entry (-1 at the callee's PRE, -2 on its failure, values converted to the parameter's type); ROW_OF; DEDUPE `into=`; the rule-14 exception for a header the spec writes to row 1; the MODIFIES lines a caller needs and the rule that a header the spec adds can't be named in `[...]`; quoted sheet names in assertions. Hard rules: 7 (ask when even a BUILD can't do it), 8 (VCL 0.5), 9 (a request one TASK can't do becomes a BUILD of TASKs of about 40 OP lines), 14 (the exception), and a new rule 23 for BUILD and CALL. The shared-text tests now end at rule 23 ("and no FORM line."); `compiler/gen_context.py` too. FORM lines stay valid in the language and are refused by the compiler (D49), and the reference text no longer teaches them. (2) Example 4, `vcl/examples/example4_build.vcl`, is the NcrReview BUILD of the tests (D50, D52, D53), with `mode=sum` in DICT_ADD so no equivalent mutant survives: it is valid with no warnings, its 3 TESTs pass, it builds lint-clean, and its TESTs catch 34 of 34 mutants (modMain.Run is not mutated: no TEST can reach it). It is the prompt's new Example 4, a unit test keeps the two equal and proves it, and `tests/test_vcl05.py` now uses the file as its BUILD sample. Examples 1 and 3 moved to 0.5 by their first line only (E13); the migration and version tests were updated to say so, and still compare results. The 12 committed specs stay TASK specs in their versions: a BUILD joins `specs/` when a real request needs one. (3) Two Orchestrator dry runs (helpers who knew only the prompt) wrote a BUILD (a weld-chase tool with a summary sheet) and a TASK (duplicates, then FIND and ROW_OF); both passed check, test, build and lint, and the BUILD scored 61 of 62 (an equivalent), the TASK 20 of 22 (two equivalents). Their guesses led to wording fixes with no change of meaning: rule 15 says DEDUPE does not trim its keys (an ASSUME), rule 17 puts a second count in a cell, rule 19 puts the blank cell early in the column (LASTROW ignores a trailing blank), rule 22 says only the run that adds a sheet can write to it, so a sheet rebuilt on every run is an argument that the ASSUME lines say exists, rule 23 asks for a TEST where a checked callee gives 0, and SEMANTICS says `TODAY - 14` is a date and KEYS walks keys in the order they were first added. (4) Known gaps, left for a later VEP because each is a language change: a tool that must create a sheet if it is missing and rebuild it if it is there can be written only by calling RunHeadless twice from Run (the dry run found it); FIND needs a range, so looking one value up in another sheet's column goes through a Dictionary, since no function gives a column range by header; and `vclc mutate` prints "... and N more" without a way to list every survivor. | One switch, one Orchestrator update, as D38 and D46 did, after every language phase of item 3. A BUILD is only taught once a sample proves all three stages, and the dry runs showed which sentences a writer had to guess. |
+| D59 | 21 Oct 2026 | **AI plan Stage A (CLAUDE.md item 4), Boss said "go item 4".** Designed in `docs/vep-0.6-stage-a.md` before any code, as D36 and D49 did. Choices made the conservative way, which Boss can overrule: (1) **Order:** error codes, the `GOAL` line (VCL 0.6), the formatter `vclc fmt`, then one switch of spec.md and the prompt to 0.6 (Boss updates the Orchestrator once), and only then the corpus, so every stored spec already has its GOAL and its canonical text. The data generator and the benchmark follow the corpus. (2) **Error codes** are written at the call site and never reused or renumbered; a test fails when a message has no code, and a generated catalogue `docs/error-codes.md` is checked in CI. The message text stays as it is, so the codes are a new field and no existing test changes. (3) **GOAL is required from VCL 0.6** and an error before it; every older spec stays valid. The 12 committed specs are inputs and stay as they are; their pairs are copies in `data/` with a GOAL added. (4) **The formatter** works on the token stream, never reorders keys, never changes quoted text, and must keep every committed spec's results identical. (5) **The VBA is not stored** in `data/`: it is derived and goes stale, so `vclc export` compiles it fresh into git-ignored `dist/`; a test proves every stored pair still passes the toolchain. (6) **Acceptance:** valid with no warnings, TESTs pass, lint-clean build, snapshot mutation score at least 90% (the plan's "strong tests required"), canonical, GOAL present. (7) **The corpus** is 150 tasks: about 100 single TASKs, 30 using the item 2 ops, 20 BUILDs, across 13 registers, written by helpers that see only the Orchestrator prompt (Claude through our pipeline, D25, the method of D47 and D58); 15 (10%) are held out for the benchmark. Tasks the helpers cannot express are counted as gaps, the NOTE count Stage B needs. (8) **The benchmark** scores a candidate on four levels (valid; own TESTs pass; own TESTs catch 90% of mutants; passes hidden reference TESTs under a fixed contract) and starts with Claude as the Orchestrator as its baseline. (9) Paraphrases cannot be proven, so a mechanical check (numbers, headers and quoted statuses survive) filters them and they are marked. Nothing here trains or runs a model before March 2027 (CLAUDE.md). | Stage A makes the dataset and the scoreboard the March 2027 model needs, and each choice keeps what is stored provable by the toolchain. Doing the language changes first means no stored spec ever has to be migrated. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4721,10 +4729,12 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    Orchestrator prompt teach VCL 0.5 (hard rules 7, 9 and 14 changed, new hard rule 23 for BUILD
    and CALL), and Boss pastes the new prompt into the Orchestrator Project once. **Item 3 is
    complete.** FORM and xlam stay refused until after March 2027 (D49).
-4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
-   model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
-   the data generator and the benchmark) starts when Boss says go for it, as every earlier
-   item did (D51); no training before March 2027.
+4. The AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the model writes VCL,
+   never VBA. Boss said "go item 4" on 21 Oct 2026 for its Stage A, designed in
+   `docs/vep-0.6-stage-a.md` (D59): Phase 1 error codes, 2 the `GOAL` line (VCL 0.6), 3 the
+   formatter `vclc fmt`, 4 the switch of spec.md and the prompt to 0.6 (Boss updates the
+   Orchestrator once), 5 corpus tooling and the first pairs, 6 the corpus to 150 tasks, 7 the
+   data generator, 8 the benchmark. Phase 0 (the design) is done; no training before March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
@@ -4827,7 +4837,9 @@ and 7.
    xlam wait. Five phases (D50 to D58), the last a proven sample BUILD and the switch: spec.md
    and the prompt teach VCL 0.5. **Item 5b is complete.**
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
-   the next VCL packs.
+   the next VCL packs. Boss said "go item 4" on 21 Oct 2026; Stage A is designed in
+   `docs/vep-0.6-stage-a.md` (D59), with the language changes (error codes, `GOAL`, `vclc fmt`)
+   first so no stored spec is ever migrated.
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
@@ -5030,6 +5042,173 @@ whether they agree. Any difference is a bug that Claude fixes.
   yourself:
   1. Press **Windows key + R**, type `%TEMP%` and press **Enter**.
   2. Delete the folders whose names start with `KGC_KRONOS_SANDBOX_`.
+
+### `docs/vep-0.6-stage-a.md`
+
+#### VEP 0.6: AI plan Stage A, the language side and the data (CLAUDE.md item 4)
+
+Status: **design, 21 Oct 2026**. Boss said "go item 4" after item 3 (CALL and BUILD specs).
+This is Stage A of `docs/ai-plan.md` (D31): the language changes the plan lists (a `GOAL` line,
+a formatter, error codes), then the 150-task corpus, the data generator and the benchmark.
+Choices that needed Boss's decision were made the conservative way and recorded in
+`DECISIONS.md` D59, as CLAUDE.md asks; Boss can overrule any of them. No model training and no
+local-model work before March 2027 (CLAUDE.md), and everything stays in-house (D25).
+
+##### The problem
+
+The toolchain proves a spec, but nothing yet turns it into training data. Today a spec has no
+English next to it, the same meaning can be written many ways, a failing check says only
+"line 12: ..." in words that can change, and there is no collection of tasks, no way to make
+repair examples at scale, and no scoreboard. Without these, March 2027 starts with a model and
+no data to teach it, and no way to tell whether it is any good.
+
+##### Principles (unchanged)
+
+- The model writes VCL, never VBA (D31). The compiler writes all VBA, so every model output is
+  proven before anything reaches Excel.
+- Every pair in the dataset passed the whole toolchain: validator, type checker, TESTs in the
+  reference interpreter, MODIFIES and UNCHANGED, the compiler and the linter, and a mutation
+  floor (below). Nothing unproven enters `data/`.
+- Synthetic data only: invented sheet names, headers and figures; no real KGC file, name or
+  customer (CLAUDE.md). Claude may write tasks and specs "through our pipeline" (D25): its
+  output is trusted only after the toolchain verifies it.
+- Any VCL change updates spec.md and the prompt together, the grammar, parser, validator,
+  type checker, interpreter and compiler as needed, the tests and `DECISIONS.md`; Boss updates
+  the Orchestrator once per switch.
+
+##### Design
+
+###### 1. Error codes (no language change)
+
+Every message the validator, the type checker, the grammar stage and the fixture stage can give
+carries a stable code: `V` the validator's rules and warnings (including the BUILD rules), `G`
+the grammar, `T` the type checker, `X` the fixture builder, `R` a failing TEST. A code is written
+at the call site (`self.error("...", code="V107")`), so it is explicit and reviewable. Rules:
+- A code, once published, never changes meaning and is never reused; a message may be reworded
+  and keep its code.
+- A new message must bring a new code. A test scans the source and fails when a call has no
+  code, a code is used for two different messages, or a code is missing from the generated
+  catalogue `docs/error-codes.md` (written by `compiler/gen_error_codes.py`, checked in CI).
+- The code is a field of the problem (`Problem.code`); the message text stays as it is, so no
+  test that compares messages changes. The command line shows `path:line: error: V107: ...`.
+- A repair example (below) carries the codes, so "error -> fix" is learnable and stays valid
+  when a message is reworded.
+
+###### 2. The `GOAL` line (VCL 0.6)
+
+`GOAL <one plain-English sentence>` says what the spec does. It sits right before `PROC` in a
+TASK (after the `# ASSUME:` lines) and right before `NAME` in a BUILD; every TASK inside a BUILD
+has its own. From `VCL 0.6` it is required; before, it is an error ("GOAL is VCL 0.6"). One line,
+10 to 200 characters, printable ASCII, not starting with `#`. The validator warns when it only
+repeats the PROC name. Every older spec stays valid and gives the same results (as E8, E12, E13).
+The 12 committed specs are inputs and stay as they are; their pairs live in `data/` (below).
+
+###### 3. One canonical text: `vclc fmt`
+
+`python compiler/vclc.py fmt <files>` prints each spec in its canonical form and `--check` exits
+1 when a file differs. The same meaning then always gives the same text, so the model learns
+one way. The formatter works on the token stream and must be:
+- **safe:** the formatted spec parses to the same tree, validates the same, and every TEST gives
+  the same result (a test proves it on every committed spec and example);
+- **idempotent:** formatting twice changes nothing;
+- **small:** key names padded to column 9, OP nesting two spaces per level, one space after a
+  comma and around operators, keywords and option names in the case spec.md writes them, one
+  blank-line rule, `---` between a BUILD's specs. It never reorders keys (the validator already
+  insists on the order) and never changes a quoted text or a FIXTURE rule.
+
+###### 4. The data layout
+
+```text
+data/verified/<id>/task.txt       the request, in the words Boss would type
+data/verified/<id>/spec.vcl       the proven spec: VCL 0.6, canonical, with GOAL
+data/verified/<id>/meta.json      id, kind (TASK or BUILD), registers, ops used, mutation score,
+                                  source, toolchain commit
+data/verified/<id>/paraphrase_N.txt   the same request worded differently (Phase 7)
+data/eval/<id>/                   the held-out benchmark items (below); same files, never trained on
+data/repair/                      generated "failing spec + codes -> fixed spec" pairs (Phase 7)
+```
+The VBA is not stored: it is derived and goes stale. `vclc export` writes the dataset as JSON
+Lines (request, GOAL, spec, VBA freshly compiled, repairs) into `dist/`, which is git-ignored,
+and a test proves every stored pair still passes the toolchain. The `data/*/README.md` files,
+which describe the old Excel-based plan, are rewritten to match.
+
+###### 5. The corpus: 150 tasks
+
+- **Coverage is planned, not accidental.** A task list crosses the registers (BOM, GRN, weld
+  log, NDE, NCR, ITP, welder qualifications, calibration, consumables stock, material
+  certificates, WPS/PQR, dispatch, job tracker) with task families (flag or highlight, summarise
+  or count, reconcile two registers, clean or dedupe, rebuild an output sheet, route or read
+  files, add sheets or formulas, a multi-step BUILD). About 100 single TASKs, 30 using the
+  item 2 ops (files, sheets, formulas, FIND, FILTER), and 20 BUILDs.
+- **Process per task.** (1) Claude writes the request as a person types it, with invented
+  headers and figures. (2) A helper that sees only the Orchestrator prompt and the request writes
+  the spec, as the claude.ai Orchestrator would (the two dry runs of D58 did exactly this).
+  (3) The toolchain gates it: valid with no warnings, TESTs pass, builds lint-clean, snapshot
+  mutation score at least 90%, canonical, GOAL present. (4) A failing spec gets up to two repair
+  rounds with the coded messages; every failed attempt and its fix is kept as a repair pair.
+  (5) A task the helper cannot express becomes an **expressibility gap** (a NOTE, a QUESTION or
+  a workaround), counted per op family; this is the NOTE count Stage B needs.
+- **The 12 existing specs** become the first 12 pairs, with a request written for each and a
+  GOAL added to a copy (the originals stay).
+- **A report** (`vclc corpus`) lists coverage, op use, mutation scores and the gaps.
+
+###### 6. The data generator
+
+All of it is automatic and verified, or marked as not verified:
+- **Repairs from mutants.** The mutation engine already makes thousands of near-miss specs. A
+  mutant that fails a check or a TEST becomes "broken spec + coded messages or failing TEST ->
+  the original spec". About 30 per task, about 4,500 for the corpus.
+- **Repairs from real failures.** The failed attempts of step (4) above.
+- **Contrast pairs.** A mutant that passes its own TESTs is a near-identical spec with different
+  behaviour: "read carefully" data (marked, not trained as a fix).
+- **Paraphrases.** Three wordings per request, written by Claude through our pipeline. They are
+  not provable, so a mechanical check (every number, header and quoted status of the original
+  appears in the paraphrase) filters them and the file is marked `paraphrase`; the spec they
+  point to is the proven part.
+
+###### 7. The benchmark (the only scoreboard)
+
+About 10% of the corpus (15 tasks) is chosen when the corpus is made, spread over registers and
+families, kept in `data/eval/`, and never used for training, paraphrasing or repair.
+- Each item has the request and a **contract**: the PROC name, ARGS and RET (for a BUILD,
+  RunHeadless's SIG), plus **hidden reference FIXTURE and TEST lines**.
+- `vclc bench <items> <candidates>` scores a candidate spec in four levels: **V** valid, **T**
+  its own TESTs pass, **M** its own TESTs catch at least 90% of mutants, **H** its procedure
+  passes the hidden reference TESTs (its own FIXTURE and TEST lines replaced by the reference
+  ones, so a weak test can't help it). The headline is the share of items at H.
+- A baseline comes first: Claude as the Orchestrator (helpers that see only the prompt) over the
+  15 items. The March 2027 model is judged against it; Claude stays the Orchestrator until the
+  model matches it (D31).
+
+##### Out of scope (Stage B and later)
+
+Growing VCL from the gap counts, shrinking NOTE, going from 150 to thousands of specs, the
+tokenizer, any training. Stage A only prepares the data and the scoreboard.
+
+##### Phases (one or two PRs each, in this order)
+
+0. **This design** and D59.
+1. **Error codes:** the call-site codes, `Problem.code`, `gen_error_codes.py`, the catalogue and
+   its test, the CLI output.
+2. **The `GOAL` line:** the `VCL 0.6` line, the key in the parser, grammar and validator, the
+   migration helper (`vcl_migrate.py` adds a GOAL and moves a spec to 0.6), compatibility tests.
+3. **`vclc fmt`:** the formatter, `--check`, the safety and idempotence tests on every committed
+   spec and example.
+4. **The switch:** spec.md and the prompt teach VCL 0.6 (GOAL, the canonical form, Examples 1, 3
+   and 4 with a GOAL line), and Boss updates the Orchestrator once. The corpus helpers read the
+   same prompt, so this comes before the corpus.
+5. **Corpus tooling and the first pairs:** the layout, `vclc corpus`, `vclc export`, the 12
+   existing specs as pairs, the task list for the 150, the first batch.
+6. **Corpus to 150:** batches of about 20, each its own PR; the gap report grows.
+7. **The data generator:** repairs, contrast pairs, paraphrases, the JSON Lines export.
+8. **The benchmark:** the 15 held-out items, contracts, `vclc bench`, the baseline.
+
+##### Verification (every phase)
+
+The four standard checks and `vclc mutate --snapshot` (the score stays 95.4% or better), plus a
+test for each new rule. Every older spec stays valid with the same results. The data phases add
+a check that every stored pair still passes the toolchain, so nothing in `data/` can go stale
+without CI failing.
 
 ### `docs/vep-0.5-build.md`
 

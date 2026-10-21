@@ -241,3 +241,6 @@ Dataset count: 0 verified pairs
   proven Example 4 (`vcl/examples/example4_build.vcl`: 3 TESTs, 34 of 34 mutants caught). The
   review gaps (ROW_OF, DEDUPE `into=`, a header the spec adds, quoted sheet names) are taught too.
   Boss pastes the new prompt into the Orchestrator Project once (D58). Item 3 is complete.
+- **2026-10-21:** Item 4, the AI plan's Stage A, is designed in `docs/vep-0.6-stage-a.md` (D59):
+  error codes, a `GOAL` line, a formatter, the 150-task corpus, the data generator and the
+  benchmark, in eight phases. No training before March 2027.

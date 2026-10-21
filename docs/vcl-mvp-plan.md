@@ -93,7 +93,9 @@ and 7.
    xlam wait. Five phases (D50 to D58), the last a proven sample BUILD and the switch: spec.md
    and the prompt teach VCL 0.5. **Item 5b is complete.**
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
-   the next VCL packs.
+   the next VCL packs. Boss said "go item 4" on 21 Oct 2026; Stage A is designed in
+   `docs/vep-0.6-stage-a.md` (D59), with the language changes (error codes, `GOAL`, `vclc fmt`)
+   first so no stored spec is ever migrated.
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
