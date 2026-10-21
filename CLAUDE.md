@@ -82,7 +82,7 @@ specs/               one .vcl file per task (task_01.vcl, ...)
 compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_parse.py (grammar),
                      vcl_types.py (types), vcl_interp.py (reference interpreter),
                      vcl_codegen.py (VBA compiler), vcl_fixtures.py (the one fixture
-                     generator), vba_lint.py, vcl_mutate.py, gen_semantics_doc.py,
+                     generator), vba_lint.py, vcl_mutate.py, gen_semantics_doc.py, gen_context.py,
                      vcl_formula.py (the SET_FORMULA check)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
@@ -117,6 +117,7 @@ logs/
   python compiler/validator.py specs/*.vcl
   python compiler/vclc.py all specs/*.vcl -o dist
   python compiler/gen_semantics_doc.py --check
+  python compiler/gen_context.py --check
   ```
   and commit `dist/forge_module.bas`, `dist/forge_selftest.bas` and `dist/forge_pilot.bas` if they
   changed. CI runs the same and fails if any of them is stale.
@@ -222,4 +223,5 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    item did (D51); no training before March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
-context file Boss gives to other Claude chats) in step with it.
+context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
+then run `python compiler/gen_context.py`, which rewrites its appendices from the repo (D54).

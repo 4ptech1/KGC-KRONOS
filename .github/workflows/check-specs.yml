@@ -34,3 +34,5 @@ jobs:
           done
       - name: docs/vcl-semantics.md is up to date
         run: python compiler/gen_semantics_doc.py --check
+      - name: docs/kgc-kronos-context.md is up to date
+        run: python compiler/gen_context.py --check
