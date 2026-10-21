@@ -331,6 +331,12 @@ message, `{...}` stands for the part that varies.
 | V320 | error | @ is Microsoft 365 (implicit intersection) | vcl_formula.py |
 | V321 | error | A1# is a spill reference (Microsoft 365) | vcl_formula.py |
 | V322 | error | {name.upper()} is not on the Excel 2016 list of SET_FORMULA functions (D43) | vcl_formula.py |
+| V323 | error | GOAL is VCL 0.6: start the spec with 'VCL 0.6' to use it | validator.py |
+| V324 | error | missing GOAL: write one plain-English sentence saying what the spec does | validator.py |
+| V325 | error | GOAL appears more than once | validator.py |
+| V326 | error | GOAL must be {lowest} to {highest} characters, got {len(k.value)} | validator.py |
+| V327 | error | GOAL must be plain printable ASCII text and not start with # | validator.py |
+| V328 | error | GOAL only repeats the {name_key} name: say what the spec does and for which sheets | validator.py |
 
 ## G: grammar
 

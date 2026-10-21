@@ -248,3 +248,7 @@ Dataset count: 0 verified pairs
   G grammar, T type checker, X fixture, R TEST run; 452 in all), shown after the message on the
   command line (`error: missing KIND [V060]`) and listed in `docs/error-codes.md`. A tool and a
   unit test keep new messages coded (D60).
+- **2026-10-21:** Stage A Phase 2: the toolchain reads `VCL 0.6` and the `GOAL` line, one plain-English
+  sentence per spec that is required from 0.6 (an error before). Older specs stay valid with the same
+  results; `compiler/vcl_goal.py` adds the GOAL lines to a spec. spec.md and the prompt still teach 0.5
+  until the switch in Phase 4 (E15, D61).

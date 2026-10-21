@@ -1,4 +1,4 @@
-"""Parse VCL 0.1 to 0.5 specs into Python objects.
+"""Parse VCL 0.1 to 0.6 specs into Python objects.
 
     from parser import parse_spec
     spec = parse_spec(text)
@@ -14,10 +14,10 @@ from dataclasses import dataclass, field
 from errcodes import code_of, coded, strict
 
 VERSION = "VCL 0.1"
-VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5")  # each version keeps every spec of the one before valid
-TASK_KEYS = ["PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
+VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5", "VCL 0.6")  # each version keeps every spec of the one before valid
+TASK_KEYS = ["GOAL", "PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
              "ALLOW", "FIXTURE", "TEST"]
-BUILD_KEYS = ["NAME", "TARGET", "ENTRY", "MODULE", "FORM", "SIG", "FLOW", "FIXTURE", "TEST"]
+BUILD_KEYS = ["GOAL", "NAME", "TARGET", "ENTRY", "MODULE", "FORM", "SIG", "FLOW", "FIXTURE", "TEST"]
 
 
 @dataclass
@@ -125,7 +125,7 @@ class Form:
 @dataclass
 class Spec:
     kind: str = None    # "TASK", "BUILD", "QUESTION", or None if the header is unreadable
-    version: str = VERSION  # the version line: "VCL 0.1" to "VCL 0.5"
+    version: str = VERSION  # the version line: "VCL 0.1" to "VCL 0.6"
     line: int = 1       # line of the TASK / BUILD header (or of the # QUESTION: line)
     assumes: list = field(default_factory=list)   # [(line, text)]
     question: str = ""
