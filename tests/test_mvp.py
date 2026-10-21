@@ -66,8 +66,8 @@ class Interpreter(unittest.TestCase):
 class Compiler(unittest.TestCase):
     def test_compiles_what_type_checks_and_refuses_the_rest(self):
         for p in all_specs():
-            if p.name == "build_example.vcl":
-                continue
+            if p.name in ("build_example.vcl", "example4_build.vcl"):
+                continue   # BUILDs compile with compile_build (tests/test_vcl05.py)
             text = p.read_text()
             spec, _ = parse(text)
             with self.subTest(spec=p.name):

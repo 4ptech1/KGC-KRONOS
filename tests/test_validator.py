@@ -541,32 +541,47 @@ class RealSpecs(unittest.TestCase):
     def test_orchestrator_example_1(self):
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 1"):prompt.index("EXAMPLE 2")]
-        spec = example[example.index("VCL 0.4"):]
+        spec = example[example.index("VCL 0.5"):]
         self.assertEqual(validate_text(spec), [])
 
     def test_example_1_file_is_the_prompts_example_1(self):
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 1"):prompt.index("EXAMPLE 2")]
-        self.assertEqual(read("vcl/examples/example1_rev3.vcl").strip(), example[example.index("VCL 0.4"):].strip())
+        self.assertEqual(read("vcl/examples/example1_rev3.vcl").strip(), example[example.index("VCL 0.5"):].strip())
 
     def test_example_3_copies_files_and_is_proven(self):
-        # Example 3 (D33; VCL 0.4 by its first line, D46) is vcl/examples/example3_files.vcl:
+        # Example 3 (D33; VCL 0.5 by its first line, D58) is vcl/examples/example3_files.vcl:
         # valid with no warnings, every TEST passes, and its TESTs catch every mutant.
         prompt = read("vcl/orchestrator_prompt.txt")
-        example = prompt[prompt.index("EXAMPLE 3"):prompt.index("FINAL CHECK")]
-        spec = example[example.index("VCL 0.4"):]
+        example = prompt[prompt.index("EXAMPLE 3"):prompt.index("EXAMPLE 4")]
+        spec = example[example.index("VCL 0.5"):]
         self.assertEqual(read("vcl/examples/example3_files.vcl").strip(), spec.strip())
         self.assertEqual(validate_text(spec), [])
         results = run_tests(spec)
         self.assertTrue(all(r.passed for r in results), [(r.line, r.failed) for r in results])
         self.assertEqual(mutate_report(spec, snapshot=True)[:2], (29, 29))
 
-    def test_the_prompt_teaches_vcl_0_4(self):   # D46
+    def test_example_4_is_a_proven_build(self):
+        # Example 4 (D58) is vcl/examples/example4_build.vcl: a BUILD that is valid with no
+        # warnings, whose 3 TESTs pass, whose module builds lint-clean, and whose TESTs catch
+        # every mutant (34 of 34; modMain.Run, which no TEST can reach, is not mutated).
         prompt = read("vcl/orchestrator_prompt.txt")
-        self.assertTrue(prompt.startswith("VBA FORGE ORCHESTRATOR · SYSTEM PROMPT · VCL 0.4\n"))
-        self.assertIn("exactly one VCL 0.4 spec. The VBA Forge compiler turns", prompt)   # D25, D31
+        example = prompt[prompt.index("EXAMPLE 4"):prompt.index("FINAL CHECK")]
+        spec = example[example.index("VCL 0.5"):]
+        self.assertEqual(read("vcl/examples/example4_build.vcl").strip(), spec.strip())
+        self.assertEqual(validate_text(spec), [])
+        results = run_tests(spec)
+        self.assertEqual(len(results), 3)
+        self.assertTrue(all(r.passed for r in results), [(r.line, r.failed) for r in results])
+        self.assertEqual(mutate_report(spec, snapshot=True)[:2], (34, 34))
+
+    def test_the_prompt_teaches_vcl_0_5(self):   # D46, D58
+        prompt = read("vcl/orchestrator_prompt.txt")
+        self.assertTrue(prompt.startswith("VBA FORGE ORCHESTRATOR · SYSTEM PROMPT · VCL 0.5\n"))
+        self.assertIn("exactly one VCL 0.5 spec. The VBA Forge compiler turns", prompt)   # D25, D31
         self.assertNotIn("fine-tuned", prompt)
-        for older in ("VCL 0.3", "VCL 0.2", "ACTIVE_SHEET", "ACTIVE_BOOK", "mode=new"):
+        for older in ("VCL 0.4", "VCL 0.3", "VCL 0.2", "ACTIVE_SHEET", "ACTIVE_BOOK", "mode=new",
+                      "not yet tested", "xlam", "CONTROLS", "<frmName>"):
             self.assertNotIn(older, prompt)
 
     def test_spec_md_and_prompt_share_the_reference_text(self):
@@ -577,7 +592,7 @@ class RealSpecs(unittest.TestCase):
             self.assertIsNotNone(match, start)
             return match.group(0)
 
-        for start, end in [("1.  Reply with exactly", "removes or replaces a sheet."),
+        for start, end in [("1.  Reply with exactly", "and no FORM line."),
                            ("TASK FORMAT", "the same spec always builds the same file.")]:
             self.assertEqual(between(spec, start, end), between(prompt, start, end))
 
@@ -613,7 +628,7 @@ class RealSpecs(unittest.TestCase):
         # docs/kgc-kronos-context.md is what Boss gives other Claude chats; its Appendix A must
         # be spec.md's reference text, word for word.
         spec, context = read("vcl/spec.md"), read("docs/kgc-kronos-context.md")
-        for start, end in [("1.  Reply with exactly", "removes or replaces a sheet."),
+        for start, end in [("1.  Reply with exactly", "and no FORM line."),
                            ("TASK FORMAT", "the same spec always builds the same file.")]:
             pattern = re.escape(start) + r".*?" + re.escape(end)
             self.assertEqual(re.search(pattern, spec, re.S).group(0), re.search(pattern, context, re.S).group(0))

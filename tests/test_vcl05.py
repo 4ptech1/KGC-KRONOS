@@ -18,103 +18,10 @@ from vcl_codegen import CompileError, compile_build  # noqa: E402
 from vcl_mutate import mutate_report, untested_lines  # noqa: E402
 import vclc  # noqa: E402
 
-# A small tool: RunHeadless marks old open NCRs Overdue (modSteps.MarkOverdue) and rebuilds a
-# summary of the statuses (modSteps.WriteSummary); modMain.Run starts it on the real sheets.
-NCR_REVIEW = r"""VCL 0.5
-BUILD
-# ASSUME: NCR headers (row 1) include "NCR No", "Status" and "Days Open"
-# ASSUME: an Open NCR older than the limit becomes Overdue; Summary is rebuilt on every run
-NAME     NcrReview
-TARGET   xlsm
-ENTRY    modMain.Run
-MODULE   modMain
-MODULE   modSteps
-SIG      modMain.Run()
-SIG      modMain.RunHeadless(ncr As Worksheet, out As Worksheet) As Long
-SIG      modSteps.MarkOverdue(ncr As Worksheet, limit As Long) As Long
-SIG      modSteps.WriteSummary(ncr As Worksheet, out As Worksheet)
-FLOW     modMain.Run -> modMain.RunHeadless -> modSteps.MarkOverdue
-FLOW     modMain.RunHeadless -> modSteps.WriteSummary
-FIXTURE  ncr_01.xlsx sheet=NCR cols=A:NCR No,B:Status,C:Days Open rows=8 data=A:seq(1,1);B:values("Open"x5,"Closed"x2,""x1)+boundary("Open","Open","Closed","","Open");C:int(1,60)+boundary(31,30,45,10)
-FIXTURE  ncr_01.xlsx sheet=Summary cols=A:Status,B:Count rows=0 stale=2
-TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTIF(NCR![Status], "Overdue") = 4 AND COUNTIF(NCR![Status], "Open") = 1 AND COUNTA(Summary![Status]) = 4 AND VALUE(Summary![Count]2) = 4 AND COUNTIF(Summary![Status], "stale") = 0
-TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) assert=RESULT = 4 AND ERROR_COUNT = 0 AND COUNTA(NCR![NCR No]) = PRE_COUNTA(NCR![NCR No]) AND VALUE(NCR![Status]2) = "Overdue" AND VALUE(NCR![Status]3) = "Open" AND VALUE(Summary![Status]2) = "Overdue"
-TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(Summary, NCR) assert=RESULT = -1 AND ERROR_COUNT = 1
----
-VCL 0.5
-TASK
-PROC     Run
-KIND     Sub
-MODULE   modMain
-VAR      n As Long
-OP       CALL(modMain.RunHeadless, SHEET(THIS_BOOK, "NCR Register"), SHEET(THIS_BOOK, "NCR Summary"), into=n)
-OP       MSG("NCRs marked Overdue: " & n)
-ERR      standard
----
-VCL 0.5
-TASK
-PROC     RunHeadless
-KIND     Function
-MODULE   modMain
-ARGS     ncr As Worksheet, out As Worksheet
-RET      Long
-VAR      marked As Long
-PRE      COL($ncr, "Status") > 0; COL($ncr, "Days Open") > 0
-MODIFIES $ncr["Status"]
-MODIFIES $out
-OP       CALL(modSteps.MarkOverdue, $ncr, 30, into=marked)
-OP       CALL(modSteps.WriteSummary, $ncr, $out)
-OP       RETURN(marked)
-ERR      standard
----
-VCL 0.5
-TASK
-PROC     MarkOverdue
-KIND     Function
-MODULE   modSteps
-ARGS     ncr As Worksheet, limit As Long
-RET      Long
-VAR      cStatus As Long
-VAR      cDays As Long
-VAR      n As Long
-PRE      COL($ncr, "Status") > 0; COL($ncr, "Days Open") > 0
-MODIFIES $ncr["Status"]
-OP       LET(cStatus, COL($ncr, "Status"))
-OP       LET(cDays, COL($ncr, "Days Open"))
-OP       LOOP_ROWS dir=down from=2 to=LASTROW($ncr, cStatus) var=r
-OP         IF SAME(CELL($ncr, r, cStatus), "Open")
-OP           IF IS_NUMBER(CELL($ncr, r, cDays))
-OP             IF CELL($ncr, r, cDays) > $limit
-OP               SET_VALUE(CELL($ncr, r, cStatus), "Overdue")
-OP               LET(n, n + 1)
-OP       RETURN(n)
-ERR      standard
----
-VCL 0.5
-TASK
-PROC     WriteSummary
-KIND     Sub
-MODULE   modSteps
-ARGS     ncr As Worksheet, out As Worksheet
-VAR      cStatus As Long
-VAR      counts As Dictionary
-VAR      got As Long
-VAR      outRow As Long
-PRE      COL($ncr, "Status") > 0
-MODIFIES $out
-OP       LET(cStatus, COL($ncr, "Status"))
-OP       CLEAR(USED_RANGE($out), what=all)
-OP       WRITE_ROW($out, 1, "Status", "Count")
-OP       LOOP_ROWS dir=down from=2 to=LASTROW($ncr, cStatus) var=r
-OP         SKIP_IF IS_EMPTY(CELL($ncr, r, cStatus))
-OP         DICT_ADD(counts, TRIM(CELL($ncr, r, cStatus)), 1, mode=count)
-OP       LET(outRow, 2)
-OP       FOR_EACH var=k in=KEYS(counts)
-OP         DICT_GET(counts, k, into=got)
-OP         WRITE_ROW($out, outRow, k, got)
-OP         LET(outRow, outRow + 1)
-ERR      standard
-"""
+# Example 4 (D58) is a small tool: RunHeadless marks old open NCRs Overdue (modSteps.MarkOverdue)
+# and rebuilds a summary of the statuses (modSteps.WriteSummary); modMain.Run starts it on the
+# real sheets. The prompt's copy of it is kept equal to this file by tests/test_validator.py.
+NCR_REVIEW = (ROOT / "vcl" / "examples" / "example4_build.vcl").read_text(encoding="utf-8")
 
 
 # Phase 4a (D55): ROW_OF finds the row of a FIND result; DEDUPE into= counts the rows it removed.
@@ -406,11 +313,9 @@ class Compiler(unittest.TestCase):   # Phase 3: one lint-clean module per BUILD,
             self.assertTrue((out / "expected" / "ncr_review.json").is_file())
             self.assertFalse((out / "forge_module.bas").exists())   # no TASK spec was given
 
-    def test_the_tests_catch_every_mutant_that_can_be_caught(self):
+    def test_the_tests_catch_every_mutant(self):   # Example 4 (D58): 34 of 34
         killed, total, survivors = mutate_report(NCR_REVIEW, snapshot=True, today=datetime.date(2026, 10, 21))
-        self.assertEqual((killed, total), (total - 1, total))
-        line = NCR_REVIEW.splitlines()[survivors[0][0] - 1]
-        self.assertIn("mode=count", line)   # the one survivor: DICT_ADD's value, which mode=count ignores
+        self.assertEqual((killed, total, survivors), (34, 34, []))
         run_lines = {i + 1 for i in untested_lines(NCR_REVIEW)}
         self.assertEqual(len(run_lines), 2)   # modMain.Run's CALL and MSG: no TEST calls Run, so no mutant there
 

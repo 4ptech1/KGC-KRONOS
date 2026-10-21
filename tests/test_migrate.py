@@ -31,12 +31,12 @@ class TheTenSpecs(unittest.TestCase):
                 self.assertEqual(new, (ROOT / "specs" / old.name).read_text(encoding="utf-8"))
 
     def test_migrating_example_1_gives_the_prompts_example(self):
-        # The tool migrates to 0.2; the prompt's Example 1 then moved to 0.3 and to 0.4 by its
-        # first line only, which gives the same results (E8, D33; E12, D46).
+        # The tool migrates to 0.2; the prompt's Example 1 then moved to 0.3, 0.4 and 0.5 by its
+        # first line only, which gives the same results (E8, D33; E12, D46; E13, D58).
         new, _ = migrate((V01 / "example1_rev3.vcl").read_text(encoding="utf-8"))
         example = (ROOT / "vcl" / "examples" / "example1_rev3.vcl").read_text(encoding="utf-8")
-        self.assertTrue(new.startswith("VCL 0.2\n") and example.startswith("VCL 0.4\n"))
-        self.assertEqual(new.replace("VCL 0.2\n", "VCL 0.4\n", 1), example)
+        self.assertTrue(new.startswith("VCL 0.2\n") and example.startswith("VCL 0.5\n"))
+        self.assertEqual(new.replace("VCL 0.2\n", "VCL 0.5\n", 1), example)
 
     def test_the_rewrites_give_the_same_results(self):
         # The proof without its slow mutation part (vcl_migrate.py --prove runs that too).
