@@ -20,7 +20,7 @@ from vba_lint import lint  # noqa: E402
 from vcl_codegen import CompileError, assemble, compile_text  # noqa: E402
 from vcl_formula import formula_problems  # noqa: E402
 from vcl_fixtures import SANDBOX, MockFS  # noqa: E402
-from vcl_interp import modifies_of, needs_unchanged_check, read_text, run_tests, write_text  # noqa: E402
+from vcl_interp import VclError, modifies_of, needs_unchanged_check, read_text, run_tests, write_text  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
 from vcl_types import check_text  # noqa: E402
@@ -852,6 +852,15 @@ class VersionSwitch(unittest.TestCase):
                     compile_text(text)
                 self.assertEqual(str(caught.exception), why)
                 self.assertEqual(run(text).log[0][2], "runtime error: " + why)
+
+    def test_a_build_says_why_it_cannot_be_tested(self):   # D47: it used to say "spec doesn't parse: []"
+        sys.path.insert(0, str(ROOT / "tests"))
+        from test_parser import MINIMAL_BUILD
+        self.assertEqual([p for p in validator.validate_text(MINIMAL_BUILD) if p.severity == "error"], [])
+        with self.assertRaises(VclError) as caught:
+            run_tests(MINIMAL_BUILD)
+        self.assertEqual(str(caught.exception),
+                         "a BUILD can't be tested yet: the interpreter runs TASK specs only (D36)")
 
 
 class Facts(unittest.TestCase):

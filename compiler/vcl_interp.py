@@ -1186,8 +1186,10 @@ def sandbox_length_problems(paths):
 def run_tests(text, today=None):
     """Run every TEST of a TASK spec. today pins TODAY (default: the real date)."""
     spec, problems = parse(text)
-    if problems or not spec or spec["kind"] != "TASK":
+    if problems or not spec:
         raise VclError(f"spec doesn't parse: {problems[:3]}")
+    if spec["kind"] != "TASK":   # D47: say why, instead of "doesn't parse" for a valid BUILD
+        raise VclError(f"a {spec['kind']} can't be tested yet: the interpreter runs TASK specs only (D36)")
     today = today or dt.date.today()
     trees = [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]
     books = build_workbooks(trees, today)

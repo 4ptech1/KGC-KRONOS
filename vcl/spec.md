@@ -25,17 +25,23 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
 4.  If a step truly cannot be expressed with ops, write it as NOTE "<terse technical text>".
     Use NOTE rarely.
 5.  Every spec has at least two TEST lines: one proves the goal was met, one proves nothing
-    else changed (for read-only work: proves the source data is unchanged). At least one
-    TEST includes ERROR_COUNT = 0. When the test workbook has another sheet, add a
-    wrong-sheet TEST that passes it and expects RESULT = -1 AND ERROR_COUNT = 1.
+    else changed by comparing a measure with its PRE_ value, for example
+    COUNTA(Orders![Status]) = PRE_COUNTA(Orders![Status]) (for read-only work: proves the
+    source data is unchanged). At least one TEST includes ERROR_COUNT = 0. When the test
+    workbook has another sheet, add a wrong-sheet TEST that passes it and expects
+    RESULT = -1 AND ERROR_COUNT = 1.
 6.  Put every assumption at the top of the spec as a line starting with # ASSUME:
     Prefer a sensible assumption over a question.
-7.  Ask only when a wrong guess could destroy or overwrite data, or the request cannot be
-    specified at all. Then the code block contains only: # QUESTION: <one short question>
+7.  Ask only when a wrong guess could destroy or overwrite data, when the request cannot be
+    specified at all, or when one TASK can't do all of it (rule 9). Then the code block
+    contains only: # QUESTION: <one short question>
 8.  Use ALLOW only for risky actions the user explicitly asked for: file_delete,
-    file_overwrite, shell, http. Otherwise design around them.
-9.  Choose TASK for one procedure of up to about 60 lines of VBA. Choose BUILD when the
-    request needs several procedures, a UserForm, or more than about 60 lines.
+    file_overwrite, shell, http. No VCL 0.4 op deletes or overwrites a file, runs a program
+    or uses the web, so design around them.
+9.  Write one TASK: one procedure of up to about 40 OP lines (about 60 lines of VBA). BUILD
+    and CALL can be checked but not yet tested, so don't use them for now. When one TASK
+    can't do the whole request (it needs several procedures, a UserForm, more OP lines, or
+    ops one spec may not combine), ask which part to do first (rule 7).
 10. Delete rows only inside LOOP_ROWS dir=up or with DEDUPE, and only rows the user
     explicitly wants removed. Never delete rows because data is missing or pending: copy
     them to an exceptions sheet instead (DEDUPE never deletes a row with a blank key).
@@ -48,8 +54,10 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
 14. Find input columns by header name with COL(), never by fixed position, and check
     every header you use with a PRE line.
 15. Assume data is typed by hand: trim IDs before matching, compare typed text with SAME,
-    and guard every calculation and date comparison with IS_NUMBER or IS_DATE in a nested
-    IF. Guard with the check itself (IF IS_DATE(x)), never with a flag variable set earlier.
+    and guard every calculation and date comparison on a value from the workbook (a cell,
+    an array element, a dictionary value) with IS_NUMBER or IS_DATE in a nested IF; your
+    own counters need no guard. Guard with the check itself (IF IS_DATE(x)), never with a
+    flag variable set earlier.
 16. Make re-runs safe: rebuild output sheets from scratch, and recalculate totals from
     source data instead of adding to or subtracting from stored values. The goal TEST
     uses runs=2 to prove it.
@@ -60,7 +68,7 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     whose fills it owns) stale=<n> rows, put the values that sit exactly on each <, <=, >
     or >= comparison in the first rows with +boundary(...), repeat dictionary keys with
     +dupes(<n>) or values() counts of 2 or more, and use reldates(lo, hi) when the spec
-    uses TODAY. Give each column a SKIP_IF IS_EMPTY tests at least one blank cell
+    uses TODAY. Give each column that a SKIP_IF IS_EMPTY tests at least one blank cell
     (+blank(<n>) or a "" boundary value), and give a spec that copies or reads files a
     locked= file in a FIXTURE folder. Prefer exact assertions to ranges.
 20. Declare every sheet the macro changes with MODIFIES: the whole sheet when it is
@@ -77,8 +85,10 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
 22. Add sheets only with ADD_SHEET or COPY_SHEET, each with name=, on a Workbook argument
     declared with MODIFIES $<book> sheets, and skip the add when SHEET_EXISTS says the
     sheet is there, so a re-run is safe. Write formulas only with SET_FORMULA, using
-    Excel 2016 functions; a TEST checks their text with FORMULA, never their value. No op
-    removes or replaces a sheet.
+    Excel 2016 functions; a TEST checks their text with FORMULA, never their value. A spec
+    that SET_FORMULAs may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT. A formula's text can't
+    use COL(), so check in PRE that each column it names holds its header, such as
+    COL($ws, "Method") = 3. No op removes or replaces a sheet.
 ```
 
 ## Reference
@@ -110,7 +120,7 @@ Dictionary, Collection. Loop variables from LOOP_ROWS, LOOP_COLS and FOR_EACH ar
 automatically; never repeat them in VAR.
 For form events: MODULE is the form, PROC is <control>_<Event> (btnRun_Click).
 
-BUILD FORMAT
+BUILD FORMAT  (not yet tested: don't use it, rule 9)
 VCL 0.4
 BUILD
 # ASSUME: <assumption>                        (opt)
@@ -172,7 +182,7 @@ Every other op is a call, NAME(arguments, key=value):
           LIST_FILES(<folder>, "<pattern>", into=<list>)   (file names in the folder, in name order)
           READ_TEXT(<path>, <text var>, into=<status>)     (a text file's text into <text var>)
           WRITE_TEXT(<path>, <expr>, into=<status>)        (a new text file; never overwrites)
-  Calls   CALL(<module>.<Proc>, <args>)
+  Calls   CALL(<module>.<Proc>, <args>)   (not yet tested: don't use it, rule 9)
   Output  LOG(<expr>)   MSG(<expr>)   RETURN(<expr>)
   Escape  NOTE "<terse technical text>"
 FORMAT fill names: none (removes the fill), black, white, red, green, blue, yellow, magenta,
@@ -225,7 +235,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   SAME        compares TRIM(a) and TRIM(b) as text, ignoring case: SAME(" ready ", "READY")
               and SAME(25, "25") are TRUE, SAME(25, "25.0") is FALSE; an error is SAME as its
               text, so check IS_ERROR first when that matters
-  CLEAN_TEXT  also removes characters below code 32; case is kept
+  CLEAN_TEXT  also removes the characters below code 32 other than tabs and line breaks;
+              case is kept
   IS_ERROR    true for Excel error values (#N/A, #DIV/0!, ...); the text "#N/A" is not one
   PARSE_DATE  a real date passes through; text is TRIMmed and must match the format exactly
               (day and month 1 or 2 digits, year 4 digits from 1900, a date that exists);
@@ -259,9 +270,10 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               part is empty or not exactly its own SAFE_NAME, and a file op given "" reports
               Bad name
   Paths       a file op's path is PATH_JOIN($<root>, ...) of a String argument, never a bare
-              root, and every part after the root is SAFE_NAME(...) or a quoted literal that
-              is its own safe name, written in place (never a variable or a cell), so no path
-              can climb out of its root. A SAFE_NAME result or a path is text elsewhere
+              root (LIST_FILES may list the root itself), and every part after the root is
+              SAFE_NAME(<any text>) or a quoted literal that is its own safe name, written in
+              place (a bare variable or cell is refused), so no path can climb out of its
+              root. A SAFE_NAME result or a path is text elsewhere
   FOLDER_EXISTS  TRUE only for a folder, FALSE for a file or ""; in Excel the path must be
               written in full (C:\Jobs, not Jobs or C:\Jobs\)
   MAKE_FOLDER writes one status into its String VAR, checked in this order: Bad name ("" or
@@ -277,8 +289,9 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               ForgeLog). A file op never stops the run
   LIST_FILES  the names (not paths) of the files directly in the folder whose whole name
               matches the pattern (* any run of characters, ? one character, case ignored),
-              sorted by lowercase name; a missing or bad folder gives an empty list. ITEMS
-              walks them in that order
+              sorted by lowercase name, into a Collection VAR (replacing what it held); a
+              missing or bad folder gives an empty list. ITEMS walks them in that order. The
+              pattern is quoted text, never an expression
   Text        READ_TEXT and WRITE_TEXT handle printable ASCII, tabs and line breaks, at most
               32,767 characters; anything else is Not text, because it reads differently on
               each PC
@@ -300,7 +313,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   FILE_NAME   the text after the last backslash
   DEDUPE      keeps the first row of each key and deletes each later row with that key
               (whole sheet rows); cols= are sheet column numbers, as for SORT; key cells
-              compare as dictionary keys do; a row with an empty or error key cell stays
+              compare as dictionary keys do (case ignored, but no TRIM: " N-01" and "N-01" are
+              two keys); a row with an empty or error key cell stays
   FIND        looks row by row, left to right: match=whole (the default) means SAME,
               match=part means the cell's text holds TRIM(<expr>), case ignored (an empty
               text finds NOTHING). Test it with IS_NOTHING before writing to it
@@ -324,8 +338,9 @@ MODIFIES  (one line per sheet the macro changes, or per kind of change)
   MODIFIES $<arg> fills               fills anywhere on that sheet
   MODIFIES $<arg> files               folders and files may be added below that String
                                       argument; nothing else on disk may change
-  MODIFIES $<arg> sheets              sheets may be added to that Workbook argument; every
-                                      sheet that was there stays as it was
+  MODIFIES $<arg> sheets              sheets may be added to that Workbook argument; no sheet
+                                      is removed, and each sheet that was there changes only
+                                      as its own MODIFIES lines allow
   An argument has one whole-sheet line, or at most one [headers] line and one fills line.
   Every write op must go through a $sheet argument whose lines allow that change: values
   need [headers] or the whole sheet, fill-only FORMATs need fills, and anything else
@@ -337,7 +352,8 @@ MODIFIES  (one line per sheet the macro changes, or per kind of change)
   files line; COPY_FILE's <from>, READ_TEXT's file and LIST_FILES' folder may be below any
   String argument.
   Every TEST then checks that nothing else changed: each other cell keeps its value, fill
-  and number format, each row stays visible or hidden, and the header row never changes;
+  and number format, each row stays visible or hidden, and the header row never changes
+  (unless the whole sheet is declared);
   no sheet is removed, and new sheets appear only with a sheets line; on disk nothing is
   removed or changed, and new folders and files appear only below a files root. A spec
   that changes nothing has no MODIFIES lines and gets the same check.
@@ -367,8 +383,11 @@ cell included (5 values under a header: COUNTA gives 6); <Sheet>![Header]<n> is 
 column's cell in row n. Prefer them to column letters.
 runs=<n> calls the procedure n times on the same test workbook before checking
 (default 1).
-Combine assertions with AND. In TEST call arguments, a bare sheet name (Orders) means that
-worksheet in the test workbook, a bare folder name (Dump) means that FIXTURE folder, and the
+Combine assertions with AND; there is no TRUE, FALSE or NOT. SHEET_EXISTS(...) and
+FILE_EXISTS(...) stand alone, FILE_COUNT(...) = 0 checks that no file is there, and when
+every run stops at PRE the automatic check already proves that nothing changed.
+In TEST call arguments, a bare sheet name (Orders) means that worksheet in the test
+workbook, a bare folder name (Dump) means that FIXTURE folder, and the
 TEST's fixture file name (orders_01.xlsx) means the test workbook, for a Workbook argument.
 fixture=<name>.xlsx names a FIXTURE file from this spec; the harness builds it fresh for
 every TEST. fixture=target and real workbooks are not allowed.
@@ -393,7 +412,8 @@ FIXTURE SPEC
   FIXTURE <name>.xlsx folder=<Name> [files=<path>[:<bytes>|:"<text>"],...] [locked=<path>,...]
   adds a synthetic folder to the same test file: each file below it (\ between folders,
   each part a safe name of letters, digits, _ . and -), with that size or one from its own
-  seed, or holding exactly "<text>" (one line of printable ASCII). locked= files act as if
+  seed, or holding exactly "<text>" (one line of printable ASCII, commas and colons too;
+  write a quote as ""). locked= files act as if
   another program has them open. A folder exists when a file is below it. <Name> is one
   word and not a sheet's name. Nothing real is read or written: the folders sit in a
   sandbox (C:\KRONOS_SANDBOX in the interpreter, a new folder below %TEMP% in Excel, whose
@@ -475,6 +495,11 @@ S25, D36 to D46).
   formulas. OPEN_BOOK, SAVE_AS and CLOSE_BOOK stay refused until March 2027 (D36).
 - The specs stay in their versions (11 in 0.2, task_12 in 0.3); Examples 1 and 3 moved to 0.4
   by their first line only (D46).
+- The review pass after item 2 (D47) corrected words that disagreed with the toolchain, with
+  no change to what any spec means: `[Header]` ranges; hard rules 5 (a PRE_ measure), 7, 8,
+  9 (about 40 OP lines; BUILD and CALL are not used until they can be tested), 15, 19 and 22
+  (no row moves beside SET_FORMULA; pin a formula's columns in PRE); and the CLEAN_TEXT, Paths,
+  LIST_FILES, DEDUPE, MODIFIES, assertion and FIXTURE text entries.
 
 ## Changes in VCL 0.3 (20 Oct 2026)
 

@@ -359,8 +359,8 @@ class TaskChecker:
         op_count = sum(1 for _ in spec.all_ops())
         if op_count > MAX_TASK_OPS:
             first = spec.lines("OP")[0].line
-            self.warning(f"TASK has {op_count} OP lines (more than {MAX_TASK_OPS}): consider splitting it "
-                         "into a BUILD (rule 9)", first)
+            self.warning(f"TASK has {op_count} OP lines (more than {MAX_TASK_OPS}): keep a TASK small, or ask "
+                         "which part to do first (rule 9)", first)
         check_fixtures(self, spec.fixtures)
         check_folders(self, spec.folders, self.fixtures)
         self.check_tests()
