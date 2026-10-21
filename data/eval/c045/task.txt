@@ -1,0 +1,1 @@
+In the Calibration Tracker (Instrument ID, Next Calibration Due) write Date? in the Next Calibration Due cell when it holds text instead of a real date, and leave real dates and blank cells alone. Tell me how many cells I marked.

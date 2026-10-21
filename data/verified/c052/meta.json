@@ -1,0 +1,32 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c052",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 84,
+  "note": "Both survivors are on DICT_ADD(openItps, ...): the dictionary is read only by EXISTS (is the ITP No a key), never by DICT_GET, so the collision mode (keep or overwrite) and the stored value (1 or 2) cannot change any result.",
+  "total": 86
+ },
+ "op_lines": 52,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "ncr",
+  "itp",
+  "calibration"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 2)"
+}

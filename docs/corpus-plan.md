@@ -54,3 +54,4 @@ say goes to `data/gaps.md`.
 | Batch | Pairs | State |
 | --- | --- | --- |
 | 1 | c013 to c032 | stored (D65): 18 verified, 2 held out |
+| 2 | c033 to c052 | stored (D66): 18 verified, 2 held out |

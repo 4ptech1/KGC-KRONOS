@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c039",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 43,
+  "note": "line 40: the SKIP_IF for a blank GRN Part No only keeps the empty key out of the dictionary; no BOM row ever looks up the empty key, because BOM rows with a blank Part No take the IF IS_EMPTY branch, so removing it can never change a result. The other survivor (line 33, LASTCOL row 1 vs 2) is a fixture gap, not claimed as equivalent",
+  "total": 45
+ },
+ "op_lines": 31,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "bom",
+  "grn"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 2)"
+}

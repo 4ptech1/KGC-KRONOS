@@ -1,0 +1,1 @@
+From the weld log (Weld Seam No, Welder ID, Weld Date, Joint Type) count the welds per joint type and write the counts on a Joint Summary sheet, the biggest count first. Ignore rows with no joint type.

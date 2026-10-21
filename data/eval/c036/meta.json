@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c036",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 35,
+  "note": "Both survivors are the output row counter (LET(outRow, 2) -> 3 and outRow + 1 -> + 2). They only leave empty gaps between the written rows, and the following SORT(USED_RANGE, header=yes) moves empty rows below the data, so the final sheet (values, ROWS_USED, every cell) is identical; no assertion can tell them apart.",
+  "total": 37
+ },
+ "op_lines": 22,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "ncr"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 2)"
+}

@@ -1,0 +1,4 @@
+ 92.6%  mutate work/c034_try2.vcl  (25/27)
+        survives: line 22: 1 -> 2
+        survives: line 22: 1 -> 2
+Overall mutation score: 92.6%

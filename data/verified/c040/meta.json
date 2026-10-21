@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c040",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 3,
+  "killed": 26,
+  "note": "all three survivors are on the NDE seam dictionary, which is only ever read with EXISTS: mode=keep->overwrite and the value 1->2 change a value nobody reads; deleting the SKIP_IF on a blank NDE seam only adds the empty key, which is never looked up because weld log rows with a blank seam are skipped and every other TRIM(seam) is non-empty",
+  "total": 29
+ },
+ "op_lines": 15,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "nde",
+  "weld_log"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 2)"
+}

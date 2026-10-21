@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "clean",
+ "id": "c043",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 21,
+  "note": "the one survivor turns IF LASTROW(k) > last into >=; when they are equal LET assigns the value last already holds, so no result can change",
+  "total": 22
+ },
+ "op_lines": 15,
+ "ops": [
+  "DELETE_ROW",
+  "IF",
+  "LET",
+  "LOOP_COLS",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "weld_log"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 2)"
+}

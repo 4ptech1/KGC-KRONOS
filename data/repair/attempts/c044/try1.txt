@@ -1,0 +1,6 @@
+OK   check  work/c044_try1.vcl
+FAIL test   work/c044_try1.vcl  (2/3 tests)
+       line 24: RESULT=3 ERROR_COUNT=0
+         ASSERT: VALUE(Ncr![NCR No]9) = " NCR-003" is false (left blank, right " NCR-003") [R051]
+
+STOPPED: see the FAIL lines above

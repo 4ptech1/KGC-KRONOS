@@ -1,0 +1,6 @@
+work/c034_try1.vcl: can't format: C: +boundary value 'n/a' doesn't fit int() (use numbers) (and 1 more)
+FAIL check  work/c034_try1.vcl
+       line 37: error: C: +boundary value 'n/a' doesn't fit int() (use numbers) [V262]
+       line 39: error: C: +boundary value 'n/a' doesn't fit int() (use numbers) [V262]
+
+STOPPED: see the FAIL lines above

@@ -1,0 +1,13 @@
+OK   check  work/c037_try1.vcl
+OK   test   work/c037_try1.vcl  (3/3 tests)
+OK   build  work/c037_try1.vcl
+OK   lint   dist/forge_module.bas  (1183 lines)
+OK   lint   dist/forge_selftest.bas  (669 lines)
+OK   lint   dist/forge_fixtures.bas  (145 lines)
+
+ALL STAGES PASSED
+ 86.4%  mutate work/c037_try1.vcl  (19/22)
+        survives: line 21: step deleted
+        survives: line 26: 2 -> 3
+        survives: line 30: 1 -> 2
+Overall mutation score: 86.4%

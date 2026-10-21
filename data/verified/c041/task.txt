@@ -1,0 +1,1 @@
+Check the Consumable Issue log (Issue No, Batch No, Qty Issued, Job ID) against the Job Tracker (Job ID, Status). In the issue log write Closed job in a Remark column for every issue whose job is Closed, and clear the remark on the others. Tell me how many issues are for closed jobs.

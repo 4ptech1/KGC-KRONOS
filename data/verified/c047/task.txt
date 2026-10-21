@@ -1,0 +1,1 @@
+In the Stock sheet (Batch No, Qty On Hand, Unit Cost, Value) put a formula in the Value column for every data row: Qty On Hand times Unit Cost. Excel 2016 only.

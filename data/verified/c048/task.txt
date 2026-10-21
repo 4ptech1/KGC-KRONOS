@@ -1,0 +1,1 @@
+Add a sheet called BOM Copy to the workbook with a copy of the BOM sheet, but only if there is no sheet called BOM Copy yet. Running it twice must not add a second one.
