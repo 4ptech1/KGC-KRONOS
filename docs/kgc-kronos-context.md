@@ -443,6 +443,7 @@ The 12 specs:
 - #64: Stage A Phase 4, the switch: spec.md and the prompt teach VCL 0.6, with hard rule 24 (D63).
 - #65: Stage A Phase 5, the corpus tooling and the first twelve pairs in `data/verified/` (D64).
 - #66: Stage A Phase 6, corpus batch 1: c013 to c032, 32 of 150 pairs, `data/gaps.md` (D65).
+- #67: Stage A Phase 6, corpus batch 2: c033 to c052, 52 of 150 pairs (D66).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
