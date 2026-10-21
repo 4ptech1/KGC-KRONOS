@@ -15,6 +15,8 @@ sheet_names(text) gives the sheets a formula names, for the validator's TEST che
 """
 import re
 
+from errcodes import coded
+
 EXCEL_2016 = frozenset("""
 ABS AGGREGATE AND AVERAGE AVERAGEA AVERAGEIF AVERAGEIFS CEILING CEILING.MATH CHAR CHOOSE CLEAN CODE
 COLUMN COLUMNS CONCATENATE COUNT COUNTA COUNTBLANK COUNTIF COUNTIFS DATE DATEDIF DAY DAYS EDATE EOMONTH
@@ -37,27 +39,27 @@ def formula_problems(text, r1c1=False):
     """What stops SET_FORMULA from writing this formula, as messages (none: it may be written)."""
     problems = []
     if not text.startswith("="):
-        problems.append("a formula starts with =")
+        problems.append(coded("a formula starts with =", "V315"))
     if len(text) > 8192:
-        problems.append("a formula has at most 8192 characters")
+        problems.append(coded("a formula has at most 8192 characters", "V316"))
     for quoted in re.findall(r'"(?:[^"]|"")*"|\'((?:[^\']|\'\')*)\'', text):
         if quoted and re.search(r"[\[\]\\/:?*]", quoted):
-            problems.append(f"'{quoted}' names another file (no sheet name holds [ ] \\ / : ? or *); "
-                            "a formula reads this workbook only")
+            problems.append(coded(f"'{quoted}' names another file (no sheet name holds [ ] \\ / : ? or *); "
+                            "a formula reads this workbook only", "V317"))
     bare = TEXT_OR_SHEET.sub('""', text)
     if r1c1:
         bare = R1C1_OFFSET.sub("", bare)
     if re.search(r"(?i)_xl(fn|ws|udf)\.", bare):
-        problems.append("_xlfn., _xlws. and _xludf. mark functions newer than Excel 2016")
+        problems.append(coded("_xlfn., _xlws. and _xludf. mark functions newer than Excel 2016", "V318"))
     if "[" in bare:
-        problems.append("[ ... ] refers to another workbook or a table; a formula reads this workbook only")
+        problems.append(coded("[ ... ] refers to another workbook or a table; a formula reads this workbook only", "V319"))
     if "@" in bare:
-        problems.append("@ is Microsoft 365 (implicit intersection)")
+        problems.append(coded("@ is Microsoft 365 (implicit intersection)", "V320"))
     if SPILL.search(bare):
-        problems.append("A1# is a spill reference (Microsoft 365)")
+        problems.append(coded("A1# is a spill reference (Microsoft 365)", "V321"))
     for name in FUNCTION.findall(bare):
         if name.upper() not in EXCEL_2016:
-            problems.append(f"{name.upper()} is not on the Excel 2016 list of SET_FORMULA functions (D43)")
+            problems.append(coded(f"{name.upper()} is not on the Excel 2016 list of SET_FORMULA functions (D43)", "V322"))
     return problems
 
 

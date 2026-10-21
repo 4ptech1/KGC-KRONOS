@@ -18,6 +18,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "vcl"))
 import semantics as S  # noqa: E402
+from errcodes import coded  # noqa: E402
 from vcl_fixtures import (EXCEL_SANDBOX_MAX, MAX_FILE_PATH, MAX_FOLDER_PATH, SANDBOX, MockFS,  # noqa: E402
                           Sheet, build_folders, build_workbooks, col_number)
 from vcl_parse import parse  # noqa: E402
@@ -89,7 +90,7 @@ class Arr:
 
     def check(self, r, c):
         if not (1 <= r <= self.rows and 1 <= c <= self.cols):
-            raise VclError(f"subscript out of range (VBA error 9): ARR({r}, {c}) of a {self.rows} x {self.cols} array")
+            raise VclError(coded(f"subscript out of range (VBA error 9): ARR({r}, {c}) of a {self.rows} x {self.cols} array", "R001"))
 
     def get(self, r, c):
         self.check(r, c)
@@ -110,7 +111,7 @@ class Book:
         for key, sh in self.sheets.items():
             if key.casefold() == S.text_of(name).casefold():   # Worksheets("name") ignores case
                 return sh
-        raise VclError(f"subscript out of range (VBA error 9): no sheet {S.text_of(name)!r} in the workbook")
+        raise VclError(coded(f"subscript out of range (VBA error 9): no sheet {S.text_of(name)!r} in the workbook", "R002"))
 
     def exists(self, name):
         """SHEET_EXISTS: a sheet of that name, case ignored as Excel does."""
@@ -122,13 +123,13 @@ class Book:
         state and assertions see the new sheet."""
         text = S.text_of(name)
         if not S.sheet_name_ok(text):
-            raise VclError(f"Excel error 1004: ADD_SHEET: {text!r} is not a valid sheet name (S23)")
+            raise VclError(coded(f"Excel error 1004: ADD_SHEET: {text!r} is not a valid sheet name (S23)", "R003"))
         if self.exists(text):
-            raise VclError(f"Excel error 1004: ADD_SHEET: a sheet named {text!r} already exists")
+            raise VclError(coded(f"Excel error 1004: ADD_SHEET: a sheet named {text!r} already exists", "R004"))
         items = list(self.sheets.items())
         at = len(items) if after is None else next((i + 1 for i, (_, sh) in enumerate(items) if sh is after), None)
         if at is None:
-            raise VclError("Excel error 1004: ADD_SHEET: after= is not a sheet of this workbook")
+            raise VclError(coded("Excel error 1004: ADD_SHEET: after= is not a sheet of this workbook", "R005"))
         new = Sheet(text)
         items.insert(at, (text, new))
         self.sheets.clear()
@@ -139,7 +140,7 @@ class Book:
         """COPY_SHEET (D41): a copy of src (values, fills and number formats) with this name, placed as
         ADD_SHEET places a sheet, and checked the same way before anything is copied."""
         if not any(sh is src for sh in self.sheets.values()):
-            raise VclError("COPY_SHEET: the sheet to copy is not in this TEST's workbook")
+            raise VclError(coded("COPY_SHEET: the sheet to copy is not in this TEST's workbook", "R006"))
         new = self.add(name, after)
         new.cells, new.fills, new.formats = dict(src.cells), dict(src.fills), dict(src.formats)
         new.hidden = set(src.hidden)
@@ -154,12 +155,12 @@ def a1_range(sheet, ref):
     """RANGE(ws, "B2") or RANGE(ws, "B2:D9") (D36). Other refs stop the TEST with a clear message."""
     m = A1_REF.fullmatch(S.text_of(ref).strip())
     if not m:
-        raise VclError(f"RANGE {S.text_of(ref)!r}: the interpreter reads a cell (\"B2\") or a block (\"B2:D9\") only")
+        raise VclError(coded(f"RANGE {S.text_of(ref)!r}: the interpreter reads a cell (\"B2\") or a block (\"B2:D9\") only", "R007"))
     c1, r1 = col_number(m.group(1).upper()), int(m.group(2))
     c2, r2 = (col_number(m.group(3).upper()), int(m.group(4))) if m.group(3) else (c1, r1)
     if min(r1, r2, c1, c2) < 1 or max(r1, r2) > EXCEL_ROWS or max(c1, c2) > EXCEL_COLS:
-        raise VclError(f"RANGE {S.text_of(ref)!r}: outside an Excel sheet (rows 1 to {EXCEL_ROWS}, columns A to XFD); "
-                       "Excel error 1004")
+        raise VclError(coded(f"RANGE {S.text_of(ref)!r}: outside an Excel sheet (rows 1 to {EXCEL_ROWS}, columns A to XFD); "
+                       "Excel error 1004", "R008"))
     return Rng(sheet, min(r1, r2), min(c1, c2), max(r1, r2), max(c1, c2))
 
 
@@ -296,8 +297,8 @@ def value(sh, r, c):
     """A cell's value for an op. A formula has no value here: only an Excel run can prove what it gives."""
     v = sh.get(r, c)
     if isinstance(v, Formula):
-        raise VclError(f"{sh.name}!{_letters(c)}{r} holds a formula ({v.text}), which the interpreter can't "
-                       "calculate: a TEST checks it with FORMULA(...)")
+        raise VclError(coded(f"{sh.name}!{_letters(c)}{r} holds a formula ({v.text}), which the interpreter can't "
+                       "calculate: a TEST checks it with FORMULA(...)", "R009"))
     return v
 
 
@@ -388,7 +389,7 @@ class Machine:
             if name == "NOTHING":
                 return None
             if name == "ACTIVE_SHEET":
-                raise VclError("ACTIVE_SHEET depends on what was active in Excel: pass the sheet as an argument")
+                raise VclError(coded("ACTIVE_SHEET depends on what was active in Excel: pass the sheet as an argument", "R010"))
             if name in self.vars:
                 return self.vars[name]
             return name  # an option word such as up, sum, desc
@@ -415,13 +416,13 @@ class Machine:
         if d == "comparison":
             a, op, b = self.ev(t.children[0]), str(t.children[1]), self.ev(t.children[2])
             return self.compare(a, op, b)
-        raise VclError(f"can't evaluate {d}")
+        raise VclError(coded(f"can't evaluate {d}", "R011"))
 
     def index(self, v):
         """A row or column number. Excel raises error 1004 for anything below 1."""
         n = int(self.num(v))
         if n < 1:
-            raise VclError("Excel error 1004: row or column number below 1")
+            raise VclError(coded("Excel error 1004: row or column number below 1", "R012"))
         return n
 
     def num(self, v):
@@ -429,7 +430,7 @@ class Machine:
             return v
         if S.is_number(v):
             return S.to_number(v)
-        raise VclError(f"type mismatch: {S.text_of(v)!r} is not a number")
+        raise VclError(coded(f"type mismatch: {S.text_of(v)!r} is not a number", "R013"))
 
     def arith(self, a, op, b):
         a, b = self.num(a), self.num(b)
@@ -444,7 +445,7 @@ class Machine:
         if op == "*":
             return a * b
         if b == 0:
-            raise VclError("division by zero")
+            raise VclError(coded("division by zero", "R014"))
         return a / b
 
     def compare(self, a, op, b):
@@ -461,9 +462,9 @@ class Machine:
         """A range used as the target of SET_VALUE, CLEAR, FORMAT, SORT."""
         v = self.ev_call(t, as_target=True) if isinstance(t, Tree) and t.data == "call" else self.ev(t)
         if v is None:   # NOTHING, as FIND gives when no cell matches
-            raise VclError("object variable not set (VBA error 91): the range is NOTHING; test it with IS_NOTHING first")
+            raise VclError(coded("object variable not set (VBA error 91): the range is NOTHING; test it with IS_NOTHING first", "R015"))
         if not isinstance(v, Rng):
-            raise VclError("expected a range")
+            raise VclError(coded("expected a range", "R016"))
         return v
 
     def ev_call(self, t, as_target=False):
@@ -522,7 +523,7 @@ class Machine:
         if name == "MOD":
             a, b = self.num(e(pos[0])), self.num(e(pos[1]))
             if b == 0:
-                raise VclError("division by zero")
+                raise VclError(coded("division by zero", "R017"))
             return S.mod(a, b)
         if name == "SAFE_NAME":
             return S.safe_name(e(pos[0]))
@@ -565,13 +566,13 @@ class Machine:
         if name == "ROW_OF":   # VCL 0.5 (D55): the row of the range's first cell, as Range.Row
             rng = e(pos[0])
             if rng is None:   # VBA error 91: NOTHING has no row
-                raise VclError("ROW_OF(NOTHING): FIND found no cell; test it with IS_NOTHING first")
+                raise VclError(coded("ROW_OF(NOTHING): FIND found no cell; test it with IS_NOTHING first", "R018"))
             return rng.r1
         if name == "SHEET_EXISTS":   # VCL 0.4 (D40)
             return e(pos[0]).exists(e(pos[1]))
         if name == "ITEMS":   # what LIST_FILES gave, in its order (D44)
             return list(e(pos[0]))
-        raise VclError(f"{name} is not supported by the MVP interpreter")
+        raise VclError(coded(f"{name} is not supported by the MVP interpreter", "R019"))
 
     # ---------- statements ----------
     def assign(self, name, value):
@@ -657,7 +658,7 @@ class Machine:
             first = rng.r1 + (1 if str(opts.get("header", "yes")) == "yes" else 0)
             bad = [c for c in keys if not 1 <= c <= EXCEL_COLS]
             if bad and first <= rng.r2:   # Excel reads a key cell only when there is a row to check
-                raise VclError(f"Excel error 1004: DEDUPE cols= column {bad[0]} is outside the sheet")
+                raise VclError(coded(f"Excel error 1004: DEDUPE cols= column {bad[0]} is outside the sheet", "R020"))
             seen, doomed = set(), []
             for r in range(first, rng.r2 + 1):   # marked top down ...
                 key = S.row_key([value(rng.sheet, r, c) for c in keys])
@@ -673,18 +674,18 @@ class Machine:
             rng, r1c1 = self.target(pos[0]), str(opts.get("style", "a1")) == "r1c1"
             cells = list(rng.cells())
             if len(cells) > 1 and not r1c1:
-                raise VclError("SET_FORMULA style=a1 on more than one cell: Excel shifts each relative reference, "
-                               "which the interpreter doesn't model; write it with style=r1c1")
+                raise VclError(coded("SET_FORMULA style=a1 on more than one cell: Excel shifts each relative reference, "
+                               "which the interpreter doesn't model; write it with style=r1c1", "R021"))
             if any(rng.sheet.formats.get((r, c)) == "@" for r, c in cells):   # D48: Excel would keep it as text
-                raise VclError("SET_FORMULA on a cell formatted as Text (@): Excel would store the formula as "
-                               "text, not as a formula")
+                raise VclError(coded("SET_FORMULA on a cell formatted as Text (@): Excel would store the formula as "
+                               "text, not as a formula", "R022"))
             for r, c in cells:
                 rng.sheet.set(r, c, Formula(str(pos[1])[1:-1].replace('""', '"'), r1c1))
         elif name == "FILTER":   # D42: below the range's first row, a row stays visible when SAME, else hidden
             rng, crit = self.target(pos[0]), e(opts["crit"])
             col = self.index(e(opts["col"]))
             if col > EXCEL_COLS:
-                raise VclError(f"Excel error 1004: FILTER col= column {col} is beyond column XFD")
+                raise VclError(coded(f"Excel error 1004: FILTER col= column {col} is beyond column XFD", "R023"))
             for r in range(rng.r1 + 1, rng.r2 + 1):
                 if S.same(value(rng.sheet, r, col), crit):
                     rng.sheet.hidden.discard(r)
@@ -748,9 +749,9 @@ class Machine:
             target = str(pos[0])
             callee = self.procs.get(target)
             if callee is None:
-                raise VclError(f"CALL {target}: no such procedure in this BUILD")
+                raise VclError(coded(f"CALL {target}: no such procedure in this BUILD", "R024"))
             if self.depth >= MAX_CALL_DEPTH:
-                raise VclError(f"CALL {target}: more than {MAX_CALL_DEPTH} calls deep")
+                raise VclError(coded(f"CALL {target}: more than {MAX_CALL_DEPTH} calls deep", "R025"))
             bound = {}
             for (pname, ptype), a in zip(params_of(callee), pos[1:]):
                 bound[pname] = as_type(e(a), ptype)   # VBA converts each value to its parameter's type
@@ -763,9 +764,9 @@ class Machine:
         elif name == "RETURN":
             raise _Return(e(pos[0]) if pos else None)
         elif name in ("OPEN_BOOK", "SAVE_AS", "CLOSE_BOOK"):
-            raise VclError(f"{name} opens or saves a real workbook: refused until March 2027 (D36)")
+            raise VclError(coded(f"{name} opens or saves a real workbook: refused until March 2027 (D36)", "R026"))
         else:
-            raise VclError(f"{name} is not supported by the MVP interpreter")
+            raise VclError(coded(f"{name} is not supported by the MVP interpreter", "R027"))
 
     def sort(self, rng, key, ascending, header):
         sh = rng.sheet
@@ -807,7 +808,7 @@ class Machine:
                 self.action(s)
             elif kind == "if_inline":
                 if s.children[1].data == "note":
-                    raise VclError("NOTE steps need the local model; the interpreter can't run them")
+                    raise VclError(coded("NOTE steps need the local model; the interpreter can't run them", "R028"))
                 if self.ev(s.children[0]):
                     self.action(s.children[1])
             elif kind == "if_block":
@@ -845,7 +846,7 @@ class Machine:
                     if not self.loop_pass(n["children"]):
                         break
             else:
-                raise VclError(f"{kind} is not supported by the MVP interpreter")
+                raise VclError(coded(f"{kind} is not supported by the MVP interpreter", "R029"))
 
     def loop_pass(self, body):
         """One pass of a loop body. False when EXIT_LOOP_IF leaves the loop."""
@@ -901,7 +902,7 @@ class Machine:
         if self.ret == "Boolean" and isinstance(value, bool):
             return value
         if self.ret == "Boolean":
-            raise VclError(f"type mismatch: {S.text_of(value)!r} is not TRUE or FALSE")
+            raise VclError(coded(f"type mismatch: {S.text_of(value)!r} is not TRUE or FALSE", "R030"))
         return value
 
 
@@ -959,7 +960,7 @@ class Asserter:
             header, _, row = r[1:].partition("]")
             c = S.col([sh.get(1, x) for x in range(1, sh.max_col() + 1)], header)
             if c == 0:
-                raise VclError(f"no header [{header}] on {sheet_name}")
+                raise VclError(coded(f"no header [{header}] on {sheet_name}", "R031"))
             if row:
                 return sh, [(int(row), c)]
             return sh, [(rr, c) for rr in range(1, sh.max_row() + 1)]
@@ -989,7 +990,7 @@ class Asserter:
                 return self.result
             if str(t) == "ERROR_COUNT":
                 return self.errors
-            raise VclError(f"unknown name {t}")
+            raise VclError(coded(f"unknown name {t}", "R032"))
         d = t.data
         if d == "a_neg":
             return -self.ev(t.children[0])
@@ -1048,7 +1049,7 @@ class Asserter:
                 fs = self.fs_before if pre else self.fs_after
                 path = SANDBOX + "\\" + self.ev(args[0])
                 return fs.is_file(path) if fn == "FILE_EXISTS" else fs.files_below(path)
-            raise VclError(f"assertion function {name} is not supported by the MVP interpreter")
+            raise VclError(coded(f"assertion function {name} is not supported by the MVP interpreter", "R033"))
         if d == "a_cond":
             if len(t.children) == 1:
                 return bool(self.ev(t.children[0]))
@@ -1059,7 +1060,7 @@ class Asserter:
             if a is None or b is None:
                 return False
             return {"<": a < b, ">": a > b, "<=": a <= b, ">=": a >= b}[op]
-        raise VclError(f"can't evaluate assertion part {d}")
+        raise VclError(coded(f"can't evaluate assertion part {d}", "R034"))
 
     def sides(self, cond):
         """What each side of a failed comparison measured, so a failing TEST says what to fix."""
@@ -1182,7 +1183,7 @@ def unchanged_problems(modifies, sheet_args, before, after, stopped_at_pre, limi
         if name not in before and may_add:
             continue   # a new sheet: everything on it is new
         if name not in before or name not in after:
-            found.append(f"UNCHANGED: sheet {name} was {'added' if name in after else 'removed'}")
+            found.append(coded(f"UNCHANGED: sheet {name} was {'added' if name in after else 'removed'}", "R035"))
             continue
         allowed = {}
         if not stopped_at_pre:
@@ -1198,18 +1199,18 @@ def unchanged_problems(modifies, sheet_args, before, after, stopped_at_pre, limi
             bv, av = b.cells.get((r, c)), a.cells.get((r, c))
             if (r >= 2 and c in cols) or (_kind(bv), cell_text(bv)) == (_kind(av), cell_text(av)):
                 continue
-            found.append(f"UNCHANGED: {name}!{_letters(c)}{r} was {_show(bv)}, now {_show(av)}")
+            found.append(coded(f"UNCHANGED: {name}!{_letters(c)}{r} was {_show(bv)}, now {_show(av)}", "R036"))
         for r in sorted(b.hidden ^ a.hidden):   # FILTER hides rows (D42)
-            found.append(f"UNCHANGED: {name} row {r} was {'hidden' if r in b.hidden else 'visible'}, "
-                         f"now {'hidden' if r in a.hidden else 'visible'}")
+            found.append(coded(f"UNCHANGED: {name} row {r} was {'hidden' if r in b.hidden else 'visible'}, "
+                         f"now {'hidden' if r in a.hidden else 'visible'}", "R037"))
         stores = [("number format", b.formats, a.formats)]
         if not allowed.get("fills"):
             stores.insert(0, ("fill", b.fills, a.fills))
         for what, bs, as_ in stores:
             for (r, c) in sorted(set(bs) | set(as_)):
                 if bs.get((r, c)) != as_.get((r, c)):
-                    found.append(f"UNCHANGED: {name}!{_letters(c)}{r} {what} was {bs.get((r, c)) or 'none'}, "
-                                 f"now {as_.get((r, c)) or 'none'}")
+                    found.append(coded(f"UNCHANGED: {name}!{_letters(c)}{r} {what} was {bs.get((r, c)) or 'none'}, "
+                                 f"now {as_.get((r, c)) or 'none'}", "R038"))
     if len(found) > limit:
         found = found[:limit] + [f"UNCHANGED: ... and {len(found) - limit} more changes"]
     return found
@@ -1257,13 +1258,13 @@ def file_unchanged_problems(roots, before, after, stopped_at_pre, limit=5):
         what = f"{(a or b)['kind']} {(a or b)['path'][prefix:]}"
         if b is None:
             if not any(key.startswith(root) for root in allowed):
-                found.append(f"UNCHANGED: {what} was added")
+                found.append(coded(f"UNCHANGED: {what} was added", "R039"))
         elif a is None:
-            found.append(f"UNCHANGED: {what} was removed")
+            found.append(coded(f"UNCHANGED: {what} was removed", "R040"))
         else:
             def show(e):
                 return f"{e['kind']}, {e['size']} bytes{', locked' if e['locked'] else ''}"
-            found.append(f"UNCHANGED: {what} was {show(b)}, now {show(a)}")
+            found.append(coded(f"UNCHANGED: {what} was {show(b)}, now {show(a)}", "R041"))
     if len(found) > limit:
         found = found[:limit] + [f"UNCHANGED: ... and {len(found) - limit} more file changes"]
     return found
@@ -1279,8 +1280,8 @@ def sandbox_length_problems(paths):
             continue
         most = len(path) - len(SANDBOX) + EXCEL_SANDBOX_MAX
         if len(path) <= limit < most:
-            found.append(f"SANDBOX: {path[len(SANDBOX) + 1:]} has {len(path)} characters here but up to {most} in "
-                         f"Excel's sandbox, where it would be Too long (over {limit}): make it far longer or shorter")
+            found.append(coded(f"SANDBOX: {path[len(SANDBOX) + 1:]} has {len(path)} characters here but up to {most} in "
+                         f"Excel's sandbox, where it would be Too long (over {limit}): make it far longer or shorter", "R042"))
     return found
 
 
@@ -1289,19 +1290,19 @@ def run_tests(text, today=None):
     today pins TODAY (default: the real date)."""
     spec, problems = parse(text)
     if problems or not spec:
-        raise VclError(f"spec doesn't parse: {problems[:3]}")
+        raise VclError(coded(f"spec doesn't parse: {problems[:3]}", "R043"))
     procs = {}
     if spec["kind"] == "BUILD":   # D49: its TESTs run modMain.RunHeadless, which CALLs the rest
         if spec.get("version", "VCL 0.1") in ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4"):
-            raise VclError("a BUILD runs its TESTs from VCL 0.5 on: before, its TASKs don't declare MODIFIES, so "
-                           "no TEST could check that nothing else changed (D49)")
+            raise VclError(coded("a BUILD runs its TESTs from VCL 0.5 on: before, its TASKs don't declare MODIFIES, so "
+                           "no TEST could check that nothing else changed (D49)", "R044"))
         procs = {proc_name(task): task for task in spec["tasks"] if task}
         if "modMain.RunHeadless" not in procs:
-            raise VclError("a BUILD's TESTs call modMain.RunHeadless, which it doesn't have")
+            raise VclError(coded("a BUILD's TESTs call modMain.RunHeadless, which it doesn't have", "R045"))
         build, spec = spec, procs["modMain.RunHeadless"]
         keys = build["keys"]
     elif spec["kind"] != "TASK":
-        raise VclError(f"a {spec['kind']} has no TESTs to run")
+        raise VclError(coded(f"a {spec['kind']} has no TESTs to run", "R046"))
     else:
         keys = spec["keys"]
     today = today or dt.date.today()
@@ -1327,7 +1328,7 @@ def run_tests(text, today=None):
             i += 1
         assertion = rest[i]
         if fixture not in systems:   # every FIXTURE line, sheet or folder, gives its file a mock file system
-            raise VclError(f"TEST uses fixture {fixture}, but no FIXTURE line builds it")
+            raise VclError(coded(f"TEST uses fixture {fixture}, but no FIXTURE line builds it", "R047"))
         book = {name: sh.snapshot() for name, sh in books.get(fixture, {}).items()}
         before = {name: sh.snapshot() for name, sh in book.items()}
         fs = systems[fixture].snapshot()
@@ -1338,14 +1339,14 @@ def run_tests(text, today=None):
         for pname, v in zip(params, call_vals):
             if isinstance(v, Token) and v.type == "FILENAME":   # VCL 0.4 (D40)
                 if str(v) != fixture:
-                    raise VclError(f"TEST passes {v} for ${pname}, but its fixture is {fixture}")
+                    raise VclError(coded(f"TEST passes {v} for ${pname}, but its fixture is {fixture}", "R048"))
                 bound[pname] = wb
                 book_args.append(pname)
             elif isinstance(v, Token) and v.type == "NAME" and str(v) in book:
                 bound[pname] = book[str(v)]
             elif isinstance(v, Token) and v.type == "NAME":   # a FIXTURE folder (F6)
                 if not fs.is_folder(SANDBOX + "\\" + str(v)):
-                    raise VclError(f"TEST passes {v}, which is neither a sheet nor a folder of {fixture}")
+                    raise VclError(coded(f"TEST passes {v}, which is neither a sheet nor a folder of {fixture}", "R049"))
                 bound[pname] = SANDBOX + "\\" + str(v)
             elif isinstance(v, Token) and v.type == "STRING":
                 bound[pname] = str(v)[1:-1]
@@ -1367,10 +1368,10 @@ def run_tests(text, today=None):
             try:
                 ok = asserter.ev(cond)
             except (VclError, KeyError, TypeError) as ex:
-                failed.append(f"ASSERT: {assertion_text(cond)} can't be checked: {ex}")
+                failed.append(coded(f"ASSERT: {assertion_text(cond)} can't be checked: {ex}", "R050"))
                 continue
             if not ok:
-                failed.append(f"ASSERT: {assertion_text(cond)} is false{asserter.sides(cond)}")
+                failed.append(coded(f"ASSERT: {assertion_text(cond)} is false{asserter.sides(cond)}", "R051"))
         modifies = modifies_of(spec)
         if needs_unchanged_check(spec, modifies):
             sheet_args = {}

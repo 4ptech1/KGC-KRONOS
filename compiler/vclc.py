@@ -34,6 +34,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+from errcodes import tag  # noqa: E402
 from vba_lint import lint, public_helpers  # noqa: E402
 from vcl_codegen import FORGELIB, CompileError, assemble, compile_build, compile_text, module_title  # noqa: E402
 from vcl_fixtures import fixtures_module  # noqa: E402
@@ -53,7 +54,7 @@ def cmd_check(files):
         bad += bool(errors)
         print(f"{'OK  ' if not errors else 'FAIL'} check  {p}")
         for x in problems:
-            print(f"       line {x.line}: {x.severity}: {x.message}")
+            print(f"       line {x.line}: {x.severity}: {x.message}{tag(x.message)}")
     return bad == 0
 
 
@@ -63,7 +64,7 @@ def cmd_test(files, today):
         try:
             res = run_tests(Path(p).read_text(encoding="utf-8"), today)
         except VclError as e:
-            print(f"FAIL test   {p}: {e}")
+            print(f"FAIL test   {p}: {e}{tag(e.args[0] if e.args else '')}")
             bad += 1
             continue
         failed = [r for r in res if not r.passed]
@@ -72,7 +73,7 @@ def cmd_test(files, today):
         for r in failed:
             print(f"       line {r.line}: RESULT={r.result} ERROR_COUNT={r.errors}")
             for problem in r.failed:   # a failed assertion with what it measured, or an UNCHANGED difference
-                print(f"         {problem}")
+                print(f"         {problem}{tag(problem)}")
     return bad == 0
 
 

@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vcl"))
 from semantics import safe_name  # noqa: E402
 from vcl_parse import parse  # noqa: E402
+from errcodes import coded  # noqa: E402
 
 VBA_TO_TYPE = {"Long": "Num", "Double": "Num", "String": "Text", "Date": "Date",
                "Boolean": "Bool", "Variant": "Variant", "Range": "Range", "Worksheet": "Sheet",
@@ -134,7 +135,7 @@ class Checker:
             if kind == "ARG":
                 name = str(t)[1:]
                 if name not in self.args:
-                    self.err(line, f"unknown argument {t}")
+                    self.err(line, coded(f"unknown argument {t}", "T001"))
                     return "?"
                 return self.args[name]
             if kind == "NAME":
@@ -142,7 +143,7 @@ class Checker:
                 if name in CONSTANTS:
                     return CONSTANTS[name]
                 if name in self.args:
-                    self.err(line, f"argument {name} must be written ${name}")
+                    self.err(line, coded(f"argument {name} must be written ${name}", "T002"))
                     return self.args[name]
                 if name in self.loopvars:
                     return self.loopvars[name]
@@ -180,25 +181,25 @@ class Checker:
     def need_bool(self, t, facts, vflow, line):
         a = self.ty(t, facts, vflow, line)
         if a not in ("Bool", "?"):
-            self.err(line, f"condition {canon(t)} is {a}, not Bool")
+            self.err(line, coded(f"condition {canon(t)} is {a}, not Bool", "T003"))
 
     def need_num(self, a, t, line):
         if a == "Cell":
-            self.err(line, f"raw cell value {canon(t)} used as a number: guard it with IS_NUMBER first")
+            self.err(line, coded(f"raw cell value {canon(t)} used as a number: guard it with IS_NUMBER first", "T004"))
         elif a not in ("Num", "?", "Date"):
-            self.err(line, f"{canon(t)} is {a}, not a number")
+            self.err(line, coded(f"{canon(t)} is {a}, not a number", "T005"))
 
     def ty_arith(self, t, facts, vflow, line):
         kids = t.children
         cur = self.ty(kids[0], facts, vflow, line)
         if cur == "Cell":
-            self.err(line, f"raw cell value {canon(kids[0])} used in arithmetic: guard it with IS_NUMBER or IS_DATE first")
+            self.err(line, coded(f"raw cell value {canon(kids[0])} used in arithmetic: guard it with IS_NUMBER or IS_DATE first", "T006"))
             cur = "?"
         for i in range(1, len(kids), 2):
             op, rhs = str(kids[i]), kids[i + 1]
             r = self.ty(rhs, facts, vflow, line)
             if r == "Cell":
-                self.err(line, f"raw cell value {canon(rhs)} used in arithmetic: guard it with IS_NUMBER or IS_DATE first")
+                self.err(line, coded(f"raw cell value {canon(rhs)} used in arithmetic: guard it with IS_NUMBER or IS_DATE first", "T007"))
                 r = "?"
             if "?" in (cur, r):
                 cur = "?"
@@ -211,7 +212,7 @@ class Checker:
             elif cur == "Num" and r == "Num":
                 cur = "Num"
             else:
-                self.err(line, f"can't apply {op} to {cur} and {r} in {canon(t)}")
+                self.err(line, coded(f"can't apply {op} to {cur} and {r} in {canon(t)}", "T008"))
                 cur = "?"
         return cur
 
@@ -225,23 +226,23 @@ class Checker:
         if op in ("<", ">", "<=", ">="):
             for side, x in ((a_t, a), (b_t, b)):
                 if x == "Cell":
-                    self.err(line, f"raw cell value {canon(side)} compared with {op}: guard it with IS_NUMBER or IS_DATE first")
+                    self.err(line, coded(f"raw cell value {canon(side)} compared with {op}: guard it with IS_NUMBER or IS_DATE first", "T009"))
                     return "Bool"
             if not ({a, b} <= {"Num"} or {a, b} <= {"Date"} or {a, b} <= STRINGS):
-                self.err(line, f"can't compare {a} with {b} using {op}")
+                self.err(line, coded(f"can't compare {a} with {b} using {op}", "T010"))
         else:  # = and <>
             if "Cell" in (a, b) and ("Num" in (a, b) or "Date" in (a, b)):
                 side = a_t if a == "Cell" else b_t
-                self.err(line, f"raw cell value {canon(side)} compared with a number or date: guard it first (a text cell would cause a type mismatch)")
+                self.err(line, coded(f"raw cell value {canon(side)} compared with a number or date: guard it first (a text cell would cause a type mismatch)", "T011"))
             elif a != b and not ({a, b} <= STRINGS | {"Cell"}) and "Word" not in (a, b):
-                self.err(line, f"can't compare {a} with {b}")
+                self.err(line, coded(f"can't compare {a} with {b}", "T012"))
         return "Bool"
 
     def ty_call(self, t, facts, vflow, line):
         name = str(t.children[0])
         args = t.children[1].children if len(t.children) > 1 else []
         if name not in FUNCS:
-            self.err(line, f"{name} is not a value function")
+            self.err(line, coded(f"{name} is not a value function", "T013"))
             return "?"
         params, ret = FUNCS[name]
         pos = [a for a in args if not (isinstance(a, Tree) and a.data == "option")]
@@ -249,7 +250,7 @@ class Checker:
             self.check_path_call(name, pos, facts, vflow, line)
             return ret
         if len(pos) != len(params):
-            self.err(line, f"{name} takes {len(params)} arguments, got {len(pos)}")
+            self.err(line, coded(f"{name} takes {len(params)} arguments, got {len(pos)}", "T014"))
         types = []
         for p, a in zip(params, pos):
             at = self.ty(a, facts, vflow, line)
@@ -257,21 +258,21 @@ class Checker:
             if at == "?":
                 continue
             if p in ("Num", "Num!") and at == "Cell":
-                self.err(line, f"{name}: raw cell value {canon(a)} used as a number: guard it with IS_NUMBER first")
+                self.err(line, coded(f"{name}: raw cell value {canon(a)} used as a number: guard it with IS_NUMBER first", "T015"))
             elif p == "Num!" and at != "Num":
-                self.err(line, f"{name}: {canon(a)} is {at}, expected a number")
+                self.err(line, coded(f"{name}: {canon(a)} is {at}, expected a number", "T016"))
             elif p == "Num!":
                 pass
             elif p == "S" and at not in SCALAR:
-                self.err(line, f"{name}: {canon(a)} is {at}, expected a value")
+                self.err(line, coded(f"{name}: {canon(a)} is {at}, expected a value", "T017"))
             elif p == "T" and at not in TEXTLIKE:
-                self.err(line, f"{name}: {canon(a)} is {at}, expected text")
+                self.err(line, coded(f"{name}: {canon(a)} is {at}, expected text", "T018"))
             elif p == "Count":   # COUNT: a dictionary, or a list from LIST_FILES (D44)
                 if at not in ("Dict", "Coll"):
-                    self.err(line, f"{name}: {canon(a)} is {at}, expected a Dictionary or a Collection")
+                    self.err(line, coded(f"{name}: {canon(a)} is {at}, expected a Dictionary or a Collection", "T019"))
             elif (p not in ("S", "T") and at != p and not (p == "Num" and at == "Date")
                   and not (p == "Text" and at in STRINGS)):
-                self.err(line, f"{name}: {canon(a)} is {at}, expected {p}")
+                self.err(line, coded(f"{name}: {canon(a)} is {at}, expected {p}", "T020"))
         if name == "IIF":   # one type when both values have it, else a raw value that needs a guard
             values = types[1:3]
             return "?" if "?" in values or len(values) < 2 else values[0] if values[0] == values[1] else "Cell"
@@ -290,29 +291,29 @@ class Checker:
     def check_path_call(self, name, pos, facts, vflow, line):
         if name == "FOLDER_EXISTS":
             if len(pos) != 1:
-                self.err(line, f"FOLDER_EXISTS takes 1 argument, got {len(pos)}")
+                self.err(line, coded(f"FOLDER_EXISTS takes 1 argument, got {len(pos)}", "T021"))
                 return
             problem = self.path_problem(pos[0])
             if problem:
-                self.err(line, f"FOLDER_EXISTS: {problem}")
+                self.err(line, coded(f"FOLDER_EXISTS: {problem}", "T022"))
             else:
                 self.ty(pos[0], facts, vflow, line)
             return
         if len(pos) < 2:   # PATH_JOIN
-            self.err(line, f"PATH_JOIN takes 2 or more arguments, got {len(pos)}")
+            self.err(line, coded(f"PATH_JOIN takes 2 or more arguments, got {len(pos)}", "T023"))
             return
         if not self.is_root(pos[0]):
-            self.err(line, f"PATH_JOIN must start from a String $argument (the root), got {canon(pos[0])}")
+            self.err(line, coded(f"PATH_JOIN must start from a String $argument (the root), got {canon(pos[0])}", "T024"))
         for part in pos[1:]:
             if isinstance(part, Tree) and part.data == "call" and str(part.children[0]) == "SAFE_NAME":
                 self.ty(part, facts, vflow, line)
             elif tok(part) and part.type == "STRING":
                 text = str(part)[1:-1].replace('""', '"')
                 if safe_name(text) != text:
-                    self.err(line, f"PATH_JOIN: {part} is not a safe name (see SAFE_NAME)")
+                    self.err(line, coded(f"PATH_JOIN: {part} is not a safe name (see SAFE_NAME)", "T025"))
             else:
-                self.err(line, f"PATH_JOIN: {canon(part)} must be SAFE_NAME(...) or a \"quoted\" safe name, "
-                               "written in place so every part is checked where it is used")
+                self.err(line, coded(f"PATH_JOIN: {canon(part)} must be SAFE_NAME(...) or a \"quoted\" safe name, "
+                               "written in place so every part is checked where it is used", "T026"))
 
     # ---------- narrowing ----------
     def facts_if(self, t, truth):
@@ -406,7 +407,7 @@ class Checker:
         declared = self.vars.get(v)
         if declared is None:
             if v not in self.loopvars:
-                self.err(line, f"{v} is not declared in VAR")
+                self.err(line, coded(f"{v} is not declared in VAR", "T027"))
             return
         if declared == "Variant":
             vflow[v] = vt if vt in SCALAR | {"Arr"} else "Cell"
@@ -414,9 +415,9 @@ class Checker:
         ok = (vt == declared or vt == "?" or (declared == "Text" and vt in ("Cell", "Num", "Name", "Path"))
               or (declared == "Num" and vt == "Num"))
         if vt == "Cell" and declared in ("Num", "Date"):
-            self.err(line, f"assigning raw cell value {canon(src)} to {declared} variable {v}: guard it first")
+            self.err(line, coded(f"assigning raw cell value {canon(src)} to {declared} variable {v}: guard it first", "T028"))
         elif not ok:
-            self.err(line, f"assigning {vt} to {declared} variable {v}")
+            self.err(line, coded(f"assigning {vt} to {declared} variable {v}", "T029"))
 
     def check_action(self, call, facts, vflow, line):
         name = str(call.children[0])
@@ -427,7 +428,7 @@ class Checker:
                     if isinstance(a, Tree) and a.data == "option"}
             vt = self.ty(pos[2], facts, vflow, line)
             if opts.get("mode") == "sum" and vt == "Cell":
-                self.err(line, f"DICT_ADD mode=sum on raw cell value {canon(pos[2])}: guard it with IS_NUMBER first")
+                self.err(line, coded(f"DICT_ADD mode=sum on raw cell value {canon(pos[2])}: guard it with IS_NUMBER first", "T030"))
                 vt = "Num"
             if opts.get("mode") in ("sum", "count"):
                 vt = "Num"
@@ -445,29 +446,29 @@ class Checker:
         elif name == "FILTER":   # FILTER(<range>, col=<sheet column>, crit=<value>) (D42)
             opts = {str(a.children[0]): a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"}
             if pos and self.ty(pos[0], facts, vflow, line) not in ("Range", "?"):
-                self.err(line, f"FILTER: {canon(pos[0])} is not a range")
+                self.err(line, coded(f"FILTER: {canon(pos[0])} is not a range", "T031"))
             if "col" in opts:
                 self.need_num(self.ty(opts["col"], facts, vflow, line), opts["col"], line)
             if "crit" in opts and self.ty(opts["crit"], facts, vflow, line) not in SCALAR | {"?"}:
-                self.err(line, f"FILTER: crit={canon(opts['crit'])} is not a value")
+                self.err(line, coded(f"FILTER: crit={canon(opts['crit'])} is not a value", "T032"))
         elif name in ("ADD_SHEET", "COPY_SHEET"):   # (<book> or <sheet>, name=<text>, after=<sheet>, into=<VAR>)
             opts = {str(a.children[0]): a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"}
             first = "Book" if name == "ADD_SHEET" else "Sheet"
             if pos and self.ty(pos[0], facts, vflow, line) not in (first, "?"):
-                self.err(line, f"{name}: {canon(pos[0])} is not a {'workbook' if first == 'Book' else 'sheet'}")
+                self.err(line, coded(f"{name}: {canon(pos[0])} is not a {'workbook' if first == 'Book' else 'sheet'}", "T033"))
             if "name" in opts and self.ty(opts["name"], facts, vflow, line) not in TEXTLIKE | {"?"}:
-                self.err(line, f"{name}: name={canon(opts['name'])} is not text")
+                self.err(line, coded(f"{name}: name={canon(opts['name'])} is not text", "T034"))
             if "after" in opts and self.ty(opts["after"], facts, vflow, line) not in ("Sheet", "?"):
-                self.err(line, f"{name}: after={canon(opts['after'])} is not a sheet")
+                self.err(line, coded(f"{name}: after={canon(opts['after'])} is not a sheet", "T035"))
         elif name == "WRITE_ROW" and len(pos) >= 3:
             st = self.ty(pos[0], facts, vflow, line)
             if st not in ("Sheet", "?"):
-                self.err(line, f"WRITE_ROW: {canon(pos[0])} is {st}, expected Sheet")
+                self.err(line, coded(f"WRITE_ROW: {canon(pos[0])} is {st}, expected Sheet", "T036"))
             self.need_num(self.ty(pos[1], facts, vflow, line), pos[1], line)
             for a in pos[2:]:
                 vt = self.ty(a, facts, vflow, line)
                 if vt not in SCALAR and vt != "?":
-                    self.err(line, f"WRITE_ROW: {canon(a)} is {vt}, expected a value")
+                    self.err(line, coded(f"WRITE_ROW: {canon(a)} is {vt}, expected a value", "T037"))
             opts = {str(a.children[0]): a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"}
             if "col" in opts:
                 self.need_num(self.ty(opts["col"], facts, vflow, line), opts["col"], line)
@@ -475,24 +476,24 @@ class Checker:
             for a in (pos[:1] if name in ONE_PATH else pos):
                 problem = self.path_problem(a)
                 if problem:
-                    self.err(line, f"{name}: {problem}")
+                    self.err(line, coded(f"{name}: {problem}", "T038"))
                 else:
                     self.ty(a, facts, vflow, line)
             into = next((a.children[1] for a in args if isinstance(a, Tree) and a.data == "option"
                          and str(a.children[0]) == "into"), None)
             declared = self.vars.get(str(into)) if into is not None else None
             if name == "LIST_FILES" and declared not in (None, "Coll"):   # D44
-                self.err(line, f"LIST_FILES: into={into} is {declared}, but the names are a list: "
-                               "declare it As Collection")
+                self.err(line, coded(f"LIST_FILES: into={into} is {declared}, but the names are a list: "
+                               "declare it As Collection", "T039"))
             elif name != "LIST_FILES" and declared not in (None, "Text"):
-                self.err(line, f"{name}: into={into} is {declared}, but the status is text: declare it As String")
+                self.err(line, coded(f"{name}: into={into} is {declared}, but the status is text: declare it As String", "T040"))
             if name == "READ_TEXT" and len(pos) > 1:   # D45: the text goes into a String VAR
                 if self.vars.get(str(pos[1])) not in ("Text", None) or not tok(pos[1]):
-                    self.err(line, f"READ_TEXT: {canon(pos[1])} must be a String VAR, which gets the file's text")
+                    self.err(line, coded(f"READ_TEXT: {canon(pos[1])} must be a String VAR, which gets the file's text", "T041"))
             if name == "WRITE_TEXT" and len(pos) > 1:
                 wt = self.ty(pos[1], facts, vflow, line)
                 if wt not in TEXTLIKE | {"?"}:
-                    self.err(line, f"WRITE_TEXT: {canon(pos[1])} is {wt}, expected text")
+                    self.err(line, coded(f"WRITE_TEXT: {canon(pos[1])} is {wt}, expected text", "T042"))
         elif name == "CALL" and pos:   # D49: each value fits its SIG parameter, as LET would
             sig = self.sigs.get(canon(pos[0]))
             for i, a in enumerate(pos[1:]):
@@ -504,13 +505,13 @@ class Checker:
                 if want not in SCALAR or want == "Text":
                     continue   # sheets, books and ranges: the validator checks them; any value is text
                 if at == "Cell" and want in ("Num", "Date"):
-                    self.err(line, f"passing raw cell value {canon(a)} to {ptype} parameter {pname}: guard it first")
+                    self.err(line, coded(f"passing raw cell value {canon(a)} to {ptype} parameter {pname}: guard it first", "T043"))
                 elif at not in (want, "?"):
-                    self.err(line, f"passing {at} to {ptype} parameter {pname}")
+                    self.err(line, coded(f"passing {at} to {ptype} parameter {pname}", "T044"))
         elif name == "RETURN" and pos:
             rt = self.ty(pos[0], facts, vflow, line)
             if self.ret and rt not in (self.ret, "?"):
-                self.err(line, f"RETURN gives {rt}, but RET is {self.ret}")
+                self.err(line, coded(f"RETURN gives {rt}, but RET is {self.ret}", "T045"))
         elif name not in ("LET", "DICT_GET", "READ_ARRAY"):
             for a in pos:
                 self.ty(a, facts, vflow, line)

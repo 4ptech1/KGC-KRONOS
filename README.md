@@ -244,3 +244,7 @@ Dataset count: 0 verified pairs
 - **2026-10-21:** Item 4, the AI plan's Stage A, is designed in `docs/vep-0.6-stage-a.md` (D59):
   error codes, a `GOAL` line, a formatter, the 150-task corpus, the data generator and the
   benchmark, in eight phases. No training before March 2027.
+- **2026-10-21:** Stage A Phase 1: every message the checks give now has a stable code (V validator,
+  G grammar, T type checker, X fixture, R TEST run; 452 in all), shown after the message on the
+  command line (`error: missing KIND [V060]`) and listed in `docs/error-codes.md`. A tool and a
+  unit test keep new messages coded (D60).

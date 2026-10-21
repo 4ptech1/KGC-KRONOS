@@ -11,6 +11,8 @@ from pathlib import Path
 from lark import Lark, Token, Tree
 from lark.exceptions import LarkError, UnexpectedInput
 
+from errcodes import coded
+
 GRAMMAR = Path(__file__).resolve().parent.parent / "vcl" / "grammar.lark"
 
 TASK_ORDER = ["PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
@@ -74,9 +76,9 @@ def _parse_value(start, value, line_no, problems):
     except UnexpectedInput as e:
         col = getattr(e, "column", "?")
         got = getattr(e, "token", None) or getattr(e, "char", "")
-        problems.append((line_no, f"syntax error at column {col} near {str(got)!r}"))
+        problems.append((line_no, coded(f"syntax error at column {col} near {str(got)!r}", "G001")))
     except LarkError as e:
-        problems.append((line_no, f"syntax error: {e.__class__.__name__}"))
+        problems.append((line_no, coded(f"syntax error: {e.__class__.__name__}", "G002")))
     return None
 
 
@@ -92,20 +94,20 @@ def _parse_task(lines, first_no, problems, version):
             continue
         if raw.startswith("#"):
             if seen_key:
-                problems.append((line_no, "comments are only allowed before the first key"))
+                problems.append((line_no, coded("comments are only allowed before the first key", "G003")))
             elif raw.startswith("# ASSUME:"):
                 spec["assumes"].append(raw[len("# ASSUME:"):].strip())
             else:
-                problems.append((line_no, "only '# ASSUME:' comments are allowed in a TASK"))
+                problems.append((line_no, coded("only '# ASSUME:' comments are allowed in a TASK", "G004")))
             continue
         key = raw.split()[0]
         if key not in TASK_ORDER:
-            problems.append((line_no, f"unknown key {key!r}"))
+            problems.append((line_no, coded(f"unknown key {key!r}", "G005")))
             continue
         seen_key = True
         idx = TASK_ORDER.index(key)
         if idx < order_idx:
-            problems.append((line_no, f"key {key} is out of order"))
+            problems.append((line_no, coded(f"key {key} is out of order", "G006")))
         order_idx = max(order_idx, idx)
         after_key = raw[len(key):]
         value = after_key.lstrip(" ")
@@ -121,7 +123,7 @@ def _parse_task(lines, first_no, problems, version):
             op_base = col
         extra = col - op_base
         if extra < 0 or extra % 2:
-            problems.append((line_no, "OP indentation must be the first OP's column plus 2 spaces per level"))
+            problems.append((line_no, coded("OP indentation must be the first OP's column plus 2 spaces per level", "G007")))
             continue
         depth = extra // 2
         stmt = tree.children[0]
@@ -134,14 +136,14 @@ def _parse_task(lines, first_no, problems, version):
                 top[1]["has_else"] = line_no
                 stack[-1] = (depth, top[1], top[1]["else"])
             else:
-                problems.append((line_no, "ELSE without a matching block IF at the same depth"))
+                problems.append((line_no, coded("ELSE without a matching block IF at the same depth", "G008")))
             continue
         node = {"line": line_no, "stmt": stmt, "kind": kind, "children": [], "else": []}
         while stack and stack[-1][0] >= depth:
             stack.pop()
         allowed = stack[-1][0] + 1 if stack else 0
         if depth > allowed:
-            problems.append((line_no, "OP is indented deeper than its parent allows"))
+            problems.append((line_no, coded("OP is indented deeper than its parent allows", "G009")))
             continue
         (stack[-1][2] if stack else spec["ops"]).append(node)
         if kind in OPENERS:
@@ -154,19 +156,19 @@ def _parse_lines(lines, first_no, problems, allow_build=True, want=None):
     version line a TASK inside a BUILD must repeat (the BUILD's own)."""
     nonblank = [(i, l) for i, l in enumerate(lines) if l.strip()]
     if not nonblank:
-        problems.append((first_no, "empty spec"))
+        problems.append((first_no, coded("empty spec", "G010")))
         return None
     head_i, head = nonblank[0]
     if head.startswith("# QUESTION:"):
         if len(nonblank) > 1:
-            problems.append((first_no + nonblank[1][0], "a QUESTION reply must be the only line"))
+            problems.append((first_no + nonblank[1][0], coded("a QUESTION reply must be the only line", "G011")))
         return {"kind": "QUESTION", "text": head[len("# QUESTION:"):].strip()}
     version = head.strip()
     if want and version != want:
-        problems.append((first_no + head_i, f"line 1 must be '{want}', as in the BUILD"))
+        problems.append((first_no + head_i, coded(f"line 1 must be '{want}', as in the BUILD", "G012")))
     elif version not in VERSIONS:
-        problems.append((first_no + head_i, "line 1 must be " + ", ".join(f"'{v}'" for v in VERSIONS[:-1])
-                         + f" or '{VERSIONS[-1]}'"))
+        problems.append((first_no + head_i, coded("line 1 must be " + ", ".join(f"'{v}'" for v in VERSIONS[:-1])
+                         + f" or '{VERSIONS[-1]}'", "G013")))
         version = VERSIONS[0]
     kind_i = nonblank[1][0] if len(nonblank) > 1 else head_i + 1
     kind = lines[kind_i].strip() if kind_i < len(lines) else ""
@@ -180,7 +182,7 @@ def _parse_lines(lines, first_no, problems, allow_build=True, want=None):
             if raw.strip() and not raw.startswith("#"):
                 key = raw.split()[0]
                 if key not in BUILD_ORDER:
-                    problems.append((line_no, f"unknown BUILD key {key!r}"))
+                    problems.append((line_no, coded(f"unknown BUILD key {key!r}", "G014")))
                 else:
                     value = raw[len(key):].lstrip(" ")
                     tree = _parse_value(START[key], value, line_no, problems)
@@ -189,7 +191,7 @@ def _parse_lines(lines, first_no, problems, allow_build=True, want=None):
             head["tasks"].append(_parse_lines(lines[a + 1:b], first_no + a + 1, problems,
                                               allow_build=False, want=version))
         return head
-    problems.append((first_no + kind_i, "line 2 must be TASK" + (" or BUILD" if allow_build else "")))
+    problems.append((first_no + kind_i, coded("line 2 must be TASK" + (" or BUILD" if allow_build else ""), "G015")))
     return None
 
 
