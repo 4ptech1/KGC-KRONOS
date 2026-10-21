@@ -150,6 +150,39 @@ TEST     fixture=stock_01.xlsx call=CheckPart(Notes, "P-104") assert=RESULT = -1
 """
 
 
+# Phase 4b (D56): a header the spec writes to row 1 itself counts as checked for rule 14.
+CHECKED = r"""VCL 0.5
+TASK
+# ASSUME: Stock headers (row 1) include "Part No"; the macro adds a "Checked" column after the last header
+PROC     MarkChecked
+KIND     Function
+MODULE   modStock
+ARGS     ws As Worksheet
+RET      Long
+VAR      cPart As Long
+VAR      cNew As Long
+VAR      n As Long
+PRE      COL($ws, "Part No") > 0
+MODIFIES $ws
+OP       LET(cPart, COL($ws, "Part No"))
+OP       LET(cNew, COL($ws, "Checked"))
+OP       IF cNew = 0
+OP         LET(cNew, LASTCOL($ws, 1) + 1)
+OP         SET_VALUE(CELL($ws, 1, cNew), "Checked")
+OP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, cPart) var=r
+OP         IF NOT IS_EMPTY(CELL($ws, r, cPart))
+OP           SET_VALUE(CELL($ws, r, cNew), "Yes")
+OP           LET(n, n + 1)
+OP       RETURN(n)
+ERR      standard
+FIXTURE  stock_01.xlsx sheet=Stock cols=A:Part No,B:Qty rows=4 data=A:values("P-1"x1,"P-2"x1,"P-3"x1,""x1)+boundary("P-1","","P-2","P-3");B:values("4"x2,""x1,"7"x1)+boundary("","4","4","7")
+FIXTURE  stock_01.xlsx sheet=Notes cols=A:Note rows=2 data=A:text(6)
+TEST     fixture=stock_01.xlsx call=MarkChecked(Stock) runs=2 assert=RESULT = 3 AND ERROR_COUNT = 0 AND VALUE(Stock!C1) = "Checked" AND COUNTIF(Stock![Checked], "Yes") = 3
+TEST     fixture=stock_01.xlsx call=MarkChecked(Stock) assert=RESULT = 3 AND COUNTA(Stock![Qty]) = PRE_COUNTA(Stock![Qty])
+TEST     fixture=stock_01.xlsx call=MarkChecked(Notes) assert=RESULT = -1 AND ERROR_COUNT = 1
+"""
+
+
 def problems(text):
     return [(p.severity, p.message) for p in validator.validate_text(text)]
 
@@ -371,6 +404,29 @@ class ReviewGaps(unittest.TestCase):   # Phase 4 (D55): the gaps the item 2 revi
         found = errors(older)
         self.assertIn("ROW_OF is VCL 0.5: start the spec with 'VCL 0.5' to use it", found)
         self.assertIn("DEDUPE into= is VCL 0.5: start the spec with 'VCL 0.5' to use it", found)
+
+    def test_a_header_the_spec_adds_needs_no_pre(self):   # D56
+        self.assertEqual(problems(CHECKED), [])
+        results = run_tests(CHECKED, datetime.date(2026, 10, 21))
+        self.assertEqual([(r.passed, r.result) for r in results], [(True, 3), (True, 3), (True, -1)])
+        self.assertEqual(mutate_report(CHECKED, snapshot=True, today=datetime.date(2026, 10, 21))[:2], (18, 18))
+
+    def test_only_a_header_it_writes_to_that_sheet(self):
+        found = errors(CHECKED.replace('SET_VALUE(CELL($ws, 1, cNew), "Checked")', 'SET_VALUE(CELL($ws, 1, cNew), "Done")'))
+        self.assertIn('header "Checked" on $ws is used but not checked in PRE (rule 14)', found)
+        found = errors(CHECKED.replace('SET_VALUE(CELL($ws, 1, cNew), "Checked")', 'SET_VALUE(CELL($ws, 2, cNew), "Checked")'))
+        self.assertIn('header "Checked" on $ws is used but not checked in PRE (rule 14)', found)
+
+    def test_its_column_is_not_there_to_declare(self):   # UNCHANGED finds columns by their header before the run
+        found = errors(CHECKED.replace("MODIFIES $ws\n", 'MODIFIES $ws ["Checked"]\n'))
+        self.assertEqual(found, ['MODIFIES $ws["Checked"]: the spec adds that header itself, so the column is not '
+                                 'there before the run and no TEST can check it; declare the whole sheet with '
+                                 'MODIFIES $ws (D56)'])
+
+    def test_a_written_header_needs_0_5(self):
+        found = errors(CHECKED.replace("VCL 0.5", "VCL 0.4", 1))
+        self.assertEqual(found, ['header "Checked" on $ws is used but not checked in PRE (rule 14): a header the '
+                                 'spec writes to row 1 itself needs VCL 0.5'])
 
     def test_row_of_nothing_stops_the_run(self):
         text = STOCK.replace("OP       IF NOT IS_NOTHING(hit)\nOP         SET_VALUE", "OP       IF TRUE\nOP         SET_VALUE")
