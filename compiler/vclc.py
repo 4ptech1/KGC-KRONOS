@@ -6,6 +6,7 @@
   python compiler/vclc.py mutate FILES... [--snapshot]   mutation score of each spec's tests
   python compiler/vclc.py all    FILES... [-o DIR]   check + test + build, stop at the first failure
   python compiler/vclc.py pilot-check RESULTS FILES...  compare an Excel pilot run with the interpreter
+  python compiler/vclc.py fmt [--check | --write] FILES...  the canonical text of each spec (vcl_fmt.py)
 
 Options: -o DIR (default dist) and --today YYYY-MM-DD, which pins TODAY for test, build and
 mutate runs (default: the real date).
@@ -160,10 +161,13 @@ def cmd_mutate(files, snapshot, today):
 
 
 def main(argv):
-    if len(argv) < 2 or argv[1] not in ("check", "test", "build", "mutate", "all", "pilot-check"):
+    if len(argv) < 2 or argv[1] not in ("check", "test", "build", "mutate", "all", "pilot-check", "fmt"):
         print(__doc__)
         return 1
     cmd = argv[1]
+    if cmd == "fmt":
+        import vcl_fmt
+        return vcl_fmt.main(argv[2:])
     if cmd == "pilot-check":
         if len(argv) < 4:
             print("pilot-check needs the pasted results file and the piloted spec files")
