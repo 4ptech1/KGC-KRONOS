@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 import validator  # noqa: E402
-from vcl_interp import run_tests  # noqa: E402
+from vcl_interp import VclError, run_tests  # noqa: E402
 
 # A small tool: RunHeadless marks old open NCRs Overdue (modSteps.MarkOverdue) and rebuilds a
 # summary of the statuses (modSteps.WriteSummary); modMain.Run starts it on the real sheets.
@@ -29,8 +29,9 @@ FLOW     modMain.Run -> modMain.RunHeadless -> modSteps.MarkOverdue
 FLOW     modMain.RunHeadless -> modSteps.WriteSummary
 FIXTURE  ncr_01.xlsx sheet=NCR cols=A:NCR No,B:Status,C:Days Open rows=8 data=A:seq(1,1);B:values("Open"x5,"Closed"x2,""x1)+boundary("Open","Open","Closed","","Open");C:int(1,60)+boundary(30,31,45,10)
 FIXTURE  ncr_01.xlsx sheet=Summary cols=A:Status,B:Count rows=0 stale=2
-TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTIF(Summary![Status], "stale") = 0
-TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) assert=COUNTA(NCR![NCR No]) = PRE_COUNTA(NCR![NCR No]) AND RESULT >= 1
+TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTIF(NCR![Status], "Overdue") = 4 AND COUNTIF(NCR![Status], "Open") = 1 AND COUNTA(Summary![Status]) = 4 AND VALUE(Summary![Count]3) = 4 AND COUNTIF(Summary![Status], "stale") = 0
+TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) assert=RESULT = 4 AND ERROR_COUNT = 0 AND COUNTA(NCR![NCR No]) = PRE_COUNTA(NCR![NCR No]) AND VALUE(NCR![Status]2) = "Open" AND VALUE(Summary![Status]2) = "Open"
+TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(Summary, NCR) assert=RESULT = -1 AND ERROR_COUNT = 1
 ---
 VCL 0.5
 TASK
@@ -222,6 +223,50 @@ class Structure(unittest.TestCase):
         found = errors(changed("TARGET   xlsm", "TARGET   xlam"))
         self.assertIn("TARGET xlam waits (D49): an add-in's THIS_BOOK is the add-in, not the data; use TARGET xlsm",
                       found)
+
+
+class Interpreter(unittest.TestCase):   # Phase 2: BUILD TESTs run through modMain.RunHeadless (D52)
+    DAY = datetime.date(2026, 10, 21)
+
+    def run_first(self, text):
+        return run_tests(text, self.DAY)[0]
+
+    def test_the_sample_proves_its_tests(self):
+        results = run_tests(NCR_REVIEW, self.DAY)
+        self.assertEqual([(r.passed, r.result, r.errors) for r in results], [(True, 0, 0), (True, 4, 0), (True, -1, 1)])
+
+    def test_a_callee_error_is_logged_and_the_caller_goes_on(self):
+        text = changed('OP       LET(cDays, COL($ncr, "Days Open"))', 'OP       LET(cDays, COL($ncr, "Days Open"))\nOP       LET(n, 1 / 0)')
+        r = self.run_first(text)
+        self.assertEqual((r.result, r.errors), (-2, 1))   # MarkOverdue gave -2 into marked; RunHeadless went on
+        self.assertEqual(r.log[0][0], "MarkOverdue")
+        self.assertIn("ASSERT: COUNTIF(NCR![Status], \"Overdue\") = 4 is false (left 0, right 4)", r.failed)
+        # WriteSummary still ran: the header, Open and Closed, and no stale rows
+        self.assertIn("ASSERT: COUNTA(Summary![Status]) = 4 is false (left 3, right 4)", r.failed)
+        self.assertFalse(any("stale" in f for f in r.failed), r.failed)
+
+    def test_a_callee_pre_failure_gives_minus_one(self):
+        text = changed('PRE      COL($ncr, "Status") > 0; COL($ncr, "Days Open") > 0\nMODIFIES $ncr["Status"]\nOP       LET(cStatus',
+                       'PRE      COL($ncr, "Owner") > 0\nMODIFIES $ncr["Status"]\nOP       LET(cStatus')
+        r = self.run_first(text)
+        self.assertEqual((r.result, r.errors), (-1, 1))
+        self.assertEqual(r.log, [("MarkOverdue", 0, "PRE failed: condition 1")])
+
+    def test_unchanged_follows_runheadless_modifies(self):
+        text = changed('MODIFIES $ncr["Status"]\nMODIFIES $out\nOP       CALL', 'MODIFIES $out\nOP       CALL')
+        r = self.run_first(text)
+        self.assertFalse(r.passed)
+        self.assertTrue(any(f.startswith("UNCHANGED: NCR!B3 was") for f in r.failed), r.failed)
+
+    def test_values_convert_to_their_parameter_types(self):
+        text = changed("CALL(modSteps.MarkOverdue, $ncr, 30, into=marked)", "CALL(modSteps.MarkOverdue, $ncr, 30.6, into=marked)")
+        self.assertEqual(run_tests(text, self.DAY)[1].result, 3)   # 30.6 is 31 as a Long, so 31 days is not over
+
+    def test_a_build_before_0_5_has_no_tests_to_run(self):
+        with self.assertRaises(VclError) as caught:
+            run_tests(NCR_REVIEW.replace("VCL 0.5", "VCL 0.4").replace(", into=marked", "").replace(", into=written", "")
+                      .replace(", into=n", ""), self.DAY)
+        self.assertIn("a BUILD runs its TESTs from VCL 0.5 on", str(caught.exception))
 
 
 class Run(unittest.TestCase):

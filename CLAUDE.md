@@ -213,7 +213,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    validator, 2 the interpreter, 3 the compiler and mutation, 4 the review gaps (D47, D51), 5 a proven
    BUILD and the switch to VCL 0.5 (Boss updates the Orchestrator once). FORM and xlam wait.
    Phase 1 is done (E13, E14, D50): the `VCL 0.5` line, CALL `into=`, and the BUILD rules in the
-   validator and type checker. **Next: Phase 2** (the interpreter runs BUILD TESTs).
+   validator and type checker. Phase 2 is done (D52): the interpreter runs a 0.5 BUILD's TESTs
+   through modMain.RunHeadless. **Next: Phase 3** (the compiler and the mutation scorer).
 4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts when Boss says go for it, as every earlier
