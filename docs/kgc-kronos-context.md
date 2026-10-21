@@ -423,7 +423,7 @@ The 12 specs:
 - #55: VEP 0.5 Phase 4a, ROW_OF and DEDUPE `into=` (D55).
 - #56: VEP 0.5 Phase 4b, a header the spec writes counts as checked for rule 14 (D56).
 - #57: VEP 0.5 Phase 4c, sheet names with spaces in assertions, in quotes (D57).
-- #58: VEP 0.5 Phase 5, a proven BUILD (Example 4) and the switch: spec.md and the prompt teach VCL 0.5 (D58). Item 3 is complete.
+- #59: VEP 0.5 Phase 5, a proven BUILD (Example 4) and the switch: spec.md and the prompt teach VCL 0.5 (D58). Item 3 is complete.
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
