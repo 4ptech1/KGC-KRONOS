@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c038",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 3,
+  "killed": 32,
+  "note": "lines 37 and 42 only leave blank gap rows between the summary rows, and the SORT after them moves blank rows to the bottom, so the final sheet is identical; line 32 only starts a customer's late count at 0, but DICT_GET of a missing key already reads 0 (the on-time customer Beta in the fixture shows it: Late = 0 with or without the line); kept so the spec does not depend on that",
+  "total": 35
+ },
+ "op_lines": 21,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "dispatch"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 2)"
+}

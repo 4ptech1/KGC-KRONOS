@@ -1,0 +1,8 @@
+OK   check  work/c039_try2.vcl
+FAIL test   work/c039_try2.vcl  (3/4 tests)
+       line 65: RESULT=3 ERROR_COUNT=0
+         ASSERT: COUNTA(BOM![Received]) = 4 is false (left 5, right 4) [R051]
+         ASSERT: COUNTA(BOM![Balance]) = 3 is false (left 4, right 3) [R051]
+         ASSERT: SUM(BOM![Balance]) = -7 is false (left 91, right -7) [R051]
+
+STOPPED: see the FAIL lines above
