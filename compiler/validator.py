@@ -24,6 +24,7 @@ from vcl_fixtures import parse_fixture, sheet_rows, stale_rows
 from vcl_parse import OPTION_WORDS
 from vcl_parse import parse as grammar_parse
 from vcl_types import Checker as TypeChecker
+from errcodes import code_of, coded, tag
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "vcl"))
 from semantics import safe_name, sheet_name_ok  # noqa: E402
@@ -198,8 +199,8 @@ def build(tokens):
                 if tok.text == closer:
                     return items
                 if closer:
-                    raise Unbalanced(f"unbalanced brackets: '{OPENER[closer]}' without '{closer}'")
-                raise Unbalanced(f"unbalanced brackets: '{tok.text}' without '{OPENER[tok.text]}'")
+                    raise Unbalanced(coded(f"unbalanced brackets: '{OPENER[closer]}' without '{closer}'", "V043"))
+                raise Unbalanced(coded(f"unbalanced brackets: '{tok.text}' without '{OPENER[tok.text]}'", "V044"))
             pos += 1
             if tok.kind == "op" and tok.text == "(":
                 prev = items[-1] if items else None
@@ -215,7 +216,7 @@ def build(tokens):
             else:
                 items.append(tok)
         if closer:
-            raise Unbalanced(f"unbalanced brackets: '{OPENER[closer]}' without '{closer}'")
+            raise Unbalanced(coded(f"unbalanced brackets: '{OPENER[closer]}' without '{closer}'", "V045"))
         return items
 
     try:
@@ -349,39 +350,39 @@ class TaskChecker:
         if spec.lines("MODIFIES"):
             self.check_writes_are_declared()
         elif self.at_least("VCL 0.2") and self.writes and not self.in_build:
-            self.warning("the spec writes to sheets but has no MODIFIES lines, so no TEST checks that nothing "
-                         "else changed: declare each sheet it changes with MODIFIES", self.writes[0][0])
+            self.warning(coded("the spec writes to sheets but has no MODIFIES lines, so no TEST checks that nothing "
+                         "else changed: declare each sheet it changes with MODIFIES", "V046"), self.writes[0][0])
         elif self.at_least("VCL 0.5") and self.writes:   # D49: a BUILD's TESTs check them all
-            self.error("a TASK of a BUILD declares every sheet it changes with MODIFIES, so the BUILD's TESTs can "
-                       "check that nothing else changed (D49)", self.writes[0][0])
+            self.error(coded("a TASK of a BUILD declares every sheet it changes with MODIFIES, so the BUILD's TESTs can "
+                       "check that nothing else changed (D49)", "V047"), self.writes[0][0])
         if self.calls and not self.in_build and self.at_least("VCL 0.5"):
-            self.error("CALL runs another procedure of the same BUILD: a TASK spec has none to call (D49)",
+            self.error(coded("CALL runs another procedure of the same BUILD: a TASK spec has none to call (D49)", "V048"),
                        self.calls[0][0])
         self.check_file_ops()
         self.check_sheet_adds()
         moves = sorted(op for op in self.row_moves if op != "SET_FORMULA")
         if "SET_FORMULA" in self.row_moves and moves:
-            self.error(f"a spec may not both SET_FORMULA and {' or '.join(moves)}: Excel rewrites formula references "
-                       "when rows move, which a TEST can't prove (D43)", self.row_moves["SET_FORMULA"])
+            self.error(coded(f"a spec may not both SET_FORMULA and {' or '.join(moves)}: Excel rewrites formula references "
+                       "when rows move, which a TEST can't prove (D43)", "V049"), self.row_moves["SET_FORMULA"])
         if len(self.row_order_ops) == 2:
-            self.error("a spec may not both FILTER and SORT: how Excel sorts rows that FILTER hid can't be proven "
-                       "by a TEST (D42); sort in one spec and filter in another", self.row_order_ops["FILTER"])
+            self.error(coded("a spec may not both FILTER and SORT: how Excel sorts rows that FILTER hid can't be proven "
+                       "by a TEST (D42); sort in one spec and filter in another", "V050"), self.row_order_ops["FILTER"])
         made = {(arg, norm(header)) for arg, header in self.header_writes}   # the spec writes them to row 1
         for line, arg, header in self.op_cols:
             if (arg, norm(header)) in self.pre_cols or ((arg, norm(header)) in made and self.at_least("VCL 0.5")):
                 continue   # D56: a header the spec adds itself can't be in PRE; its TESTs prove it
             hint = ": a header the spec writes to row 1 itself needs VCL 0.5" if (arg, norm(header)) in made else ""
-            self.error(f'header "{header}" on ${arg} is used but not checked in PRE (rule 14){hint}', line)
+            self.error(coded(f'header "{header}" on ${arg} is used but not checked in PRE (rule 14){hint}', "V051"), line)
         for (arg, key), line in self.modifies_col_lines.items():
             if (arg, key) in made and (arg, key) not in self.pre_cols and self.at_least("VCL 0.5"):
-                self.error(f'MODIFIES ${arg}["{self.modifies_cols[arg][key]}"]: the spec adds that header itself, so '
+                self.error(coded(f'MODIFIES ${arg}["{self.modifies_cols[arg][key]}"]: the spec adds that header itself, so '
                            f'the column is not there before the run and no TEST can check it; declare the whole '
-                           f'sheet with MODIFIES ${arg} (D56)', line)
+                           f'sheet with MODIFIES ${arg} (D56)', "V052"), line)
         op_count = sum(1 for _ in spec.all_ops())
         if op_count > MAX_TASK_OPS:
             first = spec.lines("OP")[0].line
-            self.warning(f"TASK has {op_count} OP lines (more than {MAX_TASK_OPS}): keep a TASK small, or ask "
-                         "which part to do first (rule 9)", first)
+            self.warning(coded(f"TASK has {op_count} OP lines (more than {MAX_TASK_OPS}): keep a TASK small, or ask "
+                         "which part to do first (rule 9)", "V053"), first)
         check_fixtures(self, spec.fixtures)
         check_folders(self, spec.folders, self.fixtures)
         self.check_tests()
@@ -396,8 +397,8 @@ class TaskChecker:
         reads = [(line, name) for line, name, role, _, _ in self.file_paths if role == "from"]
         if reads and self.spec.tests and not any(ff.locked for ff in self.folders):
             line, name = reads[0]
-            self.warning(f"the spec {'copies' if name == 'COPY_FILE' else 'reads'} files, but no FIXTURE folder has "
-                         "a locked= file, so no TEST shows what happens to a file that is open elsewhere (rule 19)",
+            self.warning(coded(f"the spec {'copies' if name == 'COPY_FILE' else 'reads'} files, but no FIXTURE folder has "
+                         "a locked= file, so no TEST shows what happens to a file that is open elsewhere (rule 19)", "V054"),
                          line)
 
     def check_fixtures_can_catch_mistakes(self):
@@ -426,19 +427,19 @@ class TaskChecker:
                 if name in owned and fx is not None and not fx.stale and fx.sheet not in warned:
                     warned.add(fx.sheet)
                     what = "old rows are cleared" if owned[name] == "rows" else "old fills are cleared"
-                    self.warning(f"FIXTURE sheet {fx.sheet} has no stale=<n> rows, so no TEST proves {what} "
-                                 "(rule 19)", fx.line)
+                    self.warning(coded(f"FIXTURE sheet {fx.sheet} has no stale=<n> rows, so no TEST proves {what} "
+                                 "(rule 19)", "V055"), fx.line)
         if any(re.search(r"\bTODAY\b", t) for t in texts) and not any(r.kind == "reldates" for r in rules):
-            self.warning("the spec uses TODAY, but no FIXTURE column uses reldates(lo, hi): fixed dates drift "
-                         "as TODAY moves (rule 19)", first)
+            self.warning(coded("the spec uses TODAY, but no FIXTURE column uses reldates(lo, hi): fixed dates drift "
+                         "as TODAY moves (rule 19)", "V056"), first)
         repeats = any(r.dupes for r in rules) or any(
             count >= 2 for r in rules if r.kind == "values" for text, count in r.args if text)
         if any("DICT_ADD(" in t for t in texts) and not repeats:
-            self.warning("the spec adds to a dictionary, but no FIXTURE column repeats a key: add +dupes(n) "
-                         "so the TESTs see repeated keys (rule 19)", first)
+            self.warning(coded("the spec adds to a dictionary, but no FIXTURE column repeats a key: add +dupes(n) "
+                         "so the TESTs see repeated keys (rule 19)", "V057"), first)
         if any(re.search(r"<=|>=|(?<![<>])[<>](?![<>=])", t) for t in texts) and not any(r.boundary for r in rules):
-            self.warning("the spec compares with <, <=, > or >=, but no FIXTURE column has +boundary(...): "
-                         "put the values that sit exactly on each comparison in the first rows (rule 19)", first)
+            self.warning(coded("the spec compares with <, <=, > or >=, but no FIXTURE column has +boundary(...): "
+                         "put the values that sit exactly on each comparison in the first rows (rule 19)", "V058"), first)
         self.check_skip_if_has_blanks()
 
     def check_skip_if_has_blanks(self):
@@ -471,8 +472,8 @@ class TaskChecker:
                              or (rule.kind == "values" and any(t == "" for t, _ in rule.args)))
                 if not has_blank and fx.rows > 0:
                     warned.add((fx.sheet, letter))
-                    self.warning(f'SKIP_IF skips blank "{header}" cells, but FIXTURE sheet {fx.sheet} has none, '
-                                 "so no TEST shows the skip matters: add +blank(<n>) (rule 19)", fx.line)
+                    self.warning(coded(f'SKIP_IF skips blank "{header}" cells, but FIXTURE sheet {fx.sheet} has none, '
+                                 "so no TEST shows the skip matters: add +blank(<n>) (rule 19)", "V059"), fx.line)
 
     def passes_pre(self, test):
         """False only when PRE is a list of COL(...) > 0 and FOLDER_EXISTS($root) checks and this TEST's
@@ -496,52 +497,52 @@ class TaskChecker:
         counts = Counter(k.key for k in spec.keys)
         for key in ("PROC", "KIND", "MODULE", "OP", "ERR"):
             if not counts[key]:
-                self.error(f"missing {key}")
+                self.error(coded(f"missing {key}", "V060"))
         for key in ("PROC", "KIND", "MODULE", "ARGS", "RET", "PRE", "PERF", "ERR", "ALLOW"):
             for extra in spec.lines(key)[1:]:
-                self.error(f"{key} appears more than once", extra.line)
+                self.error(coded(f"{key} appears more than once", "V061"), extra.line)
         for k in spec.lines("KIND")[:1]:
             if k.value not in ("Sub", "Function"):
-                self.error(f"KIND must be Sub or Function, got '{k.value}'", k.line)
+                self.error(coded(f"KIND must be Sub or Function, got '{k.value}'", "V062"), k.line)
         rets = spec.lines("RET")
         if self.kind == "Function" and not rets:
-            self.error("a Function needs RET <Type>", spec.lines("KIND")[0].line)
+            self.error(coded("a Function needs RET <Type>", "V063"), spec.lines("KIND")[0].line)
         if self.kind == "Sub" and rets:
-            self.error("RET is only for a Function", rets[0].line)
+            self.error(coded("RET is only for a Function", "V064"), rets[0].line)
         for k in rets[:1]:
             if k.value not in TYPES:
-                self.error(f"unknown type {k.value}", k.line)
+                self.error(coded(f"unknown type {k.value}", "V065"), k.line)
         module = spec.value("MODULE")
         for k in spec.lines("MODULE")[:1]:
             if not (MODULE_NAME.fullmatch(module) or FORM_NAME.fullmatch(module)):
-                self.error(f"MODULE must be mod + PascalCase, like modCleanup (or a form, frmName), "
-                           f"got '{module}'", k.line)
+                self.error(coded(f"MODULE must be mod + PascalCase, like modCleanup (or a form, frmName), "
+                           f"got '{module}'", "V066"), k.line)
         for k in spec.lines("PROC")[:1]:
             event = FORM_NAME.fullmatch(module) and FORM_EVENT.fullmatch(k.value)
             if not (PASCAL.fullmatch(k.value) or event):
-                self.error(f"PROC must be PascalCase, like DeleteRowsByValue, got '{k.value}'", k.line)
+                self.error(coded(f"PROC must be PascalCase, like DeleteRowsByValue, got '{k.value}'", "V067"), k.line)
         for k in spec.lines("ERR")[:1]:
             if k.value != "standard":
-                self.error(f"ERR must be 'standard', got '{k.value}'", k.line)
+                self.error(coded(f"ERR must be 'standard', got '{k.value}'", "V068"), k.line)
         for k in spec.lines("PERF")[:1]:
             words = k.value.split()
             if not words:
-                self.error("PERF needs at least one of screen_off, calc_manual, events_off", k.line)
+                self.error(coded("PERF needs at least one of screen_off, calc_manual, events_off", "V069"), k.line)
             for w in words:
                 if w not in PERF_WORDS:
-                    self.error(f"unknown PERF value {w} (use screen_off, calc_manual, events_off)", k.line)
+                    self.error(coded(f"unknown PERF value {w} (use screen_off, calc_manual, events_off)", "V070"), k.line)
             for w, n in Counter(words).items():
                 if n > 1:
-                    self.error(f"PERF lists {w} twice", k.line)
+                    self.error(coded(f"PERF lists {w} twice", "V071"), k.line)
         for k in spec.lines("ALLOW")[:1]:
             words = k.value.split()
             if not words:
-                self.error("ALLOW needs at least one of file_delete, file_overwrite, shell, http", k.line)
+                self.error(coded("ALLOW needs at least one of file_delete, file_overwrite, shell, http", "V072"), k.line)
             for w in words:
                 if w not in ALLOW_WORDS:
-                    self.error(f"unknown ALLOW value {w} (use file_delete, file_overwrite, shell, http)", k.line)
+                    self.error(coded(f"unknown ALLOW value {w} (use file_delete, file_overwrite, shell, http)", "V073"), k.line)
                 else:
-                    self.warning(f"ALLOW {w}: risky actions can't be tested on the work PC before March 2027",
+                    self.warning(coded(f"ALLOW {w}: risky actions can't be tested on the work PC before March 2027", "V074"),
                                  k.line)
 
     def collect_loopvars(self):
@@ -556,61 +557,61 @@ class TaskChecker:
         seen = set()
         for decl in self.spec.args + self.spec.vars:
             if not CAMEL.fullmatch(decl.name):
-                self.error(f"name {decl.name} must be camelCase (rule 12)", decl.line)
+                self.error(coded(f"name {decl.name} must be camelCase (rule 12)", "V075"), decl.line)
             if decl.type not in TYPES:
-                self.error(f"unknown type {decl.type}", decl.line)
+                self.error(coded(f"unknown type {decl.type}", "V076"), decl.line)
             if decl.name in seen:
-                self.error(f"{decl.name} is declared twice", decl.line)
+                self.error(coded(f"{decl.name} is declared twice", "V077"), decl.line)
             seen.add(decl.name)
             if decl.name in self.loopvars:
-                self.error(f"loop variable {decl.name} is declared automatically: don't declare it in "
-                           "ARGS or VAR", decl.line)
+                self.error(coded(f"loop variable {decl.name} is declared automatically: don't declare it in "
+                           "ARGS or VAR", "V078"), decl.line)
             if decl.name in OPTION_WORDS:
-                self.error(f"{decl.name} is a reserved option word: choose another name (G2)", decl.line)
+                self.error(coded(f"{decl.name} is a reserved option word: choose another name (G2)", "V079"), decl.line)
 
     # -- MODIFIES (VCL 0.2)
 
     def check_modifies(self, mod):
         self.line = mod.line
         if not self.at_least("VCL 0.2"):
-            self.error("MODIFIES is VCL 0.2: start the spec with 'VCL 0.2' to use it")
+            self.error(coded("MODIFIES is VCL 0.2: start the spec with 'VCL 0.2' to use it", "V080"))
         m = MODIFIES_RE.fullmatch(mod.value)
         if not m:
             forms = ('$<sheet>, $<sheet>["<header>", ...], $<sheet> fills, $<root> files or $<book> sheets'
                      if self.at_least("VCL 0.4") else
                      '$<sheet>, $<sheet>["<header>", ...], $<sheet> fills or $<root> files' if self.at_least("VCL 0.3")
                      else '$<sheet>, $<sheet>["<header>", ...] or $<sheet> fills')
-            self.error(f"MODIFIES needs {forms}, got '{mod.value}'")
+            self.error(coded(f"MODIFIES needs {forms}, got '{mod.value}'", "V081"))
             return
         arg = m.group("arg")
         if m.group("files"):   # VCL 0.3 (E10)
             if not self.at_least("VCL 0.3"):
-                self.error("MODIFIES ... files is VCL 0.3: start the spec with 'VCL 0.3' to use it")
+                self.error(coded("MODIFIES ... files is VCL 0.3: start the spec with 'VCL 0.3' to use it", "V082"))
             if self.args.get(arg) != "String":
-                self.error(f"MODIFIES ${arg} files: ${arg} must be a String argument (a root folder)")
+                self.error(coded(f"MODIFIES ${arg} files: ${arg} must be a String argument (a root folder)", "V083"))
             elif arg in self.modifies_files:
-                self.error(f"MODIFIES ${arg} files appears twice: use one line")
+                self.error(coded(f"MODIFIES ${arg} files appears twice: use one line", "V084"))
             else:
                 self.modifies_files[arg] = mod.line
             return
         if m.group("sheets"):   # VCL 0.4 (D40)
             if not self.at_least("VCL 0.4"):
-                self.error("MODIFIES ... sheets is VCL 0.4: start the spec with 'VCL 0.4' to use it")
+                self.error(coded("MODIFIES ... sheets is VCL 0.4: start the spec with 'VCL 0.4' to use it", "V085"))
             if self.args.get(arg) != "Workbook":
-                self.error(f"MODIFIES ${arg} sheets: ${arg} must be a Workbook argument")
+                self.error(coded(f"MODIFIES ${arg} sheets: ${arg} must be a Workbook argument", "V086"))
             elif arg in self.modifies_sheets:
-                self.error(f"MODIFIES ${arg} sheets appears twice: use one line")
+                self.error(coded(f"MODIFIES ${arg} sheets appears twice: use one line", "V087"))
             else:
                 self.modifies_sheets[arg] = mod.line
             return
         if self.args.get(arg) == "String":
-            self.error(f"MODIFIES ${arg}: a String argument is a root folder, so write MODIFIES ${arg} files")
+            self.error(coded(f"MODIFIES ${arg}: a String argument is a root folder, so write MODIFIES ${arg} files", "V088"))
             return
         if self.args.get(arg) == "Workbook":
-            self.error(f"MODIFIES ${arg}: a Workbook argument gets new sheets only, so write MODIFIES ${arg} sheets")
+            self.error(coded(f"MODIFIES ${arg}: a Workbook argument gets new sheets only, so write MODIFIES ${arg} sheets", "V089"))
             return
         if self.args.get(arg) != "Worksheet":
-            self.error(f"MODIFIES ${arg}: ${arg} is not a Worksheet argument")
+            self.error(coded(f"MODIFIES ${arg}: ${arg} is not a Worksheet argument", "V090"))
             return
         kind = "cols" if m.group("cols") is not None else "fills" if m.group("fills") else "whole"
         if kind == "cols":
@@ -618,20 +619,20 @@ class TaskChecker:
             for part in split_top(m.group("cols"), ","):
                 tokens, _ = tokenize(part.strip())
                 if len(tokens) != 1 or tokens[0].kind != "string" or not tokens[0].text[1:-1].strip():
-                    self.error(f'MODIFIES ${arg}[...] needs "quoted" header names, got \'{part.strip()}\'')
+                    self.error(coded(f'MODIFIES ${arg}[...] needs "quoted" header names, got \'{part.strip()}\'', "V091"))
                     continue
                 header = tokens[0].text[1:-1].replace('""', '"')
                 if norm(header) in headers:
-                    self.error(f'MODIFIES ${arg} lists "{header}" twice')
+                    self.error(coded(f'MODIFIES ${arg} lists "{header}" twice', "V092"))
                 headers.append(norm(header))
                 self.modifies_cols.setdefault(arg, {}).setdefault(norm(header), header)
                 self.modifies_col_lines.setdefault((arg, norm(header)), mod.line)
         seen = self.modifies.setdefault(arg, {})
         if kind in seen:
             what = {"whole": "the whole sheet", "cols": "columns", "fills": "fills"}[kind]
-            self.error(f"MODIFIES ${arg} declares {what} twice: use one line")
+            self.error(coded(f"MODIFIES ${arg} declares {what} twice: use one line", "V093"))
         elif "whole" in seen or (kind == "whole" and seen):
-            self.error(f"MODIFIES ${arg} (the whole sheet) already covers its other MODIFIES lines")
+            self.error(coded(f"MODIFIES ${arg} (the whole sheet) already covers its other MODIFIES lines", "V094"))
         seen[kind] = mod.line
 
     def record_write(self, name, positional, options):
@@ -674,24 +675,24 @@ class TaskChecker:
             if book == "*":   # COPY_SHEET: the copy goes into the TEST's workbook, every Workbook argument
                 if not self.modifies_sheets:
                     why = "" if self.at_least("VCL 0.4") else ", which is VCL 0.4: start the spec with 'VCL 0.4'"
-                    self.error(f"{name} adds a sheet to the workbook of the sheet it copies: give the spec a Workbook "
-                               f"argument $book and declare MODIFIES $book sheets{why}", line)
+                    self.error(coded(f"{name} adds a sheet to the workbook of the sheet it copies: give the spec a Workbook "
+                               f"argument $book and declare MODIFIES $book sheets{why}", "V095"), line)
                 added |= set(self.modifies_sheets)
             elif book is None or self.args.get(book) != "Workbook":
-                self.error(f"{name} needs a Workbook argument ($book) as its first argument, so MODIFIES can "
-                           "name the workbook it changes", line)
+                self.error(coded(f"{name} needs a Workbook argument ($book) as its first argument, so MODIFIES can "
+                           "name the workbook it changes", "V096"), line)
             elif book not in self.modifies_sheets:
                 why = "" if self.at_least("VCL 0.4") else ", which is VCL 0.4: start the spec with 'VCL 0.4'"
-                self.error(f"{name} adds a sheet to ${book}: declare MODIFIES ${book} sheets{why}", line)
+                self.error(coded(f"{name} adds a sheet to ${book}: declare MODIFIES ${book} sheets{why}", "V097"), line)
             else:
                 added.add(book)
         for book, line in self.modifies_sheets.items():
             if book not in added:
-                self.warning(f"MODIFIES ${book} sheets, but no op adds a sheet to ${book}", line)
+                self.warning(coded(f"MODIFIES ${book} sheets, but no op adds a sheet to ${book}", "V098"), line)
         for line, var in self.var_sets:
             if var in self.new_sheets:
-                self.error(f"{var} holds the sheet made on line {self.new_sheets[var]}, so only ADD_SHEET or "
-                           "COPY_SHEET may set it: writes through it are checked as writes to a new sheet", line)
+                self.error(coded(f"{var} holds the sheet made on line {self.new_sheets[var]}, so only ADD_SHEET or "
+                           "COPY_SHEET may set it: writes through it are checked as writes to a new sheet", "V099"), line)
 
     def check_writes_are_declared(self):
         """MODIFIES: every write names a declared sheet in a way its lines allow; every declared
@@ -702,19 +703,19 @@ class TaskChecker:
         written = set()
         for line, name, arg, change in self.writes:
             if arg is None:
-                self.error(f"{name}: MODIFIES can't tell which sheet this changes; write through CELL, "
-                           "ROW_RANGE, USED_RANGE, RANGE or FIND of a $sheet argument", line)
+                self.error(coded(f"{name}: MODIFIES can't tell which sheet this changes; write through CELL, "
+                           "ROW_RANGE, USED_RANGE, RANGE or FIND of a $sheet argument", "V100"), line)
                 continue
             written.add(arg)
             declared = self.modifies.get(arg)
             if declared is None:
-                self.error(f"{name} changes ${arg}, but no MODIFIES line declares ${arg}", line)
+                self.error(coded(f"{name} changes ${arg}, but no MODIFIES line declares ${arg}", "V101"), line)
             elif "whole" not in declared and not any(k in declared for k in needs[change]):
-                self.error(f"{name} changes {what_for[change]} on ${arg}: declare "
-                           f"MODIFIES {line_for[change].format(arg)}", line)
+                self.error(coded(f"{name} changes {what_for[change]} on ${arg}: declare "
+                           f"MODIFIES {line_for[change].format(arg)}", "V102"), line)
         for arg, kinds in self.modifies.items():
             if arg not in written:
-                self.warning(f"MODIFIES ${arg}, but no op writes to ${arg}", min(kinds.values()))
+                self.warning(coded(f"MODIFIES ${arg}, but no op writes to ${arg}", "V103"), min(kinds.values()))
 
     def check_file_ops(self):
         """VCL 0.3 (E9, E10): every file op path is PATH_JOIN($root, ...); every root it adds to is
@@ -727,18 +728,18 @@ class TaskChecker:
             if bare and role != "list":
                 what = ("the folder to make" if name == "MAKE_FOLDER" else "the file to read" if name == "READ_TEXT"
                         else "the file to write" if name == "WRITE_TEXT" else f"the file to copy {role}")
-                self.error(f"{name}: {what} must be PATH_JOIN(${root}, ...), not the root ${root} itself, "
-                           "which must already exist", line)
+                self.error(coded(f"{name}: {what} must be PATH_JOIN(${root}, ...), not the root ${root} itself, "
+                           "which must already exist", "V104"), line)
             if role == "to":
                 written.add(root)
                 if root not in self.modifies_files:
-                    self.error(f"{name} adds to ${root}, but no line declares MODIFIES ${root} files", line)
+                    self.error(coded(f"{name} adds to ${root}, but no line declares MODIFIES ${root} files", "V105"), line)
         for root, line in used.items():
             if root not in self.pre_roots:
-                self.error(f"file ops use ${root}, but PRE doesn't check FOLDER_EXISTS(${root}) (rule 14)", line)
+                self.error(coded(f"file ops use ${root}, but PRE doesn't check FOLDER_EXISTS(${root}) (rule 14)", "V106"), line)
         for root, line in self.modifies_files.items():
             if root not in written:
-                self.warning(f"MODIFIES ${root} files, but no op adds to ${root}", line)
+                self.warning(coded(f"MODIFIES ${root} files, but no op adds to ${root}", "V107"), line)
 
     # -- PRE
 
@@ -750,7 +751,7 @@ class TaskChecker:
             return
         for condition in split_on(items, ";"):
             if not condition:
-                self.error("empty PRE condition")
+                self.error(coded("empty PRE condition", "V108"))
                 self.pre_evaluable = False
                 continue
             self.check_expr(condition, "PRE condition")
@@ -775,7 +776,7 @@ class TaskChecker:
     def items_of(self, text):
         leak = next((leak for leak in VBA_LEAKS if leak in blank_strings(text)), None)
         if leak:
-            self.error(f"VBA syntax in spec: {leak.strip()}")
+            self.error(coded(f"VBA syntax in spec: {leak.strip()}", "V109"))
             return None
         tokens, err = tokenize(text)
         if err:
@@ -794,23 +795,23 @@ class TaskChecker:
             info = self.check_op(node)
             name = info["name"]
             if node.children and not info["block"]:
-                self.error(f"{name or 'this step'} can't have nested steps", node.children[0].line)
+                self.error(coded(f"{name or 'this step'} can't have nested steps", "V110"), node.children[0].line)
             if info["block"] and not node.children and name != "CASE":
-                self.error(f"{name} has no nested steps under it", node.line)
+                self.error(coded(f"{name} has no nested steps under it", "V111"), node.line)
             if name == "ELSE":
                 if not (prev and prev["name"] == "IF" and prev["block"]):
-                    self.error("ELSE must come right after a block IF at the same level", node.line)
+                    self.error(coded("ELSE must come right after a block IF at the same level", "V112"), node.line)
             if name in ("CASE", "CASE_ELSE") and (parent or {}).get("name") != "SELECT_CASE":
-                self.error(f"{name} must be nested under SELECT_CASE", node.line)
+                self.error(coded(f"{name} must be nested under SELECT_CASE", "V113"), node.line)
             if (parent or {}).get("name") == "SELECT_CASE" and name not in ("CASE", "CASE_ELSE"):
-                self.error("SELECT_CASE can only contain CASE and CASE_ELSE", node.line)
+                self.error(coded("SELECT_CASE can only contain CASE and CASE_ELSE", "V114"), node.line)
             if name == "CASE" and prev and prev["name"] == "CASE_ELSE":
-                self.error("CASE_ELSE must be the last case", node.line)
+                self.error(coded("CASE_ELSE must be the last case", "V115"), node.line)
             if name in ("SKIP_IF", "EXIT_LOOP_IF") and not any(a["name"] in LOOPS for a in ancestors):
-                self.error(f"{name} is only allowed inside LOOP_ROWS, LOOP_COLS or FOR_EACH", node.line)
+                self.error(coded(f"{name} is only allowed inside LOOP_ROWS, LOOP_COLS or FOR_EACH", "V116"), node.line)
             if "DELETE_ROW" in (name, info.get("action")) and not any(
                     a["name"] == "LOOP_ROWS" and a.get("dir") == "up" for a in ancestors):
-                self.error("DELETE_ROW is only allowed inside LOOP_ROWS dir=up (rule 10)", node.line)
+                self.error(coded("DELETE_ROW is only allowed inside LOOP_ROWS dir=up (rule 10)", "V117"), node.line)
             self.walk(node.children, info, ancestors + [info])
             prev = info
 
@@ -819,7 +820,7 @@ class TaskChecker:
         items = self.items_of(node.text)
         if not items:
             if items is not None:
-                self.error("OP needs a step")
+                self.error(coded("OP needs a step", "V118"))
             info["block"] = bool(node.children)  # don't pile up nesting errors on a bad line
             return info
         head = items[0]
@@ -828,31 +829,31 @@ class TaskChecker:
         elif is_tok(head, "name"):
             name = head.text
         else:
-            self.error(f"an OP step starts with an op name, got '{show(items[:1])}'")
+            self.error(coded(f"an OP step starts with an op name, got '{show(items[:1])}'", "V119"))
             return info
         info["name"] = name
         if name in VCL_02_OPS and not self.at_least("VCL 0.2"):
-            self.error(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it")
+            self.error(coded(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it", "V120"))
         if name in VCL_03_OPS and not self.at_least("VCL 0.3"):
-            self.error(f"{name} is VCL 0.3: start the spec with 'VCL 0.3' to use it")
+            self.error(coded(f"{name} is VCL 0.3: start the spec with 'VCL 0.3' to use it", "V121"))
         if name in VCL_04_OPS and not self.at_least("VCL 0.4"):
-            self.error(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it")
+            self.error(coded(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it", "V122"))
         if name == "NOTE":
             if not (len(items) == 2 and is_tok(items[1], "string")):
-                self.error('NOTE takes one "<terse technical text>"')
+                self.error(coded('NOTE takes one "<terse technical text>"', "V123"))
         elif name in STRUCT:
             self.check_struct(name, items[1:], info)
         elif name in OPS:
             if not isinstance(head, Call):
-                self.error(f"{name} needs its brackets right after the name: {name}(...)")
+                self.error(coded(f"{name} needs its brackets right after the name: {name}(...)", "V124"))
             else:
                 if len(items) > 1:
-                    self.error(f"unexpected text after {name}(...): {show(items[1:])}")
+                    self.error(coded(f"unexpected text after {name}(...): {show(items[1:])}", "V125"))
                 self.check_call_op(head)
         elif name in VALUE_FUNCS or name in CONSTANTS:
-            self.error(f"{name} is a value, not an op")
+            self.error(coded(f"{name} is a value, not an op", "V126"))
         else:
-            self.error(f"unknown op {name}")
+            self.error(coded(f"unknown op {name}", "V127"))
             info["block"] = bool(node.children)
         return info
 
@@ -863,7 +864,7 @@ class TaskChecker:
             opts = self.struct_options(name, rest, ("dir", "from", "to", "var"))
             for key in ("dir", "from", "to", "var"):
                 if key not in opts:
-                    self.error(f"{name} needs {key}=")
+                    self.error(coded(f"{name} needs {key}=", "V128"))
             if "dir" in opts:
                 info["dir"] = self.check_choice(name, "dir", opts["dir"], dirs)
             for key in ("from", "to"):
@@ -876,7 +877,7 @@ class TaskChecker:
             opts = self.struct_options(name, rest, ("var", "in"))
             for key in ("var", "in"):
                 if key not in opts:
-                    self.error(f"FOR_EACH needs {key}=")
+                    self.error(coded(f"FOR_EACH needs {key}=", "V129"))
             if "var" in opts:
                 self.check_loopvar(name, opts["var"])
             if "in" in opts:
@@ -884,7 +885,7 @@ class TaskChecker:
                 if len(value) == 1 and isinstance(value[0], Call) and value[0].name in FOR_EACH_IN:
                     self.check_value_call(value[0])
                 else:
-                    self.error("FOR_EACH in= must be SHEETS(...), CELLS(...), KEYS(...) or ITEMS(...)")
+                    self.error(coded("FOR_EACH in= must be SHEETS(...), CELLS(...), KEYS(...) or ITEMS(...)", "V130"))
         elif name == "IF":
             then = next((i for i, item in enumerate(rest) if is_tok(item, "name", "THEN")), None)
             if then is None:
@@ -899,11 +900,11 @@ class TaskChecker:
             elif len(action) == 2 and is_tok(action[0], "name", "NOTE") and is_tok(action[1], "string"):
                 info["action"] = "NOTE"
             else:
-                self.error("IF ... THEN needs exactly one op after THEN, like THEN LET(x, 1)")
+                self.error(coded("IF ... THEN needs exactly one op after THEN, like THEN LET(x, 1)", "V131"))
         elif name in ("ELSE", "CASE_ELSE"):
             info["block"] = True
             if rest:
-                self.error(f"{name} takes nothing after it")
+                self.error(coded(f"{name} takes nothing after it", "V132"))
         elif name == "SELECT_CASE":
             info["block"] = True
             self.check_expr(rest, "SELECT_CASE value")
@@ -922,13 +923,13 @@ class TaskChecker:
             if is_tok(item, "name") and item.text in allowed and is_tok(nxt, "op", "=") and not nxt.spaced:
                 key = item.text
                 if key in opts:
-                    self.error(f"{name} has {key}= twice")
+                    self.error(coded(f"{name} has {key}= twice", "V133"))
                 opts[key] = []
                 i += 2
                 continue
             if key is None:
-                self.error(f"{name} expects key=value options ({', '.join(a + '=' for a in allowed)}), "
-                           f"got '{show([item])}'")
+                self.error(coded(f"{name} expects key=value options ({', '.join(a + '=' for a in allowed)}), "
+                           f"got '{show([item])}'", "V134"))
                 return opts
             opts[key].append(item)
             i += 1
@@ -936,14 +937,14 @@ class TaskChecker:
 
     def check_loopvar(self, name, value):
         if not (len(value) == 1 and is_tok(value[0], "name") and CAMEL.fullmatch(value[0].text)):
-            self.error(f"{name} var= needs a camelCase loop variable name, got '{show(value)}'")
+            self.error(coded(f"{name} var= needs a camelCase loop variable name, got '{show(value)}'", "V135"))
         elif value[0].text in OPTION_WORDS:
-            self.error(f"{value[0].text} is a reserved option word: choose another loop variable name (G2)")
+            self.error(coded(f"{value[0].text} is a reserved option word: choose another loop variable name (G2)", "V136"))
 
     def check_choice(self, name, key, value, allowed):
         text = show(value)
         if not (len(value) == 1 and is_tok(value[0], "name") and value[0].text in allowed):
-            self.error(f"{name} {key}= must be {'|'.join(allowed)}, got '{text}'")
+            self.error(coded(f"{name} {key}= must be {'|'.join(allowed)}, got '{text}'", "V137"))
             return None
         return text
 
@@ -984,61 +985,61 @@ class TaskChecker:
         if count < fewest or (most is not None and count > most):
             want = str(fewest) if fewest == most else (f"{fewest} or more" if most is None
                                                        else f"{fewest} to {most}")
-            self.error(f"{name} takes {want} argument{'s' if want != '1' else ''} before its options, "
-                       f"got {count}")
+            self.error(coded(f"{name} takes {want} argument{'s' if want != '1' else ''} before its options, "
+                       f"got {count}", "V138"))
         seen = set()
         for key, items in options:
             if key.text in seen:
-                self.error(f"{name} has {key.text}= twice")
+                self.error(coded(f"{name} has {key.text}= twice", "V139"))
             seen.add(key.text)
             if key.text not in allowed:
-                self.error(f"{name} has no option {key.text}=")
+                self.error(coded(f"{name} has no option {key.text}=", "V140"))
                 continue
             self.check_option(name, key.text, allowed[key.text], items)
         for key in required:
             if key not in seen:
-                self.error(f"{name} needs {key}=")
+                self.error(coded(f"{name} needs {key}=", "V141"))
         if name in ("CALL", "DEDUPE") and "into" in seen and not self.at_least("VCL 0.5"):
-            self.error(f"{name} into= is VCL 0.5: start the spec with 'VCL 0.5' to use it")
+            self.error(coded(f"{name} into= is VCL 0.5: start the spec with 'VCL 0.5' to use it", "V142"))
         if name == "FORMAT" and not options:
-            self.error("FORMAT needs at least one of numfmt=, bold=, fill=, width=")
+            self.error(coded("FORMAT needs at least one of numfmt=, bold=, fill=, width=", "V143"))
         for i, items in enumerate(positional):
             if name == "LET" and i == 0:
                 if not (len(items) == 1 and is_tok(items[0], "name") and items[0].text in self.vars):
-                    self.error(f"LET needs a declared VAR first, got '{show(items)}'")
+                    self.error(coded(f"LET needs a declared VAR first, got '{show(items)}'", "V144"))
             elif name == "CALL" and i == 0:
                 target = items[0].text if len(items) == 1 and is_tok(items[0], "name") else ""
                 parts = target.split(".")
                 if len(parts) != 2 or not (MODULE_NAME.fullmatch(parts[0]) or FORM_NAME.fullmatch(parts[0])) \
                         or not PASCAL.fullmatch(parts[1]):
-                    self.error(f"CALL needs <module>.<Proc> first, like modCleanup.RemoveRows, got "
-                               f"'{show(items)}'")
+                    self.error(coded(f"CALL needs <module>.<Proc> first, like modCleanup.RemoveRows, got "
+                               f"'{show(items)}'", "V145"))
                 else:
                     into = dict((k.text, v) for k, v in options).get("into")
                     self.calls.append((self.line, target, count - 1, positional[1:], into))
             elif name in ("SET_FORMULA", "LIST_FILES") and i == 1:
                 if not (len(items) == 1 and is_tok(items[0], "string")):
-                    self.error(f'{name} needs a "quoted" {"formula" if name == "SET_FORMULA" else "pattern"} '
-                               "as its second argument")
+                    self.error(coded(f'{name} needs a "quoted" {"formula" if name == "SET_FORMULA" else "pattern"} '
+                               "as its second argument", "V146"))
                 elif name == "LIST_FILES":   # D44: a name pattern with * and ? only
                     pattern = items[0].text[1:-1].replace('""', '"')
                     bad = sorted(set(ch for ch in pattern if ch in '\\/:"<>|'))
                     if not pattern or bad:
-                        self.error(f"LIST_FILES pattern \"{pattern}\" must be a file name pattern with * and ? "
-                                   f"(not empty, none of \\ / : \" < > |)")
+                        self.error(coded(f"LIST_FILES pattern \"{pattern}\" must be a file name pattern with * and ? "
+                                   f"(not empty, none of \\ / : \" < > |)", "V147"))
                 elif name == "SET_FORMULA":   # D43: Excel 2016 only, this workbook only
                     r1c1 = any(k.text == "style" and show(v) == "r1c1" for k, v in call.options)
                     formula = items[0].text[1:-1].replace('""', '"')
                     for problem in formula_problems(formula, r1c1):
-                        self.error(f"SET_FORMULA: {problem}")
+                        self.error(coded(f"SET_FORMULA: {problem}", "V148"))
                     self.formula_sheets += [(self.line, sheet) for sheet in sheet_names(formula)]
             else:
                 self.check_expr(items, f"{name} argument")
         if name == "RETURN":
             if self.kind == "Function" and count != 1:
-                self.error("a Function's RETURN needs a value: RETURN(<expr>)")
+                self.error(coded("a Function's RETURN needs a value: RETURN(<expr>)", "V149"))
             if self.kind == "Sub" and count:
-                self.error("a Sub can't RETURN a value")
+                self.error(coded("a Sub can't RETURN a value", "V150"))
         if name in ("ADD_SHEET", "COPY_SHEET"):
             self.sheet_ops = True
         if name in ("FILTER", "SORT"):
@@ -1067,11 +1068,11 @@ class TaskChecker:
             if "name" not in given:
                 why = ("Excel's own names (Sheet4) depend on the PC's language" if name == "ADD_SHEET"
                        else "Excel's own name for a copy (Template (2)) is not one a TEST can rely on")
-                self.error(f"{name} needs name=: {why}")
+                self.error(coded(f"{name} needs name=: {why}", "V151"))
             elif len(given["name"]) == 1 and is_tok(given["name"][0], "string") \
                     and not sheet_name_ok(given["name"][0].text[1:-1].replace('""', '"')):
-                self.error(f"{name} name={given['name'][0].text} is not a valid sheet name (S23: 1 to 31 "
-                           "characters, no spaces at the ends, none of \\ / ? * [ ] :, not History)")
+                self.error(coded(f"{name} name={given['name'][0].text} is not a valid sheet name (S23: 1 to 31 "
+                           "characters, no spaces at the ends, none of \\ / ? * [ ] :, not History)", "V152"))
         self.record_write(name, positional, options)
         if name in VCL_03_OPS:
             roles = ["to"] if name == "MAKE_FOLDER" else ["from", "to"]
@@ -1085,8 +1086,8 @@ class TaskChecker:
         if name == "READ_TEXT" and len(positional) > 1:   # D45: the text goes into a declared VAR
             given = positional[1]
             if not (len(given) == 1 and is_tok(given[0], "name") and given[0].text in self.vars):
-                self.error(f"READ_TEXT needs a declared String VAR second, which gets the file's text, "
-                           f"got '{show(given)}'")
+                self.error(coded(f"READ_TEXT needs a declared String VAR second, which gets the file's text, "
+                           f"got '{show(given)}'", "V153"))
             else:
                 self.var_sets.append((self.line, given[0].text))
         if name == "SET_VALUE" and len(positional) == 2:
@@ -1122,28 +1123,28 @@ class TaskChecker:
             self.check_choice(name, key, items, kind)
         elif kind == "var":
             if not (len(items) == 1 and is_tok(items[0], "name") and items[0].text in self.vars):
-                self.error(f"{name} {key}= needs a declared VAR, got '{text}'")
+                self.error(coded(f"{name} {key}= needs a declared VAR, got '{text}'", "V154"))
         elif kind == "string":
             if not (len(items) == 1 and is_tok(items[0], "string")):
-                self.error(f'{name} {key}= needs a "quoted" value, got \'{text}\'')
+                self.error(coded(f'{name} {key}= needs a "quoted" value, got \'{text}\'', "V155"))
         elif kind == "fill":
             ok = len(items) == 1 and ((is_tok(items[0], "name") and items[0].text in FILL_NAMES)
                                       or (is_tok(items[0], "hex") and HEX_COLOUR.fullmatch(items[0].text)))
             if not ok:
-                self.error(f"{name} fill= must be {', '.join(FILL_NAMES)} or #RRGGBB, got '{text}'")
+                self.error(coded(f"{name} fill= must be {', '.join(FILL_NAMES)} or #RRGGBB, got '{text}'", "V156"))
         elif kind == "width":
             if not (len(items) == 1 and (is_tok(items[0], "name", "auto") or is_tok(items[0], "number"))):
-                self.error(f"{name} width= must be auto or a number, got '{text}'")
+                self.error(coded(f"{name} width= must be auto or a number, got '{text}'", "V157"))
         elif kind == "cols" and len(items) == 1 and isinstance(items[0], ListLit):   # D38
             if not self.at_least("VCL 0.4"):
-                self.error(f"{name} cols=[...] is VCL 0.4: start the spec with 'VCL 0.4' to use it")
+                self.error(coded(f"{name} cols=[...] is VCL 0.4: start the spec with 'VCL 0.4' to use it", "V158"))
             for part in items[0].elements:
                 self.check_expr(part, f"{name} cols= list value")
         elif kind == "cols":
             parts = split_on(items, ",")
             if len(parts) > 1 and self.at_least("VCL 0.4"):
-                self.error(f"{name} cols={text.replace(' , ', ',')} is ambiguous (G3): write "
-                           f"cols=[{', '.join(show(p) for p in parts)}]")
+                self.error(coded(f"{name} cols={text.replace(' , ', ',')} is ambiguous (G3): write "
+                           f"cols=[{', '.join(show(p) for p in parts)}]", "V159"))
             for part in parts:
                 self.check_expr(part, f"{name} cols= value")
         else:
@@ -1153,7 +1154,7 @@ class TaskChecker:
 
     def check_expr(self, items, what="expression"):
         if not items:
-            self.error(f"missing {what}")
+            self.error(coded(f"missing {what}", "V160"))
             return
         want_operand = True
         for item in items:
@@ -1166,13 +1167,13 @@ class TaskChecker:
                     or is_tok(item, "name", "OR"):
                 want_operand = True
             else:
-                self.error(f"missing operator before '{show([item])}' in {what}")
+                self.error(coded(f"missing operator before '{show([item])}' in {what}", "V161"))
         if want_operand:
-            self.error(f"{what} ends with an operator")
+            self.error(coded(f"{what} ends with an operator", "V162"))
 
     def check_operand(self, item):
         if isinstance(item, ListLit):
-            self.error("a list [...] is only allowed as DEDUPE cols=")
+            self.error(coded("a list [...] is only allowed as DEDUPE cols=", "V163"))
         elif isinstance(item, Group):
             self.check_expr(item.items)
         elif isinstance(item, Call):
@@ -1184,79 +1185,79 @@ class TaskChecker:
         elif item.kind == "name":
             self.check_name(item.text)
         elif item.kind == "hex":
-            self.error(f"{item.text}: #RRGGBB colours are only for fill=")
+            self.error(coded(f"{item.text}: #RRGGBB colours are only for fill=", "V164"))
         elif item.kind == "range":
-            self.error(f"{item.text}: Sheet!range references are only for TEST assertions")
+            self.error(coded(f"{item.text}: Sheet!range references are only for TEST assertions", "V165"))
         elif item.kind == "qsheet":
-            self.error(f"{item.text}: text goes in \"double quotes\"; 'single quotes' are only for a sheet name "
-                       "in a TEST assertion")
+            self.error(coded(f"{item.text}: text goes in \"double quotes\"; 'single quotes' are only for a sheet name "
+                       "in a TEST assertion", "V166"))
         else:
-            self.error(f"unexpected '{item.text}'")
+            self.error(coded(f"unexpected '{item.text}'", "V167"))
 
     def check_name(self, word):
         if KEYWORD.fullmatch(word):
             if word in CONSTANTS:
                 return
             if word in VALUE_FUNCS:
-                self.error(f"{word} needs its brackets: {word}(...)")
+                self.error(coded(f"{word} needs its brackets: {word}(...)", "V168"))
             elif word in OPS or word in STRUCT or word == "NOTE":
-                self.error(f"{word} is an op; it can't be used inside an expression")
+                self.error(coded(f"{word} is an op; it can't be used inside an expression", "V169"))
             elif word in ("AND", "OR", "NOT", "THEN"):
-                self.error(f"misplaced {word}")
+                self.error(coded(f"misplaced {word}", "V170"))
             else:
-                self.error(f"unknown word {word}")
+                self.error(coded(f"unknown word {word}", "V171"))
         elif "." in word:
-            self.error(f"'{word}': VCL has no .Property syntax; dots only appear in a CALL target (module.Proc)")
+            self.error(coded(f"'{word}': VCL has no .Property syntax; dots only appear in a CALL target (module.Proc)", "V172"))
         elif word in self.vars or word in self.loopvars:
             pass
         elif word in self.args:
-            self.error(f"argument {word} must be written ${word}")
+            self.error(coded(f"argument {word} must be written ${word}", "V173"))
         else:
-            self.error(f"undeclared name {word}")
+            self.error(coded(f"undeclared name {word}", "V174"))
 
     def check_arg(self, name):
         if name in self.args:
             return
         if name in self.vars or name in self.loopvars:
-            self.error(f"{name} is a variable, not an argument: write it without $")
+            self.error(coded(f"{name} is a variable, not an argument: write it without $", "V175"))
         else:
-            self.error(f"undeclared argument ${name}")
+            self.error(coded(f"undeclared argument ${name}", "V176"))
 
     def check_value_call(self, call):
         name = call.name
         if name in OPS or name in STRUCT:
-            self.error(f"{name} is an op; it can't be used inside an expression")
+            self.error(coded(f"{name} is an op; it can't be used inside an expression", "V177"))
             return
         if name not in VALUE_FUNCS:
-            self.error(f"unknown function {name}")
+            self.error(coded(f"unknown function {name}", "V178"))
             for items in call.positional:
                 self.check_expr(items, f"{name} argument")
             return
         if name in VCL_02_FUNCS and not self.at_least("VCL 0.2"):
-            self.error(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it")
+            self.error(coded(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it", "V179"))
         if name in VCL_03_FUNCS and not self.at_least("VCL 0.3"):
-            self.error(f"{name} is VCL 0.3: start the spec with 'VCL 0.3' to use it")
+            self.error(coded(f"{name} is VCL 0.3: start the spec with 'VCL 0.3' to use it", "V180"))
         if name in VCL_04_FUNCS and not self.at_least("VCL 0.4"):
-            self.error(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it")
+            self.error(coded(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it", "V181"))
         if name in VCL_05_FUNCS and not self.at_least("VCL 0.5"):
-            self.error(f"{name} is VCL 0.5: start the spec with 'VCL 0.5' to use it")
+            self.error(coded(f"{name} is VCL 0.5: start the spec with 'VCL 0.5' to use it", "V182"))
         fewest, most, allowed = VALUE_FUNCS[name]
         positional, options = self.call_parts(call)
         if len(positional) < fewest or (most is not None and len(positional) > most):
             want = f"{fewest} or more" if most is None else str(fewest)
-            self.error(f"{name} takes {want} argument{'s' if fewest > 1 or most is None else ''}, got {len(positional)}")
+            self.error(coded(f"{name} takes {want} argument{'s' if fewest > 1 or most is None else ''}, got {len(positional)}", "V183"))
         for key, items in options:
             if key.text not in allowed:
-                self.error(f"{name} has no option {key.text}=")
+                self.error(coded(f"{name} has no option {key.text}=", "V184"))
             else:
                 self.check_choice(name, key.text, items, allowed[key.text])
         for i, items in enumerate(positional):
             if name in STRING_SECOND and i == 1:
                 if not (len(items) == 1 and is_tok(items[0], "string")):
-                    self.error(f'{name} needs a "quoted" text as its second argument')
+                    self.error(coded(f'{name} needs a "quoted" text as its second argument', "V185"))
                 elif name == "PARSE_DATE" and items[0].text[1:-1] not in DATE_FORMATS:
-                    self.error(f"PARSE_DATE format {items[0].text} is not one of "
-                               + ", ".join(f'"{f}"' for f in DATE_FORMATS))
+                    self.error(coded(f"PARSE_DATE format {items[0].text} is not one of "
+                               + ", ".join(f'"{f}"' for f in DATE_FORMATS), "V186"))
             else:
                 self.check_expr(items, f"{name} argument")
         if name == "COL" and len(positional) == 2:
@@ -1286,69 +1287,69 @@ class TaskChecker:
             return
         first = tests[0].line if tests else spec.line
         if len(tests) < 2:
-            self.error("a spec needs at least two TEST lines (rule 5)", first)
+            self.error(coded("a spec needs at least two TEST lines (rule 5)", "V187"), first)
         if tests and not any(f["error_count_0"] for f in flags):
-            self.error("no TEST checks ERROR_COUNT = 0 (rule 5)", first)
+            self.error(coded("no TEST checks ERROR_COUNT = 0 (rule 5)", "V188"), first)
         if tests and not any(f["pre"] for f in flags):
-            self.error("no TEST guards against collateral changes with a PRE_ measure (rule 5)", first)
+            self.error(coded("no TEST guards against collateral changes with a PRE_ measure (rule 5)", "V189"), first)
         if tests and not any(t.runs >= 2 for t in tests):
-            self.error("no TEST uses runs=2 to prove re-runs are safe (rule 16)", first)
+            self.error(coded("no TEST uses runs=2 to prove re-runs are safe (rule 16)", "V190"), first)
         used = {t.fixture for t in tests}
         many_sheets = any(len(files.get(f, {})) > 1 for f in used)
         if spec.lines("PRE") and many_sheets:
             want = "RESULT = -1 AND ERROR_COUNT = 1" if self.kind == "Function" else "ERROR_COUNT = 1"
             if not any(f["wrong_sheet"] for f in flags):
-                self.error(f"PRE is used and the fixture has another sheet, but no wrong-sheet TEST expects "
-                           f"{want} (rule 5)", first)
+                self.error(coded(f"PRE is used and the fixture has another sheet, but no wrong-sheet TEST expects "
+                           f"{want} (rule 5)", "V191"), first)
         if spec.lines("PRE") and self.pre_evaluable and (self.pre_conditions or self.pre_roots) and flags \
                 and not any(f["passes_pre"] for f in flags if f["passes_pre"] is not None):
             what = "TEST misses a header or a folder" if self.pre_roots else "TEST's sheets miss a header"
-            self.error(f"no TEST passes PRE: every {what} that PRE checks", first)
+            self.error(coded(f"no TEST passes PRE: every {what} that PRE checks", "V192"), first)
 
     def check_test(self, test, files, folders):
         flags = {"error_count_0": False, "wrong_sheet": False, "pre": False, "passes_pre": None}
         spec = self.spec
         if test.fixture == "target":
-            self.error("fixture=target is not allowed: use a named synthetic FIXTURE (rule 18)")
+            self.error(coded("fixture=target is not allowed: use a named synthetic FIXTURE (rule 18)", "V193"))
             return flags
         sheets = files.get(test.fixture)
         dirs = folders.get(test.fixture, {})
         if sheets is None and dirs:
             sheets = {}   # a fixture of folders only
         if sheets is None:
-            self.error(f"TEST uses fixture {test.fixture}, but no FIXTURE line builds it")
+            self.error(coded(f"TEST uses fixture {test.fixture}, but no FIXTURE line builds it", "V194"))
         else:   # D51: in Excel a formula naming a missing sheet opens a file dialog and links to a file
             have = {name.casefold() for name in sheets} | self.named_adds
             for line, sheet in self.formula_sheets:
                 if sheet.casefold() not in have:
-                    self.error(f"SET_FORMULA names the sheet {sheet}, which the TEST workbook {test.fixture} "
-                               "doesn't have: in Excel the formula would ask for a file (D51)")
+                    self.error(coded(f"SET_FORMULA names the sheet {sheet}, which the TEST workbook {test.fixture} "
+                               "doesn't have: in Excel the formula would ask for a file (D51)", "V195"))
         proc = spec.value("PROC")
         if not self.in_build and test.procedure != proc:
-            self.error(f"TEST calls {test.procedure}, but PROC is {proc}")
+            self.error(coded(f"TEST calls {test.procedure}, but PROC is {proc}", "V196"))
         argmap, rootmap = {}, {}
         if len(test.args) != len(spec.args):
-            self.error(f"TEST passes {len(test.args)} argument{'s' if len(test.args) != 1 else ''}, "
-                       f"but ARGS has {len(spec.args)}")
+            self.error(coded(f"TEST passes {len(test.args)} argument{'s' if len(test.args) != 1 else ''}, "
+                       f"but ARGS has {len(spec.args)}", "V197"))
         elif sheets is not None:
             for decl, value in zip(spec.args, test.args):
                 if decl.type == "Workbook":   # VCL 0.4 (D40): the workbook is the TEST's fixture file
                     if value != test.fixture:
-                        self.error(f"TEST passes {value} for ${decl.name}, a Workbook: pass this TEST's "
-                                   f"fixture file, {test.fixture}")
+                        self.error(coded(f"TEST passes {value} for ${decl.name}, a Workbook: pass this TEST's "
+                                   f"fixture file, {test.fixture}", "V198"))
                     continue
                 if decl.type == "String" and SHEET_NAME.fullmatch(value):   # a bare name is a FIXTURE folder (F6)
                     if value in dirs:
                         rootmap[decl.name] = value
                     else:
-                        self.error(f"TEST passes {value} for ${decl.name}, but {test.fixture} has no folder {value}")
+                        self.error(coded(f"TEST passes {value} for ${decl.name}, but {test.fixture} has no folder {value}", "V199"))
                     continue
                 if decl.type != "Worksheet":
                     continue
                 if value in sheets:
                     argmap[decl.name] = value
                 else:
-                    self.error(f"TEST passes {value} for ${decl.name}, but {test.fixture} has no sheet {value}")
+                    self.error(coded(f"TEST passes {value} for ${decl.name}, but {test.fixture} has no sheet {value}", "V200"))
         headers = None
         if sheets is not None:
             headers = {name: {norm(h) for _, h in fx.headers} for name, fx in sheets.items()}
@@ -1374,7 +1375,7 @@ class TaskChecker:
                     else:
                         given = dict(zip([d.name for d in spec.args], test.args)).get(no_folder[0])
                         why = f"${no_folder[0]} is {given}, which is not a folder of {test.fixture}"
-                    self.error(f"TEST fails PRE ({why}) but doesn't expect RESULT = -1")
+                    self.error(coded(f"TEST fails PRE ({why}) but doesn't expect RESULT = -1", "V201"))
         return flags
 
 
@@ -1383,7 +1384,7 @@ def check_assertion(checker, test, sheets, headers):
     flags = {"error_count_0": False, "wrong_sheet": False, "pre": False, "result_minus_1": False}
     tokens, err = tokenize(test.assertion)
     if err:
-        checker.error(f"assertion: {err}")
+        checker.error(coded(f"assertion: {err}", "V202"))
         return flags
     conjuncts, depth = [[]], 0
     for tok in tokens:
@@ -1404,10 +1405,10 @@ def check_assertion(checker, test, sheets, headers):
     for conjunct in conjuncts:
         items, err = build(conjunct)
         if err:
-            checker.error(f"assertion: {err}")
+            checker.error(coded(f"assertion: {err}", "V203"))
             continue
         if not items:
-            checker.error("assertion: empty condition around AND")
+            checker.error(coded("assertion: empty condition around AND", "V204"))
             continue
         AssertionChecker(checker, test, sheets, headers).expr(items)
     return flags
@@ -1418,7 +1419,7 @@ class AssertionChecker:
         self.c, self.test, self.sheets, self.headers = checker, test, sheets, headers
 
     def error(self, message):
-        self.c.error(f"assertion: {message}")
+        self.c.error(coded(f"assertion: {message}", "V205"))
 
     def expr(self, items):
         want_operand = True
@@ -1431,16 +1432,16 @@ class AssertionChecker:
             elif is_tok(item, "op") and item.text in ASSERT_COMPARE:
                 want_operand = True
             elif is_tok(item, "name", "OR"):
-                self.error("combine assertions with AND, not OR")
+                self.error(coded("combine assertions with AND, not OR", "V206"))
                 want_operand = True
             else:
-                self.error(f"missing operator before '{show([item])}'")
+                self.error(coded(f"missing operator before '{show([item])}'", "V207"))
         if want_operand:
-            self.error("ends with an operator")
+            self.error(coded("ends with an operator", "V208"))
 
     def operand(self, item):
         if isinstance(item, ListLit):
-            self.error("a list [...] can't be used in an assertion")
+            self.error(coded("a list [...] can't be used in an assertion", "V209"))
         elif isinstance(item, Group):
             self.expr(item.items)
         elif isinstance(item, Call):
@@ -1449,27 +1450,27 @@ class AssertionChecker:
             pass
         elif item.kind == "name" and item.text in ("RESULT", "ERROR_COUNT"):
             if item.text == "RESULT" and self.c.kind == "Sub":
-                self.error("RESULT needs a Function: a Sub returns nothing")
+                self.error(coded("RESULT needs a Function: a Sub returns nothing", "V210"))
         elif item.kind == "range":
-            self.error(f"{item.text}: put ranges inside a function, like COUNTA({item.text})")
+            self.error(coded(f"{item.text}: put ranges inside a function, like COUNTA({item.text})", "V211"))
         elif item.kind == "qsheet":
-            self.error(f"{item.text}: a sheet name goes before ! or inside ROWS_USED, like {item.text}!A1")
+            self.error(coded(f"{item.text}: a sheet name goes before ! or inside ROWS_USED, like {item.text}!A1", "V212"))
         elif item.kind == "name" and item.text.startswith("PRE_"):
-            self.error(f"{item.text}: PRE_ goes before a measure, like PRE_COUNTA(...)")
+            self.error(coded(f"{item.text}: PRE_ goes before a measure, like PRE_COUNTA(...)", "V213"))
         else:
-            self.error(f"unknown word {item.text}")
+            self.error(coded(f"unknown word {item.text}", "V214"))
 
     def function(self, call):
         name = call.name[4:] if call.name.startswith("PRE_") else call.name
         if name not in ASSERT_FUNCS:
-            self.error(f"unknown function {call.name}")
+            self.error(coded(f"unknown function {call.name}", "V215"))
             return
         if call.options:
-            self.error(f"{call.name} has no options")
+            self.error(coded(f"{call.name} has no options", "V216"))
         if name == "FILE_COUNT" and not self.c.at_least("VCL 0.3"):
-            self.error("FILE_COUNT is VCL 0.3: start the spec with 'VCL 0.3' to use it")
+            self.error(coded("FILE_COUNT is VCL 0.3: start the spec with 'VCL 0.3' to use it", "V217"))
         if name in ("VISIBLE_COUNT", "FORMULA", "FILE_TEXT") and not self.c.at_least("VCL 0.4"):
-            self.error(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it")
+            self.error(coded(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it", "V218"))
         args = call.positional
         n = len(args)
         if name == "COUNTIFS":
@@ -1488,7 +1489,7 @@ class AssertionChecker:
             ok = n == len(kinds)
             want = f"{len(kinds)} argument{'s' if len(kinds) > 1 else ''}"
         if not ok:
-            self.error(f"{call.name} takes {want}, got {n}")
+            self.error(coded(f"{call.name} takes {want}, got {n}", "V219"))
             return
         for kind, items in zip(kinds, args):
             self.argument(call.name, kind, items)
@@ -1498,7 +1499,7 @@ class AssertionChecker:
         single = items[0] if len(items) == 1 else None
         if kind in ("range", "cell"):
             if not is_tok(single, "range"):
-                self.error(f"{fname} needs a <Sheet>!<range> here, got '{text}'")
+                self.error(coded(f"{fname} needs a <Sheet>!<range> here, got '{text}'", "V220"))
                 return
             if single.quoted and self.quoted(single):
                 return
@@ -1507,44 +1508,44 @@ class AssertionChecker:
                 ref = single.ref
                 if (single.header is not None and not single.row) or \
                         (single.header is None and (":" in ref or not re.search(r"\d", ref))):
-                    self.error(f"{fname} needs one cell, like Sheet![Header]2 or Sheet!B2, got '{text}'")
+                    self.error(coded(f"{fname} needs one cell, like Sheet![Header]2 or Sheet!B2, got '{text}'", "V221"))
         elif kind == "crit":
             if not (is_tok(single, "string") or is_tok(single, "number")
                     or (len(items) == 2 and is_tok(items[0], "op", "-") and is_tok(items[1], "number"))):
-                self.error(f"{fname} criteria must be a \"quoted\" text or a number, got '{text}'")
+                self.error(coded(f"{fname} criteria must be a \"quoted\" text or a number, got '{text}'", "V222"))
         elif kind == "sheet":
             if is_tok(single, "qsheet"):
                 if not self.quoted(single):
                     self.sheet(single.sheet)
             elif not is_tok(single, "name"):
-                self.error(f"{fname} needs a sheet name, got '{text}'")
+                self.error(coded(f"{fname} needs a sheet name, got '{text}'", "V223"))
             else:
                 self.sheet(single.text)
         elif kind == "string" or (kind == "path" and not self.c.at_least("VCL 0.3")):
             if not is_tok(single, "string"):
-                self.error(f'{fname} needs a "quoted" name, got \'{text}\'')
+                self.error(coded(f'{fname} needs a "quoted" name, got \'{text}\'', "V224"))
         elif kind == "path":   # VCL 0.3: below one of this TEST's FIXTURE folders (F7)
             folders = {f.folder.casefold() for f in self.c.folders if f.file == self.test.fixture}
             parts = single.text[1:-1].replace('""', '"').split("\\") if is_tok(single, "string") else []
             if not parts or parts[0].casefold() not in folders:
-                self.error(f'{fname} needs a "quoted" path that starts with a FIXTURE folder of {self.test.fixture}, '
-                           f'like "Jobs\\J-101\\r1.pdf", got \'{text}\'')
+                self.error(coded(f'{fname} needs a "quoted" path that starts with a FIXTURE folder of {self.test.fixture}, '
+                           f'like "Jobs\\J-101\\r1.pdf", got \'{text}\'', "V225"))
             elif any(safe_name(part) != part for part in parts):
-                self.error(f"{fname}: {text} is not a safe path (every part must be a SAFE_NAME)")
+                self.error(coded(f"{fname}: {text} is not a safe path (every part must be a SAFE_NAME)", "V226"))
         elif kind == "hex":
             if not (is_tok(single, "hex") and HEX_COLOUR.fullmatch(single.text)):
-                self.error(f"{fname} needs a #RRGGBB colour, got '{text}'")
+                self.error(coded(f"{fname} needs a #RRGGBB colour, got '{text}'", "V227"))
 
     def quoted(self, tok):
         """D57: a sheet name in 'quotes' is VCL 0.5, only for a name that isn't one word, and one Excel allows.
         True when it is refused."""
         plain = f"{tok.sheet}!{tok.ref}" if tok.kind == "range" else tok.sheet
         if not self.c.at_least("VCL 0.5"):
-            self.error(f"{tok.text}: a sheet name in quotes is VCL 0.5: start the spec with 'VCL 0.5' to use it")
+            self.error(coded(f"{tok.text}: a sheet name in quotes is VCL 0.5: start the spec with 'VCL 0.5' to use it", "V228"))
         elif SHEET_NAME.fullmatch(tok.sheet):
-            self.error(f"{tok.text}: {tok.sheet} is one word, so write {plain} without quotes")
+            self.error(coded(f"{tok.text}: {tok.sheet} is one word, so write {plain} without quotes", "V229"))
         elif not sheet_name_ok(tok.sheet):
-            self.error(f"{tok.text}: '{tok.sheet}' can't be a sheet name (S23)")
+            self.error(coded(f"{tok.text}: '{tok.sheet}' can't be a sheet name (S23)", "V230"))
         else:
             return False
         return True
@@ -1552,7 +1553,7 @@ class AssertionChecker:
     def sheet(self, name):
         if self.sheets is None or name in self.sheets or self.c.sheet_ops:
             return False
-        self.error(f"sheet {name} is not in {self.test.fixture}")
+        self.error(coded(f"sheet {name} is not in {self.test.fixture}", "V231"))
         return True
 
     def range(self, tok):
@@ -1560,8 +1561,8 @@ class AssertionChecker:
             return
         known = self.headers.get(tok.sheet)
         if known is not None and norm(tok.header) not in known:
-            self.error(f"sheet {tok.sheet} has no [{tok.header}] header in this TEST (not in its FIXTURE cols, "
-                       "and not written or copied into row 1)")
+            self.error(coded(f"sheet {tok.sheet} has no [{tok.header}] header in this TEST (not in its FIXTURE cols, "
+                       "and not written or copied into row 1)", "V232"))
 
 
 def path_root(items):
@@ -1582,42 +1583,42 @@ def check_folders(checker, folders, fixtures):
     for ff in folders:
         line = ff.line
         if not checker.at_least("VCL 0.3"):
-            checker.error("folder FIXTUREs are VCL 0.3: start the spec with 'VCL 0.3' to use them", line)
+            checker.error(coded("folder FIXTUREs are VCL 0.3: start the spec with 'VCL 0.3' to use them", "V233"), line)
         if not FIXTURE_FILE.fullmatch(ff.file):
-            checker.error(f"fixture file {ff.file} must be named like snake_case_01.xlsx (rule 12)", line)
+            checker.error(coded(f"fixture file {ff.file} must be named like snake_case_01.xlsx (rule 12)", "V234"), line)
         if not SHEET_NAME.fullmatch(ff.folder):
-            checker.error(f"fixture folder name {ff.folder} must be one word, so TESTs can pass it bare", line)
+            checker.error(coded(f"fixture folder name {ff.folder} must be one word, so TESTs can pass it bare", "V235"), line)
         if (ff.file, ff.folder) in seen:
-            checker.error(f"{ff.file} has two FIXTURE lines for folder {ff.folder}", line)
+            checker.error(coded(f"{ff.file} has two FIXTURE lines for folder {ff.folder}", "V236"), line)
         if (ff.file, ff.folder) in sheets:
-            checker.error(f"{ff.file} has a sheet and a folder named {ff.folder}: a TEST could not tell them apart",
+            checker.error(coded(f"{ff.file} has a sheet and a folder named {ff.folder}: a TEST could not tell them apart", "V237"),
                           line)
         seen.add((ff.file, ff.folder))
         paths, shown = [], {}
         for path, _, text in ff.files:
             if text is not None and not checker.at_least("VCL 0.4"):
-                checker.error(f'FIXTURE files: {path}:"..." (a text file) is VCL 0.4: start the spec with '
-                              "'VCL 0.4' to use it", line)
+                checker.error(coded(f'FIXTURE files: {path}:"..." (a text file) is VCL 0.4: start the spec with '
+                              "'VCL 0.4' to use it", "V238"), line)
             elif text is not None and any(not 32 <= ord(ch) <= 126 for ch in text):
-                checker.error(f"FIXTURE files: the text of {path} must be one line of printable ASCII (D45)", line)
+                checker.error(coded(f"FIXTURE files: the text of {path} must be one line of printable ASCII (D45)", "V239"), line)
             parts = path.split("\\")
             bad = next((part for part in parts if safe_name(part) != part), None)
             if bad is not None:
-                checker.error(f"FIXTURE files: {path} is not a safe path: {bad or 'an empty part'} is not "
-                              "a safe name (see SAFE_NAME)", line)
+                checker.error(coded(f"FIXTURE files: {path} is not a safe path: {bad or 'an empty part'} is not "
+                              "a safe name (see SAFE_NAME)", "V240"), line)
             if path.casefold() in paths:
-                checker.error(f"FIXTURE folder {ff.folder} lists {path} twice", line)
+                checker.error(coded(f"FIXTURE folder {ff.folder} lists {path} twice", "V241"), line)
             paths.append(path.casefold())
             shown.setdefault(path.casefold(), path)
         for path in paths:
             if any(other.startswith(path + "\\") for other in paths):
-                checker.error(f"FIXTURE folder {ff.folder}: {shown[path]} is a file, so nothing can be below it",
+                checker.error(coded(f"FIXTURE folder {ff.folder}: {shown[path]} is a file, so nothing can be below it", "V242"),
                               line)
         for path in ff.locked:
             if path.casefold() not in paths:
-                checker.error(f"FIXTURE locked= {path} is not one of the folder's files=", line)
+                checker.error(coded(f"FIXTURE locked= {path} is not one of the folder's files=", "V243"), line)
         if len({p.casefold() for p in ff.locked}) != len(ff.locked):
-            checker.error(f"FIXTURE folder {ff.folder} lists a locked file twice", line)
+            checker.error(coded(f"FIXTURE folder {ff.folder} lists a locked file twice", "V244"), line)
 
 
 def check_fixtures(checker, fixtures):
@@ -1625,42 +1626,42 @@ def check_fixtures(checker, fixtures):
     for fx in fixtures:
         line = fx.line
         if not FIXTURE_FILE.fullmatch(fx.file):
-            checker.error(f"fixture file {fx.file} must be named like snake_case_01.xlsx (rule 12)", line)
+            checker.error(coded(f"fixture file {fx.file} must be named like snake_case_01.xlsx (rule 12)", "V245"), line)
         if not SHEET_NAME.fullmatch(fx.sheet):
-            checker.error(f"fixture sheet name {fx.sheet} must be one word, so TESTs can pass it bare", line)
+            checker.error(coded(f"fixture sheet name {fx.sheet} must be one word, so TESTs can pass it bare", "V246"), line)
         if (fx.file, fx.sheet) in seen:
-            checker.error(f"{fx.file} has two FIXTURE lines for sheet {fx.sheet}", line)
+            checker.error(coded(f"{fx.file} has two FIXTURE lines for sheet {fx.sheet}", "V247"), line)
         seen.add((fx.file, fx.sheet))
         letters = [col for col, _ in fx.headers]
         expected = [column_letter(i) for i in range(len(letters))]
         if letters != expected:
-            checker.error(f"FIXTURE cols must run {', '.join(expected)} in order, got {', '.join(letters)}", line)
+            checker.error(coded(f"FIXTURE cols must run {', '.join(expected)} in order, got {', '.join(letters)}", "V248"), line)
         names = Counter(norm(h) for _, h in fx.headers)
         for header, n in names.items():
             if n > 1:
-                checker.error(f'FIXTURE sheet {fx.sheet} has the header "{header}" twice', line)
+                checker.error(coded(f'FIXTURE sheet {fx.sheet} has the header "{header}" twice', "V249"), line)
         if fx.rows == 0 and fx.rules:
-            checker.error("rows=0 creates a header-only sheet, so it can't have data rules", line)
+            checker.error(coded("rows=0 creates a header-only sheet, so it can't have data rules", "V250"), line)
         ruled = Counter(rule.col for rule in fx.rules)
         for col, n in ruled.items():
             if n > 1:
-                checker.error(f"FIXTURE data has two rules for column {col}", line)
+                checker.error(coded(f"FIXTURE data has two rules for column {col}", "V251"), line)
         for rule in fx.rules:
             if rule.col not in letters:
-                checker.error(f"FIXTURE data uses column {rule.col}, which is not in cols=", line)
+                checker.error(coded(f"FIXTURE data uses column {rule.col}, which is not in cols=", "V252"), line)
             check_modifiers(checker, rule, fx.rows, line)
             if rule.kind == "values":
                 total = sum(count for _, count in rule.args)
                 if total != fx.rows:
-                    checker.error(f"{rule.col}: values(...) counts add up to {total}, but rows={fx.rows}", line)
+                    checker.error(coded(f"{rule.col}: values(...) counts add up to {total}, but rows={fx.rows}", "V253"), line)
             elif rule.kind in ("int", "num", "dates", "reldates"):
                 lo, hi = rule.args
                 if (lo > hi) if rule.kind == "dates" else (float(lo) > float(hi)):
-                    checker.error(f"{rule.col}: {rule.kind}() starts after it ends", line)
+                    checker.error(coded(f"{rule.col}: {rule.kind}() starts after it ends", "V254"), line)
             elif rule.kind == "text" and int(rule.args[0]) < 1:
-                checker.error(f"{rule.col}: text() needs a length of 1 or more", line)
+                checker.error(coded(f"{rule.col}: text() needs a length of 1 or more", "V255"), line)
         if fx.stale and fx.rows and fx.stale > fx.rows:
-            checker.error(f"stale={fx.stale} is more than rows={fx.rows}", line)
+            checker.error(coded(f"stale={fx.stale} is more than rows={fx.rows}", "V256"), line)
 
 
 MODIFIER_ORDER = ["boundary", "blank", "dupes"]
@@ -1673,28 +1674,28 @@ def check_modifiers(checker, rule, rows, line):
     col = rule.col
     for name in sorted(set(rule.mods)):
         if rule.mods.count(name) > 1:
-            checker.error(f"{col}: +{name}() is written twice", line)
+            checker.error(coded(f"{col}: +{name}() is written twice", "V257"), line)
     positions = [MODIFIER_ORDER.index(name) for name in rule.mods]
     if positions != sorted(positions):
-        checker.error(f"{col}: write the modifiers in this order: +boundary, +blank, +dupes", line)
+        checker.error(coded(f"{col}: write the modifiers in this order: +boundary, +blank, +dupes", "V258"), line)
     top = len(rule.boundary)
     if top > rows:
-        checker.error(f"{col}: +boundary has {top} values, but rows={rows}", line)
+        checker.error(coded(f"{col}: +boundary has {top} values, but rows={rows}", "V259"), line)
     if rule.blank > max(rows - top, 0):
-        checker.error(f"{col}: +blank({rule.blank}) is more than the {max(rows - top, 0)} rows below the "
-                      "boundary rows", line)
+        checker.error(coded(f"{col}: +blank({rule.blank}) is more than the {max(rows - top, 0)} rows below the "
+                      "boundary rows", "V260"), line)
     if "dupes" in rule.mods and rule.dupes < 1:
-        checker.error(f"{col}: +dupes() needs 1 or more", line)
+        checker.error(coded(f"{col}: +dupes() needs 1 or more", "V261"), line)
     want = BOUNDARY_KIND.get(rule.kind)
     for kind, value in rule.boundary:
         if kind == "text" and value == "":
             continue  # "" is a blank cell, allowed for every rule
         if want and kind != want:
-            checker.error(f"{col}: +boundary value {value!r} doesn't fit {rule.kind}() (use "
-                          f"{ {'text': 'quoted text', 'number': 'numbers', 'date': 'yyyy-mm-dd dates'}[want] })",
+            checker.error(coded(f"{col}: +boundary value {value!r} doesn't fit {rule.kind}() (use "
+                          f"{ {'text': 'quoted text', 'number': 'numbers', 'date': 'yyyy-mm-dd dates'}[want] })", "V262"),
                           line)
         elif rule.kind == "reldates" and not re.fullmatch(r"-?\d+", value):
-            checker.error(f"{col}: reldates() +boundary values are whole numbers of days, got {value}", line)
+            checker.error(coded(f"{col}: reldates() +boundary values are whole numbers of days, got {value}", "V263"), line)
     if rule.kind == "values":
         listed = Counter()
         for text, count in rule.args:
@@ -1702,8 +1703,8 @@ def check_modifiers(checker, rule, rows, line):
         wanted = Counter(value for kind, value in rule.boundary if kind == "text")
         for value, n in wanted.items():
             if n > listed[value]:
-                checker.error(f'{col}: +boundary uses "{value}" {n} times, but values(...) has it '
-                              f"{listed[value]} times", line)
+                checker.error(coded(f'{col}: +boundary uses "{value}" {n} times, but values(...) has it '
+                              f"{listed[value]} times", "V264"), line)
 
 
 # ---------------------------------------------------------------- BUILD checks
@@ -1717,52 +1718,52 @@ def check_build(spec):
     counts = Counter(k.key for k in spec.keys)
     for key in ("NAME", "TARGET", "ENTRY", "MODULE", "SIG", "FLOW"):
         if not counts[key]:
-            error(f"BUILD is missing {key}", spec.line)
+            error(coded(f"BUILD is missing {key}", "V265"), spec.line)
     for key in ("NAME", "TARGET", "ENTRY"):
         for extra in spec.lines(key)[1:]:
-            error(f"{key} appears more than once", extra.line)
+            error(coded(f"{key} appears more than once", "V266"), extra.line)
     for k in spec.lines("NAME")[:1]:
         if not PASCAL.fullmatch(k.value):
-            error(f"NAME must be PascalCase, got '{k.value}'", k.line)
+            error(coded(f"NAME must be PascalCase, got '{k.value}'", "V267"), k.line)
     for k in spec.lines("TARGET")[:1]:
         if k.value not in ("xlsm", "xlam"):
-            error(f"TARGET must be xlsm or xlam, got '{k.value}'", k.line)
+            error(coded(f"TARGET must be xlsm or xlam, got '{k.value}'", "V268"), k.line)
     for k in spec.lines("ENTRY")[:1]:
         if k.value != "modMain.Run":
-            error(f"ENTRY must be modMain.Run, got '{k.value}'", k.line)
+            error(coded(f"ENTRY must be modMain.Run, got '{k.value}'", "V269"), k.line)
     modules = {k.value for k in spec.lines("MODULE")}
     for k in spec.lines("MODULE"):
         if not MODULE_NAME.fullmatch(k.value):
-            error(f"MODULE must be mod + PascalCase, got '{k.value}'", k.line)
+            error(coded(f"MODULE must be mod + PascalCase, got '{k.value}'", "V270"), k.line)
     if spec.lines("MODULE") and "modMain" not in modules:
-        error("a BUILD always has MODULE modMain", spec.lines("MODULE")[0].line)
+        error(coded("a BUILD always has MODULE modMain", "V271"), spec.lines("MODULE")[0].line)
     forms = {f.name for f in spec.forms}
     for form in spec.forms:
         if not FORM_NAME.fullmatch(form.name):
-            error(f"FORM name must be frm + PascalCase, got '{form.name}'", form.line)
+            error(coded(f"FORM name must be frm + PascalCase, got '{form.name}'", "V272"), form.line)
         for control, ctype in form.controls:
             if ctype not in CONTROL_TYPES:
-                error(f"unknown control type {ctype} (use {', '.join(sorted(CONTROL_TYPES))})", form.line)
+                error(coded(f"unknown control type {ctype} (use {', '.join(sorted(CONTROL_TYPES))})", "V273"), form.line)
     sigs = {}
     for sig in spec.sigs:
         full = f"{sig.module}.{sig.proc}"
         if sig.module not in modules | forms:
-            error(f"SIG {full}: {sig.module} is not a MODULE or FORM", sig.line)
+            error(coded(f"SIG {full}: {sig.module} is not a MODULE or FORM", "V274"), sig.line)
         if full in sigs:
-            error(f"SIG {full} appears twice", sig.line)
+            error(coded(f"SIG {full} appears twice", "V275"), sig.line)
         sigs[full] = sig
         for decl in sig.params:
             if decl.type not in TYPES:
-                error(f"unknown type {decl.type}", sig.line)
+                error(coded(f"unknown type {decl.type}", "V276"), sig.line)
         if sig.ret and sig.ret not in TYPES:
-            error(f"unknown type {sig.ret}", sig.line)
+            error(coded(f"unknown type {sig.ret}", "V277"), sig.line)
     for needed in ("modMain.Run", "modMain.RunHeadless"):
         if spec.sigs and needed not in sigs:
-            error(f"a BUILD needs SIG {needed}(...)", spec.sigs[0].line)
+            error(coded(f"a BUILD needs SIG {needed}(...)", "V278"), spec.sigs[0].line)
     for line, names in spec.flows:
         for name in names:
             if name not in sigs and not any(s.proc == name for s in spec.sigs):
-                error(f"FLOW names {name or '(nothing)'}, which has no SIG", line)
+                error(coded(f"FLOW names {name or '(nothing)'}, which has no SIG", "V279"), line)
 
     # the BUILD's own TESTs call modMain.RunHeadless
     headless = sigs.get("modMain.RunHeadless")
@@ -1783,16 +1784,16 @@ def check_build(spec):
     for test in spec.tests:
         shim.line = test.line
         if test.fixture == "target":
-            shim.error("fixture=target is not allowed: use a named synthetic FIXTURE (rule 18)")
+            shim.error(coded("fixture=target is not allowed: use a named synthetic FIXTURE (rule 18)", "V280"))
             continue
         if test.procedure != "modMain.RunHeadless":
-            shim.error(f"a BUILD TEST calls modMain.RunHeadless, not {test.procedure}")
+            shim.error(coded(f"a BUILD TEST calls modMain.RunHeadless, not {test.procedure}", "V281"))
         if headless and len(test.args) != len(headless.params):
-            shim.error(f"TEST passes {len(test.args)} arguments, but modMain.RunHeadless takes "
-                       f"{len(headless.params)}")
+            shim.error(coded(f"TEST passes {len(test.args)} arguments, but modMain.RunHeadless takes "
+                       f"{len(headless.params)}", "V282"))
         sheets = files.get(test.fixture)
         if sheets is None:
-            shim.error(f"TEST uses fixture {test.fixture}, but no FIXTURE line builds it")
+            shim.error(coded(f"TEST uses fixture {test.fixture}, but no FIXTURE line builds it", "V283"))
         headers = None
         if sheets is not None:
             all_headers = {norm(h) for fx in sheets.values() for _, h in fx.headers} | written
@@ -1800,13 +1801,13 @@ def check_build(spec):
         flags.append(check_assertion(shim, test, sheets, headers))
     first = spec.tests[0].line if spec.tests else spec.line
     if len(spec.tests) < 2:
-        shim.error("a BUILD needs at least two TEST lines (rule 5)", first)
+        shim.error(coded("a BUILD needs at least two TEST lines (rule 5)", "V284"), first)
     if spec.tests and not any(f["error_count_0"] for f in flags):
-        shim.error("no TEST checks ERROR_COUNT = 0 (rule 5)", first)
+        shim.error(coded("no TEST checks ERROR_COUNT = 0 (rule 5)", "V285"), first)
     if spec.tests and not any(f["pre"] for f in flags):
-        shim.error("no TEST guards against collateral changes with a PRE_ measure (rule 5)", first)
+        shim.error(coded("no TEST guards against collateral changes with a PRE_ measure (rule 5)", "V286"), first)
     if spec.tests and not any(t.runs >= 2 for t in spec.tests):
-        shim.error("no TEST uses runs=2 to prove re-runs are safe (rule 16)", first)
+        shim.error(coded("no TEST uses runs=2 to prove re-runs are safe (rule 16)", "V287"), first)
     check_fixtures(shim, spec.fixtures)
     check_folders(shim, spec.folders, spec.fixtures)
     problems += shim.problems
@@ -1819,30 +1820,30 @@ def check_build(spec):
         full = f"{task.value('MODULE')}.{task.value('PROC')}"
         sig = sigs.get(full)
         if sig is None:
-            error(f"TASK {full} has no matching SIG", task.line)
+            error(coded(f"TASK {full} has no matching SIG", "V288"), task.line)
         elif full in matched:
-            error(f"two TASK sections for {full}", task.line)
+            error(coded(f"two TASK sections for {full}", "V289"), task.line)
         else:
             matched.add(full)
             kind = "Function" if sig.ret else "Sub"
             if task.value("KIND") != kind:
-                error(f"TASK {full} must be KIND {kind} to match its SIG", task.line)
+                error(coded(f"TASK {full} must be KIND {kind} to match its SIG", "V290"), task.line)
             if sig.ret and task.value("RET") != sig.ret:
-                error(f"TASK {full} must have RET {sig.ret} to match its SIG", task.line)
+                error(coded(f"TASK {full} must have RET {sig.ret} to match its SIG", "V291"), task.line)
             if [(d.name, d.type) for d in task.args] != [(d.name, d.type) for d in sig.params]:
-                error(f"TASK {full} ARGS don't match its SIG", task.line)
+                error(coded(f"TASK {full} ARGS don't match its SIG", "V292"), task.line)
         checker = TaskChecker(task, in_build=True, build_fixtures=spec.fixtures, build_folders=spec.folders)
         problems += checker.run()
         checkers.setdefault(full, checker)
         for line, target, nargs, _, _ in checker.calls:
             if target not in sigs:
-                problems.append(Problem(line, "error", f"CALL {target} has no SIG in this BUILD"))
+                problems.append(Problem(line, "error", coded(f"CALL {target} has no SIG in this BUILD", "V293")))
             elif nargs != len(sigs[target].params):
-                problems.append(Problem(line, "error", f"CALL {target} passes {nargs} arguments, but its SIG "
-                                                       f"takes {len(sigs[target].params)}"))
+                problems.append(Problem(line, "error", coded(f"CALL {target} passes {nargs} arguments, but its SIG "
+                                                       f"takes {len(sigs[target].params)}", "V294")))
     for full, sig in sigs.items():
         if full not in matched:
-            error(f"SIG {full} has no TASK section after ---", sig.line)
+            error(coded(f"SIG {full} has no TASK section after ---", "V295"), sig.line)
     if VERSION_RANK.get(spec.version, 1) >= VERSION_RANK["VCL 0.5"]:
         found, passed_on = check_build_05(spec, sigs, checkers)
         # a MODIFIES line a CALL uses is not unused: the callee makes that change (D49)
@@ -1903,17 +1904,17 @@ def check_build_05(spec, sigs, checkers):
         problems.append(Problem(line, "error", message))
 
     for form in spec.forms:
-        error(f"FORM {form.name}: a UserForm can't be pasted in as text, so FORM waits until after March 2027 "
-              "(D49); modMain.Run starts the tool", form.line)
+        error(coded(f"FORM {form.name}: a UserForm can't be pasted in as text, so FORM waits until after March 2027 "
+              "(D49); modMain.Run starts the tool", "V296"), form.line)
     for k in spec.lines("TARGET")[:1]:
         if k.value == "xlam":
-            error("TARGET xlam waits (D49): an add-in's THIS_BOOK is the add-in, not the data; use TARGET xlsm",
+            error(coded("TARGET xlam waits (D49): an add-in's THIS_BOOK is the add-in, not the data; use TARGET xlsm", "V297"),
                   k.line)
     homes = {}
     for sig in spec.sigs:
         if homes.setdefault(sig.proc, sig.module) != sig.module:
-            error(f"SIG {sig.module}.{sig.proc}: {homes[sig.proc]}.{sig.proc} has the same name; a BUILD calls its "
-                  "procedures by name, so each name is used once (D49)", sig.line)
+            error(coded(f"SIG {sig.module}.{sig.proc}: {homes[sig.proc]}.{sig.proc} has the same name; a BUILD calls its "
+                  "procedures by name, so each name is used once (D49)", "V298"), sig.line)
 
     edges = {}   # caller -> {callee: first line}
     passed_on = {}   # id(caller's checker) -> its $arguments a callee may change
@@ -1925,13 +1926,13 @@ def check_build_05(spec, sigs, checkers):
                 continue   # reported with the BUILD's other CALL checks
             edges.setdefault(caller, {}).setdefault(target, line)
             if from_run and target != "modMain.RunHeadless":
-                error(f"modMain.Run only CALLs modMain.RunHeadless, got {target} (D49)", line)
+                error(coded(f"modMain.Run only CALLs modMain.RunHeadless, got {target} (D49)", "V299"), line)
             if into is not None:
                 v = into[0].text if len(into) == 1 and is_tok(into[0], "name") else None
                 if not sig.ret:
-                    error(f"CALL {target} into=: {target} is a Sub, so it gives no result", line)
+                    error(coded(f"CALL {target} into=: {target} is a Sub, so it gives no result", "V300"), line)
                 elif v in checker.vars and checker.vars[v] != sig.ret:
-                    error(f"CALL {target} gives a {sig.ret}, but VAR {v} is {checker.vars[v]}", line)
+                    error(coded(f"CALL {target} gives a {sig.ret}, but VAR {v} is {checker.vars[v]}", "V301"), line)
             callee = checkers.get(target)
             for decl, items in zip(sig.params, args):
                 own = items[0].text[1:] if len(items) == 1 and is_tok(items[0], "arg") else None
@@ -1942,27 +1943,27 @@ def check_build_05(spec, sigs, checkers):
                                and is_tok(items[0].positional[0][0], "name", "THIS_BOOK")
                                and len(items[0].positional[1]) == 1 and is_tok(items[0].positional[1][0], "string"))
                     if decl.type == "Worksheet" and not by_name:
-                        error(f'CALL {target}: modMain.Run passes ${decl.name} as SHEET(THIS_BOOK, "<real name>") (D49)',
+                        error(coded(f'CALL {target}: modMain.Run passes ${decl.name} as SHEET(THIS_BOOK, "<real name>") (D49)', "V302"),
                               line)
                     elif decl.type == "Workbook" and not (len(items) == 1 and is_tok(items[0], "name", "THIS_BOOK")):
-                        error(f"CALL {target}: modMain.Run passes ${decl.name} as THIS_BOOK (D49)", line)
+                        error(coded(f"CALL {target}: modMain.Run passes ${decl.name} as THIS_BOOK (D49)", "V303"), line)
                     elif decl.type == "Range":
-                        error(f"CALL {target}: modMain.Run can't pass a Range; let RunHeadless take a sheet (D49)",
+                        error(coded(f"CALL {target}: modMain.Run can't pass a Range; let RunHeadless take a sheet (D49)", "V304"),
                               line)
                     continue
                 if (decl.type in OBJECT_TYPES or changes) and own is None:
-                    error(f"CALL {target}: pass ${decl.name} as one of this procedure's own $arguments, written as "
-                          "$name, so MODIFIES can follow it (D49)", line)
+                    error(coded(f"CALL {target}: pass ${decl.name} as one of this procedure's own $arguments, written as "
+                          "$name, so MODIFIES can follow it (D49)", "V305"), line)
                     continue
                 if own is not None and decl.type in OBJECT_TYPES and checker.args.get(own) != decl.type:
-                    error(f"CALL {target}: ${decl.name} is a {decl.type}, but ${own} is a {checker.args.get(own)}", line)
+                    error(coded(f"CALL {target}: ${decl.name} is a {decl.type}, but ${own} is a {checker.args.get(own)}", "V306"), line)
                     continue
                 if changes:
                     passed_on.setdefault(id(checker), set()).add(own)
                 for change in sorted(changes, key=str):
                     if not allows(checker, own, change):
-                        error(f"CALL {target} may change ${decl.name} ({modifies_form(decl.name, change)}), so this "
-                              f"procedure needs {modifies_form(own, change)} too (D49)", line)
+                        error(coded(f"CALL {target} may change ${decl.name} ({modifies_form(decl.name, change)}), so this "
+                              f"procedure needs {modifies_form(own, change)} too (D49)", "V307"), line)
 
     # no recursion: every loop has a bound (CLAUDE.md)
     state = {}
@@ -1972,7 +1973,7 @@ def check_build_05(spec, sigs, checkers):
         for nxt, line in edges.get(node, {}).items():
             if state.get(nxt) == "open":
                 cycle = path[path.index(nxt):] + [nxt]
-                error(f"CALL makes a cycle ({' -> '.join(cycle)}): a BUILD has no recursion (D49)", line)
+                error(coded(f"CALL makes a cycle ({' -> '.join(cycle)}): a BUILD has no recursion (D49)", "V308"), line)
             elif nxt not in state:
                 visit(nxt, path + [nxt])
         state[node] = "done"
@@ -1994,16 +1995,16 @@ def check_build_05(spec, sigs, checkers):
             a, b = full_name(a), full_name(b)
             flowed.add((a, b))
             if b not in edges.get(a, {}):
-                error(f"FLOW says {a} -> {b}, but {a} has no CALL to {b} (D49)", line)
+                error(coded(f"FLOW says {a} -> {b}, but {a} has no CALL to {b} (D49)", "V309"), line)
     for caller, targets in edges.items():
         for target, line in targets.items():
             if (caller, target) not in flowed:
-                error(f"{caller} CALLs {target}, but no FLOW line shows {caller} -> {target} (D49)", line)
+                error(coded(f"{caller} CALLs {target}, but no FLOW line shows {caller} -> {target} (D49)", "V310"), line)
 
     # modMain.Run starts the tool and has nothing left to test
     run_sig = sigs.get("modMain.Run")
     if run_sig is not None and (run_sig.params or run_sig.ret):
-        error("SIG modMain.Run() takes no arguments and gives no result: it starts the tool (D49)", run_sig.line)
+        error(coded("SIG modMain.Run() takes no arguments and gives no result: it starts the tool (D49)", "V311"), run_sig.line)
     for task in spec.tasks:
         if f"{task.value('MODULE')}.{task.value('PROC')}" != "modMain.Run":
             continue
@@ -2014,8 +2015,8 @@ def check_build_05(spec, sigs, checkers):
                 after = re.findall(r"[A-Z_]+", node.text.split(" THEN ", 1)[1])
                 word = after[0] if after else ""
             if word not in RUN_STEPS:
-                error(f"modMain.Run only CALLs modMain.RunHeadless, LETs, IFs and MSGs, so nothing in it goes "
-                      f"untested (D49); move {word or 'this step'} into RunHeadless", node.line)
+                error(coded(f"modMain.Run only CALLs modMain.RunHeadless, LETs, IFs and MSGs, so nothing in it goes "
+                      f"untested (D49); move {word or 'this step'} into RunHeadless", "V312"), node.line)
     return problems, passed_on
 
 
@@ -2044,7 +2045,7 @@ def grammar_and_type_problems(text, known, sigs=None):
     checker on every TASK it parsed. Problems on lines that already have a stage 1 error are left out."""
     bad_lines = {p.line for p in known if p.severity == "error"}
     spec, found = grammar_parse(text)
-    out = [Problem(line, "error", f"grammar: {msg}") for line, msg in found if line not in bad_lines]
+    out = [Problem(line, "error", coded(f"grammar: {msg}", code_of(msg))) for line, msg in found if line not in bad_lines]
     if found or spec is None:
         return out
     tasks = [spec] if spec["kind"] == "TASK" else spec.get("tasks", []) if spec["kind"] == "BUILD" else []
@@ -2055,7 +2056,7 @@ def grammar_and_type_problems(text, known, sigs=None):
                 sheet_rows(fx)
                 stale_rows(fx)
             except ValueError as exc:
-                out.append(Problem(k["line"], "error", f"fixture: {exc}"))
+                out.append(Problem(k["line"], "error", coded(f"fixture: {exc}", code_of(exc.args[0] if exc.args else ""))))
     for task in tasks:
         if not task or task.get("kind") != "TASK":
             continue
@@ -2064,9 +2065,9 @@ def grammar_and_type_problems(text, known, sigs=None):
         except Exception as exc:  # a crash here is a bug in the type checker, never in the spec
             if not bad_lines:
                 out.append(Problem(task["keys"][0]["line"] if task["keys"] else 1, "error",
-                                   f"the type checker could not read this spec ({type(exc).__name__}: {exc})"))
+                                   coded(f"the type checker could not read this spec ({type(exc).__name__}: {exc})", "V313")))
             continue
-        out += [Problem(line, "error", f"type: {msg}") for line, msg in typed if line not in bad_lines]
+        out += [Problem(line, "error", coded(f"type: {msg}", code_of(msg))) for line, msg in typed if line not in bad_lines]
     return out
 
 
@@ -2084,7 +2085,7 @@ def validate_file(path):
         with open(path, encoding="utf-8") as f:
             text = f.read()
     except (OSError, UnicodeDecodeError) as exc:
-        return [Problem(1, "error", f"cannot read file ({type(exc).__name__}: {exc})")]
+        return [Problem(1, "error", coded(f"cannot read file ({type(exc).__name__}: {exc})", "V314"))]
     return validate_text(text)
 
 
@@ -2109,7 +2110,7 @@ def main(argv):
     paths = expand(argv)
     for path in paths:
         for p in validate_file(path):
-            print(f"{path}:{p.line}: {p.severity}: {p.message}")
+            print(f"{path}:{p.line}: {p.severity}: {p.message}{tag(p.message)}")
             errors += p.severity == "error"
             warnings += p.severity == "warning"
     plural = lambda n, word: f"{n} {word}{'' if n == 1 else 's'}"

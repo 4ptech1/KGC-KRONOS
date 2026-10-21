@@ -11,6 +11,8 @@ import datetime
 import re
 from dataclasses import dataclass, field
 
+from errcodes import code_of, coded, strict
+
 VERSION = "VCL 0.1"
 VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5")  # each version keeps every spec of the one before valid
 TASK_KEYS = ["PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
@@ -23,6 +25,13 @@ class Problem:
     line: int
     severity: str  # "error" or "warning"
     message: str
+    code: str = field(default="", compare=False)   # V012: the message's stable code (VEP 0.6, D60)
+
+    def __post_init__(self):
+        if not self.code:
+            self.code = code_of(self.message)
+        if not self.code and strict():
+            raise ValueError(f"a message without a code (run compiler/gen_error_codes.py): {self.message!r}")
 
 
 @dataclass
@@ -184,8 +193,8 @@ def tokenize(text):
         m = TOKEN_RE.match(text, pos)
         if not m:
             if text[pos] == '"':
-                return tokens, "unclosed quote"
-            return tokens, f"unexpected character {text[pos]!r}"
+                return tokens, coded("unclosed quote", "V001")
+            return tokens, coded(f"unexpected character {text[pos]!r}", "V002")
         if m.lastgroup == "space":
             spaced = True
         else:
@@ -246,14 +255,14 @@ def parse_spec(text):
             text = text[1:]
         _parse(spec, [(n, line.rstrip()) for n, line in enumerate(text.splitlines(), 1)])
     except Exception as exc:  # safety net: a bug here must not crash the validator
-        spec.error(1, f"the parser could not read this spec ({type(exc).__name__}: {exc})")
+        spec.error(1, coded(f"the parser could not read this spec ({type(exc).__name__}: {exc})", "V003"))
     return spec
 
 
 def _parse(spec, lines):
     body = [(n, line) for n, line in lines if line.strip()]
     if not body:
-        spec.error(1, "the file is empty")
+        spec.error(1, coded("the file is empty", "V004"))
         return
     questions = [(n, line) for n, line in body if line.startswith("# QUESTION:")]
     if questions:
@@ -261,18 +270,18 @@ def _parse(spec, lines):
         spec.line = questions[0][0]
         spec.question = questions[0][1][len("# QUESTION:"):].strip()
         if not spec.question:
-            spec.error(spec.line, "# QUESTION: needs a question after it")
+            spec.error(spec.line, coded("# QUESTION: needs a question after it", "V005"))
         others = [n for n, _ in body if n != spec.line]
         if others:
-            spec.error(others[0], "a QUESTION reply contains only its '# QUESTION: <question>' line")
+            spec.error(others[0], coded("a QUESTION reply contains only its '# QUESTION: <question>' line", "V006"))
         return
     if body[0][1] in VERSIONS:
         spec.version = body[0][1]
     else:
-        spec.error(body[0][0], "the first line must be " + ", ".join(f"'{v}'" for v in VERSIONS[:-1])
-                   + f" or '{VERSIONS[-1]}'")
+        spec.error(body[0][0], coded("the first line must be " + ", ".join(f"'{v}'" for v in VERSIONS[:-1])
+                   + f" or '{VERSIONS[-1]}'", "V007"))
     if len(body) < 2 or body[1][1] not in ("TASK", "BUILD"):
-        spec.error(body[1][0] if len(body) > 1 else body[0][0], "the second line must be TASK or BUILD")
+        spec.error(body[1][0] if len(body) > 1 else body[0][0], coded("the second line must be TASK or BUILD", "V008"))
         return
     spec.kind, spec.line = body[1][1], body[1][0]
     if spec.kind == "TASK":
@@ -291,12 +300,12 @@ def _parse_build(spec, body):
             sections[-1].append((n, line))
     _parse_keys(spec, sections[0], BUILD_KEYS)
     if not separators:
-        spec.error(spec.line, "a BUILD needs one TASK spec per SIG, each after a '---' line")
+        spec.error(spec.line, coded("a BUILD needs one TASK spec per SIG, each after a '---' line", "V009"))
     for sep_line, section in zip(separators, sections[1:]):
         task = Spec(kind="TASK", line=sep_line, version=spec.version)
         if len(section) < 2 or section[0][1] != spec.version or section[1][1] != "TASK":
             spec.error(section[0][0] if section else sep_line,
-                       f"each section after '---' starts with '{spec.version}' and 'TASK'")
+                       coded(f"each section after '---' starts with '{spec.version}' and 'TASK'", "V010"))
             continue
         task.line = section[1][0]
         _parse_keys(task, section[2:], TASK_KEYS)
@@ -310,24 +319,24 @@ def _parse_keys(spec, body, allowed):
         if line.startswith("#"):
             if line.startswith("# ASSUME:"):
                 if seen_key:
-                    spec.error(n, "# ASSUME: lines go at the top, before the first key")
+                    spec.error(n, coded("# ASSUME: lines go at the top, before the first key", "V011"))
                 spec.assumes.append((n, line[len("# ASSUME:"):].strip()))
             elif line.startswith("# QUESTION:"):
-                spec.error(n, "a QUESTION reply contains only its '# QUESTION: <question>' line")
+                spec.error(n, coded("a QUESTION reply contains only its '# QUESTION: <question>' line", "V012"))
             else:
-                spec.error(n, "unknown comment: the only comment lines are '# ASSUME: <assumption>'")
+                spec.error(n, coded("unknown comment: the only comment lines are '# ASSUME: <assumption>'", "V013"))
             continue
         if line[0].isspace():
-            spec.error(n, "line starts with spaces: every line starts with a key")
+            spec.error(n, coded("line starts with spaces: every line starts with a key", "V014"))
             continue
         key = line.split()[0]
         if key not in allowed:
-            spec.error(n, f"unknown key {key}")
+            spec.error(n, coded(f"unknown key {key}", "V015"))
             continue
         seen_key = True
         index = allowed.index(key)
         if index < order_seen:
-            spec.error(n, f"{key} is out of order: it must come before {last_key}")
+            spec.error(n, coded(f"{key} is out of order: it must come before {last_key}", "V016"))
         else:
             order_seen, last_key = index, key
         raw = line[len(key):]
@@ -337,10 +346,10 @@ def _parse_keys(spec, body, allowed):
         if key == "OP":
             step = raw.lstrip(" ")
             if not step.strip():
-                spec.error(n, "OP needs a step")
+                spec.error(n, coded("OP needs a step", "V017"))
                 continue
             if step[0] == "\t":
-                spec.error(n, "use spaces, not tabs, to nest OP steps")
+                spec.error(n, coded("use spaces, not tabs, to nest OP steps", "V018"))
                 step = step.lstrip()
             col = len(line) - len(step)
             if op_col is None:
@@ -348,10 +357,10 @@ def _parse_keys(spec, body, allowed):
             extra = col - op_col
             level = extra // 2
             if extra < 0 or extra % 2:
-                spec.error(n, "bad nesting: nest a step exactly 2 spaces deeper than the step it belongs to")
+                spec.error(n, coded("bad nesting: nest a step exactly 2 spaces deeper than the step it belongs to", "V019"))
                 level = max(0, min(level, op_level + 1))
             elif level > op_level + 1:
-                spec.error(n, "bad nesting: a step can only be one level deeper than the step above it")
+                spec.error(n, coded("bad nesting: a step can only be one level deeper than the step above it", "V020"))
                 level = op_level + 1
             node = OpNode(n, step.strip())
             while op_stack and op_stack[-1][0] >= level:
@@ -364,7 +373,7 @@ def _parse_keys(spec, body, allowed):
                 _decl(spec, n, part, "ARGS", spec.args)
         elif key == "VAR":
             if "," in value:
-                spec.error(n, "VAR declares one variable per line")
+                spec.error(n, coded("VAR declares one variable per line", "V021"))
             _decl(spec, n, value, "VAR", spec.vars)
         elif key == "FIXTURE":
             _fixture(spec, n, value)
@@ -381,7 +390,7 @@ def _parse_keys(spec, body, allowed):
 def _decl(spec, n, text, where, into):
     m = DECL_RE.fullmatch(text)
     if not m:
-        spec.error(n, f"{where}: expected '<name> As <Type>', got '{text.strip()}'")
+        spec.error(n, coded(f"{where}: expected '<name> As <Type>', got '{text.strip()}'", "V022"))
         return
     into.append(Decl(n, m.group(1), m.group(2)))
 
@@ -394,27 +403,27 @@ def _fixture(spec, n, value):
     if not m:
         missing = [part for part in ("sheet=", "cols=", "rows=") if part not in value]
         hint = f" (missing {', '.join(missing)})" if missing else ""
-        spec.error(n, "FIXTURE must look like: <name>.xlsx sheet=<name> cols=<A:Header,...> rows=<n> "
-                      f"data=<col>:<rule>;...{hint}")
+        spec.error(n, coded("FIXTURE must look like: <name>.xlsx sheet=<name> cols=<A:Header,...> rows=<n> "
+                      f"data=<col>:<rule>;...{hint}", "V023"))
         return
     headers = []
     for item in m["cols"].split(","):
         col = re.fullmatch(r"\s*([A-Z]{1,3}):(.*\S)\s*", item)
         if not col:
-            spec.error(n, f"FIXTURE cols: expected <Letter>:<Header>, got '{item.strip()}'")
+            spec.error(n, coded(f"FIXTURE cols: expected <Letter>:<Header>, got '{item.strip()}'", "V024"))
             continue
         headers.append((col.group(1), col.group(2)))
     rows = 0
     if m["rows"].isdigit():
         rows = int(m["rows"])
     else:
-        spec.error(n, f"FIXTURE rows= must be a whole number, got '{m['rows']}'")
+        spec.error(n, coded(f"FIXTURE rows= must be a whole number, got '{m['rows']}'", "V025"))
     stale = 0
     if m["stale"] is not None:
         if m["stale"].isdigit() and int(m["stale"]) > 0:
             stale = int(m["stale"])
         else:
-            spec.error(n, f"FIXTURE stale= must be a whole number of 1 or more, got '{m['stale']}'")
+            spec.error(n, coded(f"FIXTURE stale= must be a whole number of 1 or more, got '{m['stale']}'", "V026"))
     rules = []
     if m["data"] is not None:
         for item in split_top(m["data"], ";"):
@@ -427,14 +436,14 @@ def _fixture(spec, n, value):
 def _folder_fixture(spec, n, value):
     m = FOLDER_RE.fullmatch(value)
     if not m:
-        spec.error(n, "a folder FIXTURE must look like: <name>.xlsx folder=<Name> "
-                      "[files=<path>[:<bytes>],...] [locked=<path>,...]")
+        spec.error(n, coded("a folder FIXTURE must look like: <name>.xlsx folder=<Name> "
+                      "[files=<path>[:<bytes>],...] [locked=<path>,...]", "V027"))
         return
     files = []
     for item in split_top(m["files"], ",") if m["files"] else []:
         entry = FILE_ENTRY_RE.fullmatch(item)
         if not entry:
-            spec.error(n, f'FIXTURE files: expected <path>, <path>:<bytes> or <path>:"<text>", got \'{item}\'')
+            spec.error(n, coded(f'FIXTURE files: expected <path>, <path>:<bytes> or <path>:"<text>", got \'{item}\'', "V028"))
             continue
         text = entry["text"][1:-1].replace('""', '"') if entry["text"] else None
         files.append((entry["path"], int(entry["size"]) if entry["size"] else None, text))
@@ -490,7 +499,7 @@ def _rule(spec, n, item):
     m = re.fullmatch(r"(?P<col>[A-Z]{1,3}):(?P<rest>.+)", item)
     calls = _calls(m["rest"]) if m else None
     if not calls:
-        spec.error(n, f"FIXTURE data: expected <col>:<rule>[+<modifier>...], got '{item}'")
+        spec.error(n, coded(f"FIXTURE data: expected <col>:<rule>[+<modifier>...], got '{item}'", "V029"))
         return None
     (kind, args), modifiers = calls[0], calls[1:]
     rule = Rule(m["col"], kind, [])
@@ -498,22 +507,22 @@ def _rule(spec, n, item):
         rule.mods.append(name)
         if name in ("blank", "dupes"):
             if not margs.strip().isdigit():
-                spec.error(n, f"FIXTURE data: +{name}() takes one whole number, got '{margs}'")
+                spec.error(n, coded(f"FIXTURE data: +{name}() takes one whole number, got '{margs}'", "V030"))
                 return None
             setattr(rule, name, int(margs))
         elif name == "boundary":
             values = _boundary_values(margs)
             if not values:
-                spec.error(n, f'FIXTURE data: +boundary() takes "text", numbers or yyyy-mm-dd dates, got \'{margs}\'')
+                spec.error(n, coded(f'FIXTURE data: +boundary() takes "text", numbers or yyyy-mm-dd dates, got \'{margs}\'', "V031"))
                 return None
             rule.boundary = values
         else:
-            spec.error(n, f"FIXTURE data: unknown modifier +{name}() (use +boundary, +blank or +dupes)")
+            spec.error(n, coded(f"FIXTURE data: unknown modifier +{name}() (use +boundary, +blank or +dupes)", "V032"))
             return None
     parts = [a.strip() for a in args.split(",")]
     if kind == "values":
         if not re.fullmatch(r'"(?:[^"]|"")*"x\d+(?:,"(?:[^"]|"")*"x\d+)*', args):
-            spec.error(n, f'FIXTURE data: values() takes "<text>"x<n>, ... , got \'{args}\'')
+            spec.error(n, coded(f'FIXTURE data: values() takes "<text>"x<n>, ... , got \'{args}\'', "V033"))
             return None
         rule.args = [(text.replace('""', '"'), int(count))
                      for text, count in re.findall(r'"((?:[^"]|"")*)"x(\d+)', args)]
@@ -521,7 +530,7 @@ def _rule(spec, n, item):
         pattern = r"-?\d+" if kind in ("int", "reldates") else NUMBER_RE.pattern
         if len(parts) != 2 or not all(re.fullmatch(pattern, p) for p in parts):
             what = "two whole numbers" if kind in ("int", "reldates") else "two numbers"
-            spec.error(n, f"FIXTURE data: {kind}() takes {what}, got '{args}'")
+            spec.error(n, coded(f"FIXTURE data: {kind}() takes {what}, got '{args}'", "V034"))
             return None
         rule.args = parts
     elif kind == "dates":
@@ -533,16 +542,16 @@ def _rule(spec, n, item):
                     raise ValueError
                 datetime.date.fromisoformat(p)
         except ValueError:
-            spec.error(n, f"FIXTURE data: dates() takes two yyyy-mm-dd dates, got '{args}'")
+            spec.error(n, coded(f"FIXTURE data: dates() takes two yyyy-mm-dd dates, got '{args}'", "V035"))
             return None
         rule.args = parts
     elif kind == "text":
         if len(parts) != 1 or not parts[0].isdigit():
-            spec.error(n, f"FIXTURE data: text() takes one length, got '{args}'")
+            spec.error(n, coded(f"FIXTURE data: text() takes one length, got '{args}'", "V036"))
             return None
         rule.args = parts
     else:
-        spec.error(n, f"FIXTURE data: unknown rule {kind}() (use values, seq, int, num, dates, reldates or text)")
+        spec.error(n, coded(f"FIXTURE data: unknown rule {kind}() (use values, seq, int, num, dates, reldates or text)", "V037"))
         return None
     return rule
 
@@ -552,15 +561,15 @@ def _test(spec, n, value):
     if not m:
         missing = [part for part in ("fixture=", "call=", "assert=") if part not in value]
         hint = f" (missing {', '.join(missing)})" if missing else ""
-        spec.error(n, "TEST must look like: fixture=<name>.xlsx call=<Proc>(<args>) [runs=<n>] "
-                      f"assert=<assertion>{hint}")
+        spec.error(n, coded("TEST must look like: fixture=<name>.xlsx call=<Proc>(<args>) [runs=<n>] "
+                      f"assert=<assertion>{hint}", "V038"))
         return
     runs = 1
     if m["runs"] is not None:
         if m["runs"].isdigit() and int(m["runs"]) > 0:
             runs = int(m["runs"])
         else:
-            spec.error(n, f"runs= must be a whole number of 1 or more, got '{m['runs']}'")
+            spec.error(n, coded(f"runs= must be a whole number of 1 or more, got '{m['runs']}'", "V039"))
     args = [a.strip() for a in split_top(m["args"], ",")] if m["args"].strip() else []
     spec.tests.append(Test(n, m["fixture"], m["proc"], args, runs, m["assertion"].strip()))
 
@@ -568,7 +577,7 @@ def _test(spec, n, value):
 def _sig(spec, n, value):
     m = SIG_RE.fullmatch(value)
     if not m:
-        spec.error(n, f"SIG must look like: <module>.<Proc>(<name> As <Type>, ...) [As <Type>], got '{value}'")
+        spec.error(n, coded(f"SIG must look like: <module>.<Proc>(<name> As <Type>, ...) [As <Type>], got '{value}'", "V040"))
         return
     params = []
     if m["params"].strip():
@@ -580,12 +589,12 @@ def _sig(spec, n, value):
 def _form(spec, n, value):
     m = re.fullmatch(r"(?P<name>\w+)\s+CONTROLS\s+(?P<controls>.+)", value)
     if not m:
-        spec.error(n, f"FORM must look like: <frmName> CONTROLS <name>:<ControlType> ..., got '{value}'")
+        spec.error(n, coded(f"FORM must look like: <frmName> CONTROLS <name>:<ControlType> ..., got '{value}'", "V041"))
         return
     controls = []
     for item in m["controls"].split():
         if not re.fullmatch(r"\w+:\w+", item):
-            spec.error(n, f"FORM control must look like <name>:<ControlType>, got '{item}'")
+            spec.error(n, coded(f"FORM control must look like <name>:<ControlType>, got '{item}'", "V042"))
             continue
         controls.append(tuple(item.split(":")))
     spec.forms.append(Form(n, m["name"], controls))

@@ -54,6 +54,7 @@ from pathlib import Path
 from lark import Token, Tree
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "vcl"))
+from errcodes import coded  # noqa: E402
 from semantics import needs_text_guard  # noqa: E402  (S17: text Excel would convert gets a ' prefix)
 
 MASK = (1 << 64) - 1
@@ -180,14 +181,14 @@ def _boundary_value(kind, value):
         return None
     if kind == "reldates":
         if not isinstance(value, int):
-            raise ValueError(f"reldates() boundary values are whole numbers of days, got {value!r}")
+            raise ValueError(coded(f"reldates() boundary values are whole numbers of days, got {value!r}", "X001"))
         return RelDate(value)
     if kind == "dates" and not isinstance(value, datetime.date):
-        raise ValueError(f"dates() boundary values are yyyy-mm-dd dates, got {value!r}")
+        raise ValueError(coded(f"dates() boundary values are yyyy-mm-dd dates, got {value!r}", "X002"))
     if kind in ("seq", "int", "num") and not isinstance(value, (int, float)):
-        raise ValueError(f"{kind}() boundary values are numbers, got {value!r}")
+        raise ValueError(coded(f"{kind}() boundary values are numbers, got {value!r}", "X003"))
     if kind in ("values", "text") and not isinstance(value, str):
-        raise ValueError(f'{kind}() boundary values are "text", got {value!r}')
+        raise ValueError(coded(f'{kind}() boundary values are "text", got {value!r}', "X004"))
     return value
 
 
@@ -198,7 +199,7 @@ def column_values(file, sheet, rule, rows):
     if kind == "values":
         values = [text if text != "" else None for text, count in rule.args for _ in range(count)]
         if len(values) != rows:
-            raise ValueError(f"{sheet}!{rule.col}: values() counts add up to {len(values)}, but rows={rows}")
+            raise ValueError(coded(f"{sheet}!{rule.col}: values() counts add up to {len(values)}, but rows={rows}", "X005"))
         rng.shuffle(values)
     elif kind == "seq":
         start, step = rule.args
@@ -220,22 +221,22 @@ def column_values(file, sheet, rule, rows):
         length = int(rule.args[0])
         values = ["".join(LETTERS[rng.below(26)] for _ in range(length)) for _ in range(rows)]
     else:
-        raise ValueError(f"unknown data rule {kind}()")
+        raise ValueError(coded(f"unknown data rule {kind}()", "X006"))
 
     top = len(rule.boundary)   # +boundary: the first data rows
     if top > rows:
-        raise ValueError(f"{sheet}!{rule.col}: +boundary has {top} values, but rows={rows}")
+        raise ValueError(coded(f"{sheet}!{rule.col}: +boundary has {top} values, but rows={rows}", "X007"))
     for i, want in enumerate(_boundary_value(kind, v) for v in rule.boundary):
         if kind == "values":   # move the value up, so the counts stay the same
             j = next((j for j in range(i, rows) if values[j] == want), None)
             if j is None:
-                raise ValueError(f"{sheet}!{rule.col}: +boundary needs one more {want or ''!r} than values() has")
+                raise ValueError(coded(f"{sheet}!{rule.col}: +boundary needs one more {want or ''!r} than values() has", "X008"))
             values[i], values[j] = values[j], values[i]
         else:
             values[i] = want
 
     if rule.blank > rows - top:  # +blank: a partial Fisher-Yates over the rows below the boundary
-        raise ValueError(f"{sheet}!{rule.col}: +blank({rule.blank}) is more than the {rows - top} rows it can use")
+        raise ValueError(coded(f"{sheet}!{rule.col}: +blank({rule.blank}) is more than the {rows - top} rows it can use", "X009"))
     order = list(range(top, rows))
     for i in range(rule.blank):
         j = i + rng.below(len(order) - i)
@@ -246,8 +247,8 @@ def column_values(file, sheet, rule, rows):
         drng = ColumnRandom(file, sheet, rule.col + "|dupes")
         pool = [i for i in range(top, rows) if values[i] is not None]
         if rule.dupes >= len(pool):
-            raise ValueError(f"{sheet}!{rule.col}: +dupes({rule.dupes}) needs more than {rule.dupes} "
-                             f"non-blank rows below the boundary rows, and there are {len(pool)}")
+            raise ValueError(coded(f"{sheet}!{rule.col}: +dupes({rule.dupes}) needs more than {rule.dupes} "
+                             f"non-blank rows below the boundary rows, and there are {len(pool)}", "X010"))
         for i in range(rule.dupes):
             j = i + drng.below(len(pool) - i)
             pool[i], pool[j] = pool[j], pool[i]
@@ -275,7 +276,7 @@ def stale_rows(fx):
     if fx.rows == 0:
         return list(range(2, 2 + fx.stale))
     if fx.stale > fx.rows:
-        raise ValueError(f"{fx.sheet}: stale={fx.stale} is more than rows={fx.rows}")
+        raise ValueError(coded(f"{fx.sheet}: stale={fx.stale} is more than rows={fx.rows}", "X011"))
     rng = ColumnRandom(fx.file, fx.sheet, "stale")
     order = list(range(fx.rows))
     for i in range(fx.stale):
@@ -468,13 +469,13 @@ def vba_literal(value):
     if value is None:
         return "Empty"
     if isinstance(value, bool):
-        raise ValueError("fixtures don't produce TRUE/FALSE values")
+        raise ValueError(coded("fixtures don't produce TRUE/FALSE values", "X012"))
     if isinstance(value, int):
         return str(value)
     if isinstance(value, float):
         text = repr(value)
         if "e" in text or "E" in text or "inf" in text or "nan" in text:
-            raise ValueError(f"number {value!r} can't be written as a plain VBA literal")
+            raise ValueError(coded(f"number {value!r} can't be written as a plain VBA literal", "X013"))
         return text
     if isinstance(value, RelDate):   # relative to the day Excel builds the workbook
         return "Date" if value.days == 0 else f"Date {'+' if value.days > 0 else '-'} {abs(value.days)}"
@@ -482,11 +483,11 @@ def vba_literal(value):
         return f"DateSerial({value.year}, {value.month}, {value.day})"
     if isinstance(value, str):
         if not value.isascii():
-            raise ValueError(f"fixture text must be ASCII for the VBA editor: {value!r}")
+            raise ValueError(coded(f"fixture text must be ASCII for the VBA editor: {value!r}", "X014"))
         if needs_text_guard(value):
             value = "'" + value
         return '"' + value.replace('"', '""') + '"'
-    raise ValueError(f"unexpected fixture value {value!r}")
+    raise ValueError(coded(f"unexpected fixture value {value!r}", "X015"))
 
 
 def proc_name(file, sheet=None, part=None):
@@ -501,7 +502,7 @@ def proc_name(file, sheet=None, part=None):
 def _write_line(target, row_no, values):
     line = f"    FixtureWriteRow {target}, {row_no}, Array({', '.join(vba_literal(v) for v in values)})"
     if len(line) > MAX_LINE:
-        raise ValueError(f"fixture row {row_no} makes a VBA line of {len(line)} characters (limit {MAX_LINE})")
+        raise ValueError(coded(f"fixture row {row_no} makes a VBA line of {len(line)} characters (limit {MAX_LINE})", "X016"))
     return line
 
 
@@ -552,8 +553,8 @@ def vba_for_folders(file, folder_trees):
 
     def fits(path, limit):   # below the longest root the Excel builder accepts
         if EXCEL_SANDBOX_MAX + 1 + len(path) > limit:
-            raise ValueError(f"FIXTURE {file}: {path} is too long to build below an Excel sandbox root of up to "
-                             f"{EXCEL_SANDBOX_MAX} characters (limit {limit})")
+            raise ValueError(coded(f"FIXTURE {file}: {path} is too long to build below an Excel sandbox root of up to "
+                             f"{EXCEL_SANDBOX_MAX} characters (limit {limit})", "X017"))
 
     for tree in folder_trees:
         _, folder, files, locked = parse_folder(tree)
@@ -573,8 +574,8 @@ def vba_for_folders(file, folder_trees):
                 continue
             size = default_size(file, folder, path) if size is None else size
             if size > MAX_SANDBOX_FILE:
-                raise ValueError(f"FIXTURE {file} folder {folder}: {path} has {size} bytes; a dummy file may "
-                                 f"have at most {MAX_SANDBOX_FILE}")
+                raise ValueError(coded(f"FIXTURE {file} folder {folder}: {path} has {size} bytes; a dummy file may "
+                                 f"have at most {MAX_SANDBOX_FILE}", "X018"))
             out.append(f'    SandboxFile root & "\\{folder}\\{path}", {size}')
         locks += [f'    SandboxLock root & "\\{folder}\\{path}"' for path in locked]
     out += locks + [f"    {name} = root", "End Function", ""]
@@ -697,7 +698,7 @@ def fixtures_module(fixture_trees_by_spec):
                     [parse_folder(t) for t in folders if str(t.children[0]) == file])
             if file in seen:
                 if seen[file][1] != mine:
-                    raise ValueError(f"fixture {file} is defined differently in {seen[file][0]} and {spec_name}")
+                    raise ValueError(coded(f"fixture {file} is defined differently in {seen[file][0]} and {spec_name}", "X019"))
                 continue
             seen[file] = (spec_name, mine)
             parts.append(f"' ---- {spec_name}")

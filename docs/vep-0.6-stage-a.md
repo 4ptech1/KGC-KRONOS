@@ -36,14 +36,15 @@ no data to teach it, and no way to tell whether it is any good.
 Every message the validator, the type checker, the grammar stage and the fixture stage can give
 carries a stable code: `V` the validator's rules and warnings (including the BUILD rules), `G`
 the grammar, `T` the type checker, `X` the fixture builder, `R` a failing TEST. A code is written
-at the call site (`self.error("...", code="V107")`), so it is explicit and reviewable. Rules:
+at the call site (`self.error(coded("...", "V107"))`), so it is explicit and reviewable. Rules:
 - A code, once published, never changes meaning and is never reused; a message may be reworded
   and keep its code.
 - A new message must bring a new code. A test scans the source and fails when a call has no
   code, a code is used for two different messages, or a code is missing from the generated
   catalogue `docs/error-codes.md` (written by `compiler/gen_error_codes.py`, checked in CI).
-- The code is a field of the problem (`Problem.code`); the message text stays as it is, so no
-  test that compares messages changes. The command line shows `path:line: error: V107: ...`.
+- The code is a field of the problem (`Problem.code`), and the message is a `str` that carries it,
+  so the text stays as it is and no test that compares messages changes. The command line shows
+  it after the message, `path:line: error: ... [V107]`, so older greps still work (D60).
 - A repair example (below) carries the codes, so "error -> fix" is learnable and stays valid
   when a message is reworded.
 
@@ -141,8 +142,8 @@ tokenizer, any training. Stage A only prepares the data and the scoreboard.
 ## Phases (one or two PRs each, in this order)
 
 0. **This design** and D59.
-1. **Error codes:** the call-site codes, `Problem.code`, `gen_error_codes.py`, the catalogue and
-   its test, the CLI output.
+1. **Error codes (done: D60):** the call-site codes, `Problem.code`, `gen_error_codes.py`, the
+   catalogue and its test, the CLI output.
 2. **The `GOAL` line:** the `VCL 0.6` line, the key in the parser, grammar and validator, the
    migration helper (`vcl_migrate.py` adds a GOAL and moves a spec to 0.6), compatibility tests.
 3. **`vclc fmt`:** the formatter, `--check`, the safety and idempotence tests on every committed
