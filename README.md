@@ -201,3 +201,8 @@ Dataset count: 0 verified pairs
   longer rename a sheet of the wrong workbook. Excel and the interpreter now agree on sheet names
   above U+7FFF and on DEDUPE keys. A formula never lands as text in a Text-formatted cell, and
   text-file paths must be plain ASCII.
+- **2026-10-21:** CALL and BUILD specs designed in `docs/vep-0.5-build.md` (D49): a BUILD (several
+  procedures making one tool) becomes provable the way every op of item 2 did. CALL keeps a
+  Function's result, MODIFIES follows the arguments, BUILD TESTs run in the interpreter, and the
+  compiler writes one module per BUILD. Forms and add-ins wait. Five phases, then one switch to
+  VCL 0.5.

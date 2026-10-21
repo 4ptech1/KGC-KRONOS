@@ -201,9 +201,15 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    done (D44): LIST_FILES and ITEMS (S24). Phase 7b is done (D45): READ_TEXT and WRITE_TEXT with
    statuses (S25), file texts in folder FIXTUREs and FILE_TEXT. The switch is done (E12, D46):
    spec.md and the Orchestrator prompt teach VCL 0.4 (hard rule 22: sheets and formulas), and
-   Boss pastes the new prompt into the Orchestrator Project once. **Item 2 is complete.** CALL
-   and BUILD specs (the VEP's group D) are their own item, for Boss to schedule.
-3. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
+   Boss pastes the new prompt into the Orchestrator Project once. **Item 2 is complete.**
+   After item 2, a review pass (D47: wording fixed where it differed from the tools, clearer TEST
+   failures) and ForgeLib fixes from a VBA review (D48).
+3. CALL and BUILD specs, `docs/vep-0.5-build.md` (D49). Boss said "continue building the next
+   part according to your recommendations" on 21 Oct 2026. Phases: 1 the language surface and the
+   validator, 2 the interpreter, 3 the compiler and mutation, 4 the review gaps (D47), 5 a proven
+   BUILD and the switch to VCL 0.5 (Boss updates the Orchestrator once). FORM and xlam wait.
+   **Next: Phase 1.**
+4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts after the MVP; no training before March 2027.
 

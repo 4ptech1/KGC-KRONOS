@@ -373,6 +373,7 @@ The 12 specs:
 - #44: spec.md and the prompt teach VCL 0.4, with hard rule 22 (E12, D46). Item 2 is complete.
 - #45: review pass after item 2: wording fixed where it differed from the tools, clearer TEST failures (D47).
 - #46: ForgeLib fixes from a VBA review: COPY_SHEET safety, sheet names, DEDUPE keys, formulas on Text cells, ASCII text-file paths (D48).
+- #47: the design of CALL and BUILD specs (`docs/vep-0.5-build.md`, D49).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -429,11 +430,15 @@ The key safety design for files:
    ADD_SHEET, SHEET_EXISTS), 4b (D41: COPY_SHEET), 5 (D42: FILTER), 6 (D43: SET_FORMULA) and 7a
    (D44: LIST_FILES) and 7b (D45: READ_TEXT, WRITE_TEXT) are done, and so is the switch (E12,
    D46): spec.md and the Orchestrator prompt teach VCL 0.4, and Boss updates the Orchestrator
-   once. **Item 2 is complete.** CALL and BUILD specs are their own item, for Boss to schedule.
-2. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
-3. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
+   once. **Item 2 is complete.**
+2. CALL and BUILD specs (`docs/vep-0.5-build.md`, D49; Boss said "continue building the next
+   part according to your recommendations" on 21 Oct 2026): BUILD TESTs run in the interpreter,
+   CALL keeps a Function's result with `into=`, MODIFIES follows the arguments, and the compiler
+   writes one module per BUILD. FORM and xlam wait. Then one switch to VCL 0.5.
+3. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
+4. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
    Mutants double as "read carefully" contrast pairs.
-4. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
+5. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
    VCL, never VBA (D31). Excel conformance runs.
 
 **The AI plan** (`docs/ai-plan.md`, D31, approved by Boss on 19 Oct 2026): the model's jobs are
@@ -486,6 +491,8 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
   printable ASCII only, and WRITE_TEXT never overwrites a file.
 - **D47:** `Sheet![Header]` is the header's whole column from row 1, the header cell included
   (as `A:A` is): 5 values under a header give COUNTA = 6. Committed specs count on it.
+- **D49:** CALL and BUILD specs: one module per BUILD, CALL `into=`, MODIFIES that follows the
+  arguments; FORM and xlam wait (no UserForm can be pasted, and THIS_BOOK would be the add-in).
 - **D48:** a review of ForgeLib fixed five places where Excel would differ from the interpreter
   (one a safety fix in COPY_SHEET). Non-ASCII dictionary keys may still group differently in
   Excel; ASCII keys always agree.
