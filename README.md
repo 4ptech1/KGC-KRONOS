@@ -252,3 +252,6 @@ Dataset count: 0 verified pairs
   sentence per spec that is required from 0.6 (an error before). Older specs stay valid with the same
   results; `compiler/vcl_goal.py` adds the GOAL lines to a spec. spec.md and the prompt still teach 0.5
   until the switch in Phase 4 (E15, D61).
+- **2026-10-21:** Stage A Phase 3: `python compiler/vclc.py fmt` gives every spec one canonical text
+  (`--check` and `--write` too), and proves each time that it changed only layout: the same tokens, the
+  same nesting, the same validator messages. The committed specs and examples were already canonical (D62).

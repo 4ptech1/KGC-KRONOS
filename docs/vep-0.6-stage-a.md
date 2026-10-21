@@ -146,8 +146,8 @@ tokenizer, any training. Stage A only prepares the data and the scoreboard.
    catalogue and its test, the CLI output.
 2. **The `GOAL` line (done: E15, D61):** the `VCL 0.6` line, the key in the parser, grammar and
    validator, the helper `vcl_goal.py` (adds a GOAL and moves a spec to 0.6), compatibility tests.
-3. **`vclc fmt`:** the formatter, `--check`, the safety and idempotence tests on every committed
-   spec and example.
+3. **`vclc fmt` (done: D62):** the formatter, `--check`, the safety and idempotence tests on every
+   committed spec and example.
 4. **The switch:** spec.md and the prompt teach VCL 0.6 (GOAL, the canonical form, Examples 1, 3
    and 4 with a GOAL line), and Boss updates the Orchestrator once. The corpus helpers read the
    same prompt, so this comes before the corpus.
