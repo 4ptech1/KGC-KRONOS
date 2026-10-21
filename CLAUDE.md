@@ -208,7 +208,8 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    part according to your recommendations" on 21 Oct 2026. Phases: 1 the language surface and the
    validator, 2 the interpreter, 3 the compiler and mutation, 4 the review gaps (D47), 5 a proven
    BUILD and the switch to VCL 0.5 (Boss updates the Orchestrator once). FORM and xlam wait.
-   **Next: Phase 1.**
+   Phase 1 is done (E13, E14, D50): the `VCL 0.5` line, CALL `into=`, and the BUILD rules in the
+   validator and type checker. **Next: Phase 2** (the interpreter runs BUILD TESTs).
 4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts after the MVP; no training before March 2027.

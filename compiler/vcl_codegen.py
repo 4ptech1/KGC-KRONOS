@@ -1,4 +1,4 @@
-"""Compile a VCL 0.1 to 0.4 TASK spec to an Excel 2016 VBA procedure (MVP compiler).
+"""Compile a VCL 0.1 to 0.5 TASK spec to an Excel 2016 VBA procedure (MVP compiler).
 
 House style: Option Explicit at module level; every VCL meaning goes through ForgeLib; line
 labels are spec_line * 10 + k, so Erl \\ 10 is the spec line; Excel state is saved first and
