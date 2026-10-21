@@ -70,9 +70,8 @@ def cmd_test(files, today):
         print(f"{'OK  ' if not failed else 'FAIL'} test   {p}  ({len(res) - len(failed)}/{len(res)} tests)")
         for r in failed:
             print(f"       line {r.line}: RESULT={r.result} ERROR_COUNT={r.errors}")
-            for problem in r.failed:
-                if isinstance(problem, str):   # an UNCHANGED difference (MODIFIES)
-                    print(f"         {problem}")
+            for problem in r.failed:   # a failed assertion with what it measured, or an UNCHANGED difference
+                print(f"         {problem}")
     return bad == 0
 
 
@@ -142,6 +141,8 @@ def cmd_mutate(files, snapshot, today):
         print(f"{100 * k / t if t else 100:5.1f}%  mutate {p}  ({k}/{t})")
         for line, what in surv[:4]:
             print(f"        survives: line {line}: {what}")
+        if len(surv) > 4:
+            print(f"        ... and {len(surv) - 4} more")
     if tt:
         print(f"Overall mutation score: {100 * tk / tt:.1f}%")
     return True

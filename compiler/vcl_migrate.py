@@ -377,7 +377,7 @@ def prove(old, new, today=None, mutation=True):
         problems.append("a different number of TESTs")
     for a, b in zip(r_old, r_new):
         if not b.passed:
-            problems.append(f"TEST (line {b.line}) fails: {[f for f in b.failed if isinstance(f, str)][:3]}")
+            problems.append(f"TEST (line {b.line}) fails: {b.failed[:3]}")
         if (a.result, a.state) != (b.result, b.state):
             problems.append(f"TEST (line {b.line}) gives a different RESULT or workbook")
     scores = None

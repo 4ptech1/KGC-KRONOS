@@ -7,6 +7,7 @@ FILTER, hidden rows and VISIBLE_COUNT (D42). Phase 6: SET_FORMULA, the formula c
 Phase 7a: LIST_FILES and ITEMS (S24, D44). Phase 7b: READ_TEXT, WRITE_TEXT, file texts and FILE_TEXT
 (S25, D45). The switch of spec.md and the prompt to VCL 0.4 (E12, D46)."""
 import datetime
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -852,6 +853,25 @@ class VersionSwitch(unittest.TestCase):
                     compile_text(text)
                 self.assertEqual(str(caught.exception), why)
                 self.assertEqual(run(text).log[0][2], "runtime error: " + why)
+
+
+class FailureMessages(unittest.TestCase):
+    """A failing TEST names each false assertion and what each side measured (review pass, D47)."""
+
+    def test_a_false_assertion_says_what_it_measured(self):
+        text = (ROOT / "specs" / "task_01.vcl").read_text(encoding="utf-8")
+        bad = text.replace("COUNTA(Shortages![Part No]) = RESULT + 1", "COUNTA(Shortages![Part No]) = RESULT - (1 + 1)", 1)
+        self.assertNotEqual(bad, text)
+        failed = [f for r in run_tests(bad, datetime.date(2026, 10, 20)) for f in r.failed]
+        self.assertEqual(len(failed), 1)
+        self.assertRegex(failed[0], r"^ASSERT: COUNTA\(Shortages!\[Part No\]\) = RESULT - \(1 \+ 1\) is false "
+                                    r"\(left (\d+), right (\d+)\)$")
+        left, right = map(int, re.search(r"left (\d+), right (\d+)", failed[0]).groups())
+        self.assertEqual(left - right, 3)   # RESULT + 1 holds, so the sides differ by 3
+
+    def test_an_assertion_that_cant_be_checked_says_why(self):
+        r = run(ops("LET(n, 1)").replace("assert=ERROR_COUNT = 0", "assert=VALUE(Data![Nope]2) = 1"))
+        self.assertEqual(r.failed, ["ASSERT: VALUE(Data![Nope]2) = 1 can't be checked: no header [Nope] on Data"])
 
 
 class Facts(unittest.TestCase):
