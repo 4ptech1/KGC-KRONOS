@@ -286,7 +286,7 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               walks them in that order
   Text        READ_TEXT and WRITE_TEXT handle printable ASCII, tabs and line breaks, at most
               32,767 characters; anything else is Not text, because it reads differently on
-              each PC
+              each PC. Their paths are printable ASCII too, else Bad name
   READ_TEXT   writes, in this order: Bad name, Too long, Missing, Too big, Locked, Not text,
               Read; with Read, <text var> holds the file's text without one final line
               break, else "". In Excel also Failed
@@ -305,8 +305,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   FILE_NAME   the text after the last backslash
   DEDUPE      keeps the first row of each key and deletes each later row with that key
               (whole sheet rows); cols= are sheet column numbers, as for SORT; key cells
-              compare as dictionary keys do (" W-1 " and "W-1" differ); a row with an empty
-              or error key cell stays
+              compare as their text, case ignored, not trimmed (" W-1 " and "W-1" differ); a
+              row with an empty or error key cell stays
   FIND        looks row by row, left to right: match=whole (the default) means SAME,
               match=part means the cell's text holds TRIM(<expr>), case ignored (an empty
               text finds NOTHING). Test it with IS_NOTHING before writing to it. FIND gives
@@ -322,7 +322,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               Later steps and TESTs can't read a formula's value; a spec that SET_FORMULAs
               may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT. The text is fixed, so its
               references are fixed columns or offsets: check them in PRE, such as
-              COL($ws, "Qty") = 3 for =RC3*RC4
+              COL($ws, "Qty") = 3 for =RC3*RC4. A cell formatted as Text (@) stops the run,
+              because Excel would keep the formula as text
   Sheet names ADD_SHEET and COPY_SHEET take 1 to 31 characters, no spaces at the ends, none
               of \ / ? * [ ] :, no apostrophe first or last, not History; a bad name or one
               already used (case ignored) stops the run before anything is added. Without
@@ -494,6 +495,9 @@ S25, D36 to D46).
   the tools, with no change of meaning: a [Header] range includes the header cell, DEDUPE and
   dictionary keys are not trimmed, assertions have no NOT, TRUE or FALSE, and the VAR types
   the ops fill, the fill colours, ROWS_USED, FIND and formula references are spelled out (D47).
+- A review of ForgeLib made three meanings the same in Excel and the interpreter on every PC:
+  DEDUPE keys ignore case letter by letter, a READ_TEXT or WRITE_TEXT path outside printable
+  ASCII is Bad name, and SET_FORMULA refuses a cell formatted as Text (D48).
 
 ## Changes in VCL 0.3 (20 Oct 2026)
 

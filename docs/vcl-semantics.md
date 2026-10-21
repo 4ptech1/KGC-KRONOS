@@ -28,7 +28,7 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S18 (VCL 0.3) | `safe_name` | SAFE_NAME(x) is CLEAN_TEXT(x) when that is a safe Windows file or folder name, else "" (empty). Unsafe: empty, longer than 100 characters, any of \ / : * ? " < > /, the names . and .., a trailing dot, or a reserved device name (CON, PRN, AUX, NUL, COM1 to COM9, LPT1 to LPT9), ignoring case and any extension (con.txt is reserved). A name can never climb out of its folder, because it can't contain a separator or be .. |
 | S19 (VCL 0.3) | `path_join` | PATH_JOIN(base, name, ...) is base, then each name, separated by \ (a trailing \ characters on base are dropped). It is "" (empty) when base is empty or any name is not already a safe name (SAFE_NAME(name) = name), so an empty or unsafe part can never become a path; a file op given "" reports Bad name. |
 | S20 (VEP 0.4, D36) | `file_name` | FILE_NAME(path) is the text after the last backslash, or all of the text when it has none; a path ending in a backslash gives "". Only \ separates: a / is part of the name. |
-| S21 (VEP 0.4, D38) | `same_row_key` | DEDUPE treats two rows as the same when both have a key and the keys are equal. A row's key is the values of its key cells, each compared as a dictionary key (S10: its canonical text, case ignored, no TRIM). A row with an empty or error key cell has no key, so DEDUPE never deletes a row because data is missing. |
+| S21 (VEP 0.4, D38) | `same_row_key` | DEDUPE treats two rows as the same when both have a key and the keys are equal. A row's key is the values of its key cells, each as its canonical text, lower-cased letter by letter as VBA's LCase$ does and compared exactly (no TRIM; "Straße" is not "STRASSE", and a full-width letter is not its ASCII twin), so Excel and the interpreter agree on every PC (D48). A row with an empty or error key cell has no key, so DEDUPE never deletes a row because data is missing. |
 | S22 (VEP 0.4, D39) | `find` | FIND(range, x, match=...) looks at the cells row by row, left to right, and gives the first that matches, or NOTHING. match=whole (the default): the cell is SAME as x (S12). match=part: the cell's text holds TRIM(x), ignoring case (letter by letter, as LOWER); an empty TRIM(x) finds NOTHING, because every cell would hold it. Here: the 1-based position of that cell among values, or 0 for NOTHING. |
 | S23 (VEP 0.4, D40) | `sheet_name_ok` | a name ADD_SHEET may give a new sheet: 1 to 31 characters, no spaces at the ends (TRIM leaves it as it is), none of \ / ? * [ ] :, no apostrophe first or last, no character below code 32, and not History, which Excel keeps for itself (case ignored). Stricter than Excel where Excel allows lookalikes, so a name never differs from what a TEST asserts. |
 | S24 (VEP 0.4, D44) | `list_files` | LIST_FILES gives the names of the files directly in the folder that match the pattern, sorted by LOWER(name) and then by the name as written, so the order is the same on every PC. Here: from the names of the files in the folder. |
@@ -333,6 +333,8 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | ["S1"], ["S1 "] | False | no TRIM: a trailing space makes another key |
 | ["S1", "W1"], ["S1", "W2"] | False | one key column differs |
 | ["ab", "c"], ["a", "bc"] | False | the columns stay apart |
+| ["Straße"], ["STRASSE"] | False | letters are lowered one by one, as LCase$: ß stays ß (D48) |
+| ["ＡB"], ["AB"] | False | a full-width letter is not its ASCII twin (D48) |
 | [(empty)], [(empty)] | False | an empty key: never a duplicate (data is missing) |
 | ["S1", "  "], ["S1", "  "] | False | a key cell of spaces only counts as empty |
 | [#N/A], [#N/A] | False | an error in a key cell: never a duplicate |
@@ -363,6 +365,7 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | "NCR Log 2026-10" | True | spaces inside, digits and a dash |
 | "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" | True | 31 characters, the most Excel allows |
 | "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" | False | 32 characters is one too many |
+| "보고서" | True | letters above U+7FFF are fine (Hangul, D48) |
 | "" | False | empty |
 | " Summary" | False | a space at the start |
 | "Summary " | False | a space at the end |
