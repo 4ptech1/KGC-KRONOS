@@ -114,7 +114,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
-tests/                    346 unit tests; conformance_cases.py is shared with the docs
+tests/                    349 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -284,7 +284,10 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
 - rows and formulas (VCL 0.4): `VISIBLE_COUNT(Sheet!range)`, `FORMULA(Sheet!cell)`
 - run results: RESULT, ERROR_COUNT
 - PRE_<measure>, taken before the run
-- ranges by header: `Sheet![Header]` and `Sheet![Header]<row>`
+- ranges by header: `Sheet![Header]` (the whole column from row 1, header cell included) and
+  `Sheet![Header]<row>` (one cell)
+- assertions have no NOT, TRUE or FALSE: "not there" is `SHEET_EXISTS("X") = 0`; an assertion
+  names a sheet as one word, so it can't read a sheet whose name has spaces
 - a Workbook argument is passed as the TEST's own fixture file: `call=P(ncr_01.xlsx, Ncr)`
 
 ## 7. What the toolchain can run today (important when reviewing specs)
@@ -308,7 +311,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 346 pass |
+| Unit tests | 349 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the ~40 guideline; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -368,6 +371,7 @@ The 12 specs:
 - #42: item 2 Phase 7a, LIST_FILES and ITEMS (S24, D44).
 - #43: item 2 Phase 7b, READ_TEXT and WRITE_TEXT (S25, D45).
 - #44: spec.md and the prompt teach VCL 0.4, with hard rule 22 (E12, D46). Item 2 is complete.
+- #45: review pass after item 2: wording fixed where it differed from the tools, clearer TEST failures (D47).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -471,6 +475,16 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 - **D24:** Boss's weld-log spec is task_11, unchanged. The router spec becomes task_12.
 - **D25:** original model and context data: the model is trained from zero, on in-house data only.
 - **D31:** the model writes VCL, never VBA; the compiler writes all VBA (`docs/ai-plan.md`).
+- **D36, D46:** item 2 made the rest of revision 3 provable by TESTs, and VCL 0.4 is taught in
+  one step. OPEN_BOOK, SAVE_AS and CLOSE_BOOK stay in the language but are refused until
+  March 2027, because they open and save real workbooks.
+- **D42, D43:** FILTER hides rows itself (never AutoFilter, whose criteria read through the PC's
+  settings). SET_FORMULA writes Excel 2016 functions only, and a TEST checks a formula's text,
+  never its value (only Excel can calculate it).
+- **S24, S25:** LIST_FILES gives names in one fixed order. READ_TEXT and WRITE_TEXT handle
+  printable ASCII only, and WRITE_TEXT never overwrites a file.
+- **D47:** `Sheet![Header]` is the header's whole column from row 1, the header cell included
+  (as `A:A` is): 5 values under a header give COUNTA = 6. Committed specs count on it.
 
 ## 11. How to help (rules for the AI reading this)
 
@@ -614,7 +628,9 @@ Layout: pad keys with spaces so values line up. Nesting = 2 extra spaces after t
 relative to the enclosing OP line.
 Types: Long, Double, String, Boolean, Date, Variant, Range, Worksheet, Workbook,
 Dictionary, Collection. Loop variables from LOOP_ROWS, LOOP_COLS and FOR_EACH are declared
-automatically; never repeat them in VAR.
+automatically; never repeat them in VAR. READ_ARRAY fills a Variant VAR, LIST_FILES a
+Collection, ADD_SHEET and COPY_SHEET a Worksheet; status VARs and READ_TEXT's text VAR are
+String. VARs start at 0, "" or FALSE; Dictionary and Collection VARs start empty.
 For form events: MODULE is the form, PROC is <control>_<Event> (btnRun_Click).
 
 BUILD FORMAT
@@ -683,7 +699,9 @@ Every other op is a call, NAME(arguments, key=value):
   Output  LOG(<expr>)   MSG(<expr>)   RETURN(<expr>)
   Escape  NOTE "<terse technical text>"
 FORMAT fill names: none (removes the fill), black, white, red, green, blue, yellow, magenta,
-cyan. Write any other colour as #RRGGBB.
+cyan. Write any other colour as #RRGGBB. FILL_COUNT takes #RRGGBB: black #000000, white
+#FFFFFF, red #FF0000, green #00FF00, blue #0000FF, yellow #FFFF00, magenta #FF00FF, cyan
+#00FFFF.
 
 EXPRESSIONS
 Value functions:
@@ -751,7 +769,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               match wins; 0 if not found
   LASTROW     the last row holding any value (spaces too), like End(xlUp); 1 if the column
               is empty. LASTCOL works the same along a row
-  Dictionary  keys are compared as text ignoring case, so 1001 and "1001" are one key;
+  Dictionary  keys are compared as text ignoring case, not trimmed (TRIM them first), so
+              1001 and "1001" are one key;
               Dictionary and Collection VARs start empty
   PRE         if a condition is false: one ForgeLog entry, nothing changes, and a Function
               returns -1
@@ -807,10 +826,13 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   FILE_NAME   the text after the last backslash
   DEDUPE      keeps the first row of each key and deletes each later row with that key
               (whole sheet rows); cols= are sheet column numbers, as for SORT; key cells
-              compare as dictionary keys do; a row with an empty or error key cell stays
+              compare as dictionary keys do (" W-1 " and "W-1" differ); a row with an empty
+              or error key cell stays
   FIND        looks row by row, left to right: match=whole (the default) means SAME,
               match=part means the cell's text holds TRIM(<expr>), case ignored (an empty
-              text finds NOTHING). Test it with IS_NOTHING before writing to it
+              text finds NOTHING). Test it with IS_NOTHING before writing to it. FIND gives
+              that cell only, and VCL has no row number of a cell: to change another column
+              of the matching row, loop with LOOP_ROWS and SAME
   FILTER      below the range's first row, a row stays visible when its cell in sheet column
               col= is SAME as crit=, and is hidden otherwise; it never deletes and never uses
               AutoFilter. A spec that FILTERs may not SORT
@@ -819,7 +841,9 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               IFS, INDIRECT, TEXT, VALUE, no @, no A1#, nothing outside the workbook. style=a1
               writes one cell; style=r1c1 writes the same text to every cell of the range.
               Later steps and TESTs can't read a formula's value; a spec that SET_FORMULAs
-              may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT
+              may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT. The text is fixed, so its
+              references are fixed columns or offsets: check them in PRE, such as
+              COL($ws, "Qty") = 3 for =RC3*RC4
   Sheet names ADD_SHEET and COPY_SHEET take 1 to 31 characters, no spaces at the ends, none
               of \ / ? * [ ] :, no apostrophe first or last, not History; a bad name or one
               already used (case ignored) stops the run before anything is added. Without
@@ -855,12 +879,13 @@ TEST ASSERTIONS  (checked on the test workbook after the run)
                  rows where every range meets its criteria
   SUMIFS(<Sheet>!<sumRange>, <Sheet>!<range>, <criteria>, ...)
                  sum of sumRange over the rows where every range meets its criteria
-  VALUE(<Sheet>!<cell>)  ROWS_USED(<Sheet>)  SHEET_EXISTS("<name>")
+  VALUE(<Sheet>!<cell>)  SHEET_EXISTS("<name>")
+  ROWS_USED(<Sheet>)               the last used row (row 1, the headers, counts)
   FILE_EXISTS("<Folder>\<path>")   that file exists below a FIXTURE folder of the TEST
   FILE_COUNT("<Folder>[\<path>]")  files in that folder and in every folder below it
   FILL_COUNT(<Sheet>!<range>, #RRGGBB)   cells in the range with that fill colour
   VISIBLE_COUNT(<Sheet>!<range>)   non-empty cells of the range in rows that are not hidden
-  FORMULA(<Sheet>!<cell>)          the formula text SET_FORMULA wrote there, or ""
+  FORMULA(<Sheet>!<cell>)          the formula text as SET_FORMULA wrote it (A1 or R1C1), or ""
   FILE_TEXT("<Folder>\<path>")     the exact text of that file, or "" when there is none
   RESULT         the Function's return value (from the last run)
   ERROR_COUNT    errors written to ForgeLog during the run
@@ -869,13 +894,18 @@ TEST ASSERTIONS  (checked on the test workbook after the run)
 COUNTIF, COUNTIFS and SUMIFS work as in Excel 2016: criteria such as "Ready", "<>" (not
 blank), "<>B-109" or ">=5"; text matching ignores case. COUNTIFS and SUMIFS ranges must be
 the same size, so use [Header] ranges from the same sheet.
-Ranges by header: <Sheet>![Header] is the whole column under that row-1 header;
+Ranges by header: <Sheet>![Header] is that header's whole column from row 1, the header
+cell included (5 values under a header: COUNTA, COUNTIF "<>" and VISIBLE_COUNT give 6);
 <Sheet>![Header]<n> is that column's cell in row n. Prefer them to column letters.
+An assertion names a sheet as one word, so it can read only sheets without spaces in
+their names; SHEET_EXISTS("<name>") takes any name.
 runs=<n> calls the procedure n times on the same test workbook before checking
 (default 1).
-Combine assertions with AND. In TEST call arguments, a bare sheet name (Orders) means that
-worksheet in the test workbook, a bare folder name (Dump) means that FIXTURE folder, and the
-TEST's fixture file name (orders_01.xlsx) means the test workbook, for a Workbook argument.
+Combine assertions with AND. Assertions have no NOT, TRUE or FALSE: write "is not there" as
+SHEET_EXISTS("<name>") = 0 or FILE_EXISTS("<path>") = 0. In TEST call arguments, a bare
+sheet name (Orders) means that worksheet in the test workbook, a bare folder name (Dump)
+means that FIXTURE folder, the TEST's fixture file name (orders_01.xlsx) means the test
+workbook, for a Workbook argument, and text and numbers are passed as written ("P-104", 5).
 fixture=<name>.xlsx names a FIXTURE file from this spec; the harness builds it fresh for
 every TEST. fixture=target and real workbooks are not allowed.
 

@@ -1,4 +1,4 @@
-# VBA Forge MVP plan (revised 15 Oct 2026)
+# VBA Forge MVP plan (revised 20 Oct 2026)
 
 **Policy:** Boss has no testing, debugging or verification steps. Every check is automated: the
 grammar, the type checker, the reference interpreter, mutation scoring, the VBA linter and CI.
@@ -13,17 +13,19 @@ Running the generated VBA in Excel is optional and never blocks work.
 - `dist/expected/*.json`: for every TEST, the expected RESULT, ERROR_COUNT and final workbook state,
   so any future Excel run can be compared automatically
 
-**Status: working** for all 10 KGC specs (task_06 uses the provable rewrite) and Example 1.
+**Status: working** for all 12 specs (task_06 uses the provable rewrite; task_12 is the router) and
+Examples 1 and 3. Numbers as of 20 Oct 2026 (`docs/kgc-kronos-context.md` section 8 is kept
+current):
 
 | Automated check | Result |
 | --- | --- |
-| Grammar (LALR, proven unambiguous) | 11 of 11 specs parse |
-| Type checker (every calculation and date comparison guarded) | 11 of 11 pass |
-| Interpreter: the specs' own TESTs | 39 of 39 pass |
-| Mutation score, TEST assertions only | 87% of 417 deliberate bugs caught (was 68%) |
-| Mutation score, whole-workbook comparison | 96.1% (370 of 385); the 15 survivors are the equivalent mutants of `DECISIONS.md` D14 (blank key rows added in D22) |
-| VBA lint (the compile errors Excel would raise) | 0 problems in 974 lines; 7 of 7 planted errors caught |
-| Unit tests | 211 pass |
+| Grammar (LALR, proven unambiguous) | 12 of 12 specs parse |
+| Type checker (every calculation and date comparison guarded) | 12 of 12 pass |
+| Interpreter: the specs' own TESTs | 46 of 46 pass |
+| Mutation score, TEST assertions only | 89.0% of 438 deliberate bugs caught (was 68% at the start) |
+| Mutation score, whole-workbook comparison | 95.4% (418 of 438); 19 of the 20 survivors are equivalent mutants (D14, D24), 1 is a small task_11 fixture gap (D24) |
+| VBA lint (the compile errors Excel would raise) | 0 problems in 1,819 lines |
+| Unit tests | 349 pass |
 
 ## Honest limits
 
@@ -32,10 +34,11 @@ Running the generated VBA in Excel is optional and never blocks work.
   error values or Range.Sort edge cases.
 - **One fixture generator** (item 1): `compiler/vcl_fixtures.py` builds the pilot's data
   bit for bit (`DECISIONS.md` D1).
-- **The MVP compiler covers** every op the 10 specs use, plus loops, SELECT_CASE, arrays, CALL,
-  LOG and MSG, and the VCL 0.3 file ops MAKE_FOLDER and COPY_FILE. Not yet covered: other file
-  ops, ADD_SHEET, COPY_SHEET, FIND, DEDUPE, FILTER, SET_FORMULA, OPEN_BOOK, SAVE_AS. `NOTE` steps
-  go to Claude or Boss until VCL covers them (D31).
+- **The compiler and the interpreter cover every op and function of VCL 0.4** (item 5 below
+  made them provable), except OPEN_BOOK, SAVE_AS and CLOSE_BOOK, which open and save real
+  workbooks and are refused until March 2027 (D36), and CALL, which compiles but whose
+  procedures the interpreter can't run. BUILD specs wait for their own item. `NOTE` steps go to
+  Claude or Boss until VCL covers them (D31).
 - **EXIT_IF was undefined in revision 3.** The MVP treats it as "leave the procedure". VCL 0.2
   adds EXIT_LOOP_IF for loops.
 

@@ -991,6 +991,37 @@ class Asserter:
             return {"<": a < b, ">": a > b, "<=": a <= b, ">=": a >= b}[op]
         raise VclError(f"can't evaluate assertion part {d}")
 
+    def sides(self, cond):
+        """What each side of a failed comparison measured, so a failing TEST says what to fix."""
+        if len(cond.children) != 3:
+            return ""
+        try:
+            a, b = self.ev(cond.children[0]), self.ev(cond.children[2])
+        except (VclError, KeyError, TypeError):
+            return ""
+        return f" (left {shown(a)}, right {shown(b)})"
+
+
+def shown(v):
+    """A measured value in a message: text in quotes, a blank as blank."""
+    if v is None or v == "":
+        return "blank"
+    return f'"{v}"' if isinstance(v, str) else S.text_of(v)
+
+
+def assertion_text(t, nested=False):
+    """An assertion part written back as in the TEST line, for messages."""
+    if isinstance(t, Token):
+        return str(t)
+    if t.data == "a_func":
+        return f"{t.children[0]}({', '.join(assertion_text(c) for c in t.children[1:])})"
+    if t.data == "sheet_ref":
+        return f"{t.children[0]}!{t.children[1]}"
+    if t.data == "a_neg":
+        return "-" + assertion_text(t.children[0], nested=True)
+    text = " ".join(assertion_text(c, nested=t.data == "a_sum") for c in t.children)
+    return f"({text})" if nested and t.data == "a_sum" else text
+
 
 # ---------- MODIFIES: the automatic UNCHANGED check (VCL 0.2) ----------
 def modifies_of(spec):
@@ -1251,9 +1282,10 @@ def run_tests(text, today=None):
             try:
                 ok = asserter.ev(cond)
             except (VclError, KeyError, TypeError) as ex:
-                ok = False
+                failed.append(f"ASSERT: {assertion_text(cond)} can't be checked: {ex}")
+                continue
             if not ok:
-                failed.append(cond)
+                failed.append(f"ASSERT: {assertion_text(cond)} is false{asserter.sides(cond)}")
         modifies = modifies_of(spec)
         if needs_unchanged_check(spec, modifies):
             sheet_args = {}
