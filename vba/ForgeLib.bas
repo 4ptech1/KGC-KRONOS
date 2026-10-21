@@ -441,13 +441,12 @@ Public Sub ForgeSort(ByVal rng As Range, ByVal keyCol As Long, ByVal ascending A
     Dim minRows As Long
     If hasHeader Then minRows = 3 Else minRows = 2
     If rng.Rows.Count < minRows Then Exit Sub
-    If ascending Then
-        rng.Sort Key1:=rng.Worksheet.Cells(rng.Row, keyCol), Order1:=xlAscending, _
-            Header:=IIf(hasHeader, xlYes, xlNo)
-    Else
-        rng.Sort Key1:=rng.Worksheet.Cells(rng.Row, keyCol), Order1:=xlDescending, _
-            Header:=IIf(hasHeader, xlYes, xlNo)
-    End If
+    ' Every option is given (D51): Range.Sort reuses the sheet's last Orientation, OrderCustom and
+    ' MatchCase when they are left out, so a sheet once sorted left to right would sort columns.
+    Dim ord As Long
+    If ascending Then ord = xlAscending Else ord = xlDescending
+    rng.Sort Key1:=rng.Worksheet.Cells(rng.Row, keyCol), Order1:=ord, Header:=IIf(hasHeader, xlYes, xlNo), _
+        OrderCustom:=1, MatchCase:=False, Orientation:=xlTopToBottom, DataOption1:=xlSortNormal
 End Sub
 
 Public Sub ForgeWriteArray(ByVal arr As Variant, ByVal topLeft As Range)
@@ -920,7 +919,10 @@ Public Function ForgeListFiles(ByVal root As String, ByVal folder As String, ByV
     End If
     If Not ForgeFolderExists(folder) Then Exit Function
     For Each f In ForgeFso().GetFolder(folder).Files
-        If ForgeNameMatches(f.Name, pattern) Then ForgeAddInOrder ForgeListFiles, f.Name
+        ' Hidden and system files are left out (D51): Excel's ~$ owner file of an open workbook, Thumbs.db.
+        If (f.Attributes And 6) = 0 Then
+            If ForgeNameMatches(f.Name, pattern) Then ForgeAddInOrder ForgeListFiles, f.Name
+        End If
     Next f
     Exit Function
 FailedOp:

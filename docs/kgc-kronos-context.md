@@ -1,6 +1,6 @@
 # KGC KRONOS: AI context file
 
-**Snapshot: 18 Oct 2026, `main` at ed5a793.** Hand this file to any Claude chat or claude.ai
+**Snapshot: 21 Oct 2026, after the review passes of item 2 (D47, D48, D51) and VEP 0.5 Phase 1 (D50).** Hand this file to any Claude chat or claude.ai
 Project that needs to understand the project. The repo is always the source of truth: if this
 file and the repo disagree, the repo wins, and the repo's `CLAUDE.md` has the current status.
 
@@ -114,7 +114,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
-tests/                    368 unit tests; conformance_cases.py is shared with the docs
+tests/                    375 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -311,12 +311,12 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 368 pass |
-| Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the ~40 guideline; accepted until March) |
+| Unit tests | 375 pass |
+| Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
 | Verified pairs | 0 (none has been run in Excel yet) |
-| Orchestrator Project | the VCL 0.4 prompt is ready (item 2 switch, D46); once Boss pastes it in, replies start with `VCL 0.4` and can use every op item 2 added (sheets, formulas, FILTER, DEDUPE, FIND, text files) |
+| Orchestrator Project | the final VCL 0.4 prompt is ready (D46, with the D47, D48 and D51 review fixes); once Boss pastes it in, replies start with `VCL 0.4`, use every op item 2 added (sheets, formulas, FILTER, DEDUPE, FIND, text files), and are one TASK (no BUILD or CALL until they can be tested) |
 
 The 12 specs:
 
@@ -375,6 +375,9 @@ The 12 specs:
 - #46: ForgeLib fixes from a VBA review: COPY_SHEET safety, sheet names, DEDUPE keys, formulas on Text cells, ASCII text-file paths (D48).
 - #47: the design of CALL and BUILD specs (`docs/vep-0.5-build.md`, D49).
 - #49: VEP 0.5 Phase 1, the `VCL 0.5` line, CALL `into=` and the BUILD rules (E13, E14, D50).
+- #48 and #51: a second review pass, from a parallel session, folded in by #51 (D51): ForgeSort
+  gives every sort option, LIST_FILES leaves out hidden and system files, more lint bans, and
+  more rules say what the toolchain checks.
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -421,8 +424,9 @@ The key safety design for files:
   `C:\KRONOS_SANDBOX`; nothing real is read or written.
 - **No overwrite, no delete, no retry loops.**
 
-**After the MVP** (`docs/vcl-mvp-plan.md`):
-1. The rest of revision 3 in the interpreter and compiler (Boss said "go item 2" on 20 Oct
+**After the MVP** (the numbers are CLAUDE.md's and Boss's; `docs/vcl-mvp-plan.md` calls the
+router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
+2. The rest of revision 3 in the interpreter and compiler (Boss said "go item 2" on 20 Oct
    2026), designed in `docs/vep-0.4-rev3-rest.md` (D36): first the interpreter catches up with
    what already compiles, then list syntax with DEDUPE, FIND, the sheet ops, FILTER (it hides
    rows by SAME, never by AutoFilter criteria), SET_FORMULA (tested by its text) and text files
@@ -498,6 +502,11 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 - **D48:** a review of ForgeLib fixed five places where Excel would differ from the interpreter
   (one a safety fix in COPY_SHEET). Non-ASCII dictionary keys may still group differently in
   Excel; ASCII keys always agree.
+- **D51:** a second review pass, folded in from a parallel session: rule 5 asks for a PRE_
+  measure; about 40 OP lines per TASK, and no BUILD or CALL until they can be tested; a formula
+  names only sheets every TEST workbook has. ForgeSort gives every sort option; LIST_FILES leaves
+  out hidden and system files; the linter bans FileCopy, SetAttr, Workbooks.Open and more. Known
+  gaps: Excel's locale-aware text sort, hidden rows in a sort, vbTextCompare keys on a Turkish PC.
 
 ## 11. How to help (rules for the AI reading this)
 
@@ -559,17 +568,23 @@ exact fixture algorithm and the changelogs.
 4.  If a step truly cannot be expressed with ops, write it as NOTE "<terse technical text>".
     Use NOTE rarely.
 5.  Every spec has at least two TEST lines: one proves the goal was met, one proves nothing
-    else changed (for read-only work: proves the source data is unchanged). At least one
-    TEST includes ERROR_COUNT = 0. When the test workbook has another sheet, add a
-    wrong-sheet TEST that passes it and expects RESULT = -1 AND ERROR_COUNT = 1.
+    else changed by comparing a measure with its PRE_ value, for example
+    COUNTA(Orders![Status]) = PRE_COUNTA(Orders![Status]) (for read-only work: proves the
+    source data is unchanged). At least one TEST includes ERROR_COUNT = 0. When the test
+    workbook has another sheet, add a wrong-sheet TEST that passes it and expects
+    RESULT = -1 AND ERROR_COUNT = 1.
 6.  Put every assumption at the top of the spec as a line starting with # ASSUME:
     Prefer a sensible assumption over a question.
-7.  Ask only when a wrong guess could destroy or overwrite data, or the request cannot be
-    specified at all. Then the code block contains only: # QUESTION: <one short question>
+7.  Ask only when a wrong guess could destroy or overwrite data, when the request cannot be
+    specified at all, or when one TASK can't do all of it (rule 9). Then the code block
+    contains only: # QUESTION: <one short question>
 8.  Use ALLOW only for risky actions the user explicitly asked for: file_delete,
-    file_overwrite, shell, http. Otherwise design around them.
-9.  Choose TASK for one procedure of up to about 60 lines of VBA. Choose BUILD when the
-    request needs several procedures, a UserForm, or more than about 60 lines.
+    file_overwrite, shell, http. No VCL 0.4 op deletes or overwrites a file, runs a program
+    or uses the web, so design around them.
+9.  Write one TASK: one procedure of up to about 40 OP lines (about 60 lines of VBA). BUILD
+    and CALL can be checked but not yet tested, so don't use them for now. When one TASK
+    can't do the whole request (it needs several procedures, a UserForm, more OP lines, or
+    ops one spec may not combine), ask which part to do first (rule 7).
 10. Delete rows only inside LOOP_ROWS dir=up or with DEDUPE, and only rows the user
     explicitly wants removed. Never delete rows because data is missing or pending: copy
     them to an exceptions sheet instead (DEDUPE never deletes a row with a blank key).
@@ -582,8 +597,10 @@ exact fixture algorithm and the changelogs.
 14. Find input columns by header name with COL(), never by fixed position, and check
     every header you use with a PRE line.
 15. Assume data is typed by hand: trim IDs before matching, compare typed text with SAME,
-    and guard every calculation and date comparison with IS_NUMBER or IS_DATE in a nested
-    IF. Guard with the check itself (IF IS_DATE(x)), never with a flag variable set earlier.
+    and guard every calculation and date comparison on a value from the workbook (a cell,
+    an array element, a dictionary value) with IS_NUMBER or IS_DATE in a nested IF; your
+    own counters need no guard. Guard with the check itself (IF IS_DATE(x)), never with a
+    flag variable set earlier.
 16. Make re-runs safe: rebuild output sheets from scratch, and recalculate totals from
     source data instead of adding to or subtracting from stored values. The goal TEST
     uses runs=2 to prove it.
@@ -594,7 +611,7 @@ exact fixture algorithm and the changelogs.
     whose fills it owns) stale=<n> rows, put the values that sit exactly on each <, <=, >
     or >= comparison in the first rows with +boundary(...), repeat dictionary keys with
     +dupes(<n>) or values() counts of 2 or more, and use reldates(lo, hi) when the spec
-    uses TODAY. Give each column a SKIP_IF IS_EMPTY tests at least one blank cell
+    uses TODAY. Give each column that a SKIP_IF IS_EMPTY tests at least one blank cell
     (+blank(<n>) or a "" boundary value), and give a spec that copies or reads files a
     locked= file in a FIXTURE folder. Prefer exact assertions to ranges.
 20. Declare every sheet the macro changes with MODIFIES: the whole sheet when it is
@@ -611,8 +628,11 @@ exact fixture algorithm and the changelogs.
 22. Add sheets only with ADD_SHEET or COPY_SHEET, each with name=, on a Workbook argument
     declared with MODIFIES $<book> sheets, and skip the add when SHEET_EXISTS says the
     sheet is there, so a re-run is safe. Write formulas only with SET_FORMULA, using
-    Excel 2016 functions; a TEST checks their text with FORMULA, never their value. No op
-    removes or replaces a sheet.
+    Excel 2016 functions; a TEST checks their text with FORMULA, never their value. A spec
+    that SET_FORMULAs may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT. A formula's text can't
+    use COL(), so check in PRE that each column it names holds its header, such as
+    COL($ws, "Method") = 3, and it may name another sheet only when every TEST workbook has
+    a sheet of that name. No op removes or replaces a sheet.
 ```
 
 ### Reference
@@ -646,7 +666,7 @@ Collection, ADD_SHEET and COPY_SHEET a Worksheet; status VARs and READ_TEXT's te
 String. VARs start at 0, "" or FALSE; Dictionary and Collection VARs start empty.
 For form events: MODULE is the form, PROC is <control>_<Event> (btnRun_Click).
 
-BUILD FORMAT
+BUILD FORMAT  (not yet tested: don't use it, rule 9)
 VCL 0.4
 BUILD
 # ASSUME: <assumption>                        (opt)
@@ -708,7 +728,7 @@ Every other op is a call, NAME(arguments, key=value):
           LIST_FILES(<folder>, "<pattern>", into=<list>)   (file names in the folder, in name order)
           READ_TEXT(<path>, <text var>, into=<status>)     (a text file's text into <text var>)
           WRITE_TEXT(<path>, <expr>, into=<status>)        (a new text file; never overwrites)
-  Calls   CALL(<module>.<Proc>, <args>)
+  Calls   CALL(<module>.<Proc>, <args>)   (not yet tested: don't use it, rule 9)
   Output  LOG(<expr>)   MSG(<expr>)   RETURN(<expr>)
   Escape  NOTE "<terse technical text>"
 FORMAT fill names: none (removes the fill), black, white, red, green, blue, yellow, magenta,
@@ -763,7 +783,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   SAME        compares TRIM(a) and TRIM(b) as text, ignoring case: SAME(" ready ", "READY")
               and SAME(25, "25") are TRUE, SAME(25, "25.0") is FALSE; an error is SAME as its
               text, so check IS_ERROR first when that matters
-  CLEAN_TEXT  also removes characters below code 32; case is kept
+  CLEAN_TEXT  also removes the characters below code 32 other than tabs and line breaks;
+              case is kept
   IS_ERROR    true for Excel error values (#N/A, #DIV/0!, ...); the text "#N/A" is not one
   PARSE_DATE  a real date passes through; text is TRIMmed and must match the format exactly
               (day and month 1 or 2 digits, year 4 digits from 1900, a date that exists);
@@ -798,9 +819,10 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               part is empty or not exactly its own SAFE_NAME, and a file op given "" reports
               Bad name
   Paths       a file op's path is PATH_JOIN($<root>, ...) of a String argument, never a bare
-              root, and every part after the root is SAFE_NAME(...) or a quoted literal that
-              is its own safe name, written in place (never a variable or a cell), so no path
-              can climb out of its root. A SAFE_NAME result or a path is text elsewhere
+              root (LIST_FILES may list the root itself), and every part after the root is
+              SAFE_NAME(<any text>) or a quoted literal that is its own safe name, written in
+              place (a bare variable or cell is refused), so no path can climb out of its
+              root. A SAFE_NAME result or a path is text elsewhere
   FOLDER_EXISTS  TRUE only for a folder, FALSE for a file or ""; in Excel the path must be
               written in full (C:\Jobs, not Jobs or C:\Jobs\)
   MAKE_FOLDER writes one status into its String VAR, checked in this order: Bad name ("" or
@@ -816,8 +838,10 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               ForgeLog). A file op never stops the run
   LIST_FILES  the names (not paths) of the files directly in the folder whose whole name
               matches the pattern (* any run of characters, ? one character, case ignored),
-              sorted by lowercase name; a missing or bad folder gives an empty list. ITEMS
-              walks them in that order
+              sorted by lowercase name, into a Collection VAR (replacing what it held); a
+              missing or bad folder gives an empty list. ITEMS walks them in that order. The
+              pattern is quoted text, never an expression. Hidden and system files (such as
+              the ~$ file Excel keeps for an open workbook) are left out
   Text        READ_TEXT and WRITE_TEXT handle printable ASCII, tabs and line breaks, at most
               32,767 characters; anything else is Not text, because it reads differently on
               each PC. Their paths are printable ASCII too, else Bad name
@@ -869,8 +893,9 @@ MODIFIES  (one line per sheet the macro changes, or per kind of change)
   MODIFIES $<arg> fills               fills anywhere on that sheet
   MODIFIES $<arg> files               folders and files may be added below that String
                                       argument; nothing else on disk may change
-  MODIFIES $<arg> sheets              sheets may be added to that Workbook argument; every
-                                      sheet that was there stays as it was
+  MODIFIES $<arg> sheets              sheets may be added to that Workbook argument; no sheet
+                                      is removed, and each sheet that was there changes only
+                                      as its own MODIFIES lines allow
   An argument has one whole-sheet line, or at most one [headers] line and one fills line.
   Every write op must go through a $sheet argument whose lines allow that change: values
   need [headers] or the whole sheet, fill-only FORMATs need fills, and anything else
@@ -882,7 +907,8 @@ MODIFIES  (one line per sheet the macro changes, or per kind of change)
   files line; COPY_FILE's <from>, READ_TEXT's file and LIST_FILES' folder may be below any
   String argument.
   Every TEST then checks that nothing else changed: each other cell keeps its value, fill
-  and number format, each row stays visible or hidden, and the header row never changes;
+  and number format, each row stays visible or hidden, and the header row never changes
+  (unless the whole sheet is declared);
   no sheet is removed, and new sheets appear only with a sheets line; on disk nothing is
   removed or changed, and new folders and files appear only below a files root. A spec
   that changes nothing has no MODIFIES lines and gets the same check.
@@ -915,11 +941,13 @@ An assertion names a sheet as one word, so it can read only sheets without space
 their names; SHEET_EXISTS("<name>") takes any name.
 runs=<n> calls the procedure n times on the same test workbook before checking
 (default 1).
-Combine assertions with AND. Assertions have no NOT, TRUE or FALSE: write "is not there" as
-SHEET_EXISTS("<name>") = 0 or FILE_EXISTS("<path>") = 0. In TEST call arguments, a bare
-sheet name (Orders) means that worksheet in the test workbook, a bare folder name (Dump)
-means that FIXTURE folder, the TEST's fixture file name (orders_01.xlsx) means the test
-workbook, for a Workbook argument, and text and numbers are passed as written ("P-104", 5).
+Combine assertions with AND; there is no TRUE, FALSE or NOT. SHEET_EXISTS(...) and
+FILE_EXISTS(...) stand alone; write "is not there" as SHEET_EXISTS("<name>") = 0 or
+FILE_EXISTS("<path>") = 0. When every run stops at PRE, the automatic check already proves
+that nothing changed. In TEST call arguments, a bare sheet name (Orders) means that worksheet
+in the test workbook, a bare folder name (Dump) means that FIXTURE folder, the TEST's fixture
+file name (orders_01.xlsx) means the test workbook, for a Workbook argument, and text and
+numbers are passed as written ("P-104", 5).
 fixture=<name>.xlsx names a FIXTURE file from this spec; the harness builds it fresh for
 every TEST. fixture=target and real workbooks are not allowed.
 
@@ -943,12 +971,13 @@ FIXTURE SPEC
   FIXTURE <name>.xlsx folder=<Name> [files=<path>[:<bytes>|:"<text>"],...] [locked=<path>,...]
   adds a synthetic folder to the same test file: each file below it (\ between folders,
   each part a safe name of letters, digits, _ . and -), with that size or one from its own
-  seed, or holding exactly "<text>" (one line of printable ASCII). locked= files act as if
-  another program has them open. A folder exists when a file is below it. <Name> is one
-  word and not a sheet's name. Nothing real is read or written: the folders sit in a
-  sandbox (C:\KRONOS_SANDBOX in the interpreter, a new folder below %TEMP% in Excel, whose
-  root may be up to 120 characters), so a TEST fails when a file op path could be Too long
-  in Excel but not in the interpreter: keep paths far over or well under the limits.
+  seed, or holding exactly "<text>" (one line of printable ASCII, commas and colons too;
+  write a quote as ""). locked= files act as if another program has them open. A folder
+  exists when a file is below it. <Name> is one word and not a sheet's name. Nothing real
+  is read or written: the folders sit in a sandbox (C:\KRONOS_SANDBOX in the interpreter, a
+  new folder below %TEMP% in Excel, whose root may be up to 120 characters), so a TEST fails
+  when a file op path could be Too long in Excel but not in the interpreter: keep paths far
+  over or well under the limits.
   Sheet names have no spaces, so TEST calls can use them bare. They may be short forms of
   the real sheet names (WelderPerf for "Welder Performance"); ASSUME lines describe the
   real workbook.

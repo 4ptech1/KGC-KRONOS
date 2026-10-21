@@ -733,11 +733,14 @@ class Machine:
         fills = [{c: sh.fills.get((r, c)) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
         formats = [{c: sh.formats.get((r, c)) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
 
-        def rank(v):  # Excel: numbers and dates < text < booleans; blanks always last
+        def rank(v):  # Excel: numbers and dates < text < booleans < errors; blanks always last
             if isinstance(v, bool):
                 return (2, v)
-            if isinstance(v, (dt.date, dt.datetime)):
-                return (0, v.toordinal())
+            if S.is_error(v):   # D51: all equal, after booleans (they used to sort by memory address)
+                return (3, 0)
+            if isinstance(v, (dt.date, dt.datetime)):   # D51: by Excel's serial, time of day included
+                moment = v if isinstance(v, dt.datetime) else dt.datetime(v.year, v.month, v.day)
+                return (0, (moment - dt.datetime(1899, 12, 30)).total_seconds() / 86400)
             if isinstance(v, (int, float)):
                 return (0, v)
             return (1, str(v).casefold())
@@ -1226,8 +1229,10 @@ def sandbox_length_problems(paths):
 def run_tests(text, today=None):
     """Run every TEST of a TASK spec. today pins TODAY (default: the real date)."""
     spec, problems = parse(text)
-    if problems or not spec or spec["kind"] != "TASK":
+    if problems or not spec:
         raise VclError(f"spec doesn't parse: {problems[:3]}")
+    if spec["kind"] != "TASK":   # D51: say why, instead of "doesn't parse" for a valid BUILD
+        raise VclError(f"a {spec['kind']} can't be tested yet: the interpreter runs TASK specs only (D36)")
     today = today or dt.date.today()
     trees = [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]
     books = build_workbooks(trees, today)

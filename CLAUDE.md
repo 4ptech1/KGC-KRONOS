@@ -164,13 +164,17 @@ MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, m
 `stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). Every SKIP_IF has blank key rows
 (D22). FORMAT fill names work (D23). task_11 HighlightRejectedWelds is
 Boss's weld-log spec, unchanged (D24). task_12 RouteJobPacks is the router MVP spec, VCL 0.3 (D32).
+Two review passes after item 2 are done (D47 and D48, PRs #45 and #46; D51, a parallel
+session's PR #48 folded in by #51): Orchestrator dry runs and ForgeLib reviews; the prompt now
+says what the toolchain does, and Boss pastes the final prompt once.
 Snapshot mutation score 95.4% (418 of 438); 19 of the 20 survivors are
 equivalents, and 1 (task_11 `LOOP_COLS from=1`) needs a fixture change, reported to Boss. The repo is KGC-KRONOS (renamed 17 Oct 2026). PR #4 (Excel pilot) is open with the `deferred`
 label.
 
-Known: task_04 exceeds the ~60-line TASK guideline; accepted for now, revisit in March.
+Known: task_04 is bigger than a TASK should be: 48 OP lines (the validator warns above 40) and 107
+lines of VBA (rule 9: about 60); accepted for now, revisit in March.
 
-Next, in order (`docs/vcl-mvp-plan.md`):
+Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
 1. The Job-Pack Router MVP, `docs/vep-0.3-file-ops.md` (approved by Boss): sandbox only, COPY_FILE
    first (no MOVE), VCL 0.3. Phase 0 (blank key rows) and Phase 1 (the language surface: the VCL
    0.3 line, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS, the path types, MAKE_FOLDER, COPY_FILE,
@@ -206,13 +210,14 @@ Next, in order (`docs/vcl-mvp-plan.md`):
    failures) and ForgeLib fixes from a VBA review (D48).
 3. CALL and BUILD specs, `docs/vep-0.5-build.md` (D49). Boss said "continue building the next
    part according to your recommendations" on 21 Oct 2026. Phases: 1 the language surface and the
-   validator, 2 the interpreter, 3 the compiler and mutation, 4 the review gaps (D47), 5 a proven
+   validator, 2 the interpreter, 3 the compiler and mutation, 4 the review gaps (D47, D51), 5 a proven
    BUILD and the switch to VCL 0.5 (Boss updates the Orchestrator once). FORM and xlam wait.
    Phase 1 is done (E13, E14, D50): the `VCL 0.5` line, CALL `into=`, and the BUILD rules in the
    validator and type checker. **Next: Phase 2** (the interpreter runs BUILD TESTs).
 4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
-   the data generator and the benchmark) starts after the MVP; no training before March 2027.
+   the data generator and the benchmark) starts when Boss says go for it, as every earlier
+   item did (D51); no training before March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it.

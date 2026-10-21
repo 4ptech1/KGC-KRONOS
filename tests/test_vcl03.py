@@ -755,6 +755,22 @@ class LintFileSafety(unittest.TestCase):
                   "CopyFile outside": m.replace("    n = 0\n", '    n = 0\n          ForgeFso().CopyFile "a", "b"\n', 1),
                   "CreateFolder outside": m.replace("fso.CopyFile src, dst, False", "fso.CreateFolder dst", 1),
                   "late declaration": m + "Private gLate As Long\n"}
+        # D51: what the review found the linter let through
+        plant = {"FileCopy": 'FileCopy "a", "b"', "SetAttr": 'SetAttr "a", 0', "CallByName": 'CallByName x, "Delete", 1',
+                 "ExecuteExcel4Macro": 'ExecuteExcel4Macro "x"', "Save": "ThisWorkbook.Save",
+                 "Run": 'Application.Run "x"', "OnTime": 'Application.OnTime Now, "x"',
+                 "AutoFilter": "ws.UsedRange.AutoFilter 1, \"x\"", "FormulaLocal": 'ws.Range("A1").FormulaLocal = "=1"',
+                 "Workbooks.Open": 'Workbooks.Open "x.xlsx"', "SaveChanges": "ThisWorkbook.Close SaveChanges:=True",
+                 "Open for Input": 'Open "x" For Input As #1', "Open with no mode": 'Open "x" As #1',
+                 "Open after Then": 'If n = 0 Then Open "x" For Output As #1',
+                 "Name after a colon": 'n = 1: Name "a" As "b"',
+                 "gForgeFso outside": 'gForgeFso.GetFile("x").Delete'}
+        for what, line in plant.items():
+            faults[what] = m.replace("    n = 0\n", "    n = 0\n          " + line + "\n", 1)
+        faults["CreateObject over two lines"] = m.replace('CreateObject("Scripting.Dictionary")',
+                                                          'CreateObject( _\n        "WScript.Shell")', 1)
+        faults["CreateObject after a quote in text"] = m.replace(
+            "    n = 0\n", '    n = 0\n          n = Len("it\'s"): Set d = CreateObject("WScript.Shell")\n', 1)
         for what, bad in faults.items():
             with self.subTest(what):
                 self.assertNotEqual(bad, m)
