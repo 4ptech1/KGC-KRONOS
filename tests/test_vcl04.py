@@ -1017,7 +1017,7 @@ class ForgeLib(unittest.TestCase):
         self.assertIn('ForgeFileName = Mid$(s, InStrRev(s, "\\") + 1)', self.body("ForgeFileName"))
         dedupe = self.body("ForgeDedupe")
         self.assertLess(dedupe.index("key = ForgeRowKey(parts)"), dedupe.index("Step -1"))   # marked first, deleted after
-        self.assertIn("If doomed(r) Then rng.Worksheet.Rows(rng.Row + r - 1).Delete", dedupe)
+        self.assertIn("If doomed(r) Then\n            rng.Worksheet.Rows(rng.Row + r - 1).Delete", dedupe)
         self.assertIn("If ForgeIsEmpty(values(i)) Or ForgeIsError(values(i)) Then", self.body("ForgeRowKey"))
         add = self.body("ForgeAddSheet")
         self.assertLess(add.index("already exists"), add.index("book.Worksheets.Add(After:=after)"))   # checked first

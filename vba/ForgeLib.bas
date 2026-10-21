@@ -609,9 +609,10 @@ Public Function ForgeSameRowKey(ByVal a As Variant, ByVal b As Variant) As Boole
     ForgeSameRowKey = (StrComp(ka, kb, vbBinaryCompare) = 0)
 End Function
 
-Public Sub ForgeDedupe(ByVal rng As Range, ByVal cols As Variant, ByVal hasHeader As Boolean)
+Public Function ForgeDedupe(ByVal rng As Range, ByVal cols As Variant, ByVal hasHeader As Boolean) As Long
     ' DEDUPE: keeps the first row of each key; each later row with that key is deleted as a whole
     ' sheet row, bottom up, so the rows below move up. cols are sheet column numbers, as SORT key= is.
+    ' It gives the number of rows it deleted (DEDUPE into=, VCL 0.5, D55).
     Dim seen As Object
     Dim doomed() As Boolean
     Dim parts() As Variant
@@ -622,7 +623,7 @@ Public Sub ForgeDedupe(ByVal rng As Range, ByVal cols As Variant, ByVal hasHeade
     Set seen = ForgeNewDict()
     seen.CompareMode = vbBinaryCompare   ' the keys are already lower case (ForgeRowKey, D48)
     If hasHeader Then first = 2 Else first = 1
-    If rng.Rows.Count < first Then Exit Sub
+    If rng.Rows.Count < first Then Exit Function
     ReDim doomed(first To rng.Rows.Count)
     ReDim parts(LBound(cols) To UBound(cols))
     For r = first To rng.Rows.Count
@@ -635,9 +636,12 @@ Public Sub ForgeDedupe(ByVal rng As Range, ByVal cols As Variant, ByVal hasHeade
         End If
     Next r
     For r = rng.Rows.Count To first Step -1
-        If doomed(r) Then rng.Worksheet.Rows(rng.Row + r - 1).Delete
+        If doomed(r) Then
+            rng.Worksheet.Rows(rng.Row + r - 1).Delete
+            ForgeDedupe = ForgeDedupe + 1
+        End If
     Next r
-End Sub
+End Function
 
 ' ---- VCL 0.4: the sheets of a workbook (S23, VEP 0.4 Phase 4, D40) ----
 

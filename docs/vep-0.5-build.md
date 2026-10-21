@@ -5,7 +5,7 @@ recommendations" after item 2; the recommendation was CALL and BUILD specs befor
 Stage A, because the Orchestrator's rule 9 already asks for a BUILD when a task needs several
 procedures or more than about 60 lines, and today no BUILD can be proven. Choices that needed
 Boss's decision were made the conservative way and recorded in `DECISIONS.md` D49; Boss can
-overrule any of them. Phases 1 to 3 are done (E13, E14, D50; D52; D53).
+overrule any of them. Phases 1 to 3 and 4a are done (E13, E14, D50; D52; D53; D55).
 
 ## The problem
 
@@ -86,7 +86,11 @@ lines; the names are the real workbook's, as its ASSUME lines describe it.
 
 Small language gaps the Orchestrator dry runs hit; each gets a decision in its phase:
 - No row number of a found cell, so FIND can't lead to another column of the same row (D39).
-- No count of the rows DEDUPE removed (rule 17 wants a count).
+  **Done (Phase 4a, D55):** `ROW_OF(<range>)` is the sheet row of the range's first cell, so
+  `CELL($ws, ROW_OF(hit), cStatus)` reaches another column of the row FIND found. ROW_OF of
+  NOTHING is a run-time error (VBA error 91), so the spec tests `IS_NOTHING(hit)` first.
+- No count of the rows DEDUPE removed (rule 17 wants a count). **Done (Phase 4a, D55):**
+  `DEDUPE(..., into=<var>)` sets the VAR to the number of rows it deleted (0 when none).
 - Rule 14 has no form for a header the macro itself adds to an existing sheet.
 - An assertion can't name a sheet whose name has spaces.
 
@@ -99,7 +103,8 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
    PRE and ERR; UNCHANGED from RunHeadless's MODIFIES; `vclc test` on BUILDs.
 3. **The compiler (done: D53):** `dist/builds/<NAME>.bas`, CALL `into=` as a Function call, the BUILD's
    fixture builders and expected results, lint, and the mutation scorer over every TASK of a BUILD.
-4. **The review gaps** above, as the evidence decides.
+4. **The review gaps** above, as the evidence decides. 4a (done: D55): ROW_OF and DEDUPE `into=`.
+   4b: rule 14's header form and sheet names with spaces in assertions.
 5. **A proven BUILD and the switch:** a sample BUILD in the tests that catches every mutant, a new
    Example 4 in the prompt, rule 9 and a CALL rule in the hard rules, spec.md and the prompt move
    to 0.5, and Boss updates the Orchestrator once.

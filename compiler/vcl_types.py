@@ -43,6 +43,7 @@ FUNCS = {
     "CELL": (["Sheet", "Num", "Num"], "Cell"), "ROW_RANGE": (["Sheet", "Num", "Num", "Num"], "Range"),
     "RANGE": (["Sheet", "Text"], "Range"), "SHEET": (["Book", "Text"], "Sheet"),
     "FIND": (["Range", "S"], "Range"), "ROWS": (["Arr"], "Num"), "COLS": (["Arr"], "Num"),
+    "ROW_OF": (["Range"], "Num"),   # VCL 0.5 (D55): the row of a range's first cell
     "ARR": (["Arr", "Num", "Num"], "Cell"), "COUNT": (["Count"], "Num"),
     "EXISTS": (["Dict", "S"], "Bool"), "LEN": (["T"], "Num"), "TRIM": (["T"], "Text"),
     "UPPER": (["T"], "Text"), "LOWER": (["T"], "Text"), "LEFT": (["T", "Num"], "Text"),
@@ -386,6 +387,9 @@ class Checker:
             drop_sheet_of(pos[2])
         elif name in ("DELETE_ROW", "INSERT_ROW", "SORT", "DEDUPE"):
             drop_sheet_of(pos[0])
+            if name == "DEDUPE" and "into" in opts:   # D55: how many rows it deleted
+                drop_var(str(opts["into"]))
+                self.assign(str(opts["into"]), "Num", opts["into"], vflow, line)
         elif name == "WRITE_ARRAY" and "to" in opts:
             drop_sheet_of(opts["to"], block=True)
         elif name == "CALL":   # D49: the callee may change any sheet it gets, so cell guards are gone

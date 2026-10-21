@@ -216,7 +216,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    Phase 1 is done (E13, E14, D50): the `VCL 0.5` line, CALL `into=`, and the BUILD rules in the
    validator and type checker. Phase 2 is done (D52): the interpreter runs a 0.5 BUILD's TESTs
    through modMain.RunHeadless. Phase 3 is done (D53): `vclc build` writes `dist/builds/<NAME>.bas`,
-   and mutation scores a BUILD. **Next: Phase 4** (the review gaps of D47 and D51).
+   and mutation scores a BUILD. Phase 4a is done (D55): ROW_OF(<range>) and DEDUPE `into=`; the
+   reference teaches them at the switch to 0.5, and until then the drift guard wants them in the
+   VEP. **Next: Phase 4b** (rule 14's header form, sheet names with spaces in assertions).
 4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts when Boss says go for it, as every earlier
