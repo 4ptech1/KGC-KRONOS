@@ -1807,6 +1807,14 @@ def check_build(spec):
         shim.error("no TEST guards against collateral changes with a PRE_ measure (rule 5)", first)
     if spec.tests and not any(t.runs >= 2 for t in spec.tests):
         shim.error("no TEST uses runs=2 to prove re-runs are safe (rule 16)", first)
+    headless_task = next((t for t in spec.tasks if f"{t.value('MODULE')}.{t.value('PROC')}" == "modMain.RunHeadless"),
+                         None)
+    if VERSION_RANK.get(spec.version, 1) >= VERSION_RANK["VCL 0.5"] and headless_task is not None \
+            and headless_task.lines("PRE") and any(len(files.get(t.fixture, {})) > 1 for t in spec.tests):
+        if not any(f["wrong_sheet"] for f in flags):   # rule 5, as for a TASK (D58)
+            want = "RESULT = -1 AND ERROR_COUNT = 1" if shim.kind == "Function" else "ERROR_COUNT = 1"
+            shim.error(f"modMain.RunHeadless has PRE and the fixture has another sheet, but no wrong-sheet TEST "
+                       f"expects {want} (rule 5)", first)
     check_fixtures(shim, spec.fixtures)
     check_folders(shim, spec.folders, spec.fixtures)
     problems += shim.problems
@@ -1914,6 +1922,22 @@ def check_build_05(spec, sigs, checkers):
         if homes.setdefault(sig.proc, sig.module) != sig.module:
             error(f"SIG {sig.module}.{sig.proc}: {homes[sig.proc]}.{sig.proc} has the same name; a BUILD calls its "
                   "procedures by name, so each name is used once (D49)", sig.line)
+
+    # D43 and D42 hold across the whole tool, not one TASK at a time: its TASKs share the workbook (D58).
+    # Two in the same TASK are that TASK's own error.
+    for full, checker in checkers.items():
+        if "SET_FORMULA" in checker.row_moves:
+            other = next(((o, op) for o, c in checkers.items() if o != full
+                          for op in sorted(c.row_moves) if op != "SET_FORMULA"), None)
+            if other:
+                error(f"{full} uses SET_FORMULA and {other[0]} uses {other[1]}: a BUILD may not do both, because Excel "
+                      "rewrites formula references when rows move, which a TEST can't prove (D43)",
+                      checker.row_moves["SET_FORMULA"])
+        if "FILTER" in checker.row_order_ops:
+            other = next((o for o, c in checkers.items() if o != full and "SORT" in c.row_order_ops), None)
+            if other:
+                error(f"{full} uses FILTER and {other} uses SORT: a BUILD may not do both, because how Excel sorts "
+                      "rows that FILTER hid can't be proven by a TEST (D42)", checker.row_order_ops["FILTER"])
 
     edges = {}   # caller -> {callee: first line}
     passed_on = {}   # id(caller's checker) -> its $arguments a callee may change

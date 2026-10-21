@@ -20,101 +20,8 @@ import vclc  # noqa: E402
 
 # A small tool: RunHeadless marks old open NCRs Overdue (modSteps.MarkOverdue) and rebuilds a
 # summary of the statuses (modSteps.WriteSummary); modMain.Run starts it on the real sheets.
-NCR_REVIEW = r"""VCL 0.5
-BUILD
-# ASSUME: NCR headers (row 1) include "NCR No", "Status" and "Days Open"
-# ASSUME: an Open NCR older than the limit becomes Overdue; Summary is rebuilt on every run
-NAME     NcrReview
-TARGET   xlsm
-ENTRY    modMain.Run
-MODULE   modMain
-MODULE   modSteps
-SIG      modMain.Run()
-SIG      modMain.RunHeadless(ncr As Worksheet, out As Worksheet) As Long
-SIG      modSteps.MarkOverdue(ncr As Worksheet, limit As Long) As Long
-SIG      modSteps.WriteSummary(ncr As Worksheet, out As Worksheet)
-FLOW     modMain.Run -> modMain.RunHeadless -> modSteps.MarkOverdue
-FLOW     modMain.RunHeadless -> modSteps.WriteSummary
-FIXTURE  ncr_01.xlsx sheet=NCR cols=A:NCR No,B:Status,C:Days Open rows=8 data=A:seq(1,1);B:values("Open"x5,"Closed"x2,""x1)+boundary("Open","Open","Closed","","Open");C:int(1,60)+boundary(31,30,45,10)
-FIXTURE  ncr_01.xlsx sheet=Summary cols=A:Status,B:Count rows=0 stale=2
-TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTIF(NCR![Status], "Overdue") = 4 AND COUNTIF(NCR![Status], "Open") = 1 AND COUNTA(Summary![Status]) = 4 AND VALUE(Summary![Count]2) = 4 AND COUNTIF(Summary![Status], "stale") = 0
-TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) assert=RESULT = 4 AND ERROR_COUNT = 0 AND COUNTA(NCR![NCR No]) = PRE_COUNTA(NCR![NCR No]) AND VALUE(NCR![Status]2) = "Overdue" AND VALUE(NCR![Status]3) = "Open" AND VALUE(Summary![Status]2) = "Overdue"
-TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(Summary, NCR) assert=RESULT = -1 AND ERROR_COUNT = 1
----
-VCL 0.5
-TASK
-PROC     Run
-KIND     Sub
-MODULE   modMain
-VAR      n As Long
-OP       CALL(modMain.RunHeadless, SHEET(THIS_BOOK, "NCR Register"), SHEET(THIS_BOOK, "NCR Summary"), into=n)
-OP       MSG("NCRs marked Overdue: " & n)
-ERR      standard
----
-VCL 0.5
-TASK
-PROC     RunHeadless
-KIND     Function
-MODULE   modMain
-ARGS     ncr As Worksheet, out As Worksheet
-RET      Long
-VAR      marked As Long
-PRE      COL($ncr, "Status") > 0; COL($ncr, "Days Open") > 0
-MODIFIES $ncr["Status"]
-MODIFIES $out
-OP       CALL(modSteps.MarkOverdue, $ncr, 30, into=marked)
-OP       CALL(modSteps.WriteSummary, $ncr, $out)
-OP       RETURN(marked)
-ERR      standard
----
-VCL 0.5
-TASK
-PROC     MarkOverdue
-KIND     Function
-MODULE   modSteps
-ARGS     ncr As Worksheet, limit As Long
-RET      Long
-VAR      cStatus As Long
-VAR      cDays As Long
-VAR      n As Long
-PRE      COL($ncr, "Status") > 0; COL($ncr, "Days Open") > 0
-MODIFIES $ncr["Status"]
-OP       LET(cStatus, COL($ncr, "Status"))
-OP       LET(cDays, COL($ncr, "Days Open"))
-OP       LOOP_ROWS dir=down from=2 to=LASTROW($ncr, cStatus) var=r
-OP         IF SAME(CELL($ncr, r, cStatus), "Open")
-OP           IF IS_NUMBER(CELL($ncr, r, cDays))
-OP             IF CELL($ncr, r, cDays) > $limit
-OP               SET_VALUE(CELL($ncr, r, cStatus), "Overdue")
-OP               LET(n, n + 1)
-OP       RETURN(n)
-ERR      standard
----
-VCL 0.5
-TASK
-PROC     WriteSummary
-KIND     Sub
-MODULE   modSteps
-ARGS     ncr As Worksheet, out As Worksheet
-VAR      cStatus As Long
-VAR      counts As Dictionary
-VAR      got As Long
-VAR      outRow As Long
-PRE      COL($ncr, "Status") > 0
-MODIFIES $out
-OP       LET(cStatus, COL($ncr, "Status"))
-OP       CLEAR(USED_RANGE($out), what=all)
-OP       WRITE_ROW($out, 1, "Status", "Count")
-OP       LOOP_ROWS dir=down from=2 to=LASTROW($ncr, cStatus) var=r
-OP         SKIP_IF IS_EMPTY(CELL($ncr, r, cStatus))
-OP         DICT_ADD(counts, TRIM(CELL($ncr, r, cStatus)), 1, mode=count)
-OP       LET(outRow, 2)
-OP       FOR_EACH var=k in=KEYS(counts)
-OP         DICT_GET(counts, k, into=got)
-OP         WRITE_ROW($out, outRow, k, got)
-OP         LET(outRow, outRow + 1)
-ERR      standard
-"""
+# It is in its own file, as Example 3 is: the prompt teaches it as Example 4 from the switch to 0.5 (D58).
+NCR_REVIEW = (ROOT / "vcl" / "examples" / "example4_build.vcl").read_text(encoding="utf-8")
 
 
 # Phase 4a (D55): ROW_OF finds the row of a FIND result; DEDUPE into= counts the rows it removed.
@@ -323,6 +230,39 @@ class Structure(unittest.TestCase):
         found = errors(changed("TARGET   xlsm", "TARGET   xlam"))
         self.assertIn("TARGET xlam waits (D49): an add-in's THIS_BOOK is the add-in, not the data; use TARGET xlsm",
                       found)
+
+
+WRITE_HEADER = 'OP       WRITE_ROW($out, 1, "Status", "Count")\n'
+MARK_DAYS = 'OP       LET(cDays, COL($ncr, "Days Open"))\n'
+
+
+class WholeTool(unittest.TestCase):   # D58: rules a TASK spec has, held across the TASKs of a BUILD
+    def test_set_formula_and_row_moves_in_two_tasks(self):   # D43
+        text = changed(WRITE_HEADER, WRITE_HEADER + 'OP       SET_FORMULA(CELL($out, 1, 3), "=COUNTA(A:A)")\n')
+        text = changed(MARK_DAYS, MARK_DAYS + "OP       DEDUPE(USED_RANGE($ncr), cols=[1], header=yes)\n", text)
+        self.assertIn("modSteps.WriteSummary uses SET_FORMULA and modSteps.MarkOverdue uses DEDUPE: a BUILD may not "
+                      "do both, because Excel rewrites formula references when rows move, which a TEST can't prove "
+                      "(D43)", errors(text))
+
+    def test_filter_and_sort_in_two_tasks(self):   # D42
+        text = changed(MARK_DAYS, MARK_DAYS + 'OP       FILTER(USED_RANGE($ncr), col=cStatus, crit="Open")\n')
+        text = changed(WRITE_HEADER, WRITE_HEADER + "OP       SORT(USED_RANGE($out), key=1, order=asc, header=yes)\n",
+                       text)
+        self.assertIn("modSteps.MarkOverdue uses FILTER and modSteps.WriteSummary uses SORT: a BUILD may not do both, "
+                      "because how Excel sorts rows that FILTER hid can't be proven by a TEST (D42)", errors(text))
+
+    def test_both_in_one_task_is_that_tasks_own_error(self):
+        found = errors(changed(WRITE_HEADER, WRITE_HEADER + 'OP       SET_FORMULA(CELL($out, 1, 3), "=COUNTA(A:A)")\n'
+                               "OP       DEDUPE(USED_RANGE($out), cols=[1], header=yes)\n"))
+        self.assertIn("a spec may not both SET_FORMULA and DEDUPE: Excel rewrites formula references when rows move, "
+                      "which a TEST can't prove (D43)", found)
+        self.assertFalse([m for m in found if "a BUILD may not do both" in m])
+
+    def test_a_wrong_sheet_test(self):   # rule 5
+        text = changed("TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(Summary, NCR) assert=RESULT = -1 AND "
+                       "ERROR_COUNT = 1\n", "")
+        self.assertEqual(errors(text), ["modMain.RunHeadless has PRE and the fixture has another sheet, but no "
+                                        "wrong-sheet TEST expects RESULT = -1 AND ERROR_COUNT = 1 (rule 5)"])
 
 
 class Interpreter(unittest.TestCase):   # Phase 2: BUILD TESTs run through modMain.RunHeadless (D52)
