@@ -1,4 +1,4 @@
-"""Validate VCL 0.1 to 0.4 specs against vcl/spec.md.
+"""Validate VCL 0.1 to 0.5 specs against vcl/spec.md.
 
 Usage:  python compiler/validator.py specs/*.vcl
 
@@ -68,7 +68,7 @@ OPS = {
     "LIST_FILES": (2, 2, {"into": "var"}, ("into",)),
     "READ_TEXT": (2, 2, {"into": "var"}, ("into",)),    # D45: (path, String VAR, into=status)
     "WRITE_TEXT": (2, 2, {"into": "var"}, ("into",)),   # D45: new files only, so no mode=
-    "CALL": (1, None, {}, ()),
+    "CALL": (1, None, {"into": "var"}, ()),   # into= (VCL 0.5): a Function's result (D49)
     "LOG": (1, 1, {}, ()),
     "MSG": (1, 1, {}, ()),
     "RETURN": (0, 1, {}, ()),
@@ -100,7 +100,7 @@ VCL_03_FUNCS = {"SAFE_NAME", "PATH_JOIN", "FOLDER_EXISTS"}
 VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
 VCL_04_FUNCS = {"SHEET_EXISTS"}
 VCL_04_OPS = {"LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # D44, D45: S24, S25 and the path rules of VCL 0.3
-VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4}
+VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4, "VCL 0.5": 5}
 # MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
 SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE"}
 ROW_OPS = {"INSERT_ROW", "DELETE_ROW", "SORT", "DEDUPE", "FILTER"}   # these move or hide rows
@@ -302,11 +302,12 @@ class TaskChecker:
         self.op_cols = []          # (line, arg, header) used in OP lines
         self.header_writes = []    # (arg, header) written to row 1
         self.header_copies = []    # (source arg, target arg) row 1 copied
-        self.calls = []            # (line, "module.Proc", number of args)
+        self.calls = []            # (line, "module.Proc", number of args, [arg items], into= items or None)
         self.sheet_ops = False     # ADD_SHEET / COPY_SHEET can create sheets the fixture lacks
         self.pre_conditions = []   # [(arg, header)] when every PRE condition is COL($x, "h") > 0
         self.pre_evaluable = True
         self.modifies = {}         # arg -> {"whole": line, "cols": line, "fills": line}
+        self.modifies_cols = {}    # arg -> {normalised header: as written} of its MODIFIES $arg["..."] line (D49)
         self.writes = []           # (line, op, sheet arg or None, what it changes)
         self.pre_roots = []        # [arg] checked with FOLDER_EXISTS($arg) in PRE (VCL 0.3)
         self.modifies_files = {}   # arg -> line of MODIFIES $arg files (VCL 0.3)
@@ -344,6 +345,12 @@ class TaskChecker:
         elif self.at_least("VCL 0.2") and self.writes and not self.in_build:
             self.warning("the spec writes to sheets but has no MODIFIES lines, so no TEST checks that nothing "
                          "else changed: declare each sheet it changes with MODIFIES", self.writes[0][0])
+        elif self.at_least("VCL 0.5") and self.writes:   # D49: a BUILD's TESTs check them all
+            self.error("a TASK of a BUILD declares every sheet it changes with MODIFIES, so the BUILD's TESTs can "
+                       "check that nothing else changed (D49)", self.writes[0][0])
+        if self.calls and not self.in_build and self.at_least("VCL 0.5"):
+            self.error("CALL runs another procedure of the same BUILD: a TASK spec has none to call (D49)",
+                       self.calls[0][0])
         self.check_file_ops()
         self.check_sheet_adds()
         moves = sorted(op for op in self.row_moves if op != "SET_FORMULA")
@@ -603,6 +610,7 @@ class TaskChecker:
                 if norm(header) in headers:
                     self.error(f'MODIFIES ${arg} lists "{header}" twice')
                 headers.append(norm(header))
+                self.modifies_cols.setdefault(arg, {}).setdefault(norm(header), header)
         seen = self.modifies.setdefault(arg, {})
         if kind in seen:
             what = {"whole": "the whole sheet", "cols": "columns", "fills": "fills"}[kind]
@@ -975,6 +983,8 @@ class TaskChecker:
         for key in required:
             if key not in seen:
                 self.error(f"{name} needs {key}=")
+        if name == "CALL" and "into" in seen and not self.at_least("VCL 0.5"):
+            self.error("CALL into= is VCL 0.5: start the spec with 'VCL 0.5' to use it")
         if name == "FORMAT" and not options:
             self.error("FORMAT needs at least one of numfmt=, bold=, fill=, width=")
         for i, items in enumerate(positional):
@@ -989,7 +999,8 @@ class TaskChecker:
                     self.error(f"CALL needs <module>.<Proc> first, like modCleanup.RemoveRows, got "
                                f"'{show(items)}'")
                 else:
-                    self.calls.append((self.line, target, count - 1))
+                    into = dict((k.text, v) for k, v in options).get("into")
+                    self.calls.append((self.line, target, count - 1, positional[1:], into))
             elif name in ("SET_FORMULA", "LIST_FILES") and i == 1:
                 if not (len(items) == 1 and is_tok(items[0], "string")):
                     self.error(f'{name} needs a "quoted" {"formula" if name == "SET_FORMULA" else "pattern"} '
@@ -1751,6 +1762,7 @@ def check_build(spec):
 
     # one TASK per SIG, matching it
     matched = set()
+    checkers = {}
     for task in spec.tasks:
         problems += task.problems
         full = f"{task.value('MODULE')}.{task.value('PROC')}"
@@ -1770,7 +1782,8 @@ def check_build(spec):
                 error(f"TASK {full} ARGS don't match its SIG", task.line)
         checker = TaskChecker(task, in_build=True, build_fixtures=spec.fixtures, build_folders=spec.folders)
         problems += checker.run()
-        for line, target, nargs in checker.calls:
+        checkers.setdefault(full, checker)
+        for line, target, nargs, _, _ in checker.calls:
             if target not in sigs:
                 problems.append(Problem(line, "error", f"CALL {target} has no SIG in this BUILD"))
             elif nargs != len(sigs[target].params):
@@ -1779,7 +1792,180 @@ def check_build(spec):
     for full, sig in sigs.items():
         if full not in matched:
             error(f"SIG {full} has no TASK section after ---", sig.line)
+    if VERSION_RANK.get(spec.version, 1) >= VERSION_RANK["VCL 0.5"]:
+        found, passed_on = check_build_05(spec, sigs, checkers)
+        # a MODIFIES line a CALL uses is not unused: the callee makes that change (D49)
+        unused = {f"MODIFIES ${arg}{kind}, but no op " for checker in checkers.values()
+                  for arg in passed_on.get(id(checker), ()) for kind in ("", " files", " sheets")}
+        problems = [p for p in problems
+                    if not (p.severity == "warning" and any(p.message.startswith(u) for u in unused))] + found
     return problems
+
+
+OBJECT_TYPES = ("Worksheet", "Workbook", "Range")
+RUN_STEPS = {"CALL", "LET", "MSG", "IF", "ELSE"}
+
+
+def declared_changes(checker, arg):
+    """What a procedure's MODIFIES lines let it change through its argument arg: {(kind, header)}."""
+    kinds = checker.modifies.get(arg, {})
+    out = {(kind, None) for kind in ("whole", "fills") if kind in kinds}
+    if "cols" in kinds:
+        out |= {("cols", h) for h in checker.modifies_cols.get(arg, {}).values()}
+    if arg in checker.modifies_files:
+        out.add(("files", None))
+    if arg in checker.modifies_sheets:
+        out.add(("sheets", None))
+    return out
+
+
+def allows(checker, arg, change):
+    """True when the caller's MODIFIES lines on arg allow a change a callee declares (D49)."""
+    kind, header = change
+    kinds = checker.modifies.get(arg, {})
+    if kind in ("whole", "cols", "fills") and "whole" in kinds:
+        return True
+    if kind == "cols":
+        return "cols" in kinds and norm(header) in checker.modifies_cols.get(arg, {})
+    if kind == "fills":
+        return "fills" in kinds
+    if kind == "files":
+        return arg in checker.modifies_files
+    if kind == "sheets":
+        return arg in checker.modifies_sheets
+    return False
+
+
+def modifies_form(arg, change):
+    kind, header = change
+    return {"whole": f"MODIFIES ${arg}", "cols": f'MODIFIES ${arg}["{header}"]', "fills": f"MODIFIES ${arg} fills",
+            "files": f"MODIFIES ${arg} files", "sheets": f"MODIFIES ${arg} sheets"}[kind]
+
+
+def check_build_05(spec, sigs, checkers):
+    """VCL 0.5 (D49): the rules that let a BUILD's TESTs prove the whole tool. One module per BUILD,
+    procedures called by name, sheets passed as $arguments so MODIFIES follows them, no recursion,
+    FLOW as the CALL edges, and a modMain.Run that has nothing left to test."""
+    problems = []
+
+    def error(message, line):
+        problems.append(Problem(line, "error", message))
+
+    for form in spec.forms:
+        error(f"FORM {form.name}: a UserForm can't be pasted in as text, so FORM waits until after March 2027 "
+              "(D49); modMain.Run starts the tool", form.line)
+    for k in spec.lines("TARGET")[:1]:
+        if k.value == "xlam":
+            error("TARGET xlam waits (D49): an add-in's THIS_BOOK is the add-in, not the data; use TARGET xlsm",
+                  k.line)
+    homes = {}
+    for sig in spec.sigs:
+        if homes.setdefault(sig.proc, sig.module) != sig.module:
+            error(f"SIG {sig.module}.{sig.proc}: {homes[sig.proc]}.{sig.proc} has the same name; a BUILD calls its "
+                  "procedures by name, so each name is used once (D49)", sig.line)
+
+    edges = {}   # caller -> {callee: first line}
+    passed_on = {}   # id(caller's checker) -> its $arguments a callee may change
+    for caller, checker in checkers.items():
+        from_run = caller == "modMain.Run"
+        for line, target, nargs, args, into in checker.calls:
+            sig = sigs.get(target)
+            if sig is None or nargs != len(sig.params):
+                continue   # reported with the BUILD's other CALL checks
+            edges.setdefault(caller, {}).setdefault(target, line)
+            if from_run and target != "modMain.RunHeadless":
+                error(f"modMain.Run only CALLs modMain.RunHeadless, got {target} (D49)", line)
+            if into is not None:
+                v = into[0].text if len(into) == 1 and is_tok(into[0], "name") else None
+                if not sig.ret:
+                    error(f"CALL {target} into=: {target} is a Sub, so it gives no result", line)
+                elif v in checker.vars and checker.vars[v] != sig.ret:
+                    error(f"CALL {target} gives a {sig.ret}, but VAR {v} is {checker.vars[v]}", line)
+            callee = checkers.get(target)
+            for decl, items in zip(sig.params, args):
+                own = items[0].text[1:] if len(items) == 1 and is_tok(items[0], "arg") else None
+                changes = declared_changes(callee, decl.name) if callee else set()
+                if from_run:
+                    by_name = (len(items) == 1 and isinstance(items[0], Call) and items[0].name == "SHEET"
+                               and len(items[0].positional) == 2 and len(items[0].positional[0]) == 1
+                               and is_tok(items[0].positional[0][0], "name", "THIS_BOOK")
+                               and len(items[0].positional[1]) == 1 and is_tok(items[0].positional[1][0], "string"))
+                    if decl.type == "Worksheet" and not by_name:
+                        error(f'CALL {target}: modMain.Run passes ${decl.name} as SHEET(THIS_BOOK, "<real name>") (D49)',
+                              line)
+                    elif decl.type == "Workbook" and not (len(items) == 1 and is_tok(items[0], "name", "THIS_BOOK")):
+                        error(f"CALL {target}: modMain.Run passes ${decl.name} as THIS_BOOK (D49)", line)
+                    elif decl.type == "Range":
+                        error(f"CALL {target}: modMain.Run can't pass a Range; let RunHeadless take a sheet (D49)",
+                              line)
+                    continue
+                if (decl.type in OBJECT_TYPES or changes) and own is None:
+                    error(f"CALL {target}: pass ${decl.name} as one of this procedure's own $arguments, written as "
+                          "$name, so MODIFIES can follow it (D49)", line)
+                    continue
+                if own is not None and decl.type in OBJECT_TYPES and checker.args.get(own) != decl.type:
+                    error(f"CALL {target}: ${decl.name} is a {decl.type}, but ${own} is a {checker.args.get(own)}", line)
+                    continue
+                if changes:
+                    passed_on.setdefault(id(checker), set()).add(own)
+                for change in sorted(changes, key=str):
+                    if not allows(checker, own, change):
+                        error(f"CALL {target} may change ${decl.name} ({modifies_form(decl.name, change)}), so this "
+                              f"procedure needs {modifies_form(own, change)} too (D49)", line)
+
+    # no recursion: every loop has a bound (CLAUDE.md)
+    state = {}
+
+    def visit(node, path):
+        state[node] = "open"
+        for nxt, line in edges.get(node, {}).items():
+            if state.get(nxt) == "open":
+                cycle = path[path.index(nxt):] + [nxt]
+                error(f"CALL makes a cycle ({' -> '.join(cycle)}): a BUILD has no recursion (D49)", line)
+            elif nxt not in state:
+                visit(nxt, path + [nxt])
+        state[node] = "done"
+
+    for node in sorted(edges):
+        if node not in state:
+            visit(node, [node])
+
+    # FLOW lists exactly the CALL edges
+    def full_name(name):
+        if name in sigs:
+            return name
+        found = [f for f, s in sigs.items() if s.proc == name]
+        return found[0] if len(found) == 1 else name
+
+    flowed = set()
+    for line, names in spec.flows:
+        for a, b in zip(names, names[1:]):
+            a, b = full_name(a), full_name(b)
+            flowed.add((a, b))
+            if b not in edges.get(a, {}):
+                error(f"FLOW says {a} -> {b}, but {a} has no CALL to {b} (D49)", line)
+    for caller, targets in edges.items():
+        for target, line in targets.items():
+            if (caller, target) not in flowed:
+                error(f"{caller} CALLs {target}, but no FLOW line shows {caller} -> {target} (D49)", line)
+
+    # modMain.Run starts the tool and has nothing left to test
+    run_sig = sigs.get("modMain.Run")
+    if run_sig is not None and (run_sig.params or run_sig.ret):
+        error("SIG modMain.Run() takes no arguments and gives no result: it starts the tool (D49)", run_sig.line)
+    for task in spec.tasks:
+        if f"{task.value('MODULE')}.{task.value('PROC')}" != "modMain.Run":
+            continue
+        for node in task.all_ops():
+            words = re.findall(r"[A-Z_]+", node.text)
+            word = words[0] if words else ""
+            if word == "IF" and " THEN " in node.text:
+                after = re.findall(r"[A-Z_]+", node.text.split(" THEN ", 1)[1])
+                word = after[0] if after else ""
+            if word not in RUN_STEPS:
+                error(f"modMain.Run only CALLs modMain.RunHeadless, LETs, IFs and MSGs, so nothing in it goes "
+                      f"untested (D49); move {word or 'this step'} into RunHeadless", node.line)
+    return problems, passed_on
 
 
 # ---------------------------------------------------------------- entry points
@@ -1802,7 +1988,7 @@ def validate(spec):
     return _sorted_unique(problems)
 
 
-def grammar_and_type_problems(text, known):
+def grammar_and_type_problems(text, known, sigs=None):
     """Stages 2 and 3: the formal grammar (and building every FIXTURE from it), then the type
     checker on every TASK it parsed. Problems on lines that already have a stage 1 error are left out."""
     bad_lines = {p.line for p in known if p.severity == "error"}
@@ -1823,7 +2009,7 @@ def grammar_and_type_problems(text, known):
         if not task or task.get("kind") != "TASK":
             continue
         try:
-            typed = TypeChecker(task).run()
+            typed = TypeChecker(task, sigs).run()
         except Exception as exc:  # a crash here is a bug in the type checker, never in the spec
             if not bad_lines:
                 out.append(Problem(task["keys"][0]["line"] if task["keys"] else 1, "error",
@@ -1837,7 +2023,8 @@ def validate_text(text):
     spec = parse_spec(text)
     problems = validate(spec)
     if spec.kind in ("TASK", "BUILD"):
-        problems = _sorted_unique(problems + grammar_and_type_problems(text, problems))
+        sigs = {f"{s.module}.{s.proc}": ([(d.name, d.type) for d in s.params], s.ret) for s in spec.sigs}
+        problems = _sorted_unique(problems + grammar_and_type_problems(text, problems, sigs))
     return problems
 
 
