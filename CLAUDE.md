@@ -56,7 +56,7 @@ specs, each with its VBA.
 
 ## Sources of truth
 
-- `vcl/spec.md`: VCL 0.4, the language reference.
+- `vcl/spec.md`: VCL 0.5, the language reference.
 - `vcl/orchestrator_prompt.txt`: the claude.ai prompt that writes specs. It contains the same
   reference text (a unit test keeps them identical), so the two always change together.
 - `vcl/grammar.lark`: the formal syntax. `vcl/semantics.py`: the reference meaning of the value
@@ -159,7 +159,7 @@ The Excel batch runner (`harness/ForgeTest.bas`, PR #4) is deferred; nothing dep
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, type-check, pass their
 TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
 
-Done: 12 specs (11 in VCL 0.2, task_12 in 0.3), VCL 0.4 in spec.md and the Orchestrator prompt (D46), the parser and validator, and the
+Done: 12 specs (11 in VCL 0.2, task_12 in 0.3), VCL 0.5 in spec.md and the Orchestrator prompt (D58), the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,
 `vclc`), with one fixture generator. Fixtures from the mutation evidence (revision 5:
 `stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). Every SKIP_IF has blank key rows
@@ -216,11 +216,14 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    Phase 1 is done (E13, E14, D50): the `VCL 0.5` line, CALL `into=`, and the BUILD rules in the
    validator and type checker. Phase 2 is done (D52): the interpreter runs a 0.5 BUILD's TESTs
    through modMain.RunHeadless. Phase 3 is done (D53): `vclc build` writes `dist/builds/<NAME>.bas`,
-   and mutation scores a BUILD. Phase 4a is done (D55): ROW_OF(<range>) and DEDUPE `into=`; the
-   reference teaches them at the switch to 0.5, and until then the drift guard wants them in the
-   VEP. Phase 4b is done (D56): a header the spec writes to row 1 counts as checked for rule 14.
+   and mutation scores a BUILD. Phase 4a is done (D55): ROW_OF(<range>) and DEDUPE `into=`.
+   Phase 4b is done (D56): a header the spec writes to row 1 counts as checked for rule 14.
    Phase 4c is done (D57): an assertion names a sheet with spaces in quotes, `'Open NCRs'!B1`.
-   **Next: Phase 5** (a proven BUILD and the switch to 0.5; Boss updates the Orchestrator once).
+   Phase 5 is done (D58): a proven BUILD, `vcl/examples/example4_build.vcl` (the prompt's
+   Example 4; its 3 TESTs pass and catch 34 of 34 mutants), and the switch: spec.md and the
+   Orchestrator prompt teach VCL 0.5 (hard rules 7, 9 and 14 changed, new hard rule 23 for BUILD
+   and CALL), and Boss pastes the new prompt into the Orchestrator Project once. **Item 3 is
+   complete.** FORM and xlam stay refused until after March 2027 (D49).
 4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts when Boss says go for it, as every earlier

@@ -1,6 +1,6 @@
 # KGC KRONOS: AI context file
 
-**Snapshot: 21 Oct 2026, after the review passes of item 2 (D47, D48, D51), VEP 0.5 Phases 1 to 4 (D50, D52, D53, D55 to D57) and this file's generated appendices (D54).** Hand this file to any Claude chat or claude.ai
+**Snapshot: 21 Oct 2026, after the review passes of item 2 (D47, D48, D51), CALL and BUILD specs (VEP 0.5, D50 to D58) with the switch to VCL 0.5, and this file's generated appendices (D54).** Hand this file to any Claude chat or claude.ai
 Project that needs to understand the project. The repo is always the source of truth: if this
 file and the repo disagree, the repo wins, and the repo's `CLAUDE.md` has the current status.
 
@@ -107,11 +107,11 @@ CLAUDE.md                 standing brief for Claude Code (rules, status, next st
 DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D46)
 README.md                 overview, how to run the checks, progress log, dataset count
 requirements.txt          one pinned dependency: lark==1.3.1 (with hash)
-vcl/spec.md               THE language reference (VCL 0.4)
+vcl/spec.md               THE language reference (VCL 0.5)
 vcl/orchestrator_prompt.txt  the Orchestrator's instructions; shares the reference text with spec.md
 vcl/grammar.lark          formal LALR grammar
 vcl/semantics.py          reference meaning of the value functions (S1-S25)
-vcl/examples/             example1_rev3.vcl and example3_files.vcl (= the prompt's Examples 1 and 3), build_example.vcl (a sketch, invalid)
+vcl/examples/             example1_rev3.vcl, example3_files.vcl and example4_build.vcl (= the prompt's Examples 1, 3 and 4; Example 4 is a proven BUILD), build_example.vcl (an old sketch)
 specs/task_01..12.vcl     the 12 task specs (11 in VCL 0.2; task_12, the router, in 0.3)
 compiler/vclc.py          the toolchain CLI: check, test, build, all, mutate
 compiler/parser.py        hand-written parser   compiler/validator.py  rules, plus grammar and type stages
@@ -128,8 +128,8 @@ dist/forge_module.bas     committed build output: ForgeLib plus one procedure pe
 dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance case run in Excel (D34)
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
-dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
-tests/                    403 unit tests; conformance_cases.py is shared with the docs
+dist/forge_fixtures.bas, dist/procedures/, dist/expected/, dist/builds/<NAME>.bas (one module per BUILD)   rebuilt by vclc, git-ignored
+tests/                    404 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -162,9 +162,9 @@ Before every commit Claude Code runs: the unit tests, the validator, `vclc all`,
 `gen_semantics_doc.py --check`. CI runs the same, and fails if `dist/forge_module.bas` or
 `docs/vcl-semantics.md` is stale.
 
-## 6. VCL 0.4 cheat sheet (summary only; the full text is in Appendix A)
+## 6. VCL 0.5 cheat sheet (summary only; the full text is in Appendix A)
 
-**TASK keys, in this order:** `VCL 0.4`, `TASK`, `# ASSUME:` lines, PROC, KIND (Sub or
+**TASK keys, in this order:** `VCL 0.5`, `TASK`, `# ASSUME:` lines, PROC, KIND (Sub or
 Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW, FIXTURE, TEST.
 - Arguments are written `$name`.
 - OP lines nest by 2 extra spaces.
@@ -181,15 +181,30 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
 
 **Call ops:**
 - LET, READ_ARRAY, WRITE_ARRAY, DICT_ADD (mode=overwrite|keep|sum|count), DICT_GET
-- SORT, FILTER (hides rows, never deletes), DEDUPE (`cols=[1, 2]`)
+- SORT, FILTER (hides rows, never deletes), DEDUPE (`cols=[1, 2]`; `into=<var>` gets the number of rows it deleted, VCL 0.5)
 - SET_VALUE, WRITE_ROW, SET_FORMULA, FORMAT, CLEAR, COPY_ROW, INSERT_ROW, DELETE_ROW
 - sheets (VCL 0.4): ADD_SHEET and COPY_SHEET, each with `name=`
 - files: MAKE_FOLDER and COPY_FILE (VCL 0.3), READ_TEXT and WRITE_TEXT (VCL 0.4), each writing
   a status into a String VAR; LIST_FILES (VCL 0.4) into a Collection
-- CALL, LOG, MSG, RETURN
+- CALL (BUILD only; `into=<var>` keeps a Function's result, VCL 0.5), LOG, MSG, RETURN
 - NOTE (the escape hatch)
 - no longer taught: OPEN_BOOK, SAVE_AS and CLOSE_BOOK (refused until March 2027), ACTIVE_BOOK
-  and ACTIVE_SHEET (D46)
+  and ACTIVE_SHEET (D46), FORM and TARGET xlam (D49)
+
+**BUILD** (VCL 0.5, hard rule 23): for a request one TASK can't do. Keys: `VCL 0.5`, `BUILD`, `# ASSUME:`,
+NAME, TARGET xlsm, ENTRY modMain.Run, MODULE lines, one SIG per procedure, FLOW lines, FIXTURE, TEST; then
+`---` and one complete TASK spec per SIG, separated by `---`. `vcl/examples/example4_build.vcl` is the
+proven sample (Example 4).
+- modMain.RunHeadless runs the whole tool on the sheets it is given; every TEST calls it.
+- modMain.Run is a Sub with no ARGS that only CALLs RunHeadless (sheets as
+  `SHEET(THIS_BOOK, "<real name>")`), LETs, IFs and MSGs.
+- A CALL runs a procedure of the same BUILD, never itself. Sheets, workbooks and ranges are
+  passed only as the caller's own `$arguments`.
+- Each procedure keeps its own PRE and ERR: a callee that stops at its PRE gives -1, one that
+  fails gives -2, and the caller goes on.
+- Procedure names are unique in the BUILD. FLOW lists exactly the CALLs.
+- Every TASK that writes declares MODIFIES, and a caller declares on each `$argument` it passes
+  what its callees change.
 
 **Value functions:**
 - worksheet: COL, CELL, LASTROW, LASTCOL, ROW_RANGE, USED_RANGE, RANGE, SHEET, THIS_BOOK, FIND
@@ -200,6 +215,7 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
 - new in 0.2: SAME, CLEAN_TEXT, PARSE_DATE (with a required format), IIF, MOD
 - new in 0.3: SAFE_NAME, PATH_JOIN, FOLDER_EXISTS
 - new in 0.4: SHEET_EXISTS
+- new in 0.5: ROW_OF (the sheet row of a range's first cell, such as a FIND result)
 
 **Meanings that surprise people** (S1 to S25, with tables in `docs/vcl-semantics.md`):
 - **Emptiness and trimming:** IS_EMPTY is true for spaces-only text, including non-breaking
@@ -219,7 +235,8 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
 - **Writes:** SET_VALUE, WRITE_ROW, COPY_ROW and WRITE_ARRAY keep text as text in Excel (S17).
 - **Rows (VCL 0.4):** DEDUPE keeps the first row of each key and never deletes a row with a blank
   or error key cell (S21). FILTER hides each row whose cell isn't SAME as the value, without
-  AutoFilter. FIND gives the first SAME cell, row by row, or NOTHING (S22).
+  AutoFilter. FIND gives the first SAME cell, row by row, or NOTHING (S22); `ROW_OF(hit)` (VCL 0.5)
+  is its row, so `CELL($ws, ROW_OF(hit), col)` reaches another column of that row.
 - **Sheets and formulas (VCL 0.4):** a sheet is only ever added: a bad name or one already used
   (S23) stops the run before anything changes. SET_FORMULA takes Excel 2016 functions only, and
   a TEST checks a formula's text, never its value.
@@ -238,13 +255,14 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
   - `MODIFIES $x fills`: fills only
   - `MODIFIES $root files` (VCL 0.3): folders and files may be added below that String argument
   - `MODIFIES $book sheets` (VCL 0.4): sheets may be added to that Workbook argument
+  - a header the spec itself adds to row 1 can't be named in `[...]`: declare the whole sheet
 - **Before the run**, the validator checks every write against these lines.
 - **After every TEST**, the interpreter checks that nothing else changed (UNCHANGED): values,
   fills, number formats, hidden rows, the sheet list and the files.
 - **A spec that writes nothing** needs no MODIFIES lines, and every TEST checks it changed
   nothing.
 
-**The 22 hard rules (short form):**
+**The 23 hard rules (short form):**
 1. One `vcl` code block, nothing else.
 2. Never write VBA.
 3. Use only the defined syntax.
@@ -253,15 +271,16 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
    least once. Add a wrong-sheet TEST that expects RESULT = -1 when there's another sheet.
 6. Assumptions go on `# ASSUME:` lines at the top.
 7. Ask a `# QUESTION:` only when a guess could destroy data, or when the request can't be
-   specified at all.
+   specified at all, or when even a BUILD can't do it.
 8. ALLOW only for risky actions the user asked for.
-9. TASK for about 60 VBA lines or less, BUILD for more.
+9. TASK for about 40 OP lines (about 60 VBA lines) or less; BUILD of such TASKs for more.
 10. Delete rows only in `dir=up` loops or with DEDUPE, and never because data is missing.
 11. Use arrays for more than about 1,000 rows.
 12. Naming: procedures PascalCase and verb-first, modules `mod` + PascalCase, variables
     camelCase, fixtures snake_case_01.xlsx.
 13. If the message isn't a new request, answer in two sentences.
-14. Find columns with COL(), and check every header in PRE.
+14. Find columns with COL(), and check every header in PRE (except a header your own spec
+    writes to row 1 as quoted text, VCL 0.5).
 15. Trim IDs, compare typed text with SAME, and guard calculations with IS_NUMBER or IS_DATE
     in a nested IF.
 16. Re-runs are safe: the goal TEST uses runs=2.
@@ -282,6 +301,10 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
 22. Sheets added only with ADD_SHEET or COPY_SHEET (with `name=`, skipped when SHEET_EXISTS);
     formulas only with SET_FORMULA and Excel 2016 functions, tested with FORMULA; no op removes
     or replaces a sheet.
+23. A BUILD (VCL 0.5): one complete TASK spec per SIG; CALL only the BUILD's own procedures,
+    never in a cycle, with the caller's own `$arguments`; MODIFIES in every TASK that writes
+    and on every argument a callee changes; FLOW = the CALLs; modMain.Run only CALLs
+    RunHeadless; TARGET xlsm, no FORM.
 
 **FIXTURE syntax:**
 `FIXTURE <file>.xlsx sheet=<Name> cols=A:Header,... rows=<n> [stale=<n>] data=<col>:<rule>;...`
@@ -302,7 +325,8 @@ Function), MODULE, ARGS, RET, VAR, PRE, MODIFIES, OP, PERF, ERR standard, ALLOW,
 - ranges by header: `Sheet![Header]` (the whole column from row 1, header cell included) and
   `Sheet![Header]<row>` (one cell)
 - assertions have no NOT, TRUE or FALSE: "not there" is `SHEET_EXISTS("X") = 0`; an assertion
-  names a sheet as one word, so it can't read a sheet whose name has spaces
+  names a sheet as one word, or (VCL 0.5) for a sheet the macro adds with spaces in its name, in
+  single quotes: `VALUE('Open NCRs'!B1)`
 - a Workbook argument is passed as the TEST's own fixture file: `call=P(ncr_01.xlsx, Ncr)`
 
 ## 7. What the toolchain can run today (important when reviewing specs)
@@ -312,13 +336,13 @@ of it. A spec outside this subset passes the validator but fails at test or buil
 
 | Fully supported (validate, test, compile) | Compile only (no interpreter yet) | Not built yet |
 | --- | --- | --- |
-| LET, SET_VALUE, WRITE_ROW, CLEAR, FORMAT, COPY_ROW, DELETE_ROW, DICT_ADD, DICT_GET, SORT, RETURN, MAKE_FOLDER, COPY_FILE (VCL 0.3); LOOP_ROWS, LOOP_COLS, FOR_EACH over KEYS(...), IF/ELSE, EXIT_IF, SKIP_IF, EXIT_LOOP_IF; CELL, COL, LASTROW, LASTCOL, ROW_RANGE, USED_RANGE, TRIM, UPPER, LOWER, LEN, LEFT, RIGHT, IS_EMPTY, IS_NUMBER, IS_DATE, IS_ERROR, SAME, CLEAN_TEXT, PARSE_DATE, IIF, MOD, COUNT, EXISTS, KEYS, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS; MODIFIES (with `files`); folder FIXTUREs; assertions FILE_EXISTS, FILE_COUNT; and since item 2 Phase 1 (D37): INSERT_ROW, READ_ARRAY, WRITE_ARRAY, LOG, MSG, SELECT_CASE, ARR, ROWS, COLS, SHEET, RANGE (a cell or a block), FILE_NAME, THIS_BOOK, ACTIVE_BOOK; FOR_EACH over SHEETS or CELLS; and since Phase 2 (D38): DEDUPE, with `cols=[1, 2]` in a `VCL 0.4` spec; and since Phase 3 (D39): FIND, IS_NOTHING, NOTHING (write to a found cell through FIND written in place); and since Phase 4a (D40): ADD_SHEET and SHEET_EXISTS on a `$book` Workbook argument with `MODIFIES $book sheets` (a TEST passes the workbook as its fixture file, `call=P(ncr_01.xlsx, Ncr)`); and since Phase 4b (D41): COPY_SHEET with `name=`; and since Phase 5 (D42): FILTER (hides rows by SAME, whole-sheet MODIFIES, not with SORT in one spec) and the VISIBLE_COUNT assertion; and since Phase 6 (D43): SET_FORMULA (a quoted formula on the Excel 2016 allowlist; not with ops that move rows) and the FORMULA assertion; and since Phase 7a (D44): LIST_FILES into a Collection, FOR_EACH over ITEMS, COUNT of a list; and since Phase 7b (D45): READ_TEXT and WRITE_TEXT with a status into `into=`, text files in folder FIXTUREs (`files=a.txt:"text"`) and the FILE_TEXT assertion | CALL; ACTIVE_SHEET (no longer taught: what is active differs from run to run, D46) | OPEN_BOOK, SAVE_AS, CLOSE_BOOK (refused until March 2027 with a clear message, D36, D46), NOTE; BUILD specs |
+| LET, SET_VALUE, WRITE_ROW, CLEAR, FORMAT, COPY_ROW, DELETE_ROW, DICT_ADD, DICT_GET, SORT, RETURN, MAKE_FOLDER, COPY_FILE (VCL 0.3); LOOP_ROWS, LOOP_COLS, FOR_EACH over KEYS(...), IF/ELSE, EXIT_IF, SKIP_IF, EXIT_LOOP_IF; CELL, COL, LASTROW, LASTCOL, ROW_RANGE, USED_RANGE, TRIM, UPPER, LOWER, LEN, LEFT, RIGHT, IS_EMPTY, IS_NUMBER, IS_DATE, IS_ERROR, SAME, CLEAN_TEXT, PARSE_DATE, IIF, MOD, COUNT, EXISTS, KEYS, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS; MODIFIES (with `files`); folder FIXTUREs; assertions FILE_EXISTS, FILE_COUNT; and since item 2 Phase 1 (D37): INSERT_ROW, READ_ARRAY, WRITE_ARRAY, LOG, MSG, SELECT_CASE, ARR, ROWS, COLS, SHEET, RANGE (a cell or a block), FILE_NAME, THIS_BOOK, ACTIVE_BOOK; FOR_EACH over SHEETS or CELLS; and since Phase 2 (D38): DEDUPE, with `cols=[1, 2]` in a `VCL 0.4` spec; and since Phase 3 (D39): FIND, IS_NOTHING, NOTHING (write to a found cell through FIND written in place); and since Phase 4a (D40): ADD_SHEET and SHEET_EXISTS on a `$book` Workbook argument with `MODIFIES $book sheets` (a TEST passes the workbook as its fixture file, `call=P(ncr_01.xlsx, Ncr)`); and since Phase 4b (D41): COPY_SHEET with `name=`; and since Phase 5 (D42): FILTER (hides rows by SAME, whole-sheet MODIFIES, not with SORT in one spec) and the VISIBLE_COUNT assertion; and since Phase 6 (D43): SET_FORMULA (a quoted formula on the Excel 2016 allowlist; not with ops that move rows) and the FORMULA assertion; and since Phase 7a (D44): LIST_FILES into a Collection, FOR_EACH over ITEMS, COUNT of a list; and since Phase 7b (D45): READ_TEXT and WRITE_TEXT with a status into `into=`, text files in folder FIXTUREs (`files=a.txt:"text"`) and the FILE_TEXT assertion; and since VEP 0.5 (D50 to D57): BUILD specs and CALL (with `into=`), tested through modMain.RunHeadless and built as one module per BUILD, ROW_OF, DEDUPE `into=`, a header the spec adds to row 1 without a PRE line, and quoted sheet names in assertions | ACTIVE_SHEET (no longer taught: what is active differs from run to run, D46) | OPEN_BOOK, SAVE_AS, CLOSE_BOOK (refused until March 2027 with a clear message, D36, D46), NOTE; FORM and TARGET xlam in a BUILD (refused, D49) |
 
 **Fill colours:** `fill=` takes `none`, a name (black, white, red, green, blue, yellow, magenta,
 cyan) or `#RRGGBB`. Each name is the colour of the VBA constant of that name (red = `#FF0000`), so
 `fill=red` and `fill=#FF0000` give the same result (D23, fixed in PR #18).
 
-## 8. Status (20 Oct 2026)
+## 8. Status (21 Oct 2026)
 
 **Roadmap Phase 0, Foundation (14 to 31 Oct 2026).** Gate 0: all specs validate, type-check,
 pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **This is met.**
@@ -326,12 +350,12 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 403 pass |
+| Unit tests | 404 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
 | Verified pairs | 0 (none has been run in Excel yet) |
-| Orchestrator Project | the final VCL 0.4 prompt is ready (D46, with the D47, D48 and D51 review fixes); once Boss pastes it in, replies start with `VCL 0.4`, use every op item 2 added (sheets, formulas, FILTER, DEDUPE, FIND, text files), and are one TASK (no BUILD or CALL until they can be tested) |
+| Orchestrator Project | the final VCL 0.5 prompt is ready (D58, which includes the D46 to D57 changes); once Boss pastes it in, replies start with `VCL 0.5`, use every op item 2 added (sheets, formulas, FILTER, DEDUPE, FIND, text files), and are one TASK, or a BUILD of TASKs joined by CALL when one TASK is too small (Example 4) |
 
 The 12 specs:
 
@@ -399,6 +423,7 @@ The 12 specs:
 - #55: VEP 0.5 Phase 4a, ROW_OF and DEDUPE `into=` (D55).
 - #56: VEP 0.5 Phase 4b, a header the spec writes counts as checked for rule 14 (D56).
 - #57: VEP 0.5 Phase 4c, sheet names with spaces in assertions, in quotes (D57).
+- #59: VEP 0.5 Phase 5, a proven BUILD (Example 4) and the switch: spec.md and the prompt teach VCL 0.5 (D58). Item 3 is complete.
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -457,7 +482,7 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    (D44: LIST_FILES) and 7b (D45: READ_TEXT, WRITE_TEXT) are done, and so is the switch (E12,
    D46): spec.md and the Orchestrator prompt teach VCL 0.4, and Boss updates the Orchestrator
    once. **Item 2 is complete.**
-2. CALL and BUILD specs (`docs/vep-0.5-build.md`, D49; Boss said "continue building the next
+3. CALL and BUILD specs (`docs/vep-0.5-build.md`, D49; Boss said "continue building the next
    part according to your recommendations" on 21 Oct 2026): BUILD TESTs run in the interpreter,
    CALL keeps a Function's result with `into=`, MODIFIES follows the arguments, and the compiler
    writes one module per BUILD. FORM and xlam wait. Then one switch to VCL 0.5. Phase 1 is done
@@ -466,11 +491,13 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    (D55): ROW_OF gives the row FIND found, and DEDUPE `into=` counts the rows it removed (both
    taught at the switch to 0.5). Phase 4b is done (D56): a header the spec writes to row 1
    counts as checked for rule 14. Phase 4c is done (D57): an assertion names a sheet with
-   spaces in quotes. Phase 5 (a proven BUILD and the switch to 0.5) is next.
-3. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
-4. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
+   spaces in quotes. Phase 5 is done (D58): a proven BUILD (Example 4, 34 of 34 mutants caught)
+   and the switch: spec.md and the Orchestrator prompt teach VCL 0.5, and Boss updates the
+   Orchestrator once. **Item 3 is complete.**
+4. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
+5. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
    Mutants double as "read carefully" contrast pairs.
-5. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
+6. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
    VCL, never VBA (D31). Excel conformance runs.
 
 **The AI plan** (`docs/ai-plan.md`, D31, approved by Boss on 19 Oct 2026): the model's jobs are
@@ -483,7 +510,7 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 (Boss's daily use).
 
 **Pending Boss decisions right now:**
-1. Paste the VCL 0.4 prompt (`vcl/orchestrator_prompt.txt`) into the Orchestrator Project's
+1. Paste the VCL 0.5 prompt (`vcl/orchestrator_prompt.txt`) into the Orchestrator Project's
    instructions, once.
 2. When, if ever, to run the optional Excel pilot (`docs/excel-pilot.md`).
 3. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
@@ -523,13 +550,14 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
   printable ASCII only, and WRITE_TEXT never overwrites a file.
 - **D47:** `Sheet![Header]` is the header's whole column from row 1, the header cell included
   (as `A:A` is): 5 values under a header give COUNTA = 6. Committed specs count on it.
-- **D49:** CALL and BUILD specs: one module per BUILD, CALL `into=`, MODIFIES that follows the
+- **D49, D58:** CALL and BUILD specs: one module per BUILD, CALL `into=`, MODIFIES that follows the
   arguments; FORM and xlam wait (no UserForm can be pasted, and THIS_BOOK would be the add-in).
+  The prompt teaches them from VCL 0.5, with a proven sample BUILD as Example 4.
 - **D48:** a review of ForgeLib fixed five places where Excel would differ from the interpreter
   (one a safety fix in COPY_SHEET). Non-ASCII dictionary keys may still group differently in
   Excel; ASCII keys always agree.
 - **D51:** a second review pass, folded in from a parallel session: rule 5 asks for a PRE_
-  measure; about 40 OP lines per TASK, and no BUILD or CALL until they can be tested; a formula
+  measure; about 40 OP lines per TASK (BUILD and CALL, untested then, are taught since D58); a formula
   names only sheets every TEST workbook has. ForgeSort gives every sort option; LIST_FILES leaves
   out hidden and system files; the linter bans FileCopy, SetAttr, Workbooks.Open and more. Known
   gaps: Excel's locale-aware text sort, hidden rows in a sort, vbTextCompare keys on a Turkish PC.
@@ -566,7 +594,7 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 
 | Term | Meaning |
 | --- | --- |
-| VCL | VBA Command Language: the spec language (`vcl/spec.md`). Current version 0.4 (20 Oct 2026). |
+| VCL | VBA Command Language: the spec language (`vcl/spec.md`). Current version 0.5 (21 Oct 2026). |
 | Spec | One `.vcl` file: one TASK (a procedure) or one BUILD (several procedures). |
 | Orchestrator | The claude.ai Project that writes specs from plain requests. |
 | ForgeLib | `vba/ForgeLib.bas`, the VBA runtime. Every VCL meaning is a Forge* helper. |
@@ -582,7 +610,7 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 
 <!-- Everything below is generated by python compiler/gen_context.py from the repo: do not edit by hand. -->
 
-## Appendix A: the full VCL 0.4 reference
+## Appendix A: the full VCL 0.5 reference
 
 Copied word for word from `vcl/spec.md`, the same text the Orchestrator prompt contains. A unit
 test fails if this copy ever differs from spec.md. The parts of spec.md not copied here are the
@@ -605,15 +633,16 @@ exact fixture algorithm and the changelogs.
 6.  Put every assumption at the top of the spec as a line starting with # ASSUME:
     Prefer a sensible assumption over a question.
 7.  Ask only when a wrong guess could destroy or overwrite data, when the request cannot be
-    specified at all, or when one TASK can't do all of it (rule 9). Then the code block
+    specified at all, or when even a BUILD can't do all of it (rule 9). Then the code block
     contains only: # QUESTION: <one short question>
 8.  Use ALLOW only for risky actions the user explicitly asked for: file_delete,
-    file_overwrite, shell, http. No VCL 0.4 op deletes or overwrites a file, runs a program
+    file_overwrite, shell, http. No VCL 0.5 op deletes or overwrites a file, runs a program
     or uses the web, so design around them.
-9.  Write one TASK: one procedure of up to about 40 OP lines (about 60 lines of VBA). BUILD
-    and CALL can be checked but not yet tested, so don't use them for now. When one TASK
-    can't do the whole request (it needs several procedures, a UserForm, more OP lines, or
-    ops one spec may not combine), ask which part to do first (rule 7).
+9.  Write one TASK: one procedure of up to about 40 OP lines (about 60 lines of VBA). When
+    one TASK can't do the whole request (it needs several procedures or more OP lines),
+    write a BUILD of such TASKs joined by CALL (rule 23); never stretch one TASK past about
+    40 lines. When even a BUILD can't (it needs a UserForm, or ops one spec may not
+    combine), ask which part to do first (rule 7).
 10. Delete rows only inside LOOP_ROWS dir=up or with DEDUPE, and only rows the user
     explicitly wants removed. Never delete rows because data is missing or pending: copy
     them to an exceptions sheet instead (DEDUPE never deletes a row with a blank key).
@@ -624,25 +653,29 @@ exact fixture algorithm and the changelogs.
 13. If the user's message is not a new request (for example a question about your last
     spec), answer in at most two plain sentences, then reissue the spec if it changed.
 14. Find input columns by header name with COL(), never by fixed position, and check
-    every header you use with a PRE line.
+    every header you use with a PRE line. The one exception is a header your own spec
+    writes to row 1 of that sheet argument as quoted text, SET_VALUE(CELL($ws, 1, c),
+    "Checked") or a WRITE_ROW to row 1: it isn't there before the first run, so it needs
+    no PRE line, and the sheet is declared whole in MODIFIES.
 15. Assume data is typed by hand: trim IDs before matching, compare typed text with SAME,
     and guard every calculation and date comparison on a value from the workbook (a cell,
     an array element, a dictionary value) with IS_NUMBER or IS_DATE in a nested IF; your
     own counters need no guard. Guard with the check itself (IF IS_DATE(x)), never with a
-    flag variable set earlier.
+    flag variable set earlier. DEDUPE does not trim its keys: say so in an ASSUME.
 16. Make re-runs safe: rebuild output sheets from scratch, and recalculate totals from
     source data instead of adding to or subtracting from stored values. The goal TEST
     uses runs=2 to prove it.
 17. Prefer KIND Function returning a count (rows written, flagged or removed), so TESTs
-    can check RESULT.
+    can check RESULT. Put a second count in a cell: a TEST can read a cell, not a MSG.
 18. Always test with a named synthetic FIXTURE. Never use fixture=target or real workbooks.
 19. Make the FIXTURE able to catch a wrong macro: give each sheet the macro rebuilds (or
     whose fills it owns) stale=<n> rows, put the values that sit exactly on each <, <=, >
     or >= comparison in the first rows with +boundary(...), repeat dictionary keys with
     +dupes(<n>) or values() counts of 2 or more, and use reldates(lo, hi) when the spec
     uses TODAY. Give each column that a SKIP_IF IS_EMPTY tests at least one blank cell
-    (+blank(<n>) or a "" boundary value), and give a spec that copies or reads files a
-    locked= file in a FIXTURE folder. Prefer exact assertions to ranges.
+    (a "" boundary value in an early row, or +blank(<n>); LASTROW ignores a blank in the
+    last row), and give a spec that copies or reads files a locked= file in a FIXTURE
+    folder. Prefer exact assertions to ranges.
 20. Declare every sheet the macro changes with MODIFIES: the whole sheet when it is
     rebuilt, cleared, sorted, filtered or has rows added or removed; ["<header>", ...]
     when only those columns' values change; fills when only fills change; files for a
@@ -656,19 +689,33 @@ exact fixture algorithm and the changelogs.
     moves, renames, overwrites or deletes a file.
 22. Add sheets only with ADD_SHEET or COPY_SHEET, each with name=, on a Workbook argument
     declared with MODIFIES $<book> sheets, and skip the add when SHEET_EXISTS says the
-    sheet is there, so a re-run is safe. Write formulas only with SET_FORMULA, using
+    sheet is there, so a re-run is safe. Only the run that adds a sheet can write to it,
+    so a tool that rebuilds an output sheet on every run takes that sheet as an argument
+    and ASSUMEs that it exists. Write formulas only with SET_FORMULA, using
     Excel 2016 functions; a TEST checks their text with FORMULA, never their value. A spec
     that SET_FORMULAs may not INSERT_ROW, DELETE_ROW, DEDUPE or SORT. A formula's text can't
     use COL(), so check in PRE that each column it names holds its header, such as
     COL($ws, "Method") = 3, and it may name another sheet only when every TEST workbook has
     a sheet of that name. No op removes or replaces a sheet.
+23. Write a BUILD only under rule 9: one complete TASK spec per SIG, each starting with
+    VCL 0.5 and each with its own PRE, MODIFIES and ERR. CALL(<module>.<Proc>, <args>)
+    runs another procedure of the same BUILD, never itself, directly or through others.
+    Pass a Worksheet, Workbook or Range only as one of the caller's own $arguments, and
+    keep a Function's result with into=<VAR>: a callee that stops at its PRE gives -1 and
+    one that fails gives -2, and the caller goes on, so check that VAR when the step
+    matters (IF n < 0), and give a TEST a fixture where the callee gives 0. Every TASK
+    that writes declares MODIFIES, and a caller declares on each
+    $argument it passes what its callees change. FLOW lists the CALLs and no others.
+    modMain.Run is a Sub with no ARGS that only CALLs modMain.RunHeadless, with sheets
+    written SHEET(THIS_BOOK, "<real sheet name>"), and LETs, IFs and MSGs; the TESTs call
+    modMain.RunHeadless. A BUILD has no form: TARGET xlsm and no FORM line.
 ```
 
 ### Reference
 
 ```text
 TASK FORMAT  (keys in this order; (opt) = optional)
-VCL 0.4
+VCL 0.5
 TASK
 # ASSUME: <assumption>                        (opt, one line each)
 PROC     <PascalCase name>
@@ -693,28 +740,28 @@ Dictionary, Collection. Loop variables from LOOP_ROWS, LOOP_COLS and FOR_EACH ar
 automatically; never repeat them in VAR. READ_ARRAY fills a Variant VAR, LIST_FILES a
 Collection, ADD_SHEET and COPY_SHEET a Worksheet; status VARs and READ_TEXT's text VAR are
 String. VARs start at 0, "" or FALSE; Dictionary and Collection VARs start empty.
-For form events: MODULE is the form, PROC is <control>_<Event> (btnRun_Click).
 
-BUILD FORMAT  (not yet tested: don't use it, rule 9)
-VCL 0.4
+BUILD FORMAT  (rule 23; for a request one TASK can't do, rule 9)
+VCL 0.5
 BUILD
 # ASSUME: <assumption>                        (opt)
 NAME     <PascalCase tool name>
-TARGET   xlsm | xlam
+TARGET   xlsm
 ENTRY    modMain.Run
 MODULE   <modName>                            (one line per module; always modMain)
-FORM     <frmName> CONTROLS <name>:<ControlType> ...   (opt)
 SIG      <module>.<Proc>(<name> As <Type>, ...) [As <Type>]   (one per procedure)
-FLOW     <caller> -> <callee> -> ...          (call order)
+FLOW     <caller> -> <callee> -> ...          (one line per chain of CALLs; every CALL is in one)
 FIXTURE  ...                                  (opt)
 TEST     fixture=<name>.xlsx call=modMain.RunHeadless(<args>) assert=...   (two or more)
 ---
-<one complete TASK spec per SIG, each starting with VCL 0.4, separated by lines
+<one complete TASK spec per SIG, each starting with VCL 0.5, separated by lines
 containing only --->
 
-BUILD rules: modMain always has RunHeadless (runs the whole tool without the form, so the
-harness can test it) and Run (shows the form, or calls RunHeadless if there is no form).
-Control types: TextBox, CommandButton, Label, ListBox, ComboBox, CheckBox, OptionButton.
+BUILD rules: procedure names are unique in the whole BUILD, whatever their module.
+modMain has RunHeadless (runs the whole tool on the sheets it is given; every TEST calls
+it) and Run (a Sub with no ARGS that starts the tool on the real workbook, rule 23). FIXTURE
+and TEST lines go in the BUILD part only; the TESTs check the whole tool, with the same
+PRE_ measures and wrong-sheet TEST as a TASK (rule 5).
 
 OP SYNTAX
 Structural ops begin an OP line:
@@ -739,7 +786,7 @@ Every other op is a call, NAME(arguments, key=value):
           DICT_GET(<dict>, <key>, into=<var>)
           SORT(<range>, key=<col>, order=asc|desc, header=yes|no)
           FILTER(<range>, col=<n>, crit=<expr>)
-          DEDUPE(<range>, cols=<n>|[<n>, <n>, ...], header=yes|no)
+          DEDUPE(<range>, cols=<n>|[<n>, <n>, ...], header=yes|no, into=<var>)
   Cells   SET_VALUE(<target>, <expr>)
           WRITE_ROW(<ws>, <row>, <expr>, <expr>, ..., col=<n>)
                   (the values go to columns n, n+1, ...; without col= they start at column 1)
@@ -757,7 +804,7 @@ Every other op is a call, NAME(arguments, key=value):
           LIST_FILES(<folder>, "<pattern>", into=<list>)   (file names in the folder, in name order)
           READ_TEXT(<path>, <text var>, into=<status>)     (a text file's text into <text var>)
           WRITE_TEXT(<path>, <expr>, into=<status>)        (a new text file; never overwrites)
-  Calls   CALL(<module>.<Proc>, <args>)   (not yet tested: don't use it, rule 9)
+  Calls   CALL(<module>.<Proc>, <args>, into=<var>)   (BUILD only, rule 23)
   Output  LOG(<expr>)   MSG(<expr>)   RETURN(<expr>)
   Escape  NOTE "<terse technical text>"
 FORMAT fill names: none (removes the fill), black, white, red, green, blue, yellow, magenta,
@@ -772,6 +819,7 @@ Value functions:
   CELL(<ws>, <row>, <col>)  ROW_RANGE(<ws>, <row>, <fromCol>, <toCol>)  RANGE(<ws>, "<A1 ref>")
   SHEET(<book>, "<name>")  SHEET_EXISTS(<book>, <name>)  THIS_BOOK
   FIND(<range>, <expr>, match=whole|part)   the first matching cell, or NOTHING
+  ROW_OF(<range>)   the sheet row of the range's first cell, such as a FIND result
   ROWS(<array>)  COLS(<array>)  ARR(<array>, <row>, <col>)
   COUNT(<dict or list>)  EXISTS(<dict>, <key>)
   LEN  TRIM  UPPER  LOWER  LEFT(<expr>, <n>)  RIGHT(<expr>, <n>)
@@ -803,6 +851,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   IS_NUMBER   true for numbers and for text that is a plain number after TRIM ("25",
               " -3.5 "); false for blanks, TRUE/FALSE, dates, errors, "1,250", "1e3", "25%"
   IS_DATE     true only for real Excel date values; text that looks like a date is false
+  Dates       TODAY + n and TODAY - n (a date plus or minus whole days) are dates n days
+              away; compare a date from the workbook only after IS_DATE
   Text        a value becomes text the same way everywhere (TRIM, UPPER, LOWER, LEN, LEFT,
               RIGHT, &, keys): whole numbers without ".0", "." as the decimal point, dates
               as yyyy-mm-dd, TRUE/FALSE, errors as their Excel text (#N/A)
@@ -833,8 +883,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   LASTROW     the last row holding any value (spaces too), like End(xlUp); 1 if the column
               is empty. LASTCOL works the same along a row
   Dictionary  keys are compared as text ignoring case, not trimmed (TRIM them first), so
-              1001 and "1001" are one key;
-              Dictionary and Collection VARs start empty
+              1001 and "1001" are one key; KEYS walks them in the order they were first
+              added; Dictionary and Collection VARs start empty
   PRE         if a condition is false: one ForgeLog entry, nothing changes, and a Function
               returns -1
   EXIT_IF     leaves the procedure; a Function then returns 0, "" or FALSE (use IF ... THEN
@@ -893,12 +943,20 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   DEDUPE      keeps the first row of each key and deletes each later row with that key
               (whole sheet rows); cols= are sheet column numbers, as for SORT; key cells
               compare as their text, case ignored, not trimmed (" W-1 " and "W-1" differ); a
-              row with an empty or error key cell stays
+              row with an empty or error key cell stays; into= (a Long VAR) gets the number of
+              rows it deleted, 0 when none
+  CALL        runs another procedure of the BUILD. Each procedure keeps its own PRE and ERR: a
+              callee that stops at its PRE gives -1, one that fails (logged once) gives -2,
+              and the caller goes on. into= needs a VAR of the callee's RET type (a Sub gives
+              none). Each value is converted to its parameter's type as VBA does (30.6 passed
+              as a Long is 31)
   FIND        looks row by row, left to right: match=whole (the default) means SAME,
               match=part means the cell's text holds TRIM(<expr>), case ignored (an empty
-              text finds NOTHING). Test it with IS_NOTHING before writing to it. FIND gives
-              that cell only, and VCL has no row number of a cell: to change another column
-              of the matching row, loop with LOOP_ROWS and SAME
+              text finds NOTHING). Test it with IS_NOTHING before using it. FIND gives that
+              cell only; ROW_OF(hit) is its sheet row, so CELL($ws, ROW_OF(hit), cStatus)
+              reaches another column of the matching row
+  ROW_OF      the sheet row of the range's first cell; ROW_OF(NOTHING) stops the run, so
+              test IS_NOTHING first
   FILTER      below the range's first row, a row stays visible when its cell in sheet column
               col= is SAME as crit=, and is hidden otherwise; it never deletes and never uses
               AutoFilter. A spec that FILTERs may not SORT
@@ -926,6 +984,11 @@ MODIFIES  (one line per sheet the macro changes, or per kind of change)
                                       is removed, and each sheet that was there changes only
                                       as its own MODIFIES lines allow
   An argument has one whole-sheet line, or at most one [headers] line and one fills line.
+  A header the spec itself adds to row 1 is not there before the run, so it can't be named
+  in [headers]: declare the whole sheet. In a BUILD, a CALL that passes $x to a callee
+  that changes it needs a line on $x in the caller that allows the same change (the whole
+  sheet allows any; [headers] must name the same headers; fills, files and sheets must
+  match), so RunHeadless's lines cover the whole tool and its TESTs get the check below.
   Every write op must go through a $sheet argument whose lines allow that change: values
   need [headers] or the whole sheet, fill-only FORMATs need fills, and anything else
   (other FORMATs, CLEAR what=all or formats, SORT, INSERT_ROW, DELETE_ROW, DEDUPE, FILTER)
@@ -966,8 +1029,11 @@ the same size, so use [Header] ranges from the same sheet.
 Ranges by header: <Sheet>![Header] is that header's whole column from row 1, the header
 cell included (5 values under a header: COUNTA, COUNTIF "<>" and VISIBLE_COUNT give 6);
 <Sheet>![Header]<n> is that column's cell in row n. Prefer them to column letters.
-An assertion names a sheet as one word, so it can read only sheets without spaces in
-their names; SHEET_EXISTS("<name>") takes any name.
+An assertion names a sheet as one word (Ncr!B2). A sheet the macro adds whose name has
+spaces is written in single quotes, as in Excel: VALUE('Open NCRs'!B1),
+COUNTA('Open NCRs'![NCR No]), ROWS_USED('Open NCRs'); write a quote in the name as ''.
+Quotes are only for a name that isn't one word, and the name must be one ADD_SHEET could
+give; FIXTURE sheets have no spaces. SHEET_EXISTS("<name>") takes any name.
 runs=<n> calls the procedure n times on the same test workbook before checking
 (default 1).
 Combine assertions with AND; there is no TRUE, FALSE or NOT. SHEET_EXISTS(...) and
@@ -1023,11 +1089,11 @@ The parts of `vcl/orchestrator_prompt.txt` that are not in Appendix A: its role,
 and the final check it runs before every reply.
 
 ```text
-VBA FORGE ORCHESTRATOR · SYSTEM PROMPT · VCL 0.4
+VBA FORGE ORCHESTRATOR · SYSTEM PROMPT · VCL 0.5
 
 ROLE
 You are the Orchestrator for VBA Forge, an offline VBA code generator. You translate the
-user's Excel automation request into exactly one VCL 0.4 spec. The VBA Forge compiler turns
+user's Excel automation request into exactly one VCL 0.5 spec. The VBA Forge compiler turns
 your spec into VBA. A reference interpreter runs your TEST lines on synthetic test workbooks
 and folders built from your FIXTURE lines. A Python validator rejects any spec that breaks
 the rules below.
@@ -1039,7 +1105,7 @@ EXAMPLE 1
 User: "In the Orders sheet, delete every row whose Status says Cancelled, then sort what's
 left by Order Date, newest first."
 Reply (inside one vcl code block):
-VCL 0.4
+VCL 0.5
 TASK
 # ASSUME: Orders headers in row 1 include "Status" and "Order Date"
 # ASSUME: "Cancelled" is matched ignoring case and extra spaces
@@ -1080,7 +1146,7 @@ User: "Each row of the Tracker sheet has a Job ID and a Report File. Copy each r
 the dump folder into a folder for its job inside the jobs folder, and write what happened
 in Status."
 Reply (inside one vcl code block):
-VCL 0.4
+VCL 0.5
 TASK
 # ASSUME: Tracker headers in row 1 include "Job ID", "Report File" and "Status"
 # ASSUME: both folders exist; each report is copied, never moved, and nothing is overwritten
@@ -1122,11 +1188,114 @@ TEST     fixture=reports_01.xlsx call=FileJobReports(Tracker, Dump, Jobs) runs=2
 TEST     fixture=reports_01.xlsx call=FileJobReports(Tracker, Dump, Jobs) assert=COUNTIF(Tracker![Status], "Copied") = 1 AND COUNTIF(Tracker![Status], "old") = 1 AND FILE_COUNT("Dump") = PRE_FILE_COUNT("Dump")
 TEST     fixture=reports_01.xlsx call=FileJobReports(Notes, Dump, Jobs) assert=RESULT = -1 AND ERROR_COUNT = 1 AND FILE_COUNT("Jobs") = PRE_FILE_COUNT("Jobs")
 
+EXAMPLE 4
+User: "In the NCR sheet, every Open NCR that has been open more than 30 days must become
+Overdue, and a Summary sheet must show how many NCRs are in each status. Make it one tool I
+can start with one macro."
+Reply (inside one vcl code block):
+VCL 0.5
+BUILD
+# ASSUME: NCR headers (row 1) include "NCR No", "Status" and "Days Open"
+# ASSUME: an Open NCR older than the limit becomes Overdue; Summary is rebuilt on every run
+# ASSUME: the real sheets are "NCR Register" and "NCR Summary"; the TESTs use NCR and Summary
+NAME     NcrReview
+TARGET   xlsm
+ENTRY    modMain.Run
+MODULE   modMain
+MODULE   modSteps
+SIG      modMain.Run()
+SIG      modMain.RunHeadless(ncr As Worksheet, out As Worksheet) As Long
+SIG      modSteps.MarkOverdue(ncr As Worksheet, limit As Long) As Long
+SIG      modSteps.WriteSummary(ncr As Worksheet, out As Worksheet)
+FLOW     modMain.Run -> modMain.RunHeadless -> modSteps.MarkOverdue
+FLOW     modMain.RunHeadless -> modSteps.WriteSummary
+FIXTURE  ncr_01.xlsx sheet=NCR cols=A:NCR No,B:Status,C:Days Open rows=8 data=A:seq(1,1);B:values("Open"x5,"Closed"x2,""x1)+boundary("Open","Open","Closed","","Open");C:int(1,60)+boundary(31,30,45,10)
+FIXTURE  ncr_01.xlsx sheet=Summary cols=A:Status,B:Count rows=0 stale=2
+TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTIF(NCR![Status], "Overdue") = 4 AND COUNTIF(NCR![Status], "Open") = 1 AND COUNTA(Summary![Status]) = 4 AND VALUE(Summary![Count]2) = 4 AND COUNTIF(Summary![Status], "stale") = 0
+TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) assert=RESULT = 4 AND ERROR_COUNT = 0 AND COUNTA(NCR![NCR No]) = PRE_COUNTA(NCR![NCR No]) AND VALUE(NCR![Status]2) = "Overdue" AND VALUE(NCR![Status]3) = "Open" AND VALUE(Summary![Status]2) = "Overdue"
+TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(Summary, NCR) assert=RESULT = -1 AND ERROR_COUNT = 1
+---
+VCL 0.5
+TASK
+PROC     Run
+KIND     Sub
+MODULE   modMain
+VAR      n As Long
+OP       CALL(modMain.RunHeadless, SHEET(THIS_BOOK, "NCR Register"), SHEET(THIS_BOOK, "NCR Summary"), into=n)
+OP       MSG("NCRs marked Overdue: " & n)
+ERR      standard
+---
+VCL 0.5
+TASK
+PROC     RunHeadless
+KIND     Function
+MODULE   modMain
+ARGS     ncr As Worksheet, out As Worksheet
+RET      Long
+VAR      marked As Long
+PRE      COL($ncr, "Status") > 0; COL($ncr, "Days Open") > 0
+MODIFIES $ncr["Status"]
+MODIFIES $out
+OP       CALL(modSteps.MarkOverdue, $ncr, 30, into=marked)
+OP       CALL(modSteps.WriteSummary, $ncr, $out)
+OP       RETURN(marked)
+ERR      standard
+---
+VCL 0.5
+TASK
+PROC     MarkOverdue
+KIND     Function
+MODULE   modSteps
+ARGS     ncr As Worksheet, limit As Long
+RET      Long
+VAR      cStatus As Long
+VAR      cDays As Long
+VAR      n As Long
+PRE      COL($ncr, "Status") > 0; COL($ncr, "Days Open") > 0
+MODIFIES $ncr["Status"]
+OP       LET(cStatus, COL($ncr, "Status"))
+OP       LET(cDays, COL($ncr, "Days Open"))
+OP       LOOP_ROWS dir=down from=2 to=LASTROW($ncr, cStatus) var=r
+OP         IF SAME(CELL($ncr, r, cStatus), "Open")
+OP           IF IS_NUMBER(CELL($ncr, r, cDays))
+OP             IF CELL($ncr, r, cDays) > $limit
+OP               SET_VALUE(CELL($ncr, r, cStatus), "Overdue")
+OP               LET(n, n + 1)
+OP       RETURN(n)
+ERR      standard
+---
+VCL 0.5
+TASK
+PROC     WriteSummary
+KIND     Sub
+MODULE   modSteps
+ARGS     ncr As Worksheet, out As Worksheet
+VAR      cStatus As Long
+VAR      counts As Dictionary
+VAR      got As Long
+VAR      outRow As Long
+PRE      COL($ncr, "Status") > 0
+MODIFIES $out
+OP       LET(cStatus, COL($ncr, "Status"))
+OP       CLEAR(USED_RANGE($out), what=all)
+OP       WRITE_ROW($out, 1, "Status", "Count")
+OP       LOOP_ROWS dir=down from=2 to=LASTROW($ncr, cStatus) var=r
+OP         SKIP_IF IS_EMPTY(CELL($ncr, r, cStatus))
+OP         DICT_ADD(counts, TRIM(CELL($ncr, r, cStatus)), 1, mode=sum)
+OP       LET(outRow, 2)
+OP       FOR_EACH var=k in=KEYS(counts)
+OP         DICT_GET(counts, k, into=got)
+OP         WRITE_ROW($out, outRow, k, got)
+OP         LET(outRow, outRow + 1)
+ERR      standard
+
 FINAL CHECK  (verify silently before every reply)
 - Only keys, ops and functions defined here are used
-- One TASK of up to about 40 OP lines; no BUILD and no CALL yet (rule 9)
+- One TASK of up to about 40 OP lines, or a BUILD of such TASKs when one is too small (rules 9
+  and 23)
 - Every name is an argument ($name), a VAR, or a loop variable
-- Every input column comes from COL() and its header is checked in PRE
+- Every input column comes from COL() and its header is checked in PRE (a header your own
+  spec writes to row 1 needs none, rule 14)
 - Calculations and date comparisons on workbook values are guarded by IS_NUMBER or IS_DATE
   in a nested IF on the value itself, never through a flag
 - No option word (dir, from, to, var, in, mode, into, key, order, header, ...) is used as a name
@@ -1143,6 +1312,13 @@ FINAL CHECK  (verify silently before every reply)
 - Files only through MAKE_FOLDER, COPY_FILE, LIST_FILES, READ_TEXT and WRITE_TEXT, on
   PATH_JOIN($root, SAFE_NAME(...)) paths; every root checked with FOLDER_EXISTS in PRE;
   MODIFIES $root files for each root that gets new folders or files (rules 20 and 21)
+- A BUILD: unique procedure names; every TASK has its own PRE, MODIFIES and ERR; a CALL passes
+  only the caller's own $arguments and its into= result is checked when the step matters;
+  FLOW lists exactly the CALLs; modMain.Run only CALLs RunHeadless with
+  SHEET(THIS_BOOK, "<real name>"); TARGET xlsm, no FORM; a TEST fixture where a checked
+  callee gives 0 (rule 23)
+- An output sheet rebuilt on every run is an argument the ASSUME lines say exists; a sheet
+  ADD_SHEET makes is written only in the run that adds it (rule 22)
 - Sheets added only with ADD_SHEET or COPY_SHEET, with name=, skipped when SHEET_EXISTS,
   and MODIFIES $book sheets; formulas only with SET_FORMULA and Excel 2016 functions,
   tested with FORMULA, never beside INSERT_ROW, DELETE_ROW, DEDUPE or SORT (rule 22)
@@ -2756,6 +2932,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D55 | 21 Oct 2026 | VEP 0.5 Phase 4a, two of the review gaps (D47, D51). (1) `ROW_OF(<range>)` is the sheet row of the range's first cell (Range.Row), so a FIND result leads to another column of its row: `CELL($ws, ROW_OF(hit), cStatus)`. ROW_OF of NOTHING stops the run with a run-time error, as VBA's error 91 does, so the spec tests IS_NOTHING first; it compiles to plain `.Row`, as IS_NOTHING compiles to `Is Nothing`. (2) `DEDUPE(..., into=<var>)` sets the VAR to how many rows it deleted (0 when none); ForgeDedupe becomes a Function, and a DEDUPE without `into=` still calls it as a statement. (3) Both need `VCL 0.5`. (4) spec.md and the prompt teach VCL 0.4, which can't use them, so they are taught at the switch to 0.5 (Phase 5), and Boss updates the Orchestrator once. Until then the D47 drift guard lets a name of a version newer than spec.md's be untaught, but only if that version's VEP describes it; the moment spec.md moves up, the reference must teach it. (5) The work was started by the parallel session (its branch claude/tender-gates-vbdhjh, which called it D54) and finished here, after D54 went to the context file. A sample 0.5 TASK proves both: 4 TESTs pass and its TESTs catch 8 of 8 mutants. | A count and a row number were the two gaps that forced dry-run specs into workarounds; teaching them only at the switch keeps one Orchestrator update and never shows a 0.4 writer a function its specs can't use. |
 | D56 | 21 Oct 2026 | VEP 0.5 Phase 4b, the rule-14 gap (D47). (1) In a VCL 0.5 spec, a header the spec itself writes to row 1 of a sheet argument, as quoted text (`SET_VALUE(CELL($ws, 1, <col>), "<header>")` or a WRITE_ROW to row 1), counts as checked for rule 14, so `COL($ws, "<header>")` needs no PRE line. PRE can't check it: the header isn't there before the first run, so a PRE check would stop that run. (2) The match is exact: the same sheet argument, the same header (as COL matches it, S9), row 1, quoted text. A 0.4 spec keeps the rule-14 error, now with a hint that this needs VCL 0.5. (3) Found while proving it: `MODIFIES $ws ["<header>"]` on such a header passed the validator, but every TEST then failed, because the UNCHANGED check finds a column by its header before the run and the column isn't there yet. In 0.5 the validator now refuses that line and asks for the whole sheet (`MODIFIES $ws`), which is also the only form that lets the header row change (D47). (4) Nothing else changes: the type checker, the interpreter and the compiler already ran such specs, and an assertion could already name the new header (the validator counts row-1 writes). spec.md's rule 14 says so at the switch to 0.5 (Phase 5); until then the VEP describes it. A sample spec proves it: 3 TESTs pass and catch 18 of 18 mutants. | A macro that adds its own status column to a register is a common request; rule 14 must not force a PRE line that can only fail, and the column-MODIFIES trap should fail at the validator with the reason, not at a TEST. |
 | D57 | 21 Oct 2026 | VEP 0.5 Phase 4c, the last review gap (D47): an assertion couldn't name a sheet whose name has spaces, so a TEST couldn't look inside a sheet the macro adds as "Open NCRs". (1) In VCL 0.5 an assertion writes such a sheet in single quotes, as Excel writes it in a formula: `VALUE('Open NCRs'!B1)`, `COUNTA('Open NCRs'![NCR No])`, `ROWS_USED('Open NCRs')`; a quote in the name is written `''`. (2) One way to write each name: quotes only for a name that isn't one word (`'Ncr'!B2` is refused, write `Ncr!B2`), so the corpus never has two spellings of one reference. The name must be one ADD_SHEET could give (S23), so a TEST never names a sheet that can't exist. (3) FIXTURE sheets stay one word: a fixture is synthetic and its names are ours to choose, so only sheets the macro itself makes can have spaces. (4) Single quotes stay out of OP lines: text there is in double quotes, and a single-quoted text now gets a message that says so. (5) Changed: the tokenizer, the grammar, the validator's assertion checks and the interpreter's assertion reader; the compiler and ForgeLib don't read assertions. spec.md teaches it at the switch to 0.5 (Phase 5); until then the VEP describes it. A sample spec proves it: 3 TESTs pass and catch 13 of 13 mutants. | Excel's own quoting is the form a writer already knows, and it can name every sheet a macro may add. |
+| D58 | 21 Oct 2026 | **VEP 0.5 Phase 5: a proven BUILD and the switch to VCL 0.5 (item 3 complete).** (1) spec.md, the Orchestrator prompt and the context file's Appendix A move to VCL 0.5 in one step, so Boss updates the Orchestrator Project once. The shared reference text teaches everything 0.5 added: BUILD FORMAT without FORM and xlam and without "not yet tested" (unique procedure names, modMain.RunHeadless and Run, FLOW = the CALLs); CALL with `into=` and its SEMANTICS entry (-1 at the callee's PRE, -2 on its failure, values converted to the parameter's type); ROW_OF; DEDUPE `into=`; the rule-14 exception for a header the spec writes to row 1; the MODIFIES lines a caller needs and the rule that a header the spec adds can't be named in `[...]`; quoted sheet names in assertions. Hard rules: 7 (ask when even a BUILD can't do it), 8 (VCL 0.5), 9 (a request one TASK can't do becomes a BUILD of TASKs of about 40 OP lines), 14 (the exception), and a new rule 23 for BUILD and CALL. The shared-text tests now end at rule 23 ("and no FORM line."); `compiler/gen_context.py` too. FORM lines stay valid in the language and are refused by the compiler (D49), and the reference text no longer teaches them. (2) Example 4, `vcl/examples/example4_build.vcl`, is the NcrReview BUILD of the tests (D50, D52, D53), with `mode=sum` in DICT_ADD so no equivalent mutant survives: it is valid with no warnings, its 3 TESTs pass, it builds lint-clean, and its TESTs catch 34 of 34 mutants (modMain.Run is not mutated: no TEST can reach it). It is the prompt's new Example 4, a unit test keeps the two equal and proves it, and `tests/test_vcl05.py` now uses the file as its BUILD sample. Examples 1 and 3 moved to 0.5 by their first line only (E13); the migration and version tests were updated to say so, and still compare results. The 12 committed specs stay TASK specs in their versions: a BUILD joins `specs/` when a real request needs one. (3) Two Orchestrator dry runs (helpers who knew only the prompt) wrote a BUILD (a weld-chase tool with a summary sheet) and a TASK (duplicates, then FIND and ROW_OF); both passed check, test, build and lint, and the BUILD scored 61 of 62 (an equivalent), the TASK 20 of 22 (two equivalents). Their guesses led to wording fixes with no change of meaning: rule 15 says DEDUPE does not trim its keys (an ASSUME), rule 17 puts a second count in a cell, rule 19 puts the blank cell early in the column (LASTROW ignores a trailing blank), rule 22 says only the run that adds a sheet can write to it, so a sheet rebuilt on every run is an argument that the ASSUME lines say exists, rule 23 asks for a TEST where a checked callee gives 0, and SEMANTICS says `TODAY - 14` is a date and KEYS walks keys in the order they were first added. (4) Known gaps, left for a later VEP because each is a language change: a tool that must create a sheet if it is missing and rebuild it if it is there can be written only by calling RunHeadless twice from Run (the dry run found it); FIND needs a range, so looking one value up in another sheet's column goes through a Dictionary, since no function gives a column range by header; and `vclc mutate` prints "... and N more" without a way to list every survivor. | One switch, one Orchestrator update, as D38 and D46 did, after every language phase of item 3. A BUILD is only taught once a sample proves all three stages, and the dry runs showed which sentences a writer had to guess. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4376,7 +4553,7 @@ specs, each with its VBA.
 
 ##### Sources of truth
 
-- `vcl/spec.md`: VCL 0.4, the language reference.
+- `vcl/spec.md`: VCL 0.5, the language reference.
 - `vcl/orchestrator_prompt.txt`: the claude.ai prompt that writes specs. It contains the same
   reference text (a unit test keeps them identical), so the two always change together.
 - `vcl/grammar.lark`: the formal syntax. `vcl/semantics.py`: the reference meaning of the value
@@ -4479,7 +4656,7 @@ The Excel batch runner (`harness/ForgeTest.bas`, PR #4) is deferred; nothing dep
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, type-check, pass their
 TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
 
-Done: 12 specs (11 in VCL 0.2, task_12 in 0.3), VCL 0.4 in spec.md and the Orchestrator prompt (D46), the parser and validator, and the
+Done: 12 specs (11 in VCL 0.2, task_12 in 0.3), VCL 0.5 in spec.md and the Orchestrator prompt (D58), the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,
 `vclc`), with one fixture generator. Fixtures from the mutation evidence (revision 5:
 `stale=<n>`, `+boundary`, `+dupes`, `reldates`, rule 19). Every SKIP_IF has blank key rows
@@ -4536,11 +4713,14 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    Phase 1 is done (E13, E14, D50): the `VCL 0.5` line, CALL `into=`, and the BUILD rules in the
    validator and type checker. Phase 2 is done (D52): the interpreter runs a 0.5 BUILD's TESTs
    through modMain.RunHeadless. Phase 3 is done (D53): `vclc build` writes `dist/builds/<NAME>.bas`,
-   and mutation scores a BUILD. Phase 4a is done (D55): ROW_OF(<range>) and DEDUPE `into=`; the
-   reference teaches them at the switch to 0.5, and until then the drift guard wants them in the
-   VEP. Phase 4b is done (D56): a header the spec writes to row 1 counts as checked for rule 14.
+   and mutation scores a BUILD. Phase 4a is done (D55): ROW_OF(<range>) and DEDUPE `into=`.
+   Phase 4b is done (D56): a header the spec writes to row 1 counts as checked for rule 14.
    Phase 4c is done (D57): an assertion names a sheet with spaces in quotes, `'Open NCRs'!B1`.
-   **Next: Phase 5** (a proven BUILD and the switch to 0.5; Boss updates the Orchestrator once).
+   Phase 5 is done (D58): a proven BUILD, `vcl/examples/example4_build.vcl` (the prompt's
+   Example 4; its 3 TESTs pass and catch 34 of 34 mutants), and the switch: spec.md and the
+   Orchestrator prompt teach VCL 0.5 (hard rules 7, 9 and 14 changed, new hard rule 23 for BUILD
+   and CALL), and Boss pastes the new prompt into the Orchestrator Project once. **Item 3 is
+   complete.** FORM and xlam stay refused until after March 2027 (D49).
 4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts when Boss says go for it, as every earlier
@@ -4644,7 +4824,8 @@ and 7.
 5b. **CALL and BUILD specs** (VEP 0.5, `docs/vep-0.5-build.md`, D49): a BUILD becomes provable as
    every op of item 5 did: CALL with `into=`, MODIFIES that follows the arguments, BUILD TESTs in
    the interpreter, one module per BUILD from the compiler, and the review gaps of D47. FORM and
-   xlam wait. Five phases, then one switch to VCL 0.5.
+   xlam wait. Five phases (D50 to D58), the last a proven sample BUILD and the switch: spec.md
+   and the prompt teach VCL 0.5. **Item 5b is complete.**
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
    the next VCL packs.
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
@@ -4859,7 +5040,8 @@ recommendations" after item 2; the recommendation was CALL and BUILD specs befor
 Stage A, because the Orchestrator's rule 9 already asks for a BUILD when a task needs several
 procedures or more than about 60 lines, and today no BUILD can be proven. Choices that needed
 Boss's decision were made the conservative way and recorded in `DECISIONS.md` D49; Boss can
-overrule any of them. Phases 1 to 4 are done (E13, E14, D50; D52; D53; D55, D56, D57).
+overrule any of them. **All five phases are done** (E13, E14, D50; D52; D53; D55, D56, D57;
+D58): spec.md and the Orchestrator prompt teach VCL 0.5.
 
 ##### The problem
 
@@ -4969,9 +5151,10 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
 4. **The review gaps** above, as the evidence decides. 4a (done: D55): ROW_OF and DEDUPE `into=`.
    4b (done: D56): a header the spec writes counts as checked for rule 14. 4c (done: D57): sheet
    names with spaces in assertions, in quotes.
-5. **A proven BUILD and the switch:** a sample BUILD in the tests that catches every mutant, a new
-   Example 4 in the prompt, rule 9 and a CALL rule in the hard rules, spec.md and the prompt move
-   to 0.5, and Boss updates the Orchestrator once.
+5. **A proven BUILD and the switch (done: D58):** `vcl/examples/example4_build.vcl`, a BUILD
+   whose TESTs catch every mutant (34 of 34), is the prompt's new Example 4; rule 9 sends a request
+   one TASK can't do to a BUILD, a new rule 23 covers BUILD and CALL, and rules 7, 8 and 14
+   changed; spec.md and the prompt move to 0.5, and Boss updates the Orchestrator once.
 
 ##### Verification (every phase)
 

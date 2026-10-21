@@ -5,7 +5,8 @@ recommendations" after item 2; the recommendation was CALL and BUILD specs befor
 Stage A, because the Orchestrator's rule 9 already asks for a BUILD when a task needs several
 procedures or more than about 60 lines, and today no BUILD can be proven. Choices that needed
 Boss's decision were made the conservative way and recorded in `DECISIONS.md` D49; Boss can
-overrule any of them. Phases 1 to 4 are done (E13, E14, D50; D52; D53; D55, D56, D57).
+overrule any of them. **All five phases are done** (E13, E14, D50; D52; D53; D55, D56, D57;
+D58): spec.md and the Orchestrator prompt teach VCL 0.5.
 
 ## The problem
 
@@ -115,9 +116,10 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
 4. **The review gaps** above, as the evidence decides. 4a (done: D55): ROW_OF and DEDUPE `into=`.
    4b (done: D56): a header the spec writes counts as checked for rule 14. 4c (done: D57): sheet
    names with spaces in assertions, in quotes.
-5. **A proven BUILD and the switch:** a sample BUILD in the tests that catches every mutant, a new
-   Example 4 in the prompt, rule 9 and a CALL rule in the hard rules, spec.md and the prompt move
-   to 0.5, and Boss updates the Orchestrator once.
+5. **A proven BUILD and the switch (done: D58):** `vcl/examples/example4_build.vcl`, a BUILD
+   whose TESTs catch every mutant (34 of 34), is the prompt's new Example 4; rule 9 sends a request
+   one TASK can't do to a BUILD, a new rule 23 covers BUILD and CALL, and rules 7, 8 and 14
+   changed; spec.md and the prompt move to 0.5, and Boss updates the Orchestrator once.
 
 ## Verification (every phase)
 

@@ -90,7 +90,8 @@ and 7.
 5b. **CALL and BUILD specs** (VEP 0.5, `docs/vep-0.5-build.md`, D49): a BUILD becomes provable as
    every op of item 5 did: CALL with `into=`, MODIFIES that follows the arguments, BUILD TESTs in
    the interpreter, one module per BUILD from the compiler, and the review gaps of D47. FORM and
-   xlam wait. Five phases, then one switch to VCL 0.5.
+   xlam wait. Five phases (D50 to D58), the last a proven sample BUILD and the switch: spec.md
+   and the prompt teach VCL 0.5. **Item 5b is complete.**
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
    the next VCL packs.
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's

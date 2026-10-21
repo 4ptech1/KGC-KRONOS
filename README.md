@@ -236,3 +236,8 @@ Dataset count: 0 verified pairs
   whole sheet in MODIFIES (D56).
 - **2026-10-21:** VEP 0.5 Phase 4c: a TEST names a sheet whose name has spaces in single quotes,
   as Excel does (`VALUE('Open NCRs'!B1)`), in VCL 0.5. All four review gaps are closed (D57).
+- **2026-10-21:** VEP 0.5 Phase 5, the switch: spec.md and the Orchestrator prompt teach VCL 0.5.
+  A request one TASK can't do now becomes a BUILD of TASKs joined by CALL, with hard rule 23 and a
+  proven Example 4 (`vcl/examples/example4_build.vcl`: 3 TESTs, 34 of 34 mutants caught). The
+  review gaps (ROW_OF, DEDUPE `into=`, a header the spec adds, quoted sheet names) are taught too.
+  Boss pastes the new prompt into the Orchestrator Project once (D58). Item 3 is complete.

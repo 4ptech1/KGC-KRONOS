@@ -835,8 +835,8 @@ class VersionSwitch(unittest.TestCase):
         for path in paths:
             first, rest = path.read_text(encoding="utf-8").split("\n", 1)
             with self.subTest(spec=path.name):
-                self.assertIn(first, ("VCL 0.2", "VCL 0.3", "VCL 0.4"))
-                older = ("VCL 0.3" if first == "VCL 0.4" else first) + "\n" + rest
+                self.assertIn(first, ("VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5"))   # the examples are 0.5 (D58)
+                older = ("VCL 0.3" if first in ("VCL 0.4", "VCL 0.5") else first) + "\n" + rest
                 newer = "VCL 0.4\n" + rest
                 self.assertEqual(*[[(p.line, p.severity, p.message) for p in validator.validate_text(t)]
                                    for t in (older, newer)])

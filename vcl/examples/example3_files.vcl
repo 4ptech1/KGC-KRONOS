@@ -1,4 +1,4 @@
-VCL 0.4
+VCL 0.5
 TASK
 # ASSUME: Tracker headers in row 1 include "Job ID", "Report File" and "Status"
 # ASSUME: both folders exist; each report is copied, never moved, and nothing is overwritten
