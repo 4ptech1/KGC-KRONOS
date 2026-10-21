@@ -562,6 +562,11 @@ class Machine:
             return Rng(rng.sheet, *cells[i - 1], *cells[i - 1]) if i else None
         if name == "IS_NOTHING":
             return e(pos[0]) is None
+        if name == "ROW_OF":   # VCL 0.5 (D54): the row of the range's first cell, as Range.Row
+            rng = e(pos[0])
+            if rng is None:   # VBA error 91: NOTHING has no row
+                raise VclError("ROW_OF(NOTHING): FIND found no cell; test it with IS_NOTHING first")
+            return rng.r1
         if name == "SHEET_EXISTS":   # VCL 0.4 (D40)
             return e(pos[0]).exists(e(pos[1]))
         if name == "ITEMS":   # what LIST_FILES gave, in its order (D44)
@@ -662,6 +667,8 @@ class Machine:
                     seen.add(key)
             for r in reversed(doomed):   # ... deleted bottom up, as ForgeDedupe does
                 delete_row(rng.sheet, r)
+            if "into" in opts:   # VCL 0.5 (D54): how many rows it deleted
+                self.assign(str(opts["into"]), len(doomed))
         elif name == "SET_FORMULA":   # D43: the formula text as written; the interpreter never calculates it
             rng, r1c1 = self.target(pos[0]), str(opts.get("style", "a1")) == "r1c1"
             cells = list(rng.cells())

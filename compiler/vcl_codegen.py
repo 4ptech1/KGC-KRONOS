@@ -257,6 +257,8 @@ class Gen:
             return f"ForgeFind({self.rng(pos[0])}, {e(1)}, {whole})", "obj"
         if name == "IS_NOTHING":
             return f"({e(0)} Is Nothing)", "bool"
+        if name == "ROW_OF":   # VCL 0.5 (D54): error 91 on Nothing, as the interpreter stops
+            return f"{e(0)}.Row", "num"
         if name == "SHEET_EXISTS":   # VCL 0.4 (D40)
             return f"ForgeSheetExists({e(0)}, {e(1)})", "bool"
         if name == "SAME":
@@ -386,7 +388,10 @@ class Gen:
             cols = opts["cols"]
             items = cols.children if isinstance(cols, Tree) and cols.data == "list_lit" else [cols]
             hdr = "True" if str(opts.get("header", "yes")) == "yes" else "False"
-            return [f"ForgeDedupe {self.rng(pos[0])}, Array({', '.join(self.as_num(c)[0] for c in items)}), {hdr}"]
+            call = f"{self.rng(pos[0])}, Array({', '.join(self.as_num(c)[0] for c in items)}), {hdr}"
+            if "into" in opts:   # VCL 0.5 (D54): how many rows it deleted
+                return [f"{vba_name(str(opts['into']))} = ForgeDedupe({call})"]
+            return [f"ForgeDedupe {call}"]
         if name == "READ_ARRAY":   # always a 2-D array, even for one cell (D36)
             return [f"{vba_name(str(opts['into']))} = ForgeReadArray({self.rng(pos[0])})"]
         if name == "WRITE_ARRAY":
