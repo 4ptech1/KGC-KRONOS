@@ -1,6 +1,6 @@
 # KGC KRONOS: AI context file
 
-**Snapshot: 21 Oct 2026, after the review passes of item 2 (D47, D48, D51), VEP 0.5 Phases 1 and 2 (D50, D52) and this file's generated appendices (D53).** Hand this file to any Claude chat or claude.ai
+**Snapshot: 21 Oct 2026, after the review passes of item 2 (D47, D48, D51), VEP 0.5 Phases 1 to 3 (D50, D52, D53) and this file's generated appendices (D54).** Hand this file to any Claude chat or claude.ai
 Project that needs to understand the project. The repo is always the source of truth: if this
 file and the repo disagree, the repo wins, and the repo's `CLAUDE.md` has the current status.
 
@@ -121,7 +121,7 @@ compiler/vcl_codegen.py   VCL to VBA compiler   compiler/vcl_fixtures.py  the on
 compiler/vba_lint.py      static VBA checks     compiler/vcl_mutate.py  mutation scorer
 compiler/vcl_migrate.py   VCL 0.1 to 0.2 rewriter, with --prove
 compiler/gen_semantics_doc.py  writes docs/vcl-semantics.md
-compiler/gen_context.py   writes this file's appendices from the repo (D53)
+compiler/gen_context.py   writes this file's appendices from the repo (D54)
 compiler/vcl_formula.py   SET_FORMULA's Excel 2016 allowlist and checks (D43)
 vba/ForgeLib.bas          the VBA runtime every generated procedure calls
 dist/forge_module.bas     committed build output: ForgeLib plus one procedure per spec (paste-ready)
@@ -129,7 +129,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
-tests/                    386 unit tests; conformance_cases.py is shared with the docs
+tests/                    390 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -326,7 +326,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 386 pass |
+| Unit tests | 390 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -394,7 +394,8 @@ The 12 specs:
   gives every sort option, LIST_FILES leaves out hidden and system files, more lint bans, and
   more rules say what the toolchain checks.
 - #52: VEP 0.5 Phase 2, the interpreter runs BUILD TESTs (D52).
-- #53: this file grows to about 400 KB, with appendices copied from the repo by `gen_context.py` (D53).
+- #53: VEP 0.5 Phase 3, one module per BUILD from `vclc build`, and mutation over a BUILD (D53).
+- #54: this file grows to about 400 KB, with appendices copied from the repo by `gen_context.py` (D54).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -458,7 +459,8 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    CALL keeps a Function's result with `into=`, MODIFIES follows the arguments, and the compiler
    writes one module per BUILD. FORM and xlam wait. Then one switch to VCL 0.5. Phase 1 is done
    (E13, E14, D50): the validator checks 0.5 BUILDs. Phase 2 is done (D52): the interpreter runs
-   their TESTs. Phase 3 (the compiler and mutation) is next.
+   their TESTs. Phase 3 is done (D53): one module per BUILD, and mutation. Phase 4 (the review
+   gaps) is next.
 3. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
 4. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
    Mutants double as "read carefully" contrast pairs.
@@ -2743,7 +2745,8 @@ after the last phase, so Boss updates the Orchestrator once.
 | D50 | 21 Oct 2026 | VEP 0.5 Phase 1 (the language surface and the validator, E13, E14). Choices: (1) A caller's MODIFIES line that only a callee uses is not "unused": the warning counts the changes a CALL passes on. (2) After a CALL the type checker forgets every cell guard, since the callee may change any sheet it gets. (3) The MODIFIES rule compares header names as COL does (S9), and the message shows them as the callee wrote them. (4) A Function called without `into=` is allowed: its result is not needed. (5) The rules apply from VCL 0.5 only; a BUILD written before stays check-only, as D49 said. (6) A sample BUILD, NcrReview (mark old open NCRs Overdue, rebuild a status summary), validates with no problems, and each rule has a test with its exact message. Phase 2 runs its TESTs. | Every rule is one the TESTs need to prove the whole tool, checked before anything runs. Warnings that would push a writer to drop a needed MODIFIES line are wrong, so the warning learned about CALL. |
 | D51 | 21 Oct 2026 | A second review pass after item 2, done at the same time by another session (its PR #48, which numbered it D47), folded in when Boss chose to combine both reviews. What it added beyond D47 and D48: (1) `docs/excel-pilot.md` said the self-test has 163 cases; it has more, and a test now keeps the guide's numbers equal to the conformance cases, because Boss compares the self-test's message with the guide. (2) Two more Orchestrator dry runs: B (job reports with LIST_FILES, COPY_FILE, WRITE_TEXT, READ_TEXT) passed every stage; A (an NDE register with duplicates, a formula summary and hidden rows) chose a BUILD, because a spec that SET_FORMULAs may not DEDUPE, and missed rule 5's PRE_ measure. Rewritten as one TASK by the new text, it passes every stage. (3) Wording, each checked against the code: rule 5 shows a PRE_ measure; rule 7 asks when one TASK can't do it all; rule 8 (no VCL op deletes, overwrites, runs a program or uses the web); rule 9 asks for one TASK of about 40 OP lines (the validator's limit) and no BUILD or CALL until they can be tested (VEP 0.5 makes them provable, and its last phase rewrites the rule); rule 15 (guards are for workbook values, not the spec's own counters); rule 22 (no row moves beside SET_FORMULA; PRE pins a formula's columns; a formula names only sheets every TEST workbook has); CLEAN_TEXT keeps tabs and line breaks as spaces (S13); Paths; LIST_FILES; the MODIFIES sheets line; the header row may change when the whole sheet is declared; FIXTURE text may hold commas, colons and doubled quotes. The FINAL CHECK matches, and the validator's size warning no longer suggests a BUILD. (4) ForgeLib: ForgeSort gives Orientation, OrderCustom, MatchCase and DataOption1, which Range.Sort otherwise takes from the sheet's last sort; ForgeListFiles leaves out hidden and system files (Excel's ~$ owner file, Thumbs.db), and S24 says so. The linter bans FileCopy, SetAttr, CallByName, ExecuteExcel4Macro, .Save, .Run, .OnTime, .OnKey, .AutoFilter, .FormulaLocal, .ExportAsFixedFormat, Workbooks.Open and SaveChanges, catches Open in every mode, a CreateObject split over lines, and keeps gForgeFso inside ForgeFso. The formula check refuses a quoted name that can only be a file, and the validator refuses a formula naming a sheet a TEST workbook lacks (Excel would open a file dialog). (5) The interpreter's SORT orders error values and date-times as Excel does; a BUILD said "spec doesn't parse: []" and now says it can't be tested yet (VEP 0.5 Phase 2 replaces this with running it). (6) Known gaps, recorded, not built: Excel's locale-aware text sort ignores hyphens; Excel leaves rows FILTER hid in place when it sorts; dictionary keys use vbTextCompare (on a Turkish PC "PIPE" and "pipe" are two keys; DEDUPE no longer does, D48); the self-test has no cases for the sheet and file helpers. (7) For item 3's expressibility report: no text search (INSTR, MID), no expression in a LIST_FILES pattern, FIXTURE text of one line only, a sheet ADD_SHEET made can't be rebuilt on a re-run, DEDUPE gives no count, FILTER hides blank results too. | Two reviews of the same work found different things; keeping both, with one number each, loses nothing and keeps the decision record readable. |
 | D52 | 21 Oct 2026 | VEP 0.5 Phase 2 (the interpreter runs BUILD TESTs). (1) A BUILD TEST runs modMain.RunHeadless with the TEST's arguments; CALL runs the callee in a new machine that shares the workbook, the mock file system and ForgeLog, as the compiled procedures share Excel, so ERROR_COUNT counts every procedure's entries. (2) Each procedure keeps its own PRE and ERR, as each compiled procedure has its own handler: a callee's failed PRE gives -1 and its run-time error -2 (into `into=`), each logged once, and the caller goes on. (3) Each value is converted to its parameter's VBA type on the way in, as a VBA call does (a Long rounds half to even: 30.6 passed as a Long is 31). (4) The UNCHANGED check uses RunHeadless's MODIFIES lines, which E14 makes cover the whole tool. (5) A BUILD before VCL 0.5 can't run its TESTs, and says why (its TASKs don't declare MODIFIES); this replaces D51's "can't be tested yet". (6) The interpreter stops 20 calls deep; the validator already refuses cycles, so a real BUILD never gets near it. (7) The sample BUILD NcrReview now has exact assertions and a wrong-sheet TEST, and all three pass; tests show a callee's run-time error and failed PRE, the type conversion and the UNCHANGED check. | The interpreter does what the compiled VBA will do, procedure by procedure, so a BUILD's TESTs prove the tool the same way a TASK's TESTs prove one procedure. |
-| D53 | 21 Oct 2026 | The AI context file (`docs/kgc-kronos-context.md`, the file Boss gives other Claude chats) grows from about 69 KB to about 400 KB, under Boss's 3 MB cap ("let the size be up to 3 mb according to your recommendations"). (1) Sections 1 to 12 stay hand-written. Below a marker, `compiler/gen_context.py` copies in seven appendices: A the full language reference, B the rest of the Orchestrator prompt, C every spec with the VBA the compiler writes for it, D DECISIONS.md, E the semantics tables, F ForgeLib, G CLAUDE.md, the plans and every VEP. (2) Not 3 MB: a chat with a 200,000-token window holds about 800 KB in all, and it needs room to think and answer; 400 KB is about half of that. The Python code (the interpreter, the validator) is left out: it is long, and the reference, the specs and the decisions say what it does. (3) A unit test fails when the file differs from what the script builds and when it passes 3 MB, and CI also runs `gen_context.py --check`; so a PR that changes a copied file reruns the script, as `vclc all` is rerun for `dist/`. (4) The test also checks that the hand-written core comes first and that every spec and every decision is in the file. | Copies made by a script can't go stale, so a chat that reads the file sees the same language, specs and decisions as the repo. |
+| D53 | 21 Oct 2026 | VEP 0.5 Phase 3 (the compiler and mutation). (1) `vclc build` writes a 0.5 BUILD as `dist/builds/<NAME>.bas`: one module with ForgeLib and every procedure of the tool (so Boss pastes one module, D49), lint-checked like `forge_module.bas`, with its expected results and fixture builders as for a TASK. It is not committed, as no committed spec is a BUILD yet. (2) CALL with `into=` compiles to `var = Proc(args)`, without it to `Call Proc(args)`; procedures are called by name, which E14's unique names allow. Each compiled procedure keeps its own error handler and restores the screen and calculation settings it found, so a callee nests inside its caller as the interpreter models (D52). (3) The compiler refuses FORM, TARGET xlam and a BUILD before 0.5 with the reason (D49), as the validator does. (4) The mutation scorer runs over every TASK of a BUILD and type-checks each mutant with the BUILD's SIGs, but skips modMain.Run: no TEST calls Run, and E14 keeps it to calling RunHeadless, LET, IF and MSG, so a mutant there could never be caught and would only lower the score. (5) The sample BUILD NcrReview: WriteSummary became a Sub (nothing used its count), and the 31-day row comes first so a loop that starts a row late is caught. Its TESTs catch 33 of 34 mutants; the survivor is DICT_ADD's value under mode=count, which that mode ignores (an equivalent mutant). | A BUILD now goes through the same check, test, build and mutation stages as a TASK, so a valid BUILD is a provable BUILD. Scoring only what a TEST can reach keeps the score honest. |
+| D54 | 21 Oct 2026 | The AI context file (`docs/kgc-kronos-context.md`, the file Boss gives other Claude chats) grows from about 69 KB to about 400 KB, under Boss's 3 MB cap ("let the size be up to 3 mb according to your recommendations"). (1) Sections 1 to 12 stay hand-written. Below a marker, `compiler/gen_context.py` copies in seven appendices: A the full language reference, B the rest of the Orchestrator prompt, C every spec with the VBA the compiler writes for it, D DECISIONS.md, E the semantics tables, F ForgeLib, G CLAUDE.md, the plans and every VEP. (2) Not 3 MB: a chat with a 200,000-token window holds about 800 KB in all, and it needs room to think and answer; 400 KB is about half of that. The Python code (the interpreter, the validator) is left out: it is long, and the reference, the specs and the decisions say what it does. (3) A unit test fails when the file differs from what the script builds and when it passes 3 MB, and CI also runs `gen_context.py --check`; so a PR that changes a copied file reruns the script, as `vclc all` is rerun for `dist/`. (4) The test also checks that the hand-written core comes first and that every spec and every decision is in the file. | Copies made by a script can't go stale, so a chat that reads the file sees the same language, specs and decisions as the repo. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4390,7 +4393,7 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      vcl_formula.py (the SET_FORMULA check)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
-                     forge_pilot.bas are committed
+                     forge_pilot.bas are committed (builds/<NAME>.bas: one module per BUILD)
 templates/           one .bas template per op pattern (later)
 harness/             Excel batch runner (deferred: PR #4)
 batches/             generated batch modules (later)
@@ -4519,7 +4522,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    BUILD and the switch to VCL 0.5 (Boss updates the Orchestrator once). FORM and xlam wait.
    Phase 1 is done (E13, E14, D50): the `VCL 0.5` line, CALL `into=`, and the BUILD rules in the
    validator and type checker. Phase 2 is done (D52): the interpreter runs a 0.5 BUILD's TESTs
-   through modMain.RunHeadless. **Next: Phase 3** (the compiler and the mutation scorer).
+   through modMain.RunHeadless. Phase 3 is done (D53): `vclc build` writes `dist/builds/<NAME>.bas`,
+   and mutation scores a BUILD. **Next: Phase 4** (the review gaps of D47 and D51).
 4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts when Boss says go for it, as every earlier
@@ -4527,7 +4531,7 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
-then run `python compiler/gen_context.py`, which rewrites its appendices from the repo (D53).
+then run `python compiler/gen_context.py`, which rewrites its appendices from the repo (D54).
 
 ### `docs/vcl-mvp-plan.md`
 
@@ -4558,7 +4562,7 @@ current):
 | Mutation score, TEST assertions only | 89.0% of 438 deliberate bugs caught (was 68% at the start) |
 | Mutation score, whole-workbook comparison | 95.4% (418 of 438); 19 of the 20 survivors are equivalent mutants (D14, D24), 1 is a small task_11 fixture gap (D24) |
 | VBA lint (the compile errors Excel would raise) | 0 problems in 1,850 lines |
-| Unit tests | 386 pass |
+| Unit tests | 390 pass |
 
 ##### Honest limits
 
@@ -4838,7 +4842,7 @@ recommendations" after item 2; the recommendation was CALL and BUILD specs befor
 Stage A, because the Orchestrator's rule 9 already asks for a BUILD when a task needs several
 procedures or more than about 60 lines, and today no BUILD can be proven. Choices that needed
 Boss's decision were made the conservative way and recorded in `DECISIONS.md` D49; Boss can
-overrule any of them. Phases 1 and 2 are done (E13, E14, D50; D52).
+overrule any of them. Phases 1 to 3 are done (E13, E14, D50; D52; D53).
 
 ##### The problem
 
@@ -4930,7 +4934,7 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
    in every TASK of a BUILD and its propagation, the rules for Run, FORM and xlam.
 2. **The interpreter (done: D52):** BUILD TESTs run RunHeadless with a procedure table; CALL with per-procedure
    PRE and ERR; UNCHANGED from RunHeadless's MODIFIES; `vclc test` on BUILDs.
-3. **The compiler:** `dist/builds/<NAME>.bas`, CALL `into=` as a Function call, the BUILD's
+3. **The compiler (done: D53):** `dist/builds/<NAME>.bas`, CALL `into=` as a Function call, the BUILD's
    fixture builders and expected results, lint, and the mutation scorer over every TASK of a BUILD.
 4. **The review gaps** above, as the evidence decides.
 5. **A proven BUILD and the switch:** a sample BUILD in the tests that catches every mutant, a new

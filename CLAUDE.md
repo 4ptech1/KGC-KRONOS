@@ -86,7 +86,7 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      vcl_formula.py (the SET_FORMULA check)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
-                     forge_pilot.bas are committed
+                     forge_pilot.bas are committed (builds/<NAME>.bas: one module per BUILD)
 templates/           one .bas template per op pattern (later)
 harness/             Excel batch runner (deferred: PR #4)
 batches/             generated batch modules (later)
@@ -215,7 +215,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    BUILD and the switch to VCL 0.5 (Boss updates the Orchestrator once). FORM and xlam wait.
    Phase 1 is done (E13, E14, D50): the `VCL 0.5` line, CALL `into=`, and the BUILD rules in the
    validator and type checker. Phase 2 is done (D52): the interpreter runs a 0.5 BUILD's TESTs
-   through modMain.RunHeadless. **Next: Phase 3** (the compiler and the mutation scorer).
+   through modMain.RunHeadless. Phase 3 is done (D53): `vclc build` writes `dist/builds/<NAME>.bas`,
+   and mutation scores a BUILD. **Next: Phase 4** (the review gaps of D47 and D51).
 4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts when Boss says go for it, as every earlier
@@ -223,4 +224,4 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
-then run `python compiler/gen_context.py`, which rewrites its appendices from the repo (D53).
+then run `python compiler/gen_context.py`, which rewrites its appendices from the repo (D54).

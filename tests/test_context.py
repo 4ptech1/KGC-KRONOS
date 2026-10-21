@@ -1,4 +1,4 @@
-"""compiler/gen_context.py: the AI context file's appendices are copies of the repo (D53)."""
+"""compiler/gen_context.py: the AI context file's appendices are copies of the repo (D54)."""
 import re
 import sys
 import unittest

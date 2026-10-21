@@ -1,7 +1,11 @@
 """VEP 0.5 (docs/vep-0.5-build.md): CALL and BUILD specs. Phase 1: the VCL 0.5 line, CALL into=,
-and the validator and type-checker rules that let a BUILD's TESTs prove the whole tool (D49)."""
+and the validator and type-checker rules that let a BUILD's TESTs prove the whole tool (D49, D50).
+Phase 2: the interpreter runs BUILD TESTs (D52). Phase 3: one module per BUILD, and mutation (D53)."""
+import contextlib
 import datetime
+import io
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -9,6 +13,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 import validator  # noqa: E402
 from vcl_interp import VclError, run_tests  # noqa: E402
+from vba_lint import lint  # noqa: E402
+from vcl_codegen import CompileError, compile_build  # noqa: E402
+from vcl_mutate import mutate_report, untested_lines  # noqa: E402
+import vclc  # noqa: E402
 
 # A small tool: RunHeadless marks old open NCRs Overdue (modSteps.MarkOverdue) and rebuilds a
 # summary of the statuses (modSteps.WriteSummary); modMain.Run starts it on the real sheets.
@@ -24,13 +32,13 @@ MODULE   modSteps
 SIG      modMain.Run()
 SIG      modMain.RunHeadless(ncr As Worksheet, out As Worksheet) As Long
 SIG      modSteps.MarkOverdue(ncr As Worksheet, limit As Long) As Long
-SIG      modSteps.WriteSummary(ncr As Worksheet, out As Worksheet) As Long
+SIG      modSteps.WriteSummary(ncr As Worksheet, out As Worksheet)
 FLOW     modMain.Run -> modMain.RunHeadless -> modSteps.MarkOverdue
 FLOW     modMain.RunHeadless -> modSteps.WriteSummary
-FIXTURE  ncr_01.xlsx sheet=NCR cols=A:NCR No,B:Status,C:Days Open rows=8 data=A:seq(1,1);B:values("Open"x5,"Closed"x2,""x1)+boundary("Open","Open","Closed","","Open");C:int(1,60)+boundary(30,31,45,10)
+FIXTURE  ncr_01.xlsx sheet=NCR cols=A:NCR No,B:Status,C:Days Open rows=8 data=A:seq(1,1);B:values("Open"x5,"Closed"x2,""x1)+boundary("Open","Open","Closed","","Open");C:int(1,60)+boundary(31,30,45,10)
 FIXTURE  ncr_01.xlsx sheet=Summary cols=A:Status,B:Count rows=0 stale=2
-TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTIF(NCR![Status], "Overdue") = 4 AND COUNTIF(NCR![Status], "Open") = 1 AND COUNTA(Summary![Status]) = 4 AND VALUE(Summary![Count]3) = 4 AND COUNTIF(Summary![Status], "stale") = 0
-TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) assert=RESULT = 4 AND ERROR_COUNT = 0 AND COUNTA(NCR![NCR No]) = PRE_COUNTA(NCR![NCR No]) AND VALUE(NCR![Status]2) = "Open" AND VALUE(Summary![Status]2) = "Open"
+TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTIF(NCR![Status], "Overdue") = 4 AND COUNTIF(NCR![Status], "Open") = 1 AND COUNTA(Summary![Status]) = 4 AND VALUE(Summary![Count]2) = 4 AND COUNTIF(Summary![Status], "stale") = 0
+TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(NCR, Summary) assert=RESULT = 4 AND ERROR_COUNT = 0 AND COUNTA(NCR![NCR No]) = PRE_COUNTA(NCR![NCR No]) AND VALUE(NCR![Status]2) = "Overdue" AND VALUE(NCR![Status]3) = "Open" AND VALUE(Summary![Status]2) = "Overdue"
 TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(Summary, NCR) assert=RESULT = -1 AND ERROR_COUNT = 1
 ---
 VCL 0.5
@@ -51,12 +59,11 @@ MODULE   modMain
 ARGS     ncr As Worksheet, out As Worksheet
 RET      Long
 VAR      marked As Long
-VAR      written As Long
 PRE      COL($ncr, "Status") > 0; COL($ncr, "Days Open") > 0
 MODIFIES $ncr["Status"]
 MODIFIES $out
 OP       CALL(modSteps.MarkOverdue, $ncr, 30, into=marked)
-OP       CALL(modSteps.WriteSummary, $ncr, $out, into=written)
+OP       CALL(modSteps.WriteSummary, $ncr, $out)
 OP       RETURN(marked)
 ERR      standard
 ---
@@ -86,10 +93,9 @@ ERR      standard
 VCL 0.5
 TASK
 PROC     WriteSummary
-KIND     Function
+KIND     Sub
 MODULE   modSteps
 ARGS     ncr As Worksheet, out As Worksheet
-RET      Long
 VAR      cStatus As Long
 VAR      counts As Dictionary
 VAR      got As Long
@@ -107,7 +113,6 @@ OP       FOR_EACH var=k in=KEYS(counts)
 OP         DICT_GET(counts, k, into=got)
 OP         WRITE_ROW($out, outRow, k, got)
 OP         LET(outRow, outRow + 1)
-OP       RETURN(outRow - 2)
 ERR      standard
 """
 
@@ -175,8 +180,8 @@ class Calls(unittest.TestCase):
         self.assertIn("type: passing raw cell value CELL($ncr,2,3) to Long parameter limit: guard it first", found)
 
     def test_sheets_pass_as_the_callers_own_arguments(self):
-        found = errors(changed("CALL(modSteps.WriteSummary, $ncr, $out, into=written)",
-                               'CALL(modSteps.WriteSummary, $ncr, SHEET(THIS_BOOK, "Summary"), into=written)'))
+        found = errors(changed("CALL(modSteps.WriteSummary, $ncr, $out)",
+                               'CALL(modSteps.WriteSummary, $ncr, SHEET(THIS_BOOK, "Summary"))'))
         self.assertIn("CALL modSteps.WriteSummary: pass $out as one of this procedure's own $arguments, written as "
                       "$name, so MODIFIES can follow it (D49)", found)
 
@@ -256,7 +261,7 @@ class Interpreter(unittest.TestCase):   # Phase 2: BUILD TESTs run through modMa
         text = changed('MODIFIES $ncr["Status"]\nMODIFIES $out\nOP       CALL', 'MODIFIES $out\nOP       CALL')
         r = self.run_first(text)
         self.assertFalse(r.passed)
-        self.assertTrue(any(f.startswith("UNCHANGED: NCR!B3 was") for f in r.failed), r.failed)
+        self.assertIn('UNCHANGED: NCR!B2 was "Open", now "Overdue"', r.failed)
 
     def test_values_convert_to_their_parameter_types(self):
         text = changed("CALL(modSteps.MarkOverdue, $ncr, 30, into=marked)", "CALL(modSteps.MarkOverdue, $ncr, 30.6, into=marked)")
@@ -264,9 +269,55 @@ class Interpreter(unittest.TestCase):   # Phase 2: BUILD TESTs run through modMa
 
     def test_a_build_before_0_5_has_no_tests_to_run(self):
         with self.assertRaises(VclError) as caught:
-            run_tests(NCR_REVIEW.replace("VCL 0.5", "VCL 0.4").replace(", into=marked", "").replace(", into=written", "")
+            run_tests(NCR_REVIEW.replace("VCL 0.5", "VCL 0.4").replace(", into=marked", "")
                       .replace(", into=n", ""), self.DAY)
         self.assertIn("a BUILD runs its TESTs from VCL 0.5 on", str(caught.exception))
+
+
+class Compiler(unittest.TestCase):   # Phase 3: one lint-clean module per BUILD, and mutation over it (D53)
+    def test_one_module_with_every_procedure(self):
+        name, module = compile_build(NCR_REVIEW, "ncr_review.vcl")
+        self.assertEqual(name, "NcrReview")
+        self.assertEqual(lint(module), [])
+        for line in ('n = RunHeadless(ThisWorkbook.Worksheets("NCR Register"), ThisWorkbook.Worksheets("NCR Summary"))',
+                     "marked = MarkOverdue(ncr, 30)", "Call WriteSummary(ncr, out)"):
+            self.assertIn(line, module)
+        for head in ("Public Sub Run()", "Public Function RunHeadless(", "Public Function MarkOverdue(",
+                     "Public Sub WriteSummary("):
+            self.assertEqual(module.count(head), 1, head)
+
+    def test_what_waits_is_refused(self):
+        for old, new, why in (("SIG      modMain.Run()", "FORM     frmMain CONTROLS btnRun:CommandButton\nSIG      modMain.Run()",
+                               "FORM waits until after March 2027"),
+                              ("TARGET   xlsm", "TARGET   xlam", "TARGET xlam waits")):
+            with self.subTest(why):
+                with self.assertRaises(CompileError) as caught:
+                    compile_build(changed(old, new))
+                self.assertIn(why, str(caught.exception))
+        older = NCR_REVIEW.replace("VCL 0.5", "VCL 0.4").replace(", into=marked", "").replace(", into=n", "")
+        with self.assertRaises(CompileError) as caught:
+            compile_build(older)
+        self.assertIn("a BUILD compiles from VCL 0.5 on", str(caught.exception))
+
+    def test_vclc_builds_it_into_dist_builds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            spec = Path(tmp) / "ncr_review.vcl"
+            spec.write_text(NCR_REVIEW, encoding="utf-8")
+            out = Path(tmp) / "out"
+            with contextlib.redirect_stdout(io.StringIO()):
+                code = vclc.main(["vclc", "all", str(spec), "-o", str(out), "--today", "2026-10-21"])
+            self.assertEqual(code, 0)
+            self.assertTrue((out / "builds" / "NcrReview.bas").is_file())
+            self.assertTrue((out / "expected" / "ncr_review.json").is_file())
+            self.assertFalse((out / "forge_module.bas").exists())   # no TASK spec was given
+
+    def test_the_tests_catch_every_mutant_that_can_be_caught(self):
+        killed, total, survivors = mutate_report(NCR_REVIEW, snapshot=True, today=datetime.date(2026, 10, 21))
+        self.assertEqual((killed, total), (total - 1, total))
+        line = NCR_REVIEW.splitlines()[survivors[0][0] - 1]
+        self.assertIn("mode=count", line)   # the one survivor: DICT_ADD's value, which mode=count ignores
+        run_lines = {i + 1 for i in untested_lines(NCR_REVIEW)}
+        self.assertEqual(len(run_lines), 2)   # modMain.Run's CALL and MSG: no TEST calls Run, so no mutant there
 
 
 class Run(unittest.TestCase):

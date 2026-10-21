@@ -584,11 +584,25 @@ class Checker:
         return self.problems
 
 
+def build_sigs(text):
+    """A BUILD's SIG lines, for Checker: "module.Proc" -> ([(param, VBA type)], RET or "") (D49)."""
+    from parser import parse_spec
+    return {f"{s.module}.{s.proc}": ([(d.name, d.type) for d in s.params], s.ret) for s in parse_spec(text).sigs}
+
+
+def spec_problems(text, spec):
+    """The type checker on a parsed TASK, or on every TASK of a BUILD with the BUILD's SIGs."""
+    if spec["kind"] == "BUILD":
+        sigs = build_sigs(text)
+        return [p for task in spec["tasks"] if task for p in Checker(task, sigs).run()]
+    return Checker(spec).run()
+
+
 def check_text(text):
     spec, problems = parse(text)
-    if problems or not spec or spec["kind"] != "TASK":
+    if problems or not spec or spec["kind"] not in ("TASK", "BUILD"):
         return problems
-    return Checker(spec).run()
+    return spec_problems(text, spec)
 
 
 if __name__ == "__main__":

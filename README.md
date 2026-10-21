@@ -220,7 +220,11 @@ Dataset count: 0 verified pairs
   modMain.RunHeadless. Each CALL runs its procedure with its own PRE and error handling, as the
   VBA will, and values convert to their parameter types. The UNCHANGED check covers the whole tool
   (D52). The sample BUILD proves its three TESTs.
+- **2026-10-21:** VEP 0.5 Phase 3: `vclc build` writes each 0.5 BUILD as one paste-ready module,
+  `dist/builds/<NAME>.bas`, lint-clean. CALL `into=` compiles to a Function call. The mutation
+  scorer covers every procedure of a BUILD except modMain.Run, which no TEST calls (D53). The
+  sample BUILD's TESTs catch 33 of 34 mutants; the survivor is an equivalent mutant.
 - **2026-10-21:** The AI context file grows to about 400 KB (Boss's cap is 3 MB). Its appendices
   are copied from the repo by `compiler/gen_context.py`: the full language reference, every spec with
   its VBA, DECISIONS.md, the semantics, ForgeLib, the brief, the plans and the designs. A unit test
-  and CI keep the copies up to date (D53).
+  and CI keep the copies up to date (D54).

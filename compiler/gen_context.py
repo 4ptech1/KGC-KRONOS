@@ -1,4 +1,4 @@
-"""Generate the appendices of docs/kgc-kronos-context.md, the file Boss gives other Claude chats (D53).
+"""Generate the appendices of docs/kgc-kronos-context.md, the file Boss gives other Claude chats (D54).
 
 The file is a hand-written core (sections 1 to 12) above MARKER and generated appendices below
 it: the language reference, the rest of the Orchestrator prompt, every spec with the VBA the
