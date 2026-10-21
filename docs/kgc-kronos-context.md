@@ -114,7 +114,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
-tests/                    381 unit tests; conformance_cases.py is shared with the docs
+tests/                    385 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -311,7 +311,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 381 pass |
+| Unit tests | 385 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -379,6 +379,7 @@ The 12 specs:
   gives every sort option, LIST_FILES leaves out hidden and system files, more lint bans, and
   more rules say what the toolchain checks.
 - #52: VEP 0.5 Phase 2, the interpreter runs BUILD TESTs (D52).
+- #53: VEP 0.5 Phase 3, one module per BUILD from `vclc build`, and mutation over a BUILD (D53).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -442,7 +443,8 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    CALL keeps a Function's result with `into=`, MODIFIES follows the arguments, and the compiler
    writes one module per BUILD. FORM and xlam wait. Then one switch to VCL 0.5. Phase 1 is done
    (E13, E14, D50): the validator checks 0.5 BUILDs. Phase 2 is done (D52): the interpreter runs
-   their TESTs. Phase 3 (the compiler and mutation) is next.
+   their TESTs. Phase 3 is done (D53): one module per BUILD, and mutation. Phase 4 (the review
+   gaps) is next.
 3. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
 4. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
    Mutants double as "read carefully" contrast pairs.

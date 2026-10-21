@@ -11,7 +11,8 @@ Options: -o DIR (default dist) and --today YYYY-MM-DD, which pins TODAY for test
 mutate runs (default: the real date).
 
 build writes into DIR:
-  forge_module.bas      one paste-ready module: the ForgeLib runtime plus one procedure per spec
+  forge_module.bas      one paste-ready module: the ForgeLib runtime plus one procedure per TASK spec
+  builds/<NAME>.bas     one paste-ready module per VCL 0.5 BUILD: ForgeLib plus all its procedures (D49)
   forge_selftest.bas    the ForgeLib self-test: every conformance case, run through ForgeLib in
                         Excel (vcl_selftest.py)
   forge_pilot.bas       the Excel pilot of the specs in vcl_pilot.PILOT_SPECS: runs their TESTs
@@ -34,7 +35,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from vba_lint import lint, public_helpers  # noqa: E402
-from vcl_codegen import FORGELIB, CompileError, assemble, compile_text, module_title  # noqa: E402
+from vcl_codegen import FORGELIB, CompileError, assemble, compile_build, compile_text, module_title  # noqa: E402
 from vcl_fixtures import fixtures_module  # noqa: E402
 from vcl_interp import VclError, run_tests  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
@@ -88,21 +89,29 @@ def cmd_build(files, out_dir, today):
     out = Path(out_dir)
     (out / "procedures").mkdir(parents=True, exist_ok=True)
     (out / "expected").mkdir(parents=True, exist_ok=True)
-    procs, fixture_sets, ok = [], [], True
+    procs, fixture_sets, ok, built = [], [], True, 0
     run_day = today or datetime.date.today()
     for p in files:
         path = Path(p)
         text = path.read_text(encoding="utf-8")
+        spec, _ = parse(text)
         try:
-            vba = compile_text(text, path.name)
+            if spec and spec.get("kind") == "BUILD":   # D49: one module per BUILD, ForgeLib and every procedure
+                name, module = compile_build(text, path.name)
+            else:
+                vba = compile_text(text, path.name)
         except CompileError as e:
             print(f"FAIL build  {p}: {e}")
             ok = False
             continue
-        procs.append(vba)
-        spec, _ = parse(text)
+        if spec.get("kind") == "BUILD":
+            (out / "builds").mkdir(parents=True, exist_ok=True)
+            ok = lint_report(out / "builds" / f"{name}.bas", module) and ok
+        else:
+            procs.append(vba)
+            (out / "procedures" / (path.stem + ".bas")).write_text(vba, encoding="utf-8")
+        built += 1
         fixture_sets.append((path.name, [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]))
-        (out / "procedures" / (path.stem + ".bas")).write_text(vba, encoding="utf-8")
         expected = {"spec": path.name, "today": run_day.isoformat(),
                     "tests": [{"test_line": r.line, "passed": r.passed, "result": r.result,
                                "error_count": r.errors,
@@ -117,9 +126,10 @@ def cmd_build(files, out_dir, today):
         (out / "expected" / (path.stem + ".json")).write_text(json.dumps(expected, indent=1, default=str),
                                                                encoding="utf-8")
         print(f"OK   build  {p}")
-    if not procs:
+    if not built:
         return False
-    ok = lint_report(out / "forge_module.bas", assemble(procs, module_title(len(procs)))) and ok
+    if procs:
+        ok = lint_report(out / "forge_module.bas", assemble(procs, module_title(len(procs)))) and ok
     forgelib_helpers = public_helpers(FORGELIB.read_text(encoding="utf-8"))
     ok = lint_report(out / "forge_selftest.bas", selftest_module(), forgelib_helpers) and ok
     piloted = [(Path(p).name, Path(p).read_text(encoding="utf-8")) for p in files if Path(p).name in PILOT_SPECS]

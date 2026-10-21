@@ -14,7 +14,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "vcl"))
 import semantics as S  # noqa: E402
 from vcl_parse import parse  # noqa: E402
-from vcl_types import Checker, canon, mentions  # noqa: E402
+from vcl_types import Checker, build_sigs, canon, mentions  # noqa: E402
 
 VBA_RESERVED = set("""and as boolean byref byte byval call case const currency date decimal declare dim do
 double each else elseif empty end enum eqv erase error event exit false for friend function get global
@@ -415,9 +415,11 @@ class Gen:
             return [f'ForgeInfo "{self.proc}", ForgeText({e(pos[0])})']
         if name == "MSG":
             return [f"MsgBox ForgeText({e(pos[0])})"]
-        if name == "CALL":
+        if name == "CALL":   # a BUILD's procedures share one module, so each is called by its name (D49)
             target = str(pos[0]).split(".")[-1]
             rest = ", ".join(e(p) for p in pos[1:])
+            if "into" in opts:   # VCL 0.5: a Function's result
+                return [f"{vba_name(str(opts['into']))} = {target}({rest})"]
             return [f"Call {target}({rest})" if rest else f"Call {target}"]
         if name in ("OPEN_BOOK", "SAVE_AS", "CLOSE_BOOK"):
             raise CompileError(f"{name} opens or saves a real workbook: refused until March 2027 (D36)")
@@ -643,6 +645,32 @@ def compile_text(text, source_name=""):
     if found:
         raise CompileError(f"spec doesn't type-check: {found[:3]}")
     return Gen(spec, source_name).compile()
+
+
+def compile_build(text, source_name=""):
+    """A VCL 0.5 BUILD (D49): every procedure of the tool, compiled for one module, with the BUILD's
+    name. FORM and TARGET xlam wait, and a BUILD before 0.5 has no MODIFIES to prove it by."""
+    spec, problems = parse(text)
+    if problems:
+        raise CompileError(f"spec doesn't parse: {problems[:3]}")
+    if spec["kind"] != "BUILD":
+        raise CompileError("compile_build takes a BUILD spec")
+    if spec.get("version") in ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4"):
+        raise CompileError("a BUILD compiles from VCL 0.5 on, when its TESTs can prove it (D49)")
+    keys = {k["key"]: k for k in spec["keys"]}
+    if "FORM" in keys:
+        raise CompileError("FORM waits until after March 2027: a UserForm can't be pasted in as text (D49)")
+    if "TARGET" in keys and str(keys["TARGET"]["tree"].children[0]) == "xlam":
+        raise CompileError("TARGET xlam waits: an add-in's THIS_BOOK is the add-in, not the data (D49)")
+    sigs = build_sigs(text)
+    procs = []
+    for task in spec["tasks"]:
+        found = Checker(task, sigs).run()
+        if found:
+            raise CompileError(f"spec doesn't type-check: {found[:3]}")
+        procs.append(Gen(task, source_name).compile())
+    name = str(keys["NAME"]["tree"].children[0]) if "NAME" in keys else "Build"
+    return name, assemble(procs, f"VBA Forge BUILD {name}: {len(procs)} procedures, one tool")
 
 
 FORGELIB = HERE.parent / "vba" / "ForgeLib.bas"

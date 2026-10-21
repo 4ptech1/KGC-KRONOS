@@ -5,7 +5,7 @@ recommendations" after item 2; the recommendation was CALL and BUILD specs befor
 Stage A, because the Orchestrator's rule 9 already asks for a BUILD when a task needs several
 procedures or more than about 60 lines, and today no BUILD can be proven. Choices that needed
 Boss's decision were made the conservative way and recorded in `DECISIONS.md` D49; Boss can
-overrule any of them. Phases 1 and 2 are done (E13, E14, D50; D52).
+overrule any of them. Phases 1 to 3 are done (E13, E14, D50; D52; D53).
 
 ## The problem
 
@@ -97,7 +97,7 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
    in every TASK of a BUILD and its propagation, the rules for Run, FORM and xlam.
 2. **The interpreter (done: D52):** BUILD TESTs run RunHeadless with a procedure table; CALL with per-procedure
    PRE and ERR; UNCHANGED from RunHeadless's MODIFIES; `vclc test` on BUILDs.
-3. **The compiler:** `dist/builds/<NAME>.bas`, CALL `into=` as a Function call, the BUILD's
+3. **The compiler (done: D53):** `dist/builds/<NAME>.bas`, CALL `into=` as a Function call, the BUILD's
    fixture builders and expected results, lint, and the mutation scorer over every TASK of a BUILD.
 4. **The review gaps** above, as the evidence decides.
 5. **A proven BUILD and the switch:** a sample BUILD in the tests that catches every mutant, a new
