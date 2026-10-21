@@ -236,3 +236,6 @@ Dataset count: 0 verified pairs
   whole sheet in MODIFIES (D56).
 - **2026-10-21:** VEP 0.5 Phase 4c: a TEST names a sheet whose name has spaces in single quotes,
   as Excel does (`VALUE('Open NCRs'!B1)`), in VCL 0.5. All four review gaps are closed (D57).
+- **2026-10-21:** VEP 0.5 Phase 5a: the sample BUILD is now `vcl/examples/example4_build.vcl`
+  (33 of 34 mutants caught; the survivor is an equivalent). A BUILD may no longer split SET_FORMULA
+  from row moves, or FILTER from SORT, across its TASKs, and it needs a wrong-sheet TEST (D58).

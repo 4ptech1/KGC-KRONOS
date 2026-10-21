@@ -6,7 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 from vba_lint import lint  # noqa: E402
-from vcl_codegen import CompileError, assemble, compile_text  # noqa: E402
+from vcl_codegen import CompileError, assemble, compile_build, compile_text  # noqa: E402
 from vcl_interp import run_tests  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
 from vcl_parse import parse  # noqa: E402
@@ -28,10 +28,18 @@ def all_specs():
     return sorted((ROOT / "specs").glob("*.vcl")) + sorted(EXAMPLES.glob("*.vcl"))
 
 
+def kind_of(text):
+    """"TASK", "BUILD" (VCL 0.5 on, provable) or "OLD BUILD" (before 0.5: check-only, D49)."""
+    spec, _ = parse(text)
+    if spec["kind"] != "BUILD":
+        return spec["kind"]
+    return "BUILD" if spec["version"] >= "VCL 0.5" else "OLD BUILD"
+
+
 class Interpreter(unittest.TestCase):
     def test_every_spec_passes_its_tests(self):
         for p in all_specs():
-            if p.name == "build_example.vcl":
+            if kind_of(p.read_text()) == "OLD BUILD":
                 continue
             with self.subTest(spec=p.name):
                 self.assertTrue(all(r.passed for r in run_tests(p.read_text())))
@@ -66,12 +74,16 @@ class Interpreter(unittest.TestCase):
 class Compiler(unittest.TestCase):
     def test_compiles_what_type_checks_and_refuses_the_rest(self):
         for p in all_specs():
-            if p.name == "build_example.vcl":
-                continue
             text = p.read_text()
+            if kind_of(text) == "OLD BUILD":
+                continue
             spec, _ = parse(text)
             with self.subTest(spec=p.name):
-                if Checker(spec).run():
+                if kind_of(text) == "BUILD":   # one module with every procedure, lint-clean (D53, D58)
+                    name, vba = compile_build(text, p.name)
+                    self.assertEqual(lint(vba), [])
+                    self.assertIn("Public Function RunHeadless(", vba)
+                elif Checker(spec).run():
                     with self.assertRaises(CompileError):
                         compile_text(text)
                 else:

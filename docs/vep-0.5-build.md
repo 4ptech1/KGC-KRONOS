@@ -115,9 +115,11 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
 4. **The review gaps** above, as the evidence decides. 4a (done: D55): ROW_OF and DEDUPE `into=`.
    4b (done: D56): a header the spec writes counts as checked for rule 14. 4c (done: D57): sheet
    names with spaces in assertions, in quotes.
-5. **A proven BUILD and the switch:** a sample BUILD in the tests that catches every mutant, a new
-   Example 4 in the prompt, rule 9 and a CALL rule in the hard rules, spec.md and the prompt move
-   to 0.5, and Boss updates the Orchestrator once.
+5. **A proven BUILD and the switch:** a sample BUILD in the tests that catches every mutant that
+   can be caught, a new Example 4 in the prompt, rule 9 and a CALL rule in the hard rules, spec.md
+   and the prompt move to 0.5, and Boss updates the Orchestrator once. 5a (done: D58): the sample
+   is `vcl/examples/example4_build.vcl`, and the rules a TASK spec has hold across a BUILD's
+   TASKs. 5b: the switch.
 
 ## Verification (every phase)
 
