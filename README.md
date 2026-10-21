@@ -234,3 +234,5 @@ Dataset count: 0 verified pairs
 - **2026-10-21:** VEP 0.5 Phase 4b: a header the spec writes to row 1 itself (a new "Checked"
   column, say) counts as checked for rule 14 in VCL 0.5, and its column must be declared with the
   whole sheet in MODIFIES (D56).
+- **2026-10-21:** VEP 0.5 Phase 4c: a TEST names a sheet whose name has spaces in single quotes,
+  as Excel does (`VALUE('Open NCRs'!B1)`), in VCL 0.5. All four review gaps are closed (D57).

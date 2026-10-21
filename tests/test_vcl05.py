@@ -183,6 +183,35 @@ TEST     fixture=stock_01.xlsx call=MarkChecked(Notes) assert=RESULT = -1 AND ER
 """
 
 
+# Phase 4c (D57): an assertion names a sheet whose name has spaces in quotes, as Excel does.
+OPEN_NCRS = r"""VCL 0.5
+TASK
+# ASSUME: the count goes to a new sheet "Open NCRs" after the register; an existing one is left as it is
+# ASSUME: an NCR is open when its Status is SAME as "Open"
+PROC     AddOpenNcrs
+KIND     Function
+MODULE   modSummary
+ARGS     book As Workbook, ncr As Worksheet
+RET      Long
+VAR      out As Worksheet
+VAR      n As Long
+PRE      COL($ncr, "Status") > 0
+MODIFIES $book sheets
+OP       IF SHEET_EXISTS($book, "Open NCRs") THEN RETURN(0)
+OP       ADD_SHEET($book, name="Open NCRs", after=$ncr, into=out)
+OP       LOOP_ROWS dir=down from=2 to=LASTROW($ncr, COL($ncr, "Status")) var=r
+OP         IF SAME(CELL($ncr, r, COL($ncr, "Status")), "Open") THEN LET(n, n + 1)
+OP       WRITE_ROW(out, 1, "Open NCRs", n)
+OP       RETURN(n)
+ERR      standard
+FIXTURE  ncr_01.xlsx sheet=Ncr cols=A:NCR No,B:Status rows=6 data=A:seq(1,1);B:values("Open"x2," open "x1,"Closed"x2,""x1)+boundary("Open")
+FIXTURE  ncr_01.xlsx sheet=Other cols=A:Item rows=2 data=A:seq(1,1)
+TEST     fixture=ncr_01.xlsx call=AddOpenNcrs(ncr_01.xlsx, Ncr) assert=RESULT = 3 AND ERROR_COUNT = 0 AND SHEET_EXISTS("Open NCRs") AND VALUE('Open NCRs'!A1) = "Open NCRs" AND VALUE('Open NCRs'!B1) = 3 AND ROWS_USED('Open NCRs') = 1 AND COUNTA(Ncr!B:B) = PRE_COUNTA(Ncr!B:B)
+TEST     fixture=ncr_01.xlsx call=AddOpenNcrs(ncr_01.xlsx, Ncr) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND VALUE('Open NCRs'!B1) = 3
+TEST     fixture=ncr_01.xlsx call=AddOpenNcrs(ncr_01.xlsx, Other) assert=RESULT = -1 AND ERROR_COUNT = 1
+"""
+
+
 def problems(text):
     return [(p.severity, p.message) for p in validator.validate_text(text)]
 
@@ -427,6 +456,39 @@ class ReviewGaps(unittest.TestCase):   # Phase 4 (D55): the gaps the item 2 revi
         found = errors(CHECKED.replace("VCL 0.5", "VCL 0.4", 1))
         self.assertEqual(found, ['header "Checked" on $ws is used but not checked in PRE (rule 14): a header the '
                                  'spec writes to row 1 itself needs VCL 0.5'])
+
+    def test_a_sheet_name_with_spaces_in_quotes(self):   # D57
+        self.assertEqual(problems(OPEN_NCRS), [])
+        results = run_tests(OPEN_NCRS, datetime.date(2026, 10, 21))
+        self.assertEqual([(r.passed, r.result) for r in results], [(True, 3), (True, 0), (True, -1)])
+        self.assertEqual(mutate_report(OPEN_NCRS, snapshot=True, today=datetime.date(2026, 10, 21))[:2], (13, 13))
+
+    def test_a_failed_check_names_the_sheet_as_written(self):
+        text = OPEN_NCRS.replace("VALUE('Open NCRs'!B1) = 3 AND ROWS", "VALUE('Open NCRs'!B1) = 4 AND ROWS")
+        r = run_tests(text, datetime.date(2026, 10, 21))[0]
+        self.assertFalse(r.passed)
+        self.assertIn("ASSERT: VALUE('Open NCRs'!B1) = 4 is false (left 3, right 4)", r.failed)
+
+    def test_quoted_sheet_names_are_checked(self):
+        cases = [(OPEN_NCRS.replace("COUNTA(Ncr!B:B) = PRE", "COUNTA('Ncr'!B:B) = PRE"),
+                  "assertion: 'Ncr'!B:B: Ncr is one word, so write Ncr!B:B without quotes"),
+                 (OPEN_NCRS.replace("ROWS_USED('Open NCRs')", "ROWS_USED('Open: NCRs')"),
+                  "assertion: 'Open: NCRs': 'Open: NCRs' can't be a sheet name (S23)"),
+                 (OPEN_NCRS.replace("ROWS_USED('Open NCRs') = 1", "'Open NCRs' = 1"),
+                  "assertion: 'Open NCRs': a sheet name goes before ! or inside ROWS_USED, like 'Open NCRs'!A1"),
+                 (OPEN_NCRS.replace('WRITE_ROW(out, 1, "Open NCRs", n)', "WRITE_ROW(out, 1, 'Open NCRs', n)"),
+                  "'Open NCRs': text goes in \"double quotes\"; 'single quotes' are only for a sheet name in a "
+                  "TEST assertion")]
+        for text, message in cases:
+            with self.subTest(message=message):
+                self.assertIn(message, errors(text))
+
+    def test_quoted_sheet_names_need_0_5(self):
+        found = errors(OPEN_NCRS.replace("VCL 0.5", "VCL 0.4", 1))
+        self.assertIn("assertion: 'Open NCRs'!A1: a sheet name in quotes is VCL 0.5: start the spec with 'VCL 0.5' "
+                      "to use it", found)
+        self.assertIn("assertion: 'Open NCRs': a sheet name in quotes is VCL 0.5: start the spec with 'VCL 0.5' "
+                      "to use it", found)
 
     def test_row_of_nothing_stops_the_run(self):
         text = STOCK.replace("OP       IF NOT IS_NOTHING(hit)\nOP         SET_VALUE", "OP       IF TRUE\nOP         SET_VALUE")

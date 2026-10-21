@@ -219,7 +219,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    and mutation scores a BUILD. Phase 4a is done (D55): ROW_OF(<range>) and DEDUPE `into=`; the
    reference teaches them at the switch to 0.5, and until then the drift guard wants them in the
    VEP. Phase 4b is done (D56): a header the spec writes to row 1 counts as checked for rule 14.
-   **Next: Phase 4c** (sheet names with spaces in assertions), then Phase 5 (the switch).
+   Phase 4c is done (D57): an assertion names a sheet with spaces in quotes, `'Open NCRs'!B1`.
+   **Next: Phase 5** (a proven BUILD and the switch to 0.5; Boss updates the Orchestrator once).
 4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts when Boss says go for it, as every earlier

@@ -158,18 +158,23 @@ class Token:
     sheet: str = ""
     header: str = None  # for <Sheet>![Header] ranges
     row: str = ""       # for <Sheet>![Header]<n> ranges
+    ref: str = ""       # what follows the ! of a range
+    quoted: bool = False  # the sheet was written 'in quotes' (VCL 0.5, D57)
 
 
 TOKEN_RE = re.compile(r"""
     (?P<space>\s+)
   | (?P<string>"(?:[^"]|"")*")
-  | (?P<range>[A-Za-z_]\w*!(?:\[[^\]]*\]\d*|\$?[A-Z]{1,3}\$?\d*(?::\$?[A-Z]{1,3}\$?\d*)?))
+  | (?P<range>(?:[A-Za-z_]\w*|'(?:[^']|'')+')!(?:\[[^\]]*\]\d*|\$?[A-Z]{1,3}\$?\d*(?::\$?[A-Z]{1,3}\$?\d*)?))
+  | (?P<qsheet>'(?:[^']|'')+')
   | (?P<hex>\#\w*)
   | (?P<number>\d+(?:\.\d+)?)
   | (?P<arg>\$\w+)
   | (?P<name>[A-Za-z_]\w*(?:\.\w+)*)
   | (?P<op><>|<=|>=|[=<>+\-*/&(),;\[\]])
 """, re.X)
+
+QUOTED_SHEET = re.compile(r"'(?:[^']|'')+'")
 
 
 def tokenize(text):
@@ -185,11 +190,15 @@ def tokenize(text):
             spaced = True
         else:
             tok = Token(m.lastgroup, m.group(), spaced)
-            if tok.kind == "range":
-                tok.sheet, ref = tok.text.split("!", 1)
-                if ref.startswith("["):
-                    tok.header = ref[1:ref.index("]")]
-                    tok.row = ref[ref.index("]") + 1:]
+            if tok.kind in ("range", "qsheet"):
+                q = QUOTED_SHEET.match(tok.text)   # 'Open NCRs'!A1, as Excel writes it (VCL 0.5, D57)
+                name = q.group() if q else tok.text.split("!", 1)[0]
+                tok.sheet, tok.quoted = (name[1:-1].replace("''", "'"), True) if q else (name, False)
+                if tok.kind == "range":
+                    tok.ref = ref = tok.text[len(name) + 1:]
+                    if ref.startswith("["):
+                        tok.header = ref[1:ref.index("]")]
+                        tok.row = ref[ref.index("]") + 1:]
             tokens.append(tok)
             spaced = False
         pos = m.end()

@@ -205,6 +205,16 @@ class Tokens(unittest.TestCase):
         tokens, _ = tokenize("FILL_COUNT(Data!A:A, #FFCCCC)")
         self.assertEqual([t.kind for t in tokens], ["name", "op", "range", "op", "hex", "op"])
 
+    def test_quoted_sheet_names(self):   # VCL 0.5 (D57): as Excel writes them, '' for a quote
+        tokens, err = tokenize("COUNTA('It''s a log'![Part No]2) + ROWS_USED('a!b')")
+        self.assertEqual(err, "")
+        rng, sheet = tokens[2], tokens[7]
+        self.assertEqual((rng.kind, rng.sheet, rng.ref, rng.header, rng.row, rng.quoted),
+                         ("range", "It's a log", "[Part No]2", "Part No", "2", True))
+        self.assertEqual((sheet.kind, sheet.sheet, sheet.quoted), ("qsheet", "a!b", True))
+        plain = tokenize("VALUE(Ncr!B2)")[0][2]
+        self.assertEqual((plain.sheet, plain.ref, plain.quoted), ("Ncr", "B2", False))
+
     def test_unclosed_quote(self):
         self.assertEqual(tokenize('LET(x, "abc)')[1], "unclosed quote")
 
