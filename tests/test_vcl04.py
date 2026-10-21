@@ -855,13 +855,16 @@ class VersionSwitch(unittest.TestCase):
                 self.assertEqual(run(text).log[0][2], "runtime error: " + why)
 
     def test_a_build_says_why_it_cannot_be_tested(self):   # D51: it used to say "spec doesn't parse: []"
+        # A BUILD before VCL 0.5 has no MODIFIES in its TASKs, so its TESTs can't run (D49, D52);
+        # tests/test_vcl05.py runs a 0.5 BUILD's TESTs.
         sys.path.insert(0, str(ROOT / "tests"))
         from test_parser import MINIMAL_BUILD
         self.assertEqual([p for p in validator.validate_text(MINIMAL_BUILD) if p.severity == "error"], [])
         with self.assertRaises(VclError) as caught:
             run_tests(MINIMAL_BUILD)
         self.assertEqual(str(caught.exception),
-                         "a BUILD can't be tested yet: the interpreter runs TASK specs only (D36)")
+                         "a BUILD runs its TESTs from VCL 0.5 on: before, its TASKs don't declare MODIFIES, so no "
+                         "TEST could check that nothing else changed (D49)")
 
 
 class ReviewPass(unittest.TestCase):

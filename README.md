@@ -216,3 +216,7 @@ Dataset count: 0 verified pairs
   tested, and states rule 5's PRE_ measure. ForgeSort gives every sort option, LIST_FILES leaves
   out hidden files, the linter closes more gaps (FileCopy, Workbooks.Open and more), and formulas
   can't name a missing sheet. Every spec's result is unchanged.
+- **2026-10-21:** VEP 0.5 Phase 2: the interpreter runs a 0.5 BUILD's TESTs through
+  modMain.RunHeadless. Each CALL runs its procedure with its own PRE and error handling, as the
+  VBA will, and values convert to their parameter types. The UNCHANGED check covers the whole tool
+  (D52). The sample BUILD proves its three TESTs.

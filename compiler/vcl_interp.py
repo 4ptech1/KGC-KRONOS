@@ -314,9 +314,27 @@ def delete_row(sh, row):
     sh.hidden = {r - (r > row) for r in sh.hidden if r != row}
 
 
+MAX_CALL_DEPTH = 20   # the validator refuses CALL cycles (D49); this only guards the interpreter
+
+
+def proc_name(task):
+    """A TASK's "module.Proc", as CALL and SIG write it."""
+    found = {k["key"]: str(k["tree"].children[0]) for k in task["keys"]
+             if k["key"] in ("MODULE", "PROC") and k["tree"] is not None}
+    return f"{found.get('MODULE', '')}.{found.get('PROC', '')}"
+
+
+def params_of(task):
+    """A TASK's ARGS as [(name, VBA type)]."""
+    return [(str(p.children[0]), str(p.children[1])) for k in task["keys"] if k["key"] == "ARGS" and k["tree"] is not None
+            for p in k["tree"].children]
+
+
 class Machine:
-    def __init__(self, spec, bound_args, log, today=None, fs=None, book=None):
+    def __init__(self, spec, bound_args, log, today=None, fs=None, book=None, procs=None, depth=0):
         self.spec = spec
+        self.procs = procs or {}   # a BUILD's procedures, "module.Proc" -> TASK (D49)
+        self.depth = depth
         self.log = log
         self.book = book if isinstance(book, Book) else Book(book if book is not None else {})
         self.messages = []   # LOG and MSG texts: never errors, never part of ERROR_COUNT (D36)
@@ -719,6 +737,22 @@ class Machine:
             src, dst = S.text_of(e(pos[0])), S.text_of(e(pos[1]))
             self.file_paths += [(src, MAX_FILE_PATH), (dst, MAX_FILE_PATH)]
             self.assign(str(opts["into"]), copy_file(self.fs, src, dst))
+        elif name == "CALL":   # D49: another procedure of the BUILD, with its own PRE and ERR, as in VBA
+            target = str(pos[0])
+            callee = self.procs.get(target)
+            if callee is None:
+                raise VclError(f"CALL {target}: no such procedure in this BUILD")
+            if self.depth >= MAX_CALL_DEPTH:
+                raise VclError(f"CALL {target}: more than {MAX_CALL_DEPTH} calls deep")
+            bound = {}
+            for (pname, ptype), a in zip(params_of(callee), pos[1:]):
+                bound[pname] = as_type(e(a), ptype)   # VBA converts each value to its parameter's type
+            child = Machine(callee, bound, self.log, self.today, self.fs, self.book, self.procs, self.depth + 1)
+            got = child.run()   # a failed PRE gives -1 and a run-time error -2: logged, and this one goes on
+            self.file_paths += child.file_paths
+            self.messages += child.messages
+            if "into" in opts:
+                self.assign(str(opts["into"]), got)
         elif name == "RETURN":
             raise _Return(e(pos[0]) if pos else None)
         elif name in ("OPEN_BOOK", "SAVE_AS", "CLOSE_BOOK"):
@@ -862,6 +896,17 @@ class Machine:
         if self.ret == "Boolean":
             raise VclError(f"type mismatch: {S.text_of(value)!r} is not TRUE or FALSE")
         return value
+
+
+def as_type(value, typ):
+    """A CALL argument converted to its parameter's VBA type, as the call does in VBA (D49)."""
+    if typ == "Long" and not isinstance(value, bool) and value is not None:
+        return round(S.to_number(value) if isinstance(value, str) else value)   # half to even, as VBA
+    if typ == "Double" and not isinstance(value, bool) and value is not None:
+        return float(S.to_number(value) if isinstance(value, str) else value)
+    if typ == "String":
+        return S.text_of(value)
+    return value
 
 
 # ---------- TEST assertions ----------
@@ -1227,18 +1272,31 @@ def sandbox_length_problems(paths):
 
 
 def run_tests(text, today=None):
-    """Run every TEST of a TASK spec. today pins TODAY (default: the real date)."""
+    """Run every TEST of a TASK spec, or of a VCL 0.5 BUILD through its modMain.RunHeadless (D49).
+    today pins TODAY (default: the real date)."""
     spec, problems = parse(text)
     if problems or not spec:
         raise VclError(f"spec doesn't parse: {problems[:3]}")
-    if spec["kind"] != "TASK":   # D51: say why, instead of "doesn't parse" for a valid BUILD
-        raise VclError(f"a {spec['kind']} can't be tested yet: the interpreter runs TASK specs only (D36)")
+    procs = {}
+    if spec["kind"] == "BUILD":   # D49: its TESTs run modMain.RunHeadless, which CALLs the rest
+        if spec.get("version", "VCL 0.1") in ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4"):
+            raise VclError("a BUILD runs its TESTs from VCL 0.5 on: before, its TASKs don't declare MODIFIES, so "
+                           "no TEST could check that nothing else changed (D49)")
+        procs = {proc_name(task): task for task in spec["tasks"] if task}
+        if "modMain.RunHeadless" not in procs:
+            raise VclError("a BUILD's TESTs call modMain.RunHeadless, which it doesn't have")
+        build, spec = spec, procs["modMain.RunHeadless"]
+        keys = build["keys"]
+    elif spec["kind"] != "TASK":
+        raise VclError(f"a {spec['kind']} has no TESTs to run")
+    else:
+        keys = spec["keys"]
     today = today or dt.date.today()
-    trees = [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]
+    trees = [k["tree"] for k in keys if k["key"] == "FIXTURE"]
     books = build_workbooks(trees, today)
     systems = build_folders(trees)
     results = []
-    for k in spec["keys"]:
+    for k in keys:
         if k["key"] != "TEST":
             continue
         t = k["tree"]
@@ -1286,7 +1344,7 @@ def run_tests(text, today=None):
         file_paths = []
         for _ in range(runs):
             log.clear()
-            machine = Machine(spec, bound, log, today, fs, wb)
+            machine = Machine(spec, bound, log, today, fs, wb, procs)
             result = machine.run()
             stopped_at_pre = stopped_at_pre and machine.pre_failed
             file_paths += machine.file_paths
