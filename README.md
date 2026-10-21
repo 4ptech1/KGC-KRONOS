@@ -191,3 +191,9 @@ Dataset count: 0 verified pairs
   SAVE_AS and CLOSE_BOOK until March 2027) are no longer taught. Every spec gives the same
   results under 0.4 (E12, D46). Boss pastes the new prompt into the Orchestrator Project once.
   Item 2 is complete.
+- **2026-10-21:** Review pass after item 2. Two Orchestrator dry runs wrote nine specs from the
+  prompt alone; where the prompt's words differed from the tools, the words were fixed (no
+  meaning changed): `[Header]` ranges include the header cell, keys are not trimmed, assertions
+  have no NOT, and the VAR types, fill colours and formula references are spelled out. A failing
+  TEST now says which assertion failed and what it measured. Stale docs refreshed, and a new test
+  keeps the reference text and the validator in step (D47).
