@@ -29,7 +29,8 @@ class TheCorpus(unittest.TestCase):
 
     def test_the_report_counts_what_there_is(self):
         text = vcl_corpus.report()
-        self.assertIn("12 pairs in data/verified", text)
+        self.assertIn(f"{len(vcl_corpus.items('verified'))} pairs in data/verified, "
+                      f"{len(vcl_corpus.items('eval'))} in data/eval", text)
         self.assertIn("flag", text)
         self.assertRegex(text, r"Mutants caught: \d+ of \d+")
 

@@ -1,0 +1,1 @@
+Check the GRN sheet (GRN No, Part No, Heat No) against the Material Certs sheet (Heat No, MTC No). List on a Missing Certs sheet every GRN line whose heat number has no row in Material Certs. Heat numbers have stray spaces and mixed case, so compare them tidily.

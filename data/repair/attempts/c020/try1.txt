@@ -1,0 +1,7 @@
+ 84.8%  mutate /tmp/claude-0/-home-user-KGC-KRONOS/a1a3ea24-e002-548b-adb1-cbffb5fc4e56/scratchpad/batch01/c020.vcl  (28/33)
+        survives: line 28: 1 -> 2
+        survives: line 30: 2 -> 3
+        survives: line 31: 'SKIP_IF' -> 'EXIT_LOOP_IF'
+        survives: line 33: 'mode=keep' -> 'mode=overwrite'
+        ... and 1 more
+Overall mutation score: 84.8%
