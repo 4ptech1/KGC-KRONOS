@@ -1,0 +1,34 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c051",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 3,
+  "killed": 105,
+  "note": "All 3 survivors are equivalent. Material Certs dictionary: only EXISTS(known, key) is ever asked and its stored value is never read, so mode=keep -> mode=overwrite and 1 -> 2 cannot change any result. ListShortages '> 0' -> '>= 0': it only lets a quantity of 0 into DICT_ADD mode=sum, which adds nothing to the part total, and a part with no key and a part with total 0 both give got = 0.",
+  "total": 108
+ },
+ "op_lines": 66,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "grn",
+  "bom",
+  "material_certs"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 2)"
+}
