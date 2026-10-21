@@ -1,8 +1,9 @@
-VCL 0.5
+VCL 0.6
 TASK
 # ASSUME: Orders headers in row 1 include "Status" and "Order Date"
 # ASSUME: "Cancelled" is matched ignoring case and extra spaces
 # ASSUME: Order Date holds real dates; rows with a blank date sort to the bottom
+GOAL     Delete every cancelled order from the Orders sheet, then sort the rest by order date, newest first.
 PROC     RemoveCancelledAndSortByDate
 KIND     Function
 MODULE   modCleanup

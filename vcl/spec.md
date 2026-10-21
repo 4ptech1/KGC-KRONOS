@@ -1,4 +1,4 @@
-# VCL 0.5: VBA Command Language (21 Oct 2026)
+# VCL 0.6: VBA Command Language (21 Oct 2026)
 
 VCL is the contract between Claude (which writes specs) and VBA Forge (which turns them into
 tested VBA). This file is the reference that `validator.py` and the training data follow.
@@ -7,11 +7,13 @@ The formal syntax is `vcl/grammar.lark`; the reference meaning of the value func
 `vcl/semantics.py` (tables in `docs/vcl-semantics.md`); the reasons behind each decision are
 in `DECISIONS.md`.
 
-Specs start with `VCL 0.5`. The validator still reads `VCL 0.4`, `VCL 0.3`, `VCL 0.2` and
-`VCL 0.1` specs: every 0.4 spec is also valid as 0.5 and gives the same results (E13), every
-0.3 spec is also valid as 0.4 and gives the same results once a DEDUPE `cols=1,2` is written
-`cols=[1, 2]` (E12), every 0.2 spec is also valid as 0.3 (E8), every 0.1 spec is also valid as
-0.2, and `compiler/vcl_migrate.py` rewrites 0.1 specs into 0.2.
+Specs start with `VCL 0.6`. The validator still reads `VCL 0.5` to `VCL 0.1` specs: every 0.5
+spec is also valid as 0.6 once it has its GOAL lines and gives the same results (E15), every
+0.4 spec is also valid as 0.5 (E13), every 0.3 spec is also valid as 0.4 and gives the same
+results once a DEDUPE `cols=1,2` is written `cols=[1, 2]` (E12), every 0.2 spec is also valid
+as 0.3 (E8), every 0.1 spec is also valid as 0.2, and `compiler/vcl_migrate.py` rewrites 0.1
+specs into 0.2. `compiler/vcl_goal.py` adds the GOAL lines and the 0.6 line to an older spec,
+and `python compiler/vclc.py fmt` prints any spec in its canonical layout (D62).
 
 Target: Excel 2016 desktop. Specs never rely on Microsoft 365 functions such as XLOOKUP or
 dynamic arrays; every op compiles to plain VBA. (The `FILTER` op hides rows itself, without
@@ -37,7 +39,7 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     specified at all, or when even a BUILD can't do all of it (rule 9). Then the code block
     contains only: # QUESTION: <one short question>
 8.  Use ALLOW only for risky actions the user explicitly asked for: file_delete,
-    file_overwrite, shell, http. No VCL 0.5 op deletes or overwrites a file, runs a program
+    file_overwrite, shell, http. No VCL 0.6 op deletes or overwrites a file, runs a program
     or uses the web, so design around them.
 9.  Write one TASK: one procedure of up to about 40 OP lines (about 60 lines of VBA). When
     one TASK can't do the whole request (it needs several procedures or more OP lines),
@@ -99,7 +101,7 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     COL($ws, "Method") = 3, and it may name another sheet only when every TEST workbook has
     a sheet of that name. No op removes or replaces a sheet.
 23. Write a BUILD only under rule 9: one complete TASK spec per SIG, each starting with
-    VCL 0.5 and each with its own PRE, MODIFIES and ERR. CALL(<module>.<Proc>, <args>)
+    VCL 0.6 and each with its own GOAL, PRE, MODIFIES and ERR. CALL(<module>.<Proc>, <args>)
     runs another procedure of the same BUILD, never itself, directly or through others.
     Pass a Worksheet, Workbook or Range only as one of the caller's own $arguments, and
     keep a Function's result with into=<VAR>: a callee that stops at its PRE gives -1 and
@@ -110,15 +112,20 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     modMain.Run is a Sub with no ARGS that only CALLs modMain.RunHeadless, with sheets
     written SHEET(THIS_BOOK, "<real sheet name>"), and LETs, IFs and MSGs; the TESTs call
     modMain.RunHeadless. A BUILD has no form: TARGET xlsm and no FORM line.
+24. Start every TASK with GOAL, one plain-English sentence of 10 to 200 printable ASCII
+    characters that says what the spec does, as a person who has not seen the spec would
+    say it, not just the PROC name. A BUILD has a GOAL for itself and for each of its
+    TASKs. Lay the spec out as shown under Layout, with no blank lines.
 ```
 
 ## Reference
 
 ```text
 TASK FORMAT  (keys in this order; (opt) = optional)
-VCL 0.5
+VCL 0.6
 TASK
 # ASSUME: <assumption>                        (opt, one line each)
+GOAL     <one plain-English sentence: what the spec does>
 PROC     <PascalCase name>
 KIND     Sub | Function
 MODULE   <modName>
@@ -134,8 +141,10 @@ ALLOW    file_delete file_overwrite shell http  (opt)
 FIXTURE  <name>.xlsx <fixture spec>           (opt)
 TEST     fixture=<name>.xlsx call=<Proc>(<args>) [runs=<n>] assert=<assertion>   (two or more)
 
-Layout: pad keys with spaces so values line up. Nesting = 2 extra spaces after the key,
-relative to the enclosing OP line.
+Layout: write every spec in this one form. A key is padded with spaces to 9 characters, so
+values line up. Nesting = 2 extra spaces after the key, relative to the enclosing OP line.
+One space after a comma or semicolon and around operators and keywords; none inside
+brackets, before a call's bracket or around the "=" of an option (dir=up). No blank lines.
 Types: Long, Double, String, Boolean, Date, Variant, Range, Worksheet, Workbook,
 Dictionary, Collection. Loop variables from LOOP_ROWS, LOOP_COLS and FOR_EACH are declared
 automatically; never repeat them in VAR. READ_ARRAY fills a Variant VAR, LIST_FILES a
@@ -143,9 +152,10 @@ Collection, ADD_SHEET and COPY_SHEET a Worksheet; status VARs and READ_TEXT's te
 String. VARs start at 0, "" or FALSE; Dictionary and Collection VARs start empty.
 
 BUILD FORMAT  (rule 23; for a request one TASK can't do, rule 9)
-VCL 0.5
+VCL 0.6
 BUILD
 # ASSUME: <assumption>                        (opt)
+GOAL     <one plain-English sentence: what the tool does>
 NAME     <PascalCase tool name>
 TARGET   xlsm
 ENTRY    modMain.Run
@@ -155,7 +165,7 @@ FLOW     <caller> -> <callee> -> ...          (one line per chain of CALLs; ever
 FIXTURE  ...                                  (opt)
 TEST     fixture=<name>.xlsx call=modMain.RunHeadless(<args>) assert=...   (two or more)
 ---
-<one complete TASK spec per SIG, each starting with VCL 0.5, separated by lines
+<one complete TASK spec per SIG, each starting with VCL 0.6, separated by lines
 containing only --->
 
 BUILD rules: procedure names are unique in the whole BUILD, whatever their module.
@@ -526,6 +536,26 @@ VCL 0.3 folder FIXTUREs: a file without `:<bytes>` gets 100 + below(900) bytes, 
 PRNG seeded with "<file>|<folder>|<path as written>|size", for example
 "router_01.xlsx|Dump|r3.pdf|size". Such a file holds that many "x" characters. A VCL 0.4
 file written `:"<text>"` holds exactly that text, with no PRNG draws.
+
+## Changes in VCL 0.6 (21 Oct 2026)
+
+Designed in `docs/vep-0.6-stage-a.md` (the AI plan's Stage A, CLAUDE.md item 4) and built in
+its Phases 1 to 4. Every VCL 0.5 spec stays valid and gives the same results once it has its
+GOAL lines (E15). Details and reasons: `DECISIONS.md` (E15, D59 to D63).
+
+- The version line is `VCL 0.6` (E15).
+- `GOAL <one plain-English sentence>` starts every TASK, and a BUILD and each TASK in it: 10 to
+  200 printable ASCII characters that say what the spec does, not just the PROC name. It
+  gives every spec its own English to VCL pair, for the model that will write specs (hard
+  rule 24, D61).
+- One canonical layout, which `python compiler/vclc.py fmt` prints and checks: keys padded to
+  9 characters, 2 spaces per nesting level, one space after a comma and around operators and
+  keywords, none inside brackets or around an option's `=`, no blank lines. The Layout lines
+  of the reference say it; the examples already follow it (D62).
+- Every message the checks give has a stable code, shown after it, such as `[V060]`, and listed
+  in `docs/error-codes.md` (D60). The reference text doesn't change for it.
+- Examples 1, 3 and 4 moved to 0.6 and gained their GOAL lines (D63). The 12 specs stay in
+  their versions (11 in 0.2, task_12 in 0.3).
 
 ## Changes in VCL 0.5 (21 Oct 2026)
 

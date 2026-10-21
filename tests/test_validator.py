@@ -541,20 +541,20 @@ class RealSpecs(unittest.TestCase):
     def test_orchestrator_example_1(self):
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 1"):prompt.index("EXAMPLE 2")]
-        spec = example[example.index("VCL 0.5"):]
+        spec = example[example.index("VCL 0.6"):]
         self.assertEqual(validate_text(spec), [])
 
     def test_example_1_file_is_the_prompts_example_1(self):
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 1"):prompt.index("EXAMPLE 2")]
-        self.assertEqual(read("vcl/examples/example1_rev3.vcl").strip(), example[example.index("VCL 0.5"):].strip())
+        self.assertEqual(read("vcl/examples/example1_rev3.vcl").strip(), example[example.index("VCL 0.6"):].strip())
 
     def test_example_3_copies_files_and_is_proven(self):
-        # Example 3 (D33; VCL 0.5 by its first line, D58) is vcl/examples/example3_files.vcl:
+        # Example 3 (D33; VCL 0.6 with a GOAL line, D63) is vcl/examples/example3_files.vcl:
         # valid with no warnings, every TEST passes, and its TESTs catch every mutant.
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 3"):prompt.index("EXAMPLE 4")]
-        spec = example[example.index("VCL 0.5"):]
+        spec = example[example.index("VCL 0.6"):]
         self.assertEqual(read("vcl/examples/example3_files.vcl").strip(), spec.strip())
         self.assertEqual(validate_text(spec), [])
         results = run_tests(spec)
@@ -567,7 +567,7 @@ class RealSpecs(unittest.TestCase):
         # every mutant (34 of 34; modMain.Run, which no TEST can reach, is not mutated).
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 4"):prompt.index("FINAL CHECK")]
-        spec = example[example.index("VCL 0.5"):]
+        spec = example[example.index("VCL 0.6"):]
         self.assertEqual(read("vcl/examples/example4_build.vcl").strip(), spec.strip())
         self.assertEqual(validate_text(spec), [])
         results = run_tests(spec)
@@ -575,12 +575,12 @@ class RealSpecs(unittest.TestCase):
         self.assertTrue(all(r.passed for r in results), [(r.line, r.failed) for r in results])
         self.assertEqual(mutate_report(spec, snapshot=True)[:2], (34, 34))
 
-    def test_the_prompt_teaches_vcl_0_5(self):   # D46, D58
+    def test_the_prompt_teaches_vcl_0_6(self):   # D46, D58, D63
         prompt = read("vcl/orchestrator_prompt.txt")
-        self.assertTrue(prompt.startswith("VBA FORGE ORCHESTRATOR · SYSTEM PROMPT · VCL 0.5\n"))
-        self.assertIn("exactly one VCL 0.5 spec. The VBA Forge compiler turns", prompt)   # D25, D31
+        self.assertTrue(prompt.startswith("VBA FORGE ORCHESTRATOR · SYSTEM PROMPT · VCL 0.6\n"))
+        self.assertIn("exactly one VCL 0.6 spec. The VBA Forge compiler turns", prompt)   # D25, D31
         self.assertNotIn("fine-tuned", prompt)
-        for older in ("VCL 0.4", "VCL 0.3", "VCL 0.2", "ACTIVE_SHEET", "ACTIVE_BOOK", "mode=new",
+        for older in ("VCL 0.5", "VCL 0.4", "VCL 0.3", "VCL 0.2", "ACTIVE_SHEET", "ACTIVE_BOOK", "mode=new",
                       "not yet tested", "xlam", "CONTROLS", "<frmName>"):
             self.assertNotIn(older, prompt)
 
@@ -592,7 +592,7 @@ class RealSpecs(unittest.TestCase):
             self.assertIsNotNone(match, start)
             return match.group(0)
 
-        for start, end in [("1.  Reply with exactly", "and no FORM line."),
+        for start, end in [("1.  Reply with exactly", "as shown under Layout, with no blank lines."),
                            ("TASK FORMAT", "the same spec always builds the same file.")]:
             self.assertEqual(between(spec, start, end), between(prompt, start, end))
 
@@ -628,7 +628,7 @@ class RealSpecs(unittest.TestCase):
         # docs/kgc-kronos-context.md is what Boss gives other Claude chats; its Appendix A must
         # be spec.md's reference text, word for word.
         spec, context = read("vcl/spec.md"), read("docs/kgc-kronos-context.md")
-        for start, end in [("1.  Reply with exactly", "and no FORM line."),
+        for start, end in [("1.  Reply with exactly", "as shown under Layout, with no blank lines."),
                            ("TASK FORMAT", "the same spec always builds the same file.")]:
             pattern = re.escape(start) + r".*?" + re.escape(end)
             self.assertEqual(re.search(pattern, spec, re.S).group(0), re.search(pattern, context, re.S).group(0))

@@ -1,8 +1,9 @@
-VCL 0.5
+VCL 0.6
 TASK
 # ASSUME: Tracker headers in row 1 include "Job ID", "Report File" and "Status"
 # ASSUME: both folders exist; each report is copied, never moved, and nothing is overwritten
 # ASSUME: a blank Job ID is skipped; an unsafe Job ID or Report File gets Status "Bad name"
+GOAL     Copy each job's report from the dump folder into that job's own folder and write what happened in the Status column.
 PROC     FileJobReports
 KIND     Function
 MODULE   modReports
