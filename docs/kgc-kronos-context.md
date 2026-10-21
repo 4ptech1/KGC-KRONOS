@@ -1,6 +1,6 @@
 # KGC KRONOS: AI context file
 
-**Snapshot: 21 Oct 2026, after the review passes of item 2 (D47, D48, D51), VEP 0.5 Phases 1 to 3, 4a and 4b (D50, D52, D53, D55, D56) and this file's generated appendices (D54).** Hand this file to any Claude chat or claude.ai
+**Snapshot: 21 Oct 2026, after the review passes of item 2 (D47, D48, D51), VEP 0.5 Phases 1 to 4 (D50, D52, D53, D55 to D57) and this file's generated appendices (D54).** Hand this file to any Claude chat or claude.ai
 Project that needs to understand the project. The repo is always the source of truth: if this
 file and the repo disagree, the repo wins, and the repo's `CLAUDE.md` has the current status.
 
@@ -129,7 +129,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
-tests/                    398 unit tests; conformance_cases.py is shared with the docs
+tests/                    403 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -326,7 +326,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 398 pass |
+| Unit tests | 403 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -398,6 +398,7 @@ The 12 specs:
 - #54: this file grows to about 400 KB, with appendices copied from the repo by `gen_context.py` (D54).
 - #55: VEP 0.5 Phase 4a, ROW_OF and DEDUPE `into=` (D55).
 - #56: VEP 0.5 Phase 4b, a header the spec writes counts as checked for rule 14 (D56).
+- #57: VEP 0.5 Phase 4c, sheet names with spaces in assertions, in quotes (D57).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -464,7 +465,8 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    their TESTs. Phase 3 is done (D53): one module per BUILD, and mutation. Phase 4a is done
    (D55): ROW_OF gives the row FIND found, and DEDUPE `into=` counts the rows it removed (both
    taught at the switch to 0.5). Phase 4b is done (D56): a header the spec writes to row 1
-   counts as checked for rule 14. Phase 4c (sheet names with spaces in assertions) is next.
+   counts as checked for rule 14. Phase 4c is done (D57): an assertion names a sheet with
+   spaces in quotes. Phase 5 (a proven BUILD and the switch to 0.5) is next.
 3. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
 4. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
    Mutants double as "read carefully" contrast pairs.
@@ -2753,6 +2755,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D54 | 21 Oct 2026 | The AI context file (`docs/kgc-kronos-context.md`, the file Boss gives other Claude chats) grows from about 69 KB to about 400 KB, under Boss's 3 MB cap ("let the size be up to 3 mb according to your recommendations"). (1) Sections 1 to 12 stay hand-written. Below a marker, `compiler/gen_context.py` copies in seven appendices: A the full language reference, B the rest of the Orchestrator prompt, C every spec with the VBA the compiler writes for it, D DECISIONS.md, E the semantics tables, F ForgeLib, G CLAUDE.md, the plans and every VEP. (2) Not 3 MB: a chat with a 200,000-token window holds about 800 KB in all, and it needs room to think and answer; 400 KB is about half of that. The Python code (the interpreter, the validator) is left out: it is long, and the reference, the specs and the decisions say what it does. (3) A unit test fails when the file differs from what the script builds and when it passes 3 MB, and CI also runs `gen_context.py --check`; so a PR that changes a copied file reruns the script, as `vclc all` is rerun for `dist/`. (4) The test also checks that the hand-written core comes first and that every spec and every decision is in the file. | Copies made by a script can't go stale, so a chat that reads the file sees the same language, specs and decisions as the repo. |
 | D55 | 21 Oct 2026 | VEP 0.5 Phase 4a, two of the review gaps (D47, D51). (1) `ROW_OF(<range>)` is the sheet row of the range's first cell (Range.Row), so a FIND result leads to another column of its row: `CELL($ws, ROW_OF(hit), cStatus)`. ROW_OF of NOTHING stops the run with a run-time error, as VBA's error 91 does, so the spec tests IS_NOTHING first; it compiles to plain `.Row`, as IS_NOTHING compiles to `Is Nothing`. (2) `DEDUPE(..., into=<var>)` sets the VAR to how many rows it deleted (0 when none); ForgeDedupe becomes a Function, and a DEDUPE without `into=` still calls it as a statement. (3) Both need `VCL 0.5`. (4) spec.md and the prompt teach VCL 0.4, which can't use them, so they are taught at the switch to 0.5 (Phase 5), and Boss updates the Orchestrator once. Until then the D47 drift guard lets a name of a version newer than spec.md's be untaught, but only if that version's VEP describes it; the moment spec.md moves up, the reference must teach it. (5) The work was started by the parallel session (its branch claude/tender-gates-vbdhjh, which called it D54) and finished here, after D54 went to the context file. A sample 0.5 TASK proves both: 4 TESTs pass and its TESTs catch 8 of 8 mutants. | A count and a row number were the two gaps that forced dry-run specs into workarounds; teaching them only at the switch keeps one Orchestrator update and never shows a 0.4 writer a function its specs can't use. |
 | D56 | 21 Oct 2026 | VEP 0.5 Phase 4b, the rule-14 gap (D47). (1) In a VCL 0.5 spec, a header the spec itself writes to row 1 of a sheet argument, as quoted text (`SET_VALUE(CELL($ws, 1, <col>), "<header>")` or a WRITE_ROW to row 1), counts as checked for rule 14, so `COL($ws, "<header>")` needs no PRE line. PRE can't check it: the header isn't there before the first run, so a PRE check would stop that run. (2) The match is exact: the same sheet argument, the same header (as COL matches it, S9), row 1, quoted text. A 0.4 spec keeps the rule-14 error, now with a hint that this needs VCL 0.5. (3) Found while proving it: `MODIFIES $ws ["<header>"]` on such a header passed the validator, but every TEST then failed, because the UNCHANGED check finds a column by its header before the run and the column isn't there yet. In 0.5 the validator now refuses that line and asks for the whole sheet (`MODIFIES $ws`), which is also the only form that lets the header row change (D47). (4) Nothing else changes: the type checker, the interpreter and the compiler already ran such specs, and an assertion could already name the new header (the validator counts row-1 writes). spec.md's rule 14 says so at the switch to 0.5 (Phase 5); until then the VEP describes it. A sample spec proves it: 3 TESTs pass and catch 18 of 18 mutants. | A macro that adds its own status column to a register is a common request; rule 14 must not force a PRE line that can only fail, and the column-MODIFIES trap should fail at the validator with the reason, not at a TEST. |
+| D57 | 21 Oct 2026 | VEP 0.5 Phase 4c, the last review gap (D47): an assertion couldn't name a sheet whose name has spaces, so a TEST couldn't look inside a sheet the macro adds as "Open NCRs". (1) In VCL 0.5 an assertion writes such a sheet in single quotes, as Excel writes it in a formula: `VALUE('Open NCRs'!B1)`, `COUNTA('Open NCRs'![NCR No])`, `ROWS_USED('Open NCRs')`; a quote in the name is written `''`. (2) One way to write each name: quotes only for a name that isn't one word (`'Ncr'!B2` is refused, write `Ncr!B2`), so the corpus never has two spellings of one reference. The name must be one ADD_SHEET could give (S23), so a TEST never names a sheet that can't exist. (3) FIXTURE sheets stay one word: a fixture is synthetic and its names are ours to choose, so only sheets the macro itself makes can have spaces. (4) Single quotes stay out of OP lines: text there is in double quotes, and a single-quoted text now gets a message that says so. (5) Changed: the tokenizer, the grammar, the validator's assertion checks and the interpreter's assertion reader; the compiler and ForgeLib don't read assertions. spec.md teaches it at the switch to 0.5 (Phase 5); until then the VEP describes it. A sample spec proves it: 3 TESTs pass and catch 13 of 13 mutants. | Excel's own quoting is the form a writer already knows, and it can name every sheet a macro may add. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4536,7 +4539,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    and mutation scores a BUILD. Phase 4a is done (D55): ROW_OF(<range>) and DEDUPE `into=`; the
    reference teaches them at the switch to 0.5, and until then the drift guard wants them in the
    VEP. Phase 4b is done (D56): a header the spec writes to row 1 counts as checked for rule 14.
-   **Next: Phase 4c** (sheet names with spaces in assertions), then Phase 5 (the switch).
+   Phase 4c is done (D57): an assertion names a sheet with spaces in quotes, `'Open NCRs'!B1`.
+   **Next: Phase 5** (a proven BUILD and the switch to 0.5; Boss updates the Orchestrator once).
 4. After the MVP: the AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the
    model writes VCL, never VBA. Its Stage A (a `GOAL` line, a formatter, error codes, the corpus,
    the data generator and the benchmark) starts when Boss says go for it, as every earlier
@@ -4575,7 +4579,7 @@ current):
 | Mutation score, TEST assertions only | 89.0% of 438 deliberate bugs caught (was 68% at the start) |
 | Mutation score, whole-workbook comparison | 95.4% (418 of 438); 19 of the 20 survivors are equivalent mutants (D14, D24), 1 is a small task_11 fixture gap (D24) |
 | VBA lint (the compile errors Excel would raise) | 0 problems in 1,850 lines |
-| Unit tests | 398 pass |
+| Unit tests | 403 pass |
 
 ##### Honest limits
 
@@ -4855,7 +4859,7 @@ recommendations" after item 2; the recommendation was CALL and BUILD specs befor
 Stage A, because the Orchestrator's rule 9 already asks for a BUILD when a task needs several
 procedures or more than about 60 lines, and today no BUILD can be proven. Choices that needed
 Boss's decision were made the conservative way and recorded in `DECISIONS.md` D49; Boss can
-overrule any of them. Phases 1 to 3, 4a and 4b are done (E13, E14, D50; D52; D53; D55; D56).
+overrule any of them. Phases 1 to 4 are done (E13, E14, D50; D52; D53; D55, D56, D57).
 
 ##### The problem
 
@@ -4947,7 +4951,11 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
   `COL($ws, "Checked")` needs no PRE line (PRE can't check a header that the first run adds).
   Its column can't be named in `MODIFIES $ws ["Checked"]`, because it isn't there before the run:
   the spec declares the whole sheet.
-- An assertion can't name a sheet whose name has spaces.
+- An assertion can't name a sheet whose name has spaces. **Done (Phase 4c, D57):** in VCL 0.5 an
+  assertion writes such a sheet in single quotes, as Excel does: `VALUE('Open NCRs'!B1)`,
+  `COUNTA('Open NCRs'![NCR No])`, `ROWS_USED('Open NCRs')`, with `''` for a quote in the name.
+  Quotes are only for a name that isn't one word (`Ncr!B2` stays as it is), and the name must be
+  one ADD_SHEET could give (S23).
 
 ##### Phases (one or two PRs each, in this order)
 
@@ -4959,8 +4967,8 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
 3. **The compiler (done: D53):** `dist/builds/<NAME>.bas`, CALL `into=` as a Function call, the BUILD's
    fixture builders and expected results, lint, and the mutation scorer over every TASK of a BUILD.
 4. **The review gaps** above, as the evidence decides. 4a (done: D55): ROW_OF and DEDUPE `into=`.
-   4b (done: D56): a header the spec writes counts as checked for rule 14. 4c: sheet names with
-   spaces in assertions.
+   4b (done: D56): a header the spec writes counts as checked for rule 14. 4c (done: D57): sheet
+   names with spaces in assertions, in quotes.
 5. **A proven BUILD and the switch:** a sample BUILD in the tests that catches every mutant, a new
    Example 4 in the prompt, rule 9 and a CALL rule in the hard rules, spec.md and the prompt move
    to 0.5, and Boss updates the Orchestrator once.

@@ -938,6 +938,12 @@ def _crit_match(v, crit):
     return hit if op == "=" else (not hit if op == "<>" else False)
 
 
+def sheet_text(tok):
+    """A sheet's name from an assertion: Ncr, or 'Open NCRs' in quotes with '' for a quote (VCL 0.5, D57)."""
+    s = str(tok)
+    return s[1:-1].replace("''", "'") if s.startswith("'") else s
+
+
 class Asserter:
     def __init__(self, books_after, books_before, result, errors, fs_after=None, fs_before=None):
         self.after, self.before, self.result, self.errors = books_after, books_before, result, errors
@@ -946,7 +952,7 @@ class Asserter:
 
     def cells(self, ref, pre):
         book = self.before if pre else self.after
-        sheet_name = str(ref.children[0])
+        sheet_name = sheet_text(ref.children[0])
         sh = book[sheet_name]
         r = str(ref.children[1])
         if r.startswith("["):
@@ -1028,7 +1034,7 @@ class Asserter:
                 color = str(args[1]).upper()
                 return sum(1 for p in pts if sh.fills.get(p, "").upper() == color)
             if fn == "ROWS_USED":
-                return (self.before if pre else self.after)[str(args[0])].max_row()
+                return (self.before if pre else self.after)[sheet_text(args[0])].max_row()
             if fn == "VISIBLE_COUNT":   # the non-empty cells of the range in rows not hidden (D42)
                 sh, pts = self.cells(args[0], pre)
                 return sum(1 for r, c in pts if r not in sh.hidden and sh.get(r, c) is not None)

@@ -5,7 +5,7 @@ recommendations" after item 2; the recommendation was CALL and BUILD specs befor
 Stage A, because the Orchestrator's rule 9 already asks for a BUILD when a task needs several
 procedures or more than about 60 lines, and today no BUILD can be proven. Choices that needed
 Boss's decision were made the conservative way and recorded in `DECISIONS.md` D49; Boss can
-overrule any of them. Phases 1 to 3, 4a and 4b are done (E13, E14, D50; D52; D53; D55; D56).
+overrule any of them. Phases 1 to 4 are done (E13, E14, D50; D52; D53; D55, D56, D57).
 
 ## The problem
 
@@ -97,7 +97,11 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
   `COL($ws, "Checked")` needs no PRE line (PRE can't check a header that the first run adds).
   Its column can't be named in `MODIFIES $ws ["Checked"]`, because it isn't there before the run:
   the spec declares the whole sheet.
-- An assertion can't name a sheet whose name has spaces.
+- An assertion can't name a sheet whose name has spaces. **Done (Phase 4c, D57):** in VCL 0.5 an
+  assertion writes such a sheet in single quotes, as Excel does: `VALUE('Open NCRs'!B1)`,
+  `COUNTA('Open NCRs'![NCR No])`, `ROWS_USED('Open NCRs')`, with `''` for a quote in the name.
+  Quotes are only for a name that isn't one word (`Ncr!B2` stays as it is), and the name must be
+  one ADD_SHEET could give (S23).
 
 ## Phases (one or two PRs each, in this order)
 
@@ -109,8 +113,8 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
 3. **The compiler (done: D53):** `dist/builds/<NAME>.bas`, CALL `into=` as a Function call, the BUILD's
    fixture builders and expected results, lint, and the mutation scorer over every TASK of a BUILD.
 4. **The review gaps** above, as the evidence decides. 4a (done: D55): ROW_OF and DEDUPE `into=`.
-   4b (done: D56): a header the spec writes counts as checked for rule 14. 4c: sheet names with
-   spaces in assertions.
+   4b (done: D56): a header the spec writes counts as checked for rule 14. 4c (done: D57): sheet
+   names with spaces in assertions, in quotes.
 5. **A proven BUILD and the switch:** a sample BUILD in the tests that catches every mutant, a new
    Example 4 in the prompt, rule 9 and a CALL rule in the hard rules, spec.md and the prompt move
    to 0.5, and Boss updates the Orchestrator once.

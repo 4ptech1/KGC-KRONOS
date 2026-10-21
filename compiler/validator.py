@@ -1187,6 +1187,9 @@ class TaskChecker:
             self.error(f"{item.text}: #RRGGBB colours are only for fill=")
         elif item.kind == "range":
             self.error(f"{item.text}: Sheet!range references are only for TEST assertions")
+        elif item.kind == "qsheet":
+            self.error(f"{item.text}: text goes in \"double quotes\"; 'single quotes' are only for a sheet name "
+                       "in a TEST assertion")
         else:
             self.error(f"unexpected '{item.text}'")
 
@@ -1449,6 +1452,8 @@ class AssertionChecker:
                 self.error("RESULT needs a Function: a Sub returns nothing")
         elif item.kind == "range":
             self.error(f"{item.text}: put ranges inside a function, like COUNTA({item.text})")
+        elif item.kind == "qsheet":
+            self.error(f"{item.text}: a sheet name goes before ! or inside ROWS_USED, like {item.text}!A1")
         elif item.kind == "name" and item.text.startswith("PRE_"):
             self.error(f"{item.text}: PRE_ goes before a measure, like PRE_COUNTA(...)")
         else:
@@ -1495,9 +1500,11 @@ class AssertionChecker:
             if not is_tok(single, "range"):
                 self.error(f"{fname} needs a <Sheet>!<range> here, got '{text}'")
                 return
+            if single.quoted and self.quoted(single):
+                return
             self.range(single)
             if kind == "cell":
-                ref = single.text.split("!", 1)[1]
+                ref = single.ref
                 if (single.header is not None and not single.row) or \
                         (single.header is None and (":" in ref or not re.search(r"\d", ref))):
                     self.error(f"{fname} needs one cell, like Sheet![Header]2 or Sheet!B2, got '{text}'")
@@ -1506,7 +1513,10 @@ class AssertionChecker:
                     or (len(items) == 2 and is_tok(items[0], "op", "-") and is_tok(items[1], "number"))):
                 self.error(f"{fname} criteria must be a \"quoted\" text or a number, got '{text}'")
         elif kind == "sheet":
-            if not is_tok(single, "name"):
+            if is_tok(single, "qsheet"):
+                if not self.quoted(single):
+                    self.sheet(single.sheet)
+            elif not is_tok(single, "name"):
                 self.error(f"{fname} needs a sheet name, got '{text}'")
             else:
                 self.sheet(single.text)
@@ -1524,6 +1534,20 @@ class AssertionChecker:
         elif kind == "hex":
             if not (is_tok(single, "hex") and HEX_COLOUR.fullmatch(single.text)):
                 self.error(f"{fname} needs a #RRGGBB colour, got '{text}'")
+
+    def quoted(self, tok):
+        """D57: a sheet name in 'quotes' is VCL 0.5, only for a name that isn't one word, and one Excel allows.
+        True when it is refused."""
+        plain = f"{tok.sheet}!{tok.ref}" if tok.kind == "range" else tok.sheet
+        if not self.c.at_least("VCL 0.5"):
+            self.error(f"{tok.text}: a sheet name in quotes is VCL 0.5: start the spec with 'VCL 0.5' to use it")
+        elif SHEET_NAME.fullmatch(tok.sheet):
+            self.error(f"{tok.text}: {tok.sheet} is one word, so write {plain} without quotes")
+        elif not sheet_name_ok(tok.sheet):
+            self.error(f"{tok.text}: '{tok.sheet}' can't be a sheet name (S23)")
+        else:
+            return False
+        return True
 
     def sheet(self, name):
         if self.sheets is None or name in self.sheets or self.c.sheet_ops:
