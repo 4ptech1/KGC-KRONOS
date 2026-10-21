@@ -1,0 +1,1 @@
+In the Welder Quals sheet (Welder ID, Name, Process, Expiry Date) highlight the whole row red if the qualification expired before today and yellow if it expires in the next 60 days. Clear old highlights first so it can be run again. Tell me how many rows are highlighted.

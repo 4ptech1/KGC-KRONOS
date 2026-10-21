@@ -1,0 +1,6 @@
+OK   check  work/c035_try1.vcl
+FAIL test   work/c035_try1.vcl  (2/3 tests)
+       line 41: RESULT=4 ERROR_COUNT=0
+         ASSERT: VALUE(GRN![Remark]7) = "Future date" is false (left blank, right "Future date") [R051]
+
+STOPPED: see the FAIL lines above

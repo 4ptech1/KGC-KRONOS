@@ -1,0 +1,3 @@
+ 95.2%  mutate work/c033_try1.vcl  (20/21)
+        survives: line 21: 1 -> 2
+Overall mutation score: 95.2%
