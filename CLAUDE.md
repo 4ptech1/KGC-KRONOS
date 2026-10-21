@@ -92,7 +92,7 @@ dist/                vclc build output; only forge_module.bas, forge_selftest.ba
 templates/           one .bas template per op pattern (later)
 harness/             Excel batch runner (deferred: PR #4)
 batches/             generated batch modules (later)
-data/                verified/, repair/, eval/, results/
+data/                verified/ (the proven request and spec pairs, D64), repair/, eval/ (held out), results/
 library/             approved .bas, .cls, .frm files
 tests/               unit tests for the Python tools
 docs/                roadmap, plans, design documents, kgc-kronos-context.md (AI context)
@@ -241,8 +241,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    `GOAL` line, E15, D61; `vcl_goal.py` adds GOAL lines to a spec) and Phase 3 (`vclc fmt`: one
    canonical text for every spec, which proves it changed nothing, D62) and Phase 4 (the switch:
    spec.md and the Orchestrator prompt teach VCL 0.6, with hard rule 24 for the GOAL line, D63;
-   Boss pastes the new prompt once) are done; Phase 5, the corpus tooling and the first pairs, is
-   next; no training before March 2027.
+   Boss pastes the new prompt once) and Phase 5 (the corpus tooling: `vclc corpus`, `corpus-add`,
+   `export`; the 12 committed specs are the pairs `c001` to `c012` in `data/verified/`; the plan
+   for the rest is `docs/corpus-plan.md`; D64) are done; Phase 6, the corpus to 150 tasks in
+   batches of about 20, is next; no training before March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

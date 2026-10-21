@@ -657,6 +657,12 @@ def compile_text(text, source_name=""):
 def compile_build(text, source_name=""):
     """A VCL 0.5 BUILD (D49): every procedure of the tool, compiled for one module, with the BUILD's
     name. FORM and TARGET xlam wait, and a BUILD before 0.5 has no MODIFIES to prove it by."""
+    name, procs = compile_build_procs(text, source_name)
+    return name, assemble(procs, f"VBA Forge BUILD {name}: {len(procs)} procedures, one tool")
+
+
+def compile_build_procs(text, source_name=""):
+    """A BUILD's name and the VBA of each of its procedures, without ForgeLib (compile_build assembles them)."""
     spec, problems = parse(text)
     if problems:
         raise CompileError(f"spec doesn't parse: {problems[:3]}")
@@ -677,7 +683,7 @@ def compile_build(text, source_name=""):
             raise CompileError(f"spec doesn't type-check: {found[:3]}")
         procs.append(Gen(task, source_name).compile())
     name = str(keys["NAME"]["tree"].children[0]) if "NAME" in keys else "Build"
-    return name, assemble(procs, f"VBA Forge BUILD {name}: {len(procs)} procedures, one tool")
+    return name, procs
 
 
 FORGELIB = HERE.parent / "vba" / "ForgeLib.bas"

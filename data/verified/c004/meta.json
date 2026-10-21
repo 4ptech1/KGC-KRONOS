@@ -1,0 +1,33 @@
+{
+ "accepted_warnings": [
+  "V053"
+ ],
+ "family": "reconcile",
+ "id": "c004",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 8,
+  "killed": 78,
+  "note": "The value and the mode of dictionaries that are only used through EXISTS (D14).",
+  "total": 86
+ },
+ "op_lines": 48,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "nde"
+ ],
+ "source": "committed spec specs/task_04.vcl"
+}

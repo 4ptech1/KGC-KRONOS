@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "files",
+ "id": "c012",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 29,
+  "note": "",
+  "total": 29
+ },
+ "op_lines": 14,
+ "ops": [
+  "COPY_FILE",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MAKE_FOLDER",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "job_tracker"
+ ],
+ "source": "committed spec specs/task_12.vcl"
+}

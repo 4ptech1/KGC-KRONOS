@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "rebuild",
+ "id": "c010",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 37,
+  "note": "'<' changed to '<=' against TODAY, which the next line overrides (D14).",
+  "total": 38
+ },
+ "op_lines": 20,
+ "ops": [
+  "CLEAR",
+  "COPY_ROW",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT"
+ ],
+ "registers": [
+  "calibration"
+ ],
+ "source": "committed spec specs/task_10.vcl"
+}

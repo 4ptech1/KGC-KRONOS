@@ -1,0 +1,25 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c002",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 20,
+  "note": "LET(flagged, 0) deleted: a Long VAR starts at 0 (D14).",
+  "total": 21
+ },
+ "op_lines": 12,
+ "ops": [
+  "FORMAT",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "material_certs"
+ ],
+ "source": "committed spec specs/task_02.vcl"
+}

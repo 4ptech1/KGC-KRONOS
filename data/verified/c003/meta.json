@@ -1,0 +1,31 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c003",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 37,
+  "note": "The value of DICT_ADD with mode=count, which ignores it, changed twice (D14).",
+  "total": 39
+ },
+ "op_lines": 21,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FORMAT",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "nde"
+ ],
+ "source": "committed spec specs/task_03.vcl"
+}

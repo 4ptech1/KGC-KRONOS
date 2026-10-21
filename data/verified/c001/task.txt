@@ -1,0 +1,1 @@
+I have a BOM sheet with Part No and Required Qty, and a GRN sheet with Part No and Received Qty. A part can come in on several GRN lines. Make a Shortages sheet that lists every part where what we received is less than what we need, with how much is short. If a Required Qty is missing, list the part and say so.

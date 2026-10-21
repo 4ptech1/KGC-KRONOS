@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "rebuild",
+ "id": "c009",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 30,
+  "note": "",
+  "total": 30
+ },
+ "op_lines": 16,
+ "ops": [
+  "CLEAR",
+  "COPY_ROW",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SORT"
+ ],
+ "registers": [
+  "ncr"
+ ],
+ "source": "committed spec specs/task_09.vcl"
+}

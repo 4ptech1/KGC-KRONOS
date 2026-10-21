@@ -1,0 +1,1 @@
+Make a Summary sheet of all open NCRs, oldest first, with how many days each has been open. If an issue date is missing, still list it and mark it 'Issue date missing' at the bottom.
