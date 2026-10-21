@@ -114,7 +114,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/   rebuilt by vclc, git-ignored
-tests/                    353 unit tests; conformance_cases.py is shared with the docs
+tests/                    368 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -311,7 +311,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 353 pass |
+| Unit tests | 368 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the ~40 guideline; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -374,6 +374,7 @@ The 12 specs:
 - #45: review pass after item 2: wording fixed where it differed from the tools, clearer TEST failures (D47).
 - #46: ForgeLib fixes from a VBA review: COPY_SHEET safety, sheet names, DEDUPE keys, formulas on Text cells, ASCII text-file paths (D48).
 - #47: the design of CALL and BUILD specs (`docs/vep-0.5-build.md`, D49).
+- #48: VEP 0.5 Phase 1, the `VCL 0.5` line, CALL `into=` and the BUILD rules (E13, E14, D50).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -434,7 +435,8 @@ The key safety design for files:
 2. CALL and BUILD specs (`docs/vep-0.5-build.md`, D49; Boss said "continue building the next
    part according to your recommendations" on 21 Oct 2026): BUILD TESTs run in the interpreter,
    CALL keeps a Function's result with `into=`, MODIFIES follows the arguments, and the compiler
-   writes one module per BUILD. FORM and xlam wait. Then one switch to VCL 0.5.
+   writes one module per BUILD. FORM and xlam wait. Then one switch to VCL 0.5. Phase 1 is done
+   (E13, E14, D50): the validator checks 0.5 BUILDs; Phase 2 (running their TESTs) is next.
 3. A corpus of 150 tasks, Orchestrator-written specs, and an expressibility report.
 4. A dataset generator: tasks in plain English with their proven specs, plus repair pairs.
    Mutants double as "read carefully" contrast pairs.

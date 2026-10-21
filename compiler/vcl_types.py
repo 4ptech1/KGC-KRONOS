@@ -1,4 +1,4 @@
-"""Prototype type checker for VCL 0.1 to 0.4 with flow-sensitive narrowing (milestone M2).
+"""Prototype type checker for VCL 0.1 to 0.5 with flow-sensitive narrowing (milestone M2).
 
 Types: Num, Text, Date, Bool, Cell (a raw cell value: empty, number, text, date or error),
 Sheet, Book, Range, Dict, Coll, Arr, Iter.
@@ -92,8 +92,9 @@ def mentions(text, name):
 
 
 class Checker:
-    def __init__(self, spec):
+    def __init__(self, spec, sigs=None):
         self.problems = []
+        self.sigs = sigs or {}   # BUILD (D49): "module.Proc" -> ([(param, VBA type)], RET or "")
         self.vars = {}       # name -> declared type
         self.args = {}       # name -> type
         self.dict_values = {}  # dict var -> set of value types
@@ -387,6 +388,15 @@ class Checker:
             drop_sheet_of(pos[0])
         elif name == "WRITE_ARRAY" and "to" in opts:
             drop_sheet_of(opts["to"], block=True)
+        elif name == "CALL":   # D49: the callee may change any sheet it gets, so cell guards are gone
+            for k in [k for k in facts if k.startswith("CELL(")]:
+                del facts[k]
+            sig = self.sigs.get(canon(pos[0])) if pos else None
+            if "into" in opts:
+                v = str(opts["into"])
+                drop_var(v)
+                if sig is not None and sig[1]:
+                    self.assign(v, VBA_TO_TYPE[sig[1]], opts["into"], vflow, line)
 
     def assign(self, v, vt, src, vflow, line):
         declared = self.vars.get(v)
@@ -479,6 +489,20 @@ class Checker:
                 wt = self.ty(pos[1], facts, vflow, line)
                 if wt not in TEXTLIKE | {"?"}:
                     self.err(line, f"WRITE_TEXT: {canon(pos[1])} is {wt}, expected text")
+        elif name == "CALL" and pos:   # D49: each value fits its SIG parameter, as LET would
+            sig = self.sigs.get(canon(pos[0]))
+            for i, a in enumerate(pos[1:]):
+                at = self.ty(a, facts, vflow, line)
+                if sig is None or i >= len(sig[0]):
+                    continue
+                pname, ptype = sig[0][i]
+                want = VBA_TO_TYPE[ptype]
+                if want not in SCALAR or want == "Text":
+                    continue   # sheets, books and ranges: the validator checks them; any value is text
+                if at == "Cell" and want in ("Num", "Date"):
+                    self.err(line, f"passing raw cell value {canon(a)} to {ptype} parameter {pname}: guard it first")
+                elif at not in (want, "?"):
+                    self.err(line, f"passing {at} to {ptype} parameter {pname}")
         elif name == "RETURN" and pos:
             rt = self.ty(pos[0], facts, vflow, line)
             if self.ret and rt not in (self.ret, "?"):
