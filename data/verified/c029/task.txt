@@ -1,0 +1,1 @@
+In the Consumable Issue sheet (Batch No, Opening Stock, Issued, Balance) put a formula in the Balance column for every data row: Opening Stock minus Issued. Excel 2016 only.

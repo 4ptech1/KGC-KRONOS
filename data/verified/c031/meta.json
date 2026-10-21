@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c031",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 56,
+  "note": "",
+  "total": 56
+ },
+ "op_lines": 34,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "ncr",
+  "calibration"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 1)"
+}
