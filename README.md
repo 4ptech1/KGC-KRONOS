@@ -231,3 +231,6 @@ Dataset count: 0 verified pairs
 - **2026-10-21:** VEP 0.5 Phase 4a: `ROW_OF(<range>)` gives the row FIND found, so a spec can
   change another column of that row, and `DEDUPE(..., into=n)` counts the rows it removed. Both
   need `VCL 0.5` and are taught at the switch to 0.5 (D55).
+- **2026-10-21:** VEP 0.5 Phase 4b: a header the spec writes to row 1 itself (a new "Checked"
+  column, say) counts as checked for rule 14 in VCL 0.5, and its column must be declared with the
+  whole sheet in MODIFIES (D56).

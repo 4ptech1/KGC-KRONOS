@@ -304,6 +304,7 @@ class TaskChecker:
         self.pre_cols = set()      # (arg, header) checked in PRE
         self.op_cols = []          # (line, arg, header) used in OP lines
         self.header_writes = []    # (arg, header) written to row 1
+        self.modifies_col_lines = {}   # (arg, header) -> the MODIFIES line that names it
         self.header_copies = []    # (source arg, target arg) row 1 copied
         self.calls = []            # (line, "module.Proc", number of args, [arg items], into= items or None)
         self.sheet_ops = False     # ADD_SHEET / COPY_SHEET can create sheets the fixture lacks
@@ -365,9 +366,17 @@ class TaskChecker:
         if len(self.row_order_ops) == 2:
             self.error("a spec may not both FILTER and SORT: how Excel sorts rows that FILTER hid can't be proven "
                        "by a TEST (D42); sort in one spec and filter in another", self.row_order_ops["FILTER"])
+        made = {(arg, norm(header)) for arg, header in self.header_writes}   # the spec writes them to row 1
         for line, arg, header in self.op_cols:
-            if (arg, norm(header)) not in self.pre_cols:
-                self.error(f'header "{header}" on ${arg} is used but not checked in PRE (rule 14)', line)
+            if (arg, norm(header)) in self.pre_cols or ((arg, norm(header)) in made and self.at_least("VCL 0.5")):
+                continue   # D56: a header the spec adds itself can't be in PRE; its TESTs prove it
+            hint = ": a header the spec writes to row 1 itself needs VCL 0.5" if (arg, norm(header)) in made else ""
+            self.error(f'header "{header}" on ${arg} is used but not checked in PRE (rule 14){hint}', line)
+        for (arg, key), line in self.modifies_col_lines.items():
+            if (arg, key) in made and (arg, key) not in self.pre_cols and self.at_least("VCL 0.5"):
+                self.error(f'MODIFIES ${arg}["{self.modifies_cols[arg][key]}"]: the spec adds that header itself, so '
+                           f'the column is not there before the run and no TEST can check it; declare the whole '
+                           f'sheet with MODIFIES ${arg} (D56)', line)
         op_count = sum(1 for _ in spec.all_ops())
         if op_count > MAX_TASK_OPS:
             first = spec.lines("OP")[0].line
@@ -616,6 +625,7 @@ class TaskChecker:
                     self.error(f'MODIFIES ${arg} lists "{header}" twice')
                 headers.append(norm(header))
                 self.modifies_cols.setdefault(arg, {}).setdefault(norm(header), header)
+                self.modifies_col_lines.setdefault((arg, norm(header)), mod.line)
         seen = self.modifies.setdefault(arg, {})
         if kind in seen:
             what = {"whole": "the whole sheet", "cols": "columns", "fills": "fills"}[kind]

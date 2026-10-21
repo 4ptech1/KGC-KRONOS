@@ -5,7 +5,7 @@ recommendations" after item 2; the recommendation was CALL and BUILD specs befor
 Stage A, because the Orchestrator's rule 9 already asks for a BUILD when a task needs several
 procedures or more than about 60 lines, and today no BUILD can be proven. Choices that needed
 Boss's decision were made the conservative way and recorded in `DECISIONS.md` D49; Boss can
-overrule any of them. Phases 1 to 3 and 4a are done (E13, E14, D50; D52; D53; D55).
+overrule any of them. Phases 1 to 3, 4a and 4b are done (E13, E14, D50; D52; D53; D55; D56).
 
 ## The problem
 
@@ -91,7 +91,12 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
   NOTHING is a run-time error (VBA error 91), so the spec tests `IS_NOTHING(hit)` first.
 - No count of the rows DEDUPE removed (rule 17 wants a count). **Done (Phase 4a, D55):**
   `DEDUPE(..., into=<var>)` sets the VAR to the number of rows it deleted (0 when none).
-- Rule 14 has no form for a header the macro itself adds to an existing sheet.
+- Rule 14 has no form for a header the macro itself adds to an existing sheet. **Done (Phase 4b,
+  D56):** in VCL 0.5 a header the spec writes to row 1 of a sheet argument with quoted text
+  (`SET_VALUE(CELL($ws, 1, c), "Checked")` or `WRITE_ROW($ws, 1, ...)`) counts as checked, so
+  `COL($ws, "Checked")` needs no PRE line (PRE can't check a header that the first run adds).
+  Its column can't be named in `MODIFIES $ws ["Checked"]`, because it isn't there before the run:
+  the spec declares the whole sheet.
 - An assertion can't name a sheet whose name has spaces.
 
 ## Phases (one or two PRs each, in this order)
@@ -104,7 +109,8 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
 3. **The compiler (done: D53):** `dist/builds/<NAME>.bas`, CALL `into=` as a Function call, the BUILD's
    fixture builders and expected results, lint, and the mutation scorer over every TASK of a BUILD.
 4. **The review gaps** above, as the evidence decides. 4a (done: D55): ROW_OF and DEDUPE `into=`.
-   4b: rule 14's header form and sheet names with spaces in assertions.
+   4b (done: D56): a header the spec writes counts as checked for rule 14. 4c: sheet names with
+   spaces in assertions.
 5. **A proven BUILD and the switch:** a sample BUILD in the tests that catches every mutant, a new
    Example 4 in the prompt, rule 9 and a CALL rule in the hard rules, spec.md and the prompt move
    to 0.5, and Boss updates the Orchestrator once.
