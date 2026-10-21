@@ -80,7 +80,7 @@ requirements.txt     pinned dependencies (lark, with its hash)
 vcl/                 spec.md, orchestrator_prompt.txt, grammar.lark, semantics.py, examples/
 specs/               one .vcl file per task (task_01.vcl, ...)
 compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_parse.py (grammar),
-                     errcodes.py + gen_error_codes.py (stable message codes, D60),
+                     errcodes.py + gen_error_codes.py (stable message codes, D60), vcl_goal.py (GOAL lines),
                      vcl_types.py (types), vcl_interp.py (reference interpreter),
                      vcl_codegen.py (VBA compiler), vcl_fixtures.py (the one fixture
                      generator), vba_lint.py, vcl_mutate.py, gen_semantics_doc.py, gen_context.py,
@@ -233,8 +233,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    `docs/vep-0.6-stage-a.md` (D59): Phase 1 error codes, 2 the `GOAL` line (VCL 0.6), 3 the
    formatter `vclc fmt`, 4 the switch of spec.md and the prompt to 0.6 (Boss updates the
    Orchestrator once), 5 corpus tooling and the first pairs, 6 the corpus to 150 tasks, 7 the
-   data generator, 8 the benchmark. Phase 0 (the design) and Phase 1 (error codes: every message
-   has a stable code, `docs/error-codes.md`, D60) are done; no training before March 2027.
+   data generator, 8 the benchmark. Phase 0 (the design), Phase 1 (error codes: every message
+   has a stable code, `docs/error-codes.md`, D60) and Phase 2 (the toolchain reads `VCL 0.6` and the
+   `GOAL` line, E15, D61; `vcl_goal.py` adds GOAL lines to a spec) are done; no training before
+   March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

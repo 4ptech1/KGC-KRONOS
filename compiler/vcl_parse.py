@@ -1,7 +1,7 @@
 """Grammar-based parser for VCL 0.1 to 0.5 (prototype for milestone M2).
 
 parse(text) -> (spec, problems)
-  spec: dict with kind (TASK, BUILD, QUESTION), version ("VCL 0.1" to "VCL 0.5"), assumes,
+  spec: dict with kind (TASK, BUILD, QUESTION), version ("VCL 0.1" to "VCL 0.6"), assumes,
         keys, ops (a nested tree) and the parsed Lark trees for every line.
   problems: list of (line_no, message). Parsing never raises on bad input.
 """
@@ -15,9 +15,9 @@ from errcodes import coded
 
 GRAMMAR = Path(__file__).resolve().parent.parent / "vcl" / "grammar.lark"
 
-TASK_ORDER = ["PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
+TASK_ORDER = ["GOAL", "PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
               "ALLOW", "FIXTURE", "TEST"]
-BUILD_ORDER = ["NAME", "TARGET", "ENTRY", "MODULE", "FORM", "SIG", "FLOW", "FIXTURE", "TEST"]
+BUILD_ORDER = ["GOAL", "NAME", "TARGET", "ENTRY", "MODULE", "FORM", "SIG", "FLOW", "FIXTURE", "TEST"]
 START = {"PROC": "proc_value", "KIND": "kind_value", "MODULE": "module_value",
          "ARGS": "args_value", "RET": "ret_value", "VAR": "var_value", "PRE": "pre_value",
          "MODIFIES": "modifies_value",
@@ -25,7 +25,7 @@ START = {"PROC": "proc_value", "KIND": "kind_value", "MODULE": "module_value",
          "FIXTURE": "fixture_value", "TEST": "test_value", "NAME": "name_value",
          "TARGET": "target_value", "ENTRY": "entry_value", "FORM": "form_value",
          "SIG": "sig_value", "FLOW": "flow_value"}
-VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5")
+VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5", "VCL 0.6")
 OPENERS = {"loop_rows", "loop_cols", "for_each", "if_block", "select_case", "case_line",
            "case_else"}
 # G2: option names are reserved words, read from the grammar's OPTKEY terminal so there is one list.
@@ -111,7 +111,7 @@ def _parse_task(lines, first_no, problems, version):
         order_idx = max(order_idx, idx)
         after_key = raw[len(key):]
         value = after_key.lstrip(" ")
-        tree = _parse_value(START[key], value, line_no, problems)
+        tree = None if key == "GOAL" else _parse_value(START[key], value, line_no, problems)   # GOAL: free text (D61)
         if key == "OP" and tree is not None:
             fold_dedupe_cols(tree)
         entry = {"key": key, "line": line_no, "text": value, "tree": tree}
@@ -185,7 +185,7 @@ def _parse_lines(lines, first_no, problems, allow_build=True, want=None):
                     problems.append((line_no, coded(f"unknown BUILD key {key!r}", "G014")))
                 else:
                     value = raw[len(key):].lstrip(" ")
-                    tree = _parse_value(START[key], value, line_no, problems)
+                    tree = None if key == "GOAL" else _parse_value(START[key], value, line_no, problems)
                     head["keys"].append({"key": key, "line": line_no, "tree": tree})
         for a, b in zip(seps, seps[1:] + [len(lines)]):
             head["tasks"].append(_parse_lines(lines[a + 1:b], first_no + a + 1, problems,

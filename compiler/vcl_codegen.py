@@ -60,6 +60,8 @@ class Gen:
         self.pre, self.perf = [], []
         for k in spec["keys"]:
             t = k["tree"]
+            if k["key"] == "GOAL":   # free text for the reader, nothing to compile (VCL 0.6, D61)
+                continue
             if t is None:
                 raise CompileError(f"line {k['line']} doesn't parse")
             key = k["key"]

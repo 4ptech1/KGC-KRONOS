@@ -122,6 +122,7 @@ compiler/vba_lint.py      static VBA checks     compiler/vcl_mutate.py  mutation
 compiler/vcl_migrate.py   VCL 0.1 to 0.2 rewriter, with --prove
 compiler/gen_semantics_doc.py  writes docs/vcl-semantics.md
 compiler/gen_context.py   writes this file's appendices from the repo (D54)
+compiler/vcl_goal.py       add_goals(): moves a spec to VCL 0.6 by adding its GOAL lines (D61)
 compiler/errcodes.py      coded("message", "V012"): a message that carries its stable code (D60)
 compiler/gen_error_codes.py  gives new messages their codes; writes error_codes.json and docs/error-codes.md
 compiler/vcl_formula.py   SET_FORMULA's Excel 2016 allowlist and checks (D43)
@@ -131,7 +132,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/, dist/builds/<NAME>.bas (one module per BUILD)   rebuilt by vclc, git-ignored
-tests/                    419 unit tests; conformance_cases.py is shared with the docs
+tests/                    431 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
@@ -352,7 +353,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 419 pass |
+| Unit tests | 431 pass |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -428,6 +429,7 @@ The 12 specs:
 - #59: VEP 0.5 Phase 5, a proven BUILD (Example 4) and the switch: spec.md and the prompt teach VCL 0.5 (D58). Item 3 is complete.
 - #60: item 4, the AI plan's Stage A, designed in `docs/vep-0.6-stage-a.md` (D59).
 - #61: Stage A Phase 1, stable error codes: every message of the checks carries one (V, G, T, X, R; D60).
+- #62: Stage A Phase 2, the toolchain reads `VCL 0.6` and the `GOAL` line (E15, D61); spec.md and the prompt still teach 0.5.
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -506,7 +508,8 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    lint-clean build, mutation score of at least 90%); the data generator (repairs from mutants
    and from real failures, contrast pairs, filtered paraphrases); and the benchmark (15
    held-out tasks, hidden reference TESTs, `vclc bench`, Claude as the baseline). Phase 0 (the
-   design) and Phase 1 (error codes: 452 stable codes, `docs/error-codes.md`, D60) are done.
+   design), Phase 1 (error codes: 458 stable codes, `docs/error-codes.md`, D60) and Phase 2 (the toolchain
+   reads `VCL 0.6` and the `GOAL` line, E15, D61) are done.
 5. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
    VCL, never VBA (D31). Excel conformance runs.
 
@@ -2883,6 +2886,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | --- | --- | --- | --- |
 | E13 | The first line may be `VCL 0.1` to `VCL 0.5`. The 0.5 additions (CALL `into=` and the BUILD rules of E14) are errors under 0.1 to 0.4, or don't apply there. Every committed spec and Examples 1 and 3, with the first line changed to 0.5, give the same problems and the same TEST results. | Same rule as E3, E8 and E12: one spec, one language version. | `parser.py`, `vcl_parse.py`, validator (`at_least`), `tests/test_vcl05.py` |
 | E14 | In a VCL 0.5 BUILD: `CALL(<module>.<Proc>, <args>, into=<VAR>)` runs a procedure of the same BUILD, and `into=` keeps a Function's result in a VAR of its RET type (a Sub gives none). Each value fits its SIG parameter, as LET would (a raw cell is guarded first). A Worksheet, Workbook or Range parameter, and any parameter the callee changes, is passed as the caller's own `$argument` of that type. A caller declares, on what it passes, every change the callee's MODIFIES lines allow (the whole sheet covers columns and fills; columns by name; fills, files and sheets as they are). Every TASK that writes declares MODIFIES. Procedure names are unique in the BUILD; the CALL graph has no cycle; every FLOW arrow is a CALL and every CALL is in a FLOW line. `modMain.Run()` takes nothing and gives nothing, only CALLs modMain.RunHeadless (passing sheets as `SHEET(THIS_BOOK, "<real name>")`, a workbook as THIS_BOOK), LETs, IFs and MSGs. FORM and TARGET xlam are errors (D49). In a 0.5 TASK spec, CALL is an error. | RunHeadless's MODIFIES lines then cover the whole tool, so a BUILD TEST gets the same UNCHANGED check as a TASK TEST, and nothing in the tool goes untested. | validator (`check_build_05`), type checker (CALL), `tests/test_vcl05.py` |
+| E15 | The first line may be `VCL 0.1` to `VCL 0.6`. `GOAL <one plain-English sentence>` is a key before PROC in a TASK and before NAME in a BUILD, and every TASK inside a BUILD has its own. From `VCL 0.6` it is required; in `VCL 0.5` and before it is an error ("GOAL is VCL 0.6"). One line, 10 to 200 characters, printable ASCII, not starting with `#`; a warning when it only repeats the PROC or NAME. A spec of 0.1 to 0.5 that gets a GOAL line and the 0.6 line gives the same problems, the same TEST results and the same VBA (with each line label moved by the new line). | Every spec then carries its own English to VCL pair (docs/ai-plan.md), and every older spec stays valid (as E8, E12, E13). | `parser.py`, `vcl_parse.py`, validator (`check_goal`), `vcl_goal.py`, `tests/test_vcl06.py` |
 
 #### Decisions Claude made on its own
 
@@ -2948,6 +2952,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D58 | 21 Oct 2026 | **VEP 0.5 Phase 5: a proven BUILD and the switch to VCL 0.5 (item 3 complete).** (1) spec.md, the Orchestrator prompt and the context file's Appendix A move to VCL 0.5 in one step, so Boss updates the Orchestrator Project once. The shared reference text teaches everything 0.5 added: BUILD FORMAT without FORM and xlam and without "not yet tested" (unique procedure names, modMain.RunHeadless and Run, FLOW = the CALLs); CALL with `into=` and its SEMANTICS entry (-1 at the callee's PRE, -2 on its failure, values converted to the parameter's type); ROW_OF; DEDUPE `into=`; the rule-14 exception for a header the spec writes to row 1; the MODIFIES lines a caller needs and the rule that a header the spec adds can't be named in `[...]`; quoted sheet names in assertions. Hard rules: 7 (ask when even a BUILD can't do it), 8 (VCL 0.5), 9 (a request one TASK can't do becomes a BUILD of TASKs of about 40 OP lines), 14 (the exception), and a new rule 23 for BUILD and CALL. The shared-text tests now end at rule 23 ("and no FORM line."); `compiler/gen_context.py` too. FORM lines stay valid in the language and are refused by the compiler (D49), and the reference text no longer teaches them. (2) Example 4, `vcl/examples/example4_build.vcl`, is the NcrReview BUILD of the tests (D50, D52, D53), with `mode=sum` in DICT_ADD so no equivalent mutant survives: it is valid with no warnings, its 3 TESTs pass, it builds lint-clean, and its TESTs catch 34 of 34 mutants (modMain.Run is not mutated: no TEST can reach it). It is the prompt's new Example 4, a unit test keeps the two equal and proves it, and `tests/test_vcl05.py` now uses the file as its BUILD sample. Examples 1 and 3 moved to 0.5 by their first line only (E13); the migration and version tests were updated to say so, and still compare results. The 12 committed specs stay TASK specs in their versions: a BUILD joins `specs/` when a real request needs one. (3) Two Orchestrator dry runs (helpers who knew only the prompt) wrote a BUILD (a weld-chase tool with a summary sheet) and a TASK (duplicates, then FIND and ROW_OF); both passed check, test, build and lint, and the BUILD scored 61 of 62 (an equivalent), the TASK 20 of 22 (two equivalents). Their guesses led to wording fixes with no change of meaning: rule 15 says DEDUPE does not trim its keys (an ASSUME), rule 17 puts a second count in a cell, rule 19 puts the blank cell early in the column (LASTROW ignores a trailing blank), rule 22 says only the run that adds a sheet can write to it, so a sheet rebuilt on every run is an argument that the ASSUME lines say exists, rule 23 asks for a TEST where a checked callee gives 0, and SEMANTICS says `TODAY - 14` is a date and KEYS walks keys in the order they were first added. (4) Known gaps, left for a later VEP because each is a language change: a tool that must create a sheet if it is missing and rebuild it if it is there can be written only by calling RunHeadless twice from Run (the dry run found it); FIND needs a range, so looking one value up in another sheet's column goes through a Dictionary, since no function gives a column range by header; and `vclc mutate` prints "... and N more" without a way to list every survivor. | One switch, one Orchestrator update, as D38 and D46 did, after every language phase of item 3. A BUILD is only taught once a sample proves all three stages, and the dry runs showed which sentences a writer had to guess. |
 | D59 | 21 Oct 2026 | **AI plan Stage A (CLAUDE.md item 4), Boss said "go item 4".** Designed in `docs/vep-0.6-stage-a.md` before any code, as D36 and D49 did. Choices made the conservative way, which Boss can overrule: (1) **Order:** error codes, the `GOAL` line (VCL 0.6), the formatter `vclc fmt`, then one switch of spec.md and the prompt to 0.6 (Boss updates the Orchestrator once), and only then the corpus, so every stored spec already has its GOAL and its canonical text. The data generator and the benchmark follow the corpus. (2) **Error codes** are written at the call site and never reused or renumbered; a test fails when a message has no code, and a generated catalogue `docs/error-codes.md` is checked in CI. The message text stays as it is, so the codes are a new field and no existing test changes. (3) **GOAL is required from VCL 0.6** and an error before it; every older spec stays valid. The 12 committed specs are inputs and stay as they are; their pairs are copies in `data/` with a GOAL added. (4) **The formatter** works on the token stream, never reorders keys, never changes quoted text, and must keep every committed spec's results identical. (5) **The VBA is not stored** in `data/`: it is derived and goes stale, so `vclc export` compiles it fresh into git-ignored `dist/`; a test proves every stored pair still passes the toolchain. (6) **Acceptance:** valid with no warnings, TESTs pass, lint-clean build, snapshot mutation score at least 90% (the plan's "strong tests required"), canonical, GOAL present. (7) **The corpus** is 150 tasks: about 100 single TASKs, 30 using the item 2 ops, 20 BUILDs, across 13 registers, written by helpers that see only the Orchestrator prompt (Claude through our pipeline, D25, the method of D47 and D58); 15 (10%) are held out for the benchmark. Tasks the helpers cannot express are counted as gaps, the NOTE count Stage B needs. (8) **The benchmark** scores a candidate on four levels (valid; own TESTs pass; own TESTs catch 90% of mutants; passes hidden reference TESTs under a fixed contract) and starts with Claude as the Orchestrator as its baseline. (9) Paraphrases cannot be proven, so a mechanical check (numbers, headers and quoted statuses survive) filters them and they are marked. Nothing here trains or runs a model before March 2027 (CLAUDE.md). | Stage A makes the dataset and the scoreboard the March 2027 model needs, and each choice keeps what is stored provable by the toolchain. Doing the language changes first means no stored spec ever has to be migrated. |
 | D60 | 21 Oct 2026 | **Stage A Phase 1: error codes (VEP 0.6, no language change).** (1) Every message the checks give has a stable code: 322 V (the hand parser, the validator and the formula check), 15 G (grammar), 45 T (type checker), 19 X (fixture builder) and 51 R (what a TEST run reports: failed assertions, UNCHANGED differences, run-time errors). They are in `docs/error-codes.md`, generated by `python compiler/gen_error_codes.py`, which also gives any new message its code; `--check` and a unit test fail on a message without a code, a code used twice or missing from `compiler/error_codes.json`, or a stale catalogue. A code is never reused or renumbered, and a deleted message shows as retired. (2) A code is written at the call site as `coded("message", "V012")`. `coded` makes a `str` subclass that carries its code, so everything that compares, searches or prints messages (about 400 tests) works unchanged, and `Problem.code` (not compared) reads it. Wrappers that add a prefix (`grammar:`, `fixture:`, `type:`) pass the underlying code on. (3) The command line shows the code after the message, `error: missing KIND [V060]`, not before it as the VEP sketched, so the existing `error: cannot read file` check and any grep on the old text still work; the VEP now says so. `vclc check` and `vclc test` show it too. (4) In the unit tests (`KGC_STRICT_CODES=1`, set by `tests/test_error_codes.py`) a Problem without a code raises, so a message the tool missed cannot hide. (5) One code can have a message with a variable part (`missing {key}` is V060 for KIND, MODULE and OP): a code stands for one message shape. (6) Not coded, as the VEP did not ask for it: compiler (CompileError) and VBA lint messages. The snapshot mutation score is unchanged at 95.4%. | Stable codes make repairs learnable and keep them valid when a message is reworded, and the call-site form is explicit and reviewable. Carrying the code on the string changes no existing test. |
+| D61 | 21 Oct 2026 | **Stage A Phase 2: the `GOAL` line and the `VCL 0.6` line in the tools (E15).** (1) GOAL is a key, not an op: the hand parser and the grammar stage know it as the first key of a TASK and of a BUILD, the grammar stage keeps it as text (`tree` is None, so it is free English, not parsed), the compiler and the interpreter skip it, and the mutation scorer never touches it. (2) The validator's `check_goal` enforces E15, with a warning when the GOAL only repeats the PROC or NAME. Its messages have codes V323 to V328. (3) `compiler/vcl_goal.py` (`add_goals`) moves a spec to 0.6: it adds the GOAL lines and the new version line and changes nothing else, so the 12 committed specs, which are inputs and stay as they are, can become pairs in `data/` as copies. (4) The compiled VBA labels its lines with the spec's line numbers (for Erl), so a GOAL line moves every label of the VBA it comes with by 10; the tests prove the compatibility by replacing each GOAL with a comment line (same numbering), which gives byte-identical VBA and the same results. (5) spec.md and the Orchestrator prompt still teach 0.5 and say nothing of GOAL: they move to 0.6 in Phase 4, after the formatter, so Boss updates the Orchestrator once. | The key is cheap to add and keeps every older spec valid; keeping GOAL out of the reference text until the switch avoids teaching a line the Orchestrator's reply would then fail on. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4592,7 +4597,7 @@ requirements.txt     pinned dependencies (lark, with its hash)
 vcl/                 spec.md, orchestrator_prompt.txt, grammar.lark, semantics.py, examples/
 specs/               one .vcl file per task (task_01.vcl, ...)
 compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_parse.py (grammar),
-                     errcodes.py + gen_error_codes.py (stable message codes, D60),
+                     errcodes.py + gen_error_codes.py (stable message codes, D60), vcl_goal.py (GOAL lines),
                      vcl_types.py (types), vcl_interp.py (reference interpreter),
                      vcl_codegen.py (VBA compiler), vcl_fixtures.py (the one fixture
                      generator), vba_lint.py, vcl_mutate.py, gen_semantics_doc.py, gen_context.py,
@@ -4745,8 +4750,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    `docs/vep-0.6-stage-a.md` (D59): Phase 1 error codes, 2 the `GOAL` line (VCL 0.6), 3 the
    formatter `vclc fmt`, 4 the switch of spec.md and the prompt to 0.6 (Boss updates the
    Orchestrator once), 5 corpus tooling and the first pairs, 6 the corpus to 150 tasks, 7 the
-   data generator, 8 the benchmark. Phase 0 (the design) and Phase 1 (error codes: every message
-   has a stable code, `docs/error-codes.md`, D60) are done; no training before March 2027.
+   data generator, 8 the benchmark. Phase 0 (the design), Phase 1 (error codes: every message
+   has a stable code, `docs/error-codes.md`, D60) and Phase 2 (the toolchain reads `VCL 0.6` and the
+   `GOAL` line, E15, D61; `vcl_goal.py` adds GOAL lines to a spec) are done; no training before
+   March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
@@ -5203,8 +5210,8 @@ tokenizer, any training. Stage A only prepares the data and the scoreboard.
 0. **This design** and D59.
 1. **Error codes (done: D60):** the call-site codes, `Problem.code`, `gen_error_codes.py`, the
    catalogue and its test, the CLI output.
-2. **The `GOAL` line:** the `VCL 0.6` line, the key in the parser, grammar and validator, the
-   migration helper (`vcl_migrate.py` adds a GOAL and moves a spec to 0.6), compatibility tests.
+2. **The `GOAL` line (done: E15, D61):** the `VCL 0.6` line, the key in the parser, grammar and
+   validator, the helper `vcl_goal.py` (adds a GOAL and moves a spec to 0.6), compatibility tests.
 3. **`vclc fmt`:** the formatter, `--check`, the safety and idempotence tests on every committed
    spec and example.
 4. **The switch:** spec.md and the prompt teach VCL 0.6 (GOAL, the canonical form, Examples 1, 3

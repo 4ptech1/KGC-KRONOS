@@ -4,9 +4,11 @@
 //   A QUESTION reply is a single line:  # QUESTION: <text>
 //   Otherwise line 1 is "VCL 0.1" and line 2 is "TASK" or "BUILD".
 //   "# ASSUME: <text>" lines may follow, then key lines: <KEY><spaces><value>.
-//   TASK key order: PROC KIND MODULE ARGS RET VAR PRE MODIFIES OP PERF ERR ALLOW FIXTURE TEST
-//   BUILD key order: NAME TARGET ENTRY MODULE FORM SIG FLOW FIXTURE TEST, then "---" and
+//   TASK key order: GOAL PROC KIND MODULE ARGS RET VAR PRE MODIFIES OP PERF ERR ALLOW FIXTURE TEST
+//   BUILD key order: GOAL NAME TARGET ENTRY MODULE FORM SIG FLOW FIXTURE TEST, then "---" and
 //   one TASK per SIG.
+//   GOAL (VCL 0.6) is one line of free English text, 10 to 200 printable ASCII characters; the
+//   driver keeps it as text and does not parse it (the validator checks it).
 //   OP nesting: the value column of the first OP line is depth 0; each extra 2 spaces is
 //   one level deeper. Openers: LOOP_ROWS LOOP_COLS FOR_EACH IF(block) SELECT_CASE CASE CASE_ELSE.
 //

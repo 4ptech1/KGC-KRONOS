@@ -104,7 +104,8 @@ VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
 VCL_04_FUNCS = {"SHEET_EXISTS"}
 VCL_05_FUNCS = {"ROW_OF"}   # D55
 VCL_04_OPS = {"LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # D44, D45: S24, S25 and the path rules of VCL 0.3
-VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4, "VCL 0.5": 5}
+VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4, "VCL 0.5": 5, "VCL 0.6": 6}
+GOAL_LENGTH = (10, 200)   # VCL 0.6 (D61)
 # MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
 SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE"}
 ROW_OPS = {"INSERT_ROW", "DELETE_ROW", "SORT", "DEDUPE", "FILTER"}   # these move or hide rows
@@ -495,6 +496,7 @@ class TaskChecker:
     def check_keys(self):
         spec = self.spec
         counts = Counter(k.key for k in spec.keys)
+        check_goal(spec, self.at_least("VCL 0.6"), self.error, self.warning, "PROC")
         for key in ("PROC", "KIND", "MODULE", "OP", "ERR"):
             if not counts[key]:
                 self.error(coded(f"missing {key}", "V060"))
@@ -1707,6 +1709,36 @@ def check_modifiers(checker, rule, rows, line):
                               f"{listed[value]} times", "V264"), line)
 
 
+# ---------------------------------------------------------------- GOAL (VCL 0.6, D61)
+
+def check_goal(spec, allowed, error, warning, name_key):
+    """The GOAL line of a TASK or a BUILD: one plain-English sentence saying what the spec does. Required
+    from VCL 0.6 (so every spec carries its own English to VCL pair), an error before. error(message,
+    line) and warning(message, line) report; name_key (PROC or NAME) is the key whose value GOAL must
+    say more than."""
+    goals = spec.lines("GOAL")
+    if not allowed:
+        for k in goals[:1]:
+            error(coded("GOAL is VCL 0.6: start the spec with 'VCL 0.6' to use it", "V323"), k.line)
+        return
+    if not goals:
+        error(coded("missing GOAL: write one plain-English sentence saying what the spec does", "V324"), spec.line)
+        return
+    for extra in goals[1:]:
+        error(coded("GOAL appears more than once", "V325"), extra.line)
+    k = goals[0]
+    lowest, highest = GOAL_LENGTH
+    if not lowest <= len(k.value) <= highest:
+        error(coded(f"GOAL must be {lowest} to {highest} characters, got {len(k.value)}", "V326"), k.line)
+    elif k.value.startswith("#") or any(not 32 <= ord(c) < 127 for c in k.value):
+        error(coded("GOAL must be plain printable ASCII text and not start with #", "V327"), k.line)
+    else:
+        name = spec.value(name_key)
+        squash = lambda text: re.sub(r"[^a-z0-9]", "", text.lower())
+        if name and squash(k.value) == squash(name):
+            warning(coded(f"GOAL only repeats the {name_key} name: say what the spec does and for which sheets", "V328"), k.line)
+
+
 # ---------------------------------------------------------------- BUILD checks
 
 def check_build(spec):
@@ -1716,6 +1748,11 @@ def check_build(spec):
         problems.append(Problem(line, "error", message))
 
     counts = Counter(k.key for k in spec.keys)
+
+    def warn(message, line):
+        problems.append(Problem(line, "warning", message))
+
+    check_goal(spec, VERSION_RANK.get(spec.version, 1) >= VERSION_RANK["VCL 0.6"], error, warn, "NAME")
     for key in ("NAME", "TARGET", "ENTRY", "MODULE", "SIG", "FLOW"):
         if not counts[key]:
             error(coded(f"BUILD is missing {key}", "V265"), spec.line)
