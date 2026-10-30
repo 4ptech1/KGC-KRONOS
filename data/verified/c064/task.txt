@@ -1,0 +1,1 @@
+Rebuild an NCR Aging sheet from the NCR Register (NCR No, Issue Date, Status): list every Open NCR with its age in days, oldest first. Clear the sheet before writing so it can be run again.

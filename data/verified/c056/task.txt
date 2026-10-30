@@ -1,0 +1,1 @@
+In the ITP Tracker (ITP No, Point, Inspection Status, Planned Date) write Overdue in a Remark column for every point that is not Done and whose Planned Date is more than 7 days ago. Clear the Remark on the rest. Return how many are overdue.

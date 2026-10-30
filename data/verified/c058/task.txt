@@ -1,0 +1,1 @@
+From the Material Certs sheet (Heat No, MTC No, Material Grade, Cert Date) make a Grade Summary sheet that lists each material grade once with the number of certificates, biggest count first.

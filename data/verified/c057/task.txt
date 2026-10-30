@@ -1,0 +1,1 @@
+From the Welder Quals sheet (Welder ID, Name, Process, Expiry Date) make a Process Summary sheet with, for each welding process, how many welders have it and how many of those have already expired. Processes A to Z.

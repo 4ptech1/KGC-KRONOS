@@ -1,0 +1,1 @@
+In the WPS Register (WPS No, Process, Thickness Min, Thickness Max, PQR No) write Check in a Remark column for every row where the PQR No is blank or Thickness Min is greater than Thickness Max. Clear the Remark on the other rows. Tell me how many rows have Check.

@@ -1,0 +1,13 @@
+$ python compiler/vclc.py all work/c065_try1.vcl -o dist
+OK   check  work/c065_try1.vcl
+       line 41: warning: the spec compares with <, <=, > or >=, but no FIXTURE column has +boundary(...): put the values that sit exactly on each comparison in the first rows (rule 19) [V058]
+OK   test   work/c065_try1.vcl  (6/6 tests)
+OK   build  work/c065_try1.vcl
+OK   lint   dist/forge_module.bas  (1171 lines)
+OK   lint   dist/forge_selftest.bas  (669 lines)
+OK   lint   dist/forge_fixtures.bas  (206 lines)
+
+ALL STAGES PASSED
+$ python compiler/vclc.py mutate work/c065_try1.vcl --snapshot
+100.0%  mutate work/c065_try1.vcl  (17/17)
+Overall mutation score: 100.0%

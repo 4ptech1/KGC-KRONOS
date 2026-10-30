@@ -1,0 +1,34 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c071",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 103,
+  "note": "",
+  "total": 103
+ },
+ "op_lines": 61,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "nde",
+  "weld_log"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

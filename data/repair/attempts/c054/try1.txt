@@ -1,0 +1,5 @@
+$ python compiler/vclc.py all work/c054_try1.vcl -o dist
+FAIL check  work/c054_try1.vcl
+       line 35: error: D: +boundary value ' ' doesn't fit reldates() (use numbers) [V262]
+
+STOPPED: see the FAIL lines above

@@ -1,0 +1,17 @@
+$ python compiler/vclc.py all work/c061_try1.vcl -o dist
+OK   check  work/c061_try1.vcl
+OK   test   work/c061_try1.vcl  (3/3 tests)
+OK   build  work/c061_try1.vcl
+OK   lint   dist/forge_module.bas  (1199 lines)
+OK   lint   dist/forge_selftest.bas  (669 lines)
+OK   lint   dist/forge_fixtures.bas  (148 lines)
+
+ALL STAGES PASSED
+$ python compiler/vclc.py mutate work/c061_try1.vcl --snapshot
+ 84.8%  mutate work/c061_try1.vcl  (28/33)
+        survives: line 31: 'SKIP_IF' -> 'EXIT_LOOP_IF'
+        survives: line 33: 'mode=keep' -> 'mode=overwrite'
+        survives: line 33: 1 -> 2
+        survives: line 35: 'mode=keep' -> 'mode=overwrite'
+        ... and 1 more
+Overall mutation score: 84.8%

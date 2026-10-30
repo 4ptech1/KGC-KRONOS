@@ -1,0 +1,1 @@
+Compare the Dispatch sheet (Dispatch No, Job ID, Customer) with the Job Tracker (Job ID, Status). In the Dispatch sheet write Job not closed in a Remark column when the job is not Closed or is not in the Job Tracker, and clear the Remark on the others. Tell me how many dispatches have that remark.

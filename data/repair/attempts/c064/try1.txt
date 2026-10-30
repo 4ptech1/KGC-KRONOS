@@ -1,0 +1,17 @@
+$ python compiler/vclc.py all work/c064_try1.vcl -o dist
+OK   check  work/c064_try1.vcl
+OK   test   work/c064_try1.vcl  (4/4 tests)
+OK   build  work/c064_try1.vcl
+OK   lint   dist/forge_module.bas  (1192 lines)
+OK   lint   dist/forge_selftest.bas  (669 lines)
+OK   lint   dist/forge_fixtures.bas  (173 lines)
+
+ALL STAGES PASSED
+$ python compiler/vclc.py mutate work/c064_try1.vcl --snapshot
+ 88.9%  mutate work/c064_try1.vcl  (40/45)
+        survives: line 30: '>' -> '>='
+        survives: line 30: 2 -> 3
+        survives: line 34: 2 -> 3
+        survives: line 35: step deleted
+        ... and 1 more
+Overall mutation score: 88.9%

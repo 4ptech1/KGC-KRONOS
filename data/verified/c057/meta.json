@@ -1,0 +1,31 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c057",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 3,
+  "killed": 47,
+  "note": "mode=overwrite changed to keep and the value 1 changed to 2 on a dictionary that only EXISTS reads; DICT_ADD(gone, pname, 0, mode=sum) deleted, because a key that is not there reads 0 into a Long (as c038, D66). One survivor is not claimed: the key separator changed from | to zz|, which only an ID or a process holding the separator could tell apart",
+  "total": 51
+ },
+ "op_lines": 28,
+ "ops": [
+  "ADD_SHEET",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOG",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "welder_quals"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

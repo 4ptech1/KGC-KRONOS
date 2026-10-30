@@ -1,0 +1,16 @@
+$ python compiler/vclc.py all work/c060_try2.vcl -o dist
+OK   check  work/c060_try2.vcl
+OK   test   work/c060_try2.vcl  (3/3 tests)
+OK   build  work/c060_try2.vcl
+OK   lint   dist/forge_module.bas  (1188 lines)
+OK   lint   dist/forge_selftest.bas  (669 lines)
+OK   lint   dist/forge_fixtures.bas  (154 lines)
+
+ALL STAGES PASSED
+$ python compiler/vclc.py mutate work/c060_try2.vcl --snapshot
+ 84.6%  mutate work/c060_try2.vcl  (22/26)
+        survives: line 26: 2 -> 3
+        survives: line 27: 'mode=keep' -> 'mode=overwrite'
+        survives: line 27: 1 -> 2
+        survives: line 31: 2 -> 3
+Overall mutation score: 84.6%

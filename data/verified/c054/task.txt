@@ -1,0 +1,1 @@
+In the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date) highlight the Dispatch No cell yellow when the Actual Date is blank and the Planned Date is already past, and clear the fill on the other Dispatch No cells. Tell me how many are highlighted.

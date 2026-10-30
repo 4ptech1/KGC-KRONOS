@@ -1,0 +1,31 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c061",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 35,
+  "note": "the stored text Open changed to another text: the status is only compared with Closed",
+  "total": 36
+ },
+ "op_lines": 23,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "dispatch",
+  "job_tracker"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

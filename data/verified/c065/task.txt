@@ -1,0 +1,1 @@
+Copy the file weld_map.pdf from the Source folder to the Archive folder (both folder paths are given to the macro), unless a file with that name is already in Archive. Tell me in cell A1 of the Log sheet what happened: Copied, Exists or Missing.

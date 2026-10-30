@@ -55,3 +55,4 @@ say goes to `data/gaps.md`.
 | --- | --- | --- |
 | 1 | c013 to c032 | stored (D65): 18 verified, 2 held out |
 | 2 | c033 to c052 | stored (D66): 18 verified, 2 held out |
+| 3 | c053 to c072 | stored (D67): 18 verified, 2 held out |

@@ -1,0 +1,1 @@
+Hide every row in the GRN sheet (GRN No, Part No, Received Qty, Inspector) whose Inspector is not Ali, and tell me how many rows are visible after. Show the other rows again if I run it twice.

@@ -1,0 +1,31 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c059",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 32,
+  "note": "'<' changed to '<=' (an equal date replaces itself) and mode=overwrite changed to keep in the branch where the key is not there yet",
+  "total": 34
+ },
+ "op_lines": 25,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "calibration"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

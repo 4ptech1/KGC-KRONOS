@@ -1,0 +1,1 @@
+In the NDE Report (Weld Seam No, Method, Result, Report Date) highlight the whole row red when the Result is Fail and green when it is Pass. Rows with any other result get no fill. Clear the old fills first so it can be run again. Tell me how many rows failed.

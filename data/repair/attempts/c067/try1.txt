@@ -1,0 +1,6 @@
+$ python compiler/vclc.py all work/c067_try1.vcl -o dist
+FAIL check  work/c067_try1.vcl
+       line 25: error: FIXTURE data: values() takes "<text>"x<n>, ... , got '180x4,365x4' [V033]
+       line 27: error: FIXTURE data: values() takes "<text>"x<n>, ... , got '180x3' [V033]
+
+STOPPED: see the FAIL lines above

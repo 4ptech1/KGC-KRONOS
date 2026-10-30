@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c055",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 20,
+  "note": "",
+  "total": 20
+ },
+ "op_lines": 13,
+ "ops": [
+  "ELSE",
+  "FORMAT",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN"
+ ],
+ "registers": [
+  "nde"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

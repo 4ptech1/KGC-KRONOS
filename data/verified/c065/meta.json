@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "files",
+ "id": "c065",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 17,
+  "note": "",
+  "total": 17
+ },
+ "op_lines": 8,
+ "ops": [
+  "COPY_FILE",
+  "ELSE",
+  "IF",
+  "LET",
+  "LIST_FILES",
+  "RETURN",
+  "SET_VALUE"
+ ],
+ "registers": [
+  "weld_log"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

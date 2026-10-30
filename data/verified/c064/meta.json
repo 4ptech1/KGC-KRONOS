@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "rebuild",
+ "id": "c064",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 43,
+  "note": "outRow > 2 changed to >= and to > 3: the IF only guards the SORT, and with no dated row or one dated row the SORT changes nothing",
+  "total": 45
+ },
+ "op_lines": 21,
+ "ops": [
+  "CLEAR",
+  "FORMAT",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "ncr"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

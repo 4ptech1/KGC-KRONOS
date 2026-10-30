@@ -1,0 +1,1 @@
+In the weld log fill every blank Process cell with TBC, and leave the cells that already have a process alone. Tell me how many cells you filled.

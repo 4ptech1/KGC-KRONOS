@@ -1,0 +1,1 @@
+List the files in the Job Folder (a folder path I give the macro) on a Files sheet, one name per row under the heading File Name. Rebuild the sheet every run and tell me how many files there are.

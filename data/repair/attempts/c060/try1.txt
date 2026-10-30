@@ -1,0 +1,18 @@
+$ python compiler/vclc.py all work/c060_try1.vcl -o dist
+OK   check  work/c060_try1.vcl
+       line 44: warning: the spec adds to a dictionary, but no FIXTURE column repeats a key: add +dupes(n) so the TESTs see repeated keys (rule 19) [V057]
+OK   test   work/c060_try1.vcl  (3/3 tests)
+OK   build  work/c060_try1.vcl
+OK   lint   dist/forge_module.bas  (1192 lines)
+OK   lint   dist/forge_selftest.bas  (669 lines)
+OK   lint   dist/forge_fixtures.bas  (154 lines)
+
+ALL STAGES PASSED
+$ python compiler/vclc.py mutate work/c060_try1.vcl --snapshot
+ 74.1%  mutate work/c060_try1.vcl  (20/27)
+        survives: line 26: step deleted
+        survives: line 26: 'SKIP_IF' -> 'EXIT_LOOP_IF'
+        survives: line 27: 'mode=keep' -> 'mode=overwrite'
+        survives: line 27: 1 -> 2
+        ... and 3 more
+Overall mutation score: 74.1%

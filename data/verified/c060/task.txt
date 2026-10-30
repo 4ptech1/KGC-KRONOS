@@ -1,0 +1,1 @@
+Check the Weld Log (Weld Seam No, Welder ID) against the Welder Quals (Welder ID, Name). List on an Unknown Welders sheet every Welder ID used in the weld log that is not in Welder Quals, each ID once. Welder IDs can have stray spaces.

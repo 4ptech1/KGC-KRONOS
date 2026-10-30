@@ -1,0 +1,1 @@
+From the Calibration Tracker (Instrument ID, Location, Next Calibration Due) write on a Location Summary sheet, for each location, the number of instruments and the earliest Next Calibration Due date.

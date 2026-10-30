@@ -52,7 +52,9 @@ GitHub Actions runs all of this on every push and pull request.
 
 ## Dataset count
 
-Dataset count: 0 verified pairs
+Dataset count: 72 of the 150 planned request and spec pairs, each proven by the toolchain (66 in
+`data/verified`, 6 held out for the benchmark in `data/eval`); `python compiler/vclc.py corpus` gives the
+report.
 
 ## Progress log
 
@@ -273,3 +275,7 @@ Dataset count: 0 verified pairs
   `data/eval`, with 3 more BUILDs. The corpus has 52 of 150 pairs. The pairs catch 656 of the 657 catchable
   mutants; every equivalent survivor was read against its spec. `data/gaps.md` grew with new language gaps, prompt
   wording problems and a tooling table (D66).
+- **2026-10-30:** Stage A Phase 6, batch 3: 20 more pairs (c053 to c072), 18 in `data/verified` and 2 held out in
+  `data/eval`, with 3 more BUILDs. The corpus has 72 of 150 pairs. The pairs catch 649 of the 650 catchable
+  mutants; 8 failed attempts are kept as repair seeds, and `data/gaps.md` has new gaps such as a FILTER that
+  cannot show rows again and a TEST that cannot name TODAY (D67).
