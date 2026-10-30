@@ -119,7 +119,8 @@ Small language gaps the Orchestrator dry runs hit; each gets a decision in its p
 5. **A proven BUILD and the switch (done: D58):** `vcl/examples/example4_build.vcl`, a BUILD
    whose TESTs catch every mutant (34 of 34), is the prompt's new Example 4; rule 9 sends a request
    one TASK can't do to a BUILD, a new rule 23 covers BUILD and CALL, and rules 7, 8 and 14
-   changed; spec.md and the prompt move to 0.5, and Boss updates the Orchestrator once.
+   changed; spec.md and the prompt move to 0.5, and Boss updates the Orchestrator once. After the
+   switch (D67): the TASK rules hold across a BUILD's TASKs, and a BUILD needs a wrong-sheet TEST.
 
 ## Verification (every phase)
 

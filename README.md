@@ -273,3 +273,5 @@ Dataset count: 0 verified pairs
   `data/eval`, with 3 more BUILDs. The corpus has 52 of 150 pairs. The pairs catch 656 of the 657 catchable
   mutants; every equivalent survivor was read against its spec. `data/gaps.md` grew with new language gaps, prompt
   wording problems and a tooling table (D66).
+- **2026-10-30:** Two BUILD rules found after the switch: a BUILD may not split SET_FORMULA from row
+  moves, or FILTER from SORT, across its TASKs, and it needs a wrong-sheet TEST when RunHeadless has PRE (D67).

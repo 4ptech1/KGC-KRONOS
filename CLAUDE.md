@@ -226,7 +226,7 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    and mutation scores a BUILD. Phase 4a is done (D55): ROW_OF(<range>) and DEDUPE `into=`.
    Phase 4b is done (D56): a header the spec writes to row 1 counts as checked for rule 14.
    Phase 4c is done (D57): an assertion names a sheet with spaces in quotes, `'Open NCRs'!B1`.
-   Phase 5 is done (D58): a proven BUILD, `vcl/examples/example4_build.vcl` (the prompt's
+   Phase 5 is done (D58, and D67 for two BUILD rules found after it): a proven BUILD, `vcl/examples/example4_build.vcl` (the prompt's
    Example 4; its 3 TESTs pass and catch 34 of 34 mutants), and the switch: spec.md and the
    Orchestrator prompt teach VCL 0.5 (hard rules 7, 9 and 14 changed, new hard rule 23 for BUILD
    and CALL), and Boss pastes the new prompt into the Orchestrator Project once. **Item 3 is

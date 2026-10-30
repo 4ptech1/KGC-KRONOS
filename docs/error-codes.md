@@ -337,6 +337,9 @@ message, `{...}` stands for the part that varies.
 | V326 | error | GOAL must be {lowest} to {highest} characters, got {len(k.value)} | validator.py |
 | V327 | error | GOAL must be plain printable ASCII text and not start with # | validator.py |
 | V328 | error | GOAL only repeats the {name_key} name: say what the spec does and for which sheets | validator.py |
+| V329 | error | modMain.RunHeadless has PRE and the fixture has another sheet, but no wrong-sheet TEST expects {want} (rule 5) | validator.py |
+| V330 | error | {full} uses SET_FORMULA and {other[0]} uses {other[1]}: a BUILD may not do both, because Excel rewrites formula references when rows move, which a TEST can't prove (D43) | validator.py |
+| V331 | error | {full} uses FILTER and {other} uses SORT: a BUILD may not do both, because how Excel sorts rows that FILTER hid can't be proven by a TEST (D42) | validator.py |
 
 ## G: grammar
 
