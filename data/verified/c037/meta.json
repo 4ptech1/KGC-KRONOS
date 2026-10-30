@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c037",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 20,
+  "note": "the two survivors only leave gap rows between the summary rows (start row 3, or step 2); the SORT that follows moves blank rows to the bottom, so the final sheet is identical (checked: build outputs of both mutants match the original's expected state)",
+  "total": 22
+ },
+ "op_lines": 13,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "weld_log"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 2)"
+}

@@ -1,0 +1,1 @@
+Check the NDE Report (Weld Seam No, Result) against the Weld Log (Weld Seam No, Visual). List on a Not Inspected sheet every weld log seam whose Visual is Accepted but which has no row in the NDE Report. Seam numbers can have stray spaces.

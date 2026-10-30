@@ -1,0 +1,1 @@
+From the NCR Register (NCR No, Category, Issue Date, Status) build a Category Summary sheet with, for each category, how many NCRs are Open and how many are Closed, categories in alphabetical order. Rows with no category are ignored.

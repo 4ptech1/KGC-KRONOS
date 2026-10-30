@@ -1,0 +1,1 @@
+Compare the BOM (Part No, Required Qty) with the GRN (Part No, Received Qty). In the BOM add a Received column with the total received per part, summing the GRN lines, and a Balance column with received minus required. Add the headings if they are missing.

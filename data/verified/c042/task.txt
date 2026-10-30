@@ -1,0 +1,1 @@
+In the GRN sheet trim the spaces from the Part No and GRN No cells and make the Part No upper case. Change nothing else, and tell me how many cells changed.

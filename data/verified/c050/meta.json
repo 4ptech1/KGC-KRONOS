@@ -1,0 +1,36 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c050",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 131,
+  "note": "Two equivalents in the quals loop: (1) '>' to '>=' on the expiry compare: when the new expiry equals the stored one, overwriting stores the same date, so no result changes. (2) mode=overwrite to mode=keep in the ELSE branch: that branch runs only when EXISTS(latest, lookup) was false, so the key is absent and overwrite and keep both just add it.",
+  "total": 133
+ },
+ "op_lines": 87,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "COPY_ROW",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FORMAT",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "weld_log",
+  "welder_quals"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 2)"
+}

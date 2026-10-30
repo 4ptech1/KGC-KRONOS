@@ -1,0 +1,1 @@
+On the NCR Register find the row of NCR number NCR-104 and write Reviewed in its Status column. Return the row number, or 0 if that NCR isn't there.

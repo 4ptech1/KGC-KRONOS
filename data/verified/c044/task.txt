@@ -1,0 +1,1 @@
+In the NCR Register remove duplicate NCR No rows, keeping the first one, and tell me how many I removed. NCR numbers can differ in upper and lower case.

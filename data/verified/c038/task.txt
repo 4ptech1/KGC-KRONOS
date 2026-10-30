@@ -1,0 +1,1 @@
+From the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date) make a Customer Summary sheet with the number of dispatches per customer and how many of them were late (Actual Date after Planned Date). Customers A to Z.

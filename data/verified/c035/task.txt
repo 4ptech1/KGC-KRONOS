@@ -1,0 +1,1 @@
+In the GRN sheet (GRN No, Part No, Received Qty, Received Date, Inspector) highlight the GRN No cell yellow when the Inspector is blank, and write Future date in the Remark column when Received Date is after today. Clear old highlights and old remarks first. Tell me how many rows have a yellow GRN No.

@@ -1,0 +1,8 @@
+FAIL check  work/c039_try1.vcl
+       line 59: error: B: +boundary value 'tbc' doesn't fit int() (use numbers) [V262]
+       line 60: error: B: +boundary value 'n/a' doesn't fit int() (use numbers) [V262]
+       line 60: warning: SKIP_IF skips blank "Part No" cells, but FIXTURE sheet GRN has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]
+       line 61: error: C: +boundary value 'tbc' doesn't fit int() (use numbers) [V262]
+       line 62: error: B: +boundary value 'n/a' doesn't fit int() (use numbers) [V262]
+
+STOPPED: see the FAIL lines above
