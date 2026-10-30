@@ -1,0 +1,187 @@
+[
+ {
+  "id": "c053",
+  "set": "verified",
+  "family": "flag",
+  "registers": [
+   "wps_pqr"
+  ],
+  "request": "In the WPS Register (WPS No, Process, Thickness Min, Thickness Max, PQR No) write Check in a Remark column for every row where the PQR No is blank or Thickness Min is greater than Thickness Max. Clear the Remark on the other rows. Tell me how many rows have Check."
+ },
+ {
+  "id": "c054",
+  "set": "verified",
+  "family": "flag",
+  "registers": [
+   "dispatch"
+  ],
+  "request": "In the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date) highlight the Dispatch No cell yellow when the Actual Date is blank and the Planned Date is already past, and clear the fill on the other Dispatch No cells. Tell me how many are highlighted."
+ },
+ {
+  "id": "c055",
+  "set": "eval",
+  "family": "flag",
+  "registers": [
+   "nde"
+  ],
+  "request": "In the NDE Report (Weld Seam No, Method, Result, Report Date) highlight the whole row red when the Result is Fail and green when it is Pass. Rows with any other result get no fill. Clear the old fills first so it can be run again. Tell me how many rows failed."
+ },
+ {
+  "id": "c056",
+  "set": "verified",
+  "family": "flag",
+  "registers": [
+   "itp"
+  ],
+  "request": "In the ITP Tracker (ITP No, Point, Inspection Status, Planned Date) write Overdue in a Remark column for every point that is not Done and whose Planned Date is more than 7 days ago. Clear the Remark on the rest. Return how many are overdue."
+ },
+ {
+  "id": "c057",
+  "set": "verified",
+  "family": "summarise",
+  "registers": [
+   "welder_quals"
+  ],
+  "request": "From the Welder Quals sheet (Welder ID, Name, Process, Expiry Date) make a Process Summary sheet with, for each welding process, how many welders have it and how many of those have already expired. Processes A to Z."
+ },
+ {
+  "id": "c058",
+  "set": "verified",
+  "family": "summarise",
+  "registers": [
+   "material_certs"
+  ],
+  "request": "From the Material Certs sheet (Heat No, MTC No, Material Grade, Cert Date) make a Grade Summary sheet that lists each material grade once with the number of certificates, biggest count first."
+ },
+ {
+  "id": "c059",
+  "set": "verified",
+  "family": "summarise",
+  "registers": [
+   "calibration"
+  ],
+  "request": "From the Calibration Tracker (Instrument ID, Location, Next Calibration Due) write on a Location Summary sheet, for each location, the number of instruments and the earliest Next Calibration Due date."
+ },
+ {
+  "id": "c060",
+  "set": "verified",
+  "family": "reconcile",
+  "registers": [
+   "weld_log",
+   "welder_quals"
+  ],
+  "request": "Check the Weld Log (Weld Seam No, Welder ID) against the Welder Quals (Welder ID, Name). List on an Unknown Welders sheet every Welder ID used in the weld log that is not in Welder Quals, each ID once. Welder IDs can have stray spaces."
+ },
+ {
+  "id": "c061",
+  "set": "verified",
+  "family": "reconcile",
+  "registers": [
+   "dispatch",
+   "job_tracker"
+  ],
+  "request": "Compare the Dispatch sheet (Dispatch No, Job ID, Customer) with the Job Tracker (Job ID, Status). In the Dispatch sheet write Job not closed in a Remark column when the job is not Closed or is not in the Job Tracker, and clear the Remark on the others. Tell me how many dispatches have that remark."
+ },
+ {
+  "id": "c062",
+  "set": "verified",
+  "family": "clean",
+  "registers": [
+   "weld_log"
+  ],
+  "request": "In the weld log fill every blank Process cell with TBC, and leave the cells that already have a process alone. Tell me how many cells you filled."
+ },
+ {
+  "id": "c063",
+  "set": "verified",
+  "family": "clean",
+  "registers": [
+   "nde"
+  ],
+  "request": "In the NDE Report trim the spaces from the Result cells and make them upper case (PASS, FAIL). Change nothing else, and tell me how many cells changed."
+ },
+ {
+  "id": "c064",
+  "set": "verified",
+  "family": "rebuild",
+  "registers": [
+   "ncr"
+  ],
+  "request": "Rebuild an NCR Aging sheet from the NCR Register (NCR No, Issue Date, Status): list every Open NCR with its age in days, oldest first. Clear the sheet before writing so it can be run again."
+ },
+ {
+  "id": "c065",
+  "set": "verified",
+  "family": "files",
+  "registers": [
+   "weld_log"
+  ],
+  "request": "Copy the file weld_map.pdf from the Source folder to the Archive folder (both folder paths are given to the macro), unless a file with that name is already in Archive. Tell me in cell A1 of the Log sheet what happened: Copied, Exists or Missing."
+ },
+ {
+  "id": "c066",
+  "set": "verified",
+  "family": "files",
+  "registers": [
+   "job_tracker"
+  ],
+  "request": "List the files in the Job Folder (a folder path I give the macro) on a Files sheet, one name per row under the heading File Name. Rebuild the sheet every run and tell me how many files there are."
+ },
+ {
+  "id": "c067",
+  "set": "verified",
+  "family": "sheets_formulas",
+  "registers": [
+   "calibration"
+  ],
+  "request": "In the Calibration Tracker (Instrument ID, Last Calibrated, Interval Days, Next Due) put a formula in Next Due for every data row: Last Calibrated plus Interval Days. Excel 2016 only."
+ },
+ {
+  "id": "c068",
+  "set": "verified",
+  "family": "find_filter",
+  "registers": [
+   "dispatch"
+  ],
+  "request": "Find the row of dispatch D-205 on the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date) and write today's date in its Actual Date cell. Return the row number, or 0 if there is no such dispatch."
+ },
+ {
+  "id": "c069",
+  "set": "verified",
+  "family": "find_filter",
+  "registers": [
+   "grn"
+  ],
+  "request": "Hide every row in the GRN sheet (GRN No, Part No, Received Qty, Inspector) whose Inspector is not Ali, and tell me how many rows are visible after. Show the other rows again if I run it twice."
+ },
+ {
+  "id": "c070",
+  "set": "verified",
+  "family": "build",
+  "registers": [
+   "dispatch",
+   "job_tracker"
+  ],
+  "request": "A dispatch review tool, started with one macro. (1) In the Dispatch sheet (Dispatch No, Job ID, Customer, Planned Date, Actual Date) write Late in a Remark column when the Actual Date is after the Planned Date, and clear the Remark on the others. (2) On a Late Dispatches sheet copy every Late row with its headings. (3) In the Job Tracker (Job ID, Status) write Dispatched in a Dispatch Check column for every job that has a dispatch row with an Actual Date, and clear it on the others. (4) On a Dispatch Summary sheet write the number of dispatches, late dispatches and dispatched jobs, with labels. The output sheets are rebuilt every run."
+ },
+ {
+  "id": "c071",
+  "set": "eval",
+  "family": "build",
+  "registers": [
+   "nde",
+   "weld_log"
+  ],
+  "request": "An NDE follow-up tool, started with one macro. (1) In the NDE Report (Weld Seam No, Method, Result, Report Date) write Repair in an Action column for every Fail and clear it on the others. (2) On a Repairs sheet list the Weld Seam No and Method of every Fail, with headings. (3) In the Weld Log (Weld Seam No, Welder ID) write the Result from the NDE Report in an NDE Result column for each seam, or leave it blank when the seam has no NDE row. (4) On a Method Summary sheet write, for each NDE method, the number of reports and the number of fails. The output sheets are rebuilt every run."
+ },
+ {
+  "id": "c072",
+  "set": "verified",
+  "family": "build",
+  "registers": [
+   "consumables",
+   "calibration"
+  ],
+  "request": "A weekly shop tool, started with one macro. (1) In the Consumable Stock (Batch No, Qty On Hand, Reorder Level) write Reorder in a Remark column when Qty On Hand is below Reorder Level, and clear the Remark on the others. (2) On a Reorder List sheet copy those rows with their headings. (3) In the Calibration Tracker (Instrument ID, Next Calibration Due) highlight the Instrument ID cell red when overdue and yellow when due within 15 days, clearing the old fills first. (4) On a Weekly Summary sheet write the number of reorder lines, overdue instruments and instruments due soon, with labels. The output sheets are rebuilt every run."
+ }
+]
