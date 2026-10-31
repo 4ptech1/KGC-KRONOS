@@ -303,3 +303,6 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
 - **2026-10-31:** The KRONOS window comes before everything else (D74). With Boss it is designed as a
   four-step wizard (Ask, Questions, Review, Save) with the recipe hidden behind a setting
   (`docs/kronos-app.md` section 2), built in PRs 2a to 2d with screenshots for Boss in each.
+- **2026-10-31:** Item 5 Phase 2a (D75): the engine hooks the window needs (each person action a turn
+  with 3 tries, Cancel that stops Codex, Ask for a change, Ask Codex to fix, the recipe in plain
+  words) and the wizard's controller, tested without a display. The tests caught two bugs, now fixed.

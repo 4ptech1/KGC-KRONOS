@@ -111,7 +111,7 @@ tests/               unit tests for the Python tools
 docs/                roadmap, plans, design documents, kgc-kronos-context.md (AI context)
 logs/
 .github/workflows/   CI
-app/                 the KGC KRONOS window (arrives in item 5 Phase 2, D68)
+app/                 the KGC KRONOS window: kronos_controller.py (the wizard's state, D75), kronos_app.py (2b)
 (train/ and model/ arrive in March 2027)
 ```
 
@@ -276,9 +276,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    `python compiler/vclc.py ask "<request>"`. **Next: Phase 2, the window, before everything else
    (Boss, 31 Oct 2026; D74).** It is a four-step wizard (Ask, Questions, Review, Save) with the recipe
    hidden behind a setting, designed in `docs/kronos-app.md` section 2, in PRs 2.0 (the design, docs
-   only), 2a (engine hooks and the wizard's controller), 2b (the window and `--smoke`), 2c (first-run
-   checklist, Settings, History, Help) and 2d (Suggest for the corpus); every window PR sends Boss
-   screenshots. Then Phase 3 (KRONOS.exe and the guide), then the pilot (Phase 4) once IT approves
+   only; done, PR #70), 2a (engine hooks and the wizard's controller; done, D75), 2b (the window and
+   `--smoke`; next), 2c (first-run checklist, Settings, History, Help) and 2d (Suggest for the corpus);
+   every window PR sends Boss screenshots. Then Phase 3 (KRONOS.exe and the guide), then the pilot (Phase 4) once IT approves
    KRONOS.exe and the Codex CLI; corpus batch 3 resumes after Phase 3, and the team version (Phase 5)
    follows the pilot. The parallel session is gone; this is the only session on the repo.
 
