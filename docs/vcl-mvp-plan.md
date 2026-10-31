@@ -97,7 +97,7 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    `docs/vep-0.6-stage-a.md` (D59), with the language changes (error codes, `GOAL`, `vclc fmt`)
    first so no stored spec is ever migrated. Those changes and the corpus tooling are done (D60 to
    D64), and batches 1 and 2 are stored: 52 of 150 pairs, 4 of them held out (D65, D66). Batch 3
-   waits until the KRONOS app's first usable version (D71).
+   waits until KRONOS.exe is done (Phase 3 of item 9; D71, D74).
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
@@ -111,4 +111,6 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    module with a starter macro. Tkinter, one KRONOS.exe built by GitHub Actions; Boss's PC first,
    then the team on the company drive. It comes before corpus batch 3 (D71), and from March 2027
    our own model replaces Codex behind the same window (D31). Phase 0, the design, is merged (PR #58);
-   Phase 1, the engine and `vclc ask`, is done (D72); Phase 2, the window, is next.
+   Phase 1, the engine and `vclc ask`, is done (D72). Phase 2, the window, comes before everything
+   else (D74): a four-step wizard (Ask, Questions, Review, Save) in PRs 2.0 to 2d, then Phase 3
+   (KRONOS.exe), then the pilot.

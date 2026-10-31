@@ -59,4 +59,4 @@ say goes to `data/gaps.md`.
 | --- | --- | --- |
 | 1 | c013 to c032 | stored (D65): 18 verified, 2 held out |
 | 2 | c033 to c052 | stored (D66): 18 verified, 2 held out |
-| 3 | c053 on | waits until the KRONOS app's first usable version (D71); its practice runs may add candidates |
+| 3 | c053 on | waits until KRONOS.exe is done (Phase 3; D71, D74); its practice runs may add candidates |

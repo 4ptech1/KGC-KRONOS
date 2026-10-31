@@ -1,6 +1,6 @@
 # KGC KRONOS: AI context file
 
-**Snapshot: 31 Oct 2026, after the review passes of item 2 (D47, D48, D51), CALL and BUILD specs (VEP 0.5, D50 to D58, D67) with the switch to VCL 0.5, the AI plan's Stage A to corpus batch 2 (D59 to D66), and the KGC KRONOS desktop app (item 5): its design (D68 to D71) and its engine with `vclc ask` (D72); then a check of every reference file against the decisions (D73).** Hand this file to any Claude chat or claude.ai
+**Snapshot: 31 Oct 2026, after the review passes of item 2 (D47, D48, D51), CALL and BUILD specs (VEP 0.5, D50 to D58, D67) with the switch to VCL 0.5, the AI plan's Stage A to corpus batch 2 (D59 to D66), and the KGC KRONOS desktop app (item 5): its design (D68 to D71) and its engine with `vclc ask` (D72); then a check of every reference file against the decisions (D73) and the window's design as a wizard, first in line (D74).** Hand this file to any Claude chat or claude.ai
 Project that needs to understand the project. The repo is always the source of truth: if this
 file and the repo disagree, the repo wins, and the repo's `CLAUDE.md` has the current status.
 
@@ -57,7 +57,7 @@ that proves every macro without Excel.
 | --- | --- | --- |
 | Boss | Locked-down work PC, browser, phone | Gives requests and decisions. Does no testing or debugging. Runs Excel only when he chooses. |
 | Orchestrator | claude.ai Project, instructions = `vcl/orchestrator_prompt.txt` | Turns a request into exactly one VCL spec in one code block, or one `# QUESTION:` line. Never writes VBA. |
-| KGC KRONOS app (item 5: the engine is built, D72; the window is next) | KRONOS.exe on the work PC, with the Codex CLI signed in to the person's ChatGPT account | Sends the request and the same prompt to Codex, proves the reply with the toolchain, sends problems back (up to 2 more tries), saves the VBA module. Never runs VBA (D68). |
+| KGC KRONOS app (item 5: the engine is built, D72; the window, a four-step wizard, comes first, D74) | KRONOS.exe on the work PC, with the Codex CLI signed in to the person's ChatGPT account | Sends the request and the same prompt to Codex, proves the reply with the toolchain, sends problems back (up to 2 more tries), saves the VBA module. Never runs VBA (D68). |
 | Claude Code | Cloud session on the repo (claude.ai/code) | Builds and verifies everything: code, tests, CI, PRs. Merges its own PR when CI is green. |
 | You (the reader of this file) | Any Claude chat | Advise, plan, review specs, explain. Changes to the repo go through Claude Code, as a short brief. |
 
@@ -116,7 +116,7 @@ Boss's working policy (from `CLAUDE.md`):
 
 ```
 CLAUDE.md                 standing brief for Claude Code (rules, status, next steps)
-DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D73)
+DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D74)
 README.md                 overview, how to run the checks, progress log, dataset count
 requirements.txt          one pinned dependency: lark==1.3.1 (with hash)
 vcl/spec.md               THE language reference (VCL 0.6)
@@ -465,7 +465,8 @@ The 12 specs:
   and item 5 Phase 0, the KGC KRONOS desktop app design (D68 to D71).
 - #68: item 5 Phase 1, the KRONOS engine and `vclc ask`, with the fake and Codex adapters, the repair loop and the
   starter macro (D72).
-- Every reference file checked against the decisions; the roadmap .docx annotated, not rewritten (D73).
+- #69: every reference file checked against the decisions; the roadmap .docx annotated, not rewritten (D73).
+- Item 5 Phase 2.0: the window comes first, designed as a four-step wizard with Boss (D74).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -549,7 +550,7 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    spec.md and the prompt teach VCL 0.6, hard rule 24, D63; Boss updates the Orchestrator once) are done.
    Phase 5 (the corpus tooling and the first twelve pairs, `vclc corpus`, D64) is done; Phase 6, the corpus to
    150 tasks in batches of about 20, is in progress: batches 1 and 2 (c013 to c052) are stored, 52 of 150 (D65, D66).
-   Batch 3 waits until the KRONOS app's first usable version (D71).
+   Batch 3 waits until KRONOS.exe is done (Phase 3 of item 5; D71, D74).
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    Tkinter window, shipped as one KRONOS.exe built by GitHub Actions. A person types a request;
    KRONOS sends the Orchestrator prompt and the request to ChatGPT Codex (`codex exec`, read-only,
@@ -557,7 +558,11 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    to 2 more tries, lets the person edit the spec, and saves the .bas with import steps and a starter
    macro. Phases: 0 the design (done), 1 the engine and `vclc ask` with a fake AI (done, D72), 2 the window, 3
    KRONOS.exe and the guide, 4 Boss's pilot after IT approves the installs, 5 the team on the company
-   drive. From March 2027 our own model replaces Codex behind the same window.
+   drive. From March 2027 our own model replaces Codex behind the same window. **The window comes
+   before everything else (Boss, 31 Oct 2026; D74):** a four-step wizard (1 Ask, 2 Questions, 3 Review,
+   4 Save), plain words first, the recipe hidden behind a setting, and screenshots for Boss in every
+   window PR (`docs/kronos-app.md` section 2). Its PRs: 2.0 the design, 2a the engine hooks and the
+   controller, 2b the window, 2c the checklist, Settings, History and Help, 2d Suggest for the corpus.
 6. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
    VCL, never VBA (D31). Excel conformance runs.
 
@@ -633,6 +638,8 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
   for a proven spec, with a starter macro that passes the real sheet names.
 - **D73:** the roadmap .docx's phase list is the plan of 14 Oct 2026; the current order of work is
   CLAUDE.md's "Next" list and `docs/vcl-mvp-plan.md`. Its picture still shows fine-tuning, which D25 rules out.
+- **D74:** the KRONOS window comes before everything else: a four-step wizard (Ask, Questions,
+  Review, Save), the recipe hidden behind a setting, screenshots for Boss in every window PR.
 - **D49, D58:** CALL and BUILD specs: one module per BUILD, CALL `into=`, MODIFIES that follows the
   arguments; FORM and xlam wait (no UserForm can be pasted, and THIS_BOOK would be the add-in).
   The prompt teaches them from VCL 0.5, with a proven sample BUILD as Example 4.
@@ -3055,6 +3062,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D71 | 30 Oct 2026 | **The team version and the order of work.** (1) KRONOS is for a team in the end. Each person runs KRONOS.exe on their own PC with their own Codex CLI and ChatGPT login (a ChatGPT login belongs to one person, so a shared server can't use one). The shared part (the team's history, approved specs, corpus candidates, settings) goes in a shared folder on the company storage drive, which every copy of KRONOS reads and writes; a server program waits until a shared folder is not enough. (2) Order: Boss's PC first, the team version next. (3) The app comes before the rest of Stage A: corpus batch 3 (D66's next step) resumes after the app's first usable version, and practice runs proven through KRONOS can feed it (D70). (4) The parallel Claude session that built Stage A is gone; this session is the only one working on the repo. | Boss's answers. One user first finds the problems cheaply, and a shared folder fits the company drive Boss named without a server to run. |
 | D72 | 31 Oct 2026 | **Item 5 Phase 1: the KRONOS engine and `vclc ask` (`compiler/kronos_engine.py`, `compiler/kronos_ai.py`, the starter macro in `compiler/vcl_codegen.py`).** (1) The prompt goes to Codex on stdin, not in AGENTS.md, a change to the design: Codex reads AGENTS.md only up to `project_doc_max_bytes` (32 KiB by default, as far as I know; to be checked on Boss's PC), and the prompt is 48 KB, so its end (Examples 3 and 4 and the final check) would be cut off. AGENTS.md now holds only a short note: run no commands, write no files. The default command is `codex exec --sandbox read-only --skip-git-repo-check --output-last-message {out} -`: `--skip-git-repo-check` because the working folder is not a git repo, and `-` reads the message from stdin. It is `codex_command` in settings.json, `vclc ask --check-ai` checks every flag against `codex exec --help`, and the program is found with `shutil.which`, which also finds `codex.cmd` on Windows. (2) Reading a reply follows the design: the one vcl code block (the tag in any case), else the whole reply when it starts with `VCL` or `# QUESTION:`; text outside the block is kept for the log. A new code prefix, K (KRONOS engine), covers the replies that can't be used: K001 more than one vcl block, K002 an empty block, K003 no block; and K004, a question given to the prover. A reply that can't be used counts as a try and goes back to the AI with its code. (3) Bounds: 3 tries by the AI (the first spec and 2 more, D68). A question is not a try, but a 4th question ends the run, and the person puts the details in the request. The attempt shown is the latest proven one; otherwise the one that got furthest (a failing TEST beats a spec that doesn't check), then the one with fewer problems, then the later one. (4) The pipeline stops at the first stage that fails, as `vclc all` does. A spec with a failing TEST is not compiled, so KRONOS never offers VBA that isn't proven. Only errors and failing TESTs go back to the AI, as the design says; warnings are shown. Compile and lint messages stay uncoded, as in vclc. (5) The starter macro (`starter_sub`) passes Worksheet arguments (`ThisWorkbook.Worksheets("<name>")`, a name `sheet_name_ok` accepts) and String, Long, Double and Boolean values. It refuses any other argument type, and a Function with an object result, with a message to call the procedure from one's own macro. Values must be plain ASCII (a .bas holds no other characters) and at most 255 characters. The starter clears ForgeLog, runs the procedure, and shows its result, or the log when anything was logged. Its own error handler logs the error and names the sheets to check. A Sub without arguments needs no starter, and a BUILD starts with its own modMain.Run. (6) The .bas is named `modKronos<name>` (31 characters at most), with an `Attribute VB_Name` line and Windows line endings, and is written only for a proven spec. The import steps tell the person to try it on a copy of the workbook first. Without the sheet names, `vclc ask` saves the module without a starter and says so. (7) The data folder (default `Documents/KGC KRONOS`) is refused inside the repo (D69). settings.json holds only `ai`, `codex_command` and `codex_timeout` (300 seconds), and an unknown key is an error. (8) Not in this phase: "Suggest for the corpus" waits for the window (Phase 2), where its button lives; the gates it needs already exist (`vclc corpus-add`). | The same toolchain judges every spec, every path is tested with the fake AI, and wherever the design left a gap I took the conservative choice. |
 | D73 | 31 Oct 2026 | **Every reference file checked against the decisions (Boss: "do all our reference files in the repo reflect our decisions and plan? make changes according to your recommendations").** (1) The roadmap .docx keeps its phase list as the plan of 14 Oct 2026, and gains an "Update, 31 October 2026" paragraph under its Roadmap heading rather than a rewrite: Gate 0 is met. The current order of work is in CLAUDE.md and `docs/vcl-mvp-plan.md`. Phase 1 was done another way (the compiler and ForgeLib write the VBA, the reference interpreter proves every spec without Excel, and the Excel batch runner, PR #4, is deferred). Phase 2's dataset factory is Stage A. The KRONOS app comes first (D71). The roadmap picture still shows a base model and fine-tuning, which D25 rules out; the paragraph says so, because the picture can't be edited as text. Its PC table now lists desktop Excel 2016, the version every macro targets, not "Microsoft 365 or 2021+". (2) The three items `docs/kronos-app.md` listed as out of date are fixed. `data/gaps.md` said plain `mutate` samples; it doesn't (c036 scores 35 of 37 on every run and every date), and the note now says how plain mode and `--snapshot` differ. R028 and the compiler's two NOTE messages no longer say "the local model": they say a spec with a NOTE goes back to Claude or Boss (D31). R028 keeps its code, as D60 allows for a reworded message. (3) CLAUDE.md and README say Gate 0 is met and where the current order of work lives. The MVP plan's limits now cover VCL 0.6 and BUILDs, and its corpus item gives its status. The context file gets the right decision range, the vclc commands, the files CI keeps current, the 52 corpus pairs, the installs D69 allows, and a glossary entry for KGC KRONOS. (4) Left as they are: the progress logs (history, true when written), and the Orchestrator prompt's "an offline VBA code generator" (the generator is still offline, D69, and changing the prompt would make Boss paste it again). | The repo is the source of truth only if its reference files agree with the decisions. Annotating the roadmap, instead of rewriting it, keeps the original plan readable next to what changed. |
+| D74 | 31 Oct 2026 | **The KRONOS window comes before everything else, as a four-step wizard (Boss: "let the KRONOS UI take priority before other phases ... plan how the UI should look like and its functionality with codex").** (1) Order: the window (item 5 Phase 2) is the top priority, and nothing else starts until it is done. Phase 3 (KRONOS.exe and the guide) follows at once, because the window is no use to Boss until it runs on his PC. Then the pilot (Phase 4) once IT approves. Corpus batch 3 and the rest of Stage A resume after Phase 3 and may run while the pilot waits for IT. The team version (Phase 5) follows the pilot. March 2027 onward is unchanged. (2) Boss's three choices, asked in plan mode: a step-by-step wizard (1 Ask, 2 Questions, 3 Review, 4 Save) rather than two panes or tabs; screenshots of each window state in every window PR, with no live demo; and the recipe (the VCL) hidden behind a "Show the recipe (advanced)" setting, off by default. (3) The design, in `docs/kronos-app.md` section 2. Review shows the GOAL, ASSUME and MODIFIES lines in words, and Save stays off until the recipe is proven and the person ticks "I checked these assumptions". Save asks for the real sheet names, with the practice names from the TESTs as hints, and offers the import steps. A working panel shows each step and try, with Cancel, which stops Codex. A first-run checklist (Codex found, its flags, an optional one-call test, the Data Controls tick, the data folder, the practice-only tick) gates Ask Codex. Ask for a change, an answer, and Ask Codex to fix are each a new turn with 3 tries; a question is not a try. Codex errors are shown in plain words with Try again. (4) The window holds no logic: `app/kronos_controller.py` is the wizard's state machine, tested without a display, with engine work on a worker thread and events on a queue. The engine gains a progress callback, cancel, a follow-up turn, a fix turn, a plain-words summary, sheet hints and five settings keys. `--smoke` runs one fake request through all four steps, in CI under a virtual display, and later as KRONOS.exe's self-test. (5) PRs, one at a time: 2.0 this design (docs only), 2a the engine hooks and the controller, 2b the window, 2c the checklist, Settings (with the Recipe window), History and Help, and 2d Suggest for the corpus. | Boss's priority and choices. A wizard puts one decision on each screen for non-technical colleagues, and the assumptions tick makes the person read what the macro assumes before saving it. Keeping the logic in a controller lets every path be tested in the cloud, where there is no screen. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4881,8 +4889,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    for the rest is `docs/corpus-plan.md`; D64) are done; Phase 6, the corpus to 150 tasks in
    batches of about 20, is in progress (batches 1 and 2, c013 to c052, are stored: 52 pairs of 150, four of
    them held out; `data/gaps.md` logs what VCL could not say; D65, D66). Batch 3, leaning on the thin
-   registers and families (`vclc corpus --report`), waits until the KRONOS app's first usable version
-   (D71); no training before March 2027.
+   registers and families (`vclc corpus --report`), waits until KRONOS.exe is done (Phase 3; D71,
+   D74); no training before March 2027.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,
@@ -4892,9 +4900,14 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    Phase 1 is done (D72): the engine (`compiler/kronos_engine.py`), the fake and Codex adapters
    (`compiler/kronos_ai.py`, the prompt on stdin), reply reading (codes K001 to K004), the repair loop
    (3 tries), the run folder outside the repo, the starter macro (`vcl_codegen.starter_sub`) and
-   `python compiler/vclc.py ask "<request>"`. **Next: Phase 2**, the Tkinter window on the engine, with
-   "Suggest for the corpus". Before Boss's pilot (Phase 4): IT's approval of KRONOS.exe and the Codex
-   CLI. The parallel session is gone; this is the only session on the repo.
+   `python compiler/vclc.py ask "<request>"`. **Next: Phase 2, the window, before everything else
+   (Boss, 31 Oct 2026; D74).** It is a four-step wizard (Ask, Questions, Review, Save) with the recipe
+   hidden behind a setting, designed in `docs/kronos-app.md` section 2, in PRs 2.0 (the design, docs
+   only), 2a (engine hooks and the wizard's controller), 2b (the window and `--smoke`), 2c (first-run
+   checklist, Settings, History, Help) and 2d (Suggest for the corpus); every window PR sends Boss
+   screenshots. Then Phase 3 (KRONOS.exe and the guide), then the pilot (Phase 4) once IT approves
+   KRONOS.exe and the Codex CLI; corpus batch 3 resumes after Phase 3, and the team version (Phase 5)
+   follows the pilot. The parallel session is gone; this is the only session on the repo.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
@@ -5001,7 +5014,7 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    `docs/vep-0.6-stage-a.md` (D59), with the language changes (error codes, `GOAL`, `vclc fmt`)
    first so no stored spec is ever migrated. Those changes and the corpus tooling are done (D60 to
    D64), and batches 1 and 2 are stored: 52 of 150 pairs, 4 of them held out (D65, D66). Batch 3
-   waits until the KRONOS app's first usable version (D71).
+   waits until KRONOS.exe is done (Phase 3 of item 9; D71, D74).
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
@@ -5015,7 +5028,9 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    module with a starter macro. Tkinter, one KRONOS.exe built by GitHub Actions; Boss's PC first,
    then the team on the company drive. It comes before corpus batch 3 (D71), and from March 2027
    our own model replaces Codex behind the same window (D31). Phase 0, the design, is merged (PR #58);
-   Phase 1, the engine and `vclc ask`, is done (D72); Phase 2, the window, is next.
+   Phase 1, the engine and `vclc ask`, is done (D72). Phase 2, the window, comes before everything
+   else (D74): a four-step wizard (Ask, Questions, Review, Save) in PRs 2.0 to 2d, then Phase 3
+   (KRONOS.exe), then the pilot.
 
 ### `docs/ai-plan.md`
 
@@ -5198,7 +5213,7 @@ say goes to `data/gaps.md`.
 | --- | --- | --- |
 | 1 | c013 to c032 | stored (D65): 18 verified, 2 held out |
 | 2 | c033 to c052 | stored (D66): 18 verified, 2 held out |
-| 3 | c053 on | waits until the KRONOS app's first usable version (D71); its practice runs may add candidates |
+| 3 | c053 on | waits until KRONOS.exe is done (Phase 3; D71, D74); its practice runs may add candidates |
 
 ### `docs/excel-pilot.md`
 
