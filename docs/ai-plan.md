@@ -9,7 +9,9 @@ new PC arrives in March 2027.
 
 **Our own model writes VCL, never VBA. The compiler stays the only thing that writes VBA.**
 
-The model is still ours (D25): designed and trained from zero, on in-house data only.
+The model is still ours (D25): designed and trained from zero, on in-house data only. Since D70,
+in-house also covers a spec that ChatGPT Codex wrote through the KGC KRONOS app and the toolchain
+proved; Codex writes data, never part of the model.
 
 Why:
 - The compiler already turns VCL into VBA without mistakes. A model doing the same job could
@@ -29,14 +31,18 @@ Why:
 
 ## The flow
 
+The KGC KRONOS desktop app (`docs/kronos-app.md`, D68) is where this flow lives. Until our model
+is ready, ChatGPT Codex writes the VCL behind the same window; from March 2027 our model takes its
+place.
+
 ```text
-Boss types a task in plain English
+Boss types a task in plain English (in the KRONOS window)
   -> the model writes VCL (several tries)
   -> validator, type checker and TESTs keep only the tries that pass
   -> the compiler writes the VBA (ForgeLib calls, lint-clean)
   -> Boss pastes it into Excel
 No try passes  -> repair mode, with the error messages
-Still failing  -> the task goes to Claude (the Orchestrator) or Boss
+Still failing  -> the task goes to Claude (the Orchestrator), Codex or Boss
 ```
 
 ## How VCL's structure helps
@@ -76,10 +82,14 @@ every check updated together. None starts before the MVP is done.
 - **Paraphrases:** the same task written several ways, by Claude through our pipeline, so the
   model learns how Boss words things.
 - **Repairs:** made automatically from mutants and the errors they cause, in large numbers.
+- **Codex through KRONOS (D70):** a spec ChatGPT Codex wrote for a request typed into the KRONOS
+  app, once it passes every corpus gate, marked `"source": "codex via KRONOS"`. While the repo is
+  public, only practice requests with invented data, added through a reviewed PR. When KRONOS lives
+  on the company drive, real requests may become training data there, never on GitHub.
 - **A locked benchmark:** held-out tasks never used for training; the only scoreboard.
 
-Every pair passes the whole toolchain before it goes into `data/verified/`. Synthetic data only
-until March 2027 (CLAUDE.md).
+Every pair passes the whole toolchain before it goes into `data/verified/`. Synthetic data only in
+the repo, which is public (CLAUDE.md, D69).
 
 Scale: the planned 150-task corpus is a seed, not a dataset. A useful model needs thousands of
 proven specs; paraphrases and mutants help multiply them.
@@ -92,7 +102,7 @@ proven specs; paraphrases and mutants help multiply them.
 | B | Before March (cloud) | Grow VCL from the NOTE count; grow the data to thousands of proven specs |
 | C | March 2027 (new PC) | A tokenizer and a small model trained from zero: English -> VCL, with grammar-constrained output |
 | D | After C | Add repair. The model is used only when it passes enough benchmark tasks; Claude stays the Orchestrator until then |
-| E | Later | Daily use: Boss types a task and gets proven VBA |
+| E | From item 5 (now) | Daily use: the KGC KRONOS desktop app (`docs/kronos-app.md`, D68). Boss types a task and gets proven VBA; Codex writes the VCL until our model passes the benchmark |
 
 Stages A and B fit today's rules (no training before March), and they make the data valuable
 even if the model takes longer than planned.
@@ -100,6 +110,6 @@ even if the model takes longer than planned.
 ## What doesn't change
 
 - D25: the model and everything it learns from are ours; no pre-trained weights, outside data
-  or retrieval.
+  or retrieval. D70 only adds proven Codex specs to what counts as in-house data.
 - The compiler and ForgeLib stay the core, and the reference for what VBA a spec means.
 - Running anything in Excel stays optional and never blocks work.

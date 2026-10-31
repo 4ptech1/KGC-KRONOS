@@ -61,8 +61,8 @@ language, rule 19 warns when a spec doesn't use them, and the whole-workbook sco
 ## Build sequence (Claude Code works through it without waiting; merges itself when CI is green)
 
 CLAUDE.md, and Boss, number the open work differently: its item 1 (the router) is item 4 here,
-its item 2 (the rest of revision 3) is item 5, and its item 3 (the AI plan's Stage A) is items 6
-and 7.
+its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is item 5b, its item 4
+(the AI plan's Stage A) is items 6 and 7, and its item 5 (the KGC KRONOS app) is item 9.
 
 1. **Integrate the MVP** into the repo. Unify the two fixture generators, apply the task_06
    rewrite, record the decisions, and make CI run the whole `vclc all` pipeline.
@@ -103,3 +103,9 @@ and 7.
 8. **March:** train our own model from zero on the in-house dataset (D25: no pre-trained weights,
    no outside data). It writes VCL, never VBA; the compiler writes all the VBA (D31,
    `docs/ai-plan.md`). Excel conformance runs whenever Boss chooses.
+9. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71):
+   a window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI) for the VCL,
+   proves it with this toolchain, sends problems back for up to 2 more tries, and saves the VBA
+   module with a starter macro. Tkinter, one KRONOS.exe built by GitHub Actions; Boss's PC first,
+   then the team on the company drive. It comes before corpus batch 3 (D71), and from March 2027
+   our own model replaces Codex behind the same window (D31).
