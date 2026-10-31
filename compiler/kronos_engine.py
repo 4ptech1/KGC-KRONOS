@@ -31,17 +31,17 @@ ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 from errcodes import code_of, coded, tag  # noqa: E402
 from kronos_ai import CODEX_COMMAND, CODEX_TIMEOUT, AiError, CodexAI, FakeAI  # noqa: E402
-from validator import validate_text  # noqa: E402
+from validator import MODIFIES_RE, validate_text  # noqa: E402
 from vba_lint import lint  # noqa: E402
 from vcl_codegen import (CompileError, assemble, compile_build_procs, compile_text, starter_args,  # noqa: E402
-                         starter_sub)
+                         starter_sub, task_signature)
 from vcl_fmt import FormatError, format_text  # noqa: E402
 from vcl_interp import VclError, run_tests  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 
 PROMPT = ROOT / "vcl" / "orchestrator_prompt.txt"
-MAX_TRIES = 3        # the AI's first spec and 2 more tries (D68)
+MAX_TRIES = 3        # in each turn, the AI's first spec and 2 more tries (D68, D74)
 MAX_QUESTIONS = 3    # then the person puts the details in the request instead
 SPEC_NAME = "spec.vcl"   # the name the repair messages give the spec, as vclc prints a file
 QUESTION = "# QUESTION:"
@@ -185,13 +185,16 @@ def module_title(name):
     return f"KGC KRONOS module: {name}"
 
 
-def prove(text, today=None, mutation=False):
-    """Check, test, build and lint one spec, in that order, stopping at the first stage that fails."""
+def prove(text, today=None, mutation=False, step=None):
+    """Check, test, build and lint one spec, in that order, stopping at the first stage that fails.
+    step(name) is told each stage as it starts: checking, testing, building, measuring."""
+    step = step or (lambda name: None)
     proof = Proof(normalize(text))
     if is_question(proof.spec):
         message = coded("this is a question, not a spec: KRONOS shows it to the person", "K004")
         proof.findings.append(Finding("check", 1, "error", message, code_of(message)))
         return proof
+    step("checking")
     clock = time.perf_counter()
     for p in validate_text(proof.spec):
         proof.findings.append(Finding("check", p.line, p.severity, p.message, p.code))
@@ -204,6 +207,7 @@ def prove(text, today=None, mutation=False):
         proof.canonical = format_text(proof.spec)
     except FormatError:
         proof.canonical = None
+    step("testing")
     clock = time.perf_counter()
     try:
         results = run_tests(proof.spec, today)
@@ -216,6 +220,7 @@ def prove(text, today=None, mutation=False):
     proof.seconds["test"] = round(time.perf_counter() - clock, 3)
     if proof.failing or not proof.tests:
         return proof
+    step("building")
     clock = time.perf_counter()
     try:
         if proof.kind == "BUILD":
@@ -234,6 +239,7 @@ def prove(text, today=None, mutation=False):
         return proof
     proof.module = module
     if mutation:
+        step("measuring")
         clock = time.perf_counter()
         caught, total, _ = mutate_report(proof.spec, snapshot=True, today=today)
         proof.strength = (caught, total)
@@ -271,6 +277,77 @@ def repair_message(reply, proof):
             + "\n".join(feedback(proof)))
 
 
+def fix_message(proof):
+    """What goes to the AI with a spec the person edited and that is not proven (Ask Codex to fix, D74)."""
+    return ("I edited your spec by hand. Here it is with the toolchain's messages, as vclc prints them. Fix "
+            "every problem, keep my changes where you can, and reply with the whole corrected spec in one vcl "
+            "code block.\n\n```vcl\n" + proof.spec + "```\n\n" + "\n".join(feedback(proof)))
+
+
+# ---------- the spec in plain words (the window's Review and Save steps, D74) ----------
+
+def change_words(value):
+    """One MODIFIES value in words."""
+    m = MODIFIES_RE.fullmatch(value.strip())
+    if not m:
+        return value.strip()
+    arg = f'"{m["arg"]}"'
+    if m["cols"]:
+        cols = [c.strip().strip('"') for c in m["cols"].split(",") if c.strip()]
+        names = cols[0] if len(cols) == 1 else ", ".join(cols[:-1]) + " and " + cols[-1]
+        return f"the {names} column{'' if len(cols) == 1 else 's'} of the sheet you give as {arg}"
+    if m["fills"]:
+        return f"the fill colours of the sheet you give as {arg}"
+    if m["files"]:
+        return f"files in the folder you give as {arg}: it only adds copies, never deletes or moves"
+    if m["sheets"]:
+        return f"the sheets of the workbook you give as {arg}: it may add or copy sheets"
+    return f"anything on the sheet you give as {arg}"
+
+
+def summary(proof):
+    """What a spec does, assumes and changes, in words: {does, steps, assumes, changes, warnings}.
+    For a BUILD, what changes is what its modMain.RunHeadless declares (D49)."""
+    parts = proof.spec.split("\n---\n")
+    lines = proof.spec.splitlines()
+    goals = [ln[4:].strip() for ln in lines if re.match(r"GOAL\s", ln)]
+    assumes = [ln.split(":", 1)[1].strip() for ln in lines if ln.startswith("# ASSUME:")]
+    owner = next((part for part in parts if re.search(r"^PROC\s+RunHeadless\s*$", part, re.M)), parts[0])
+    changes = [change_words(ln.split(None, 1)[1]) for ln in owner.splitlines()
+               if re.match(r"MODIFIES\s", ln) and len(ln.split(None, 1)) == 2]
+    return {"does": goals[0] if goals else "", "steps": goals[1:] if proof.kind == "BUILD" else [],
+            "assumes": assumes, "changes": changes, "warnings": [f.message for f in proof.warnings]}
+
+
+def sheet_hints(spec_text):
+    """{argument: the practice sheet name its first TEST passes}, for the Save step's placeholders."""
+    try:
+        proc, kind, args, ret = task_signature(spec_text)
+    except CompileError:
+        return {}
+    for ln in spec_text.splitlines():
+        m = re.match(rf"TEST\s.*\bcall=\s*{re.escape(proc)}\(([^)]*)\)", ln)
+        if m:
+            given = [v.strip() for v in m.group(1).split(",")]
+            return {name: value for (name, typ), value in zip(args, given) if typ == "Worksheet" and value}
+    return {}
+
+
+def plain_result(attempt):
+    """One try in plain words, for the working panel."""
+    proof = attempt.proof
+    if proof is None:
+        return "the reply had no recipe in it"
+    if proof.ok:
+        return f"it passed every check and {len(proof.tests)} of {len(proof.tests)} practice tests"
+    if any(f.stage == "check" for f in proof.errors):
+        count = sum(f.stage == "check" for f in proof.errors)
+        return f"the recipe broke {count} rule{'' if count == 1 else 's'} of the checker"
+    if proof.failing or any(f.stage == "test" for f in proof.errors):
+        return f"{len(proof.tests) - len(proof.failing)} of {len(proof.tests)} practice tests passed"
+    return "the macro could not be built"
+
+
 # ---------- the module ----------
 
 def module_name(name):
@@ -304,24 +381,42 @@ class Attempt:
     proof: object = None          # the Proof, when there was a spec to prove
 
 
+def read_report(folder):
+    """A run folder's report.json as a dict, or None when it is missing or unreadable (History)."""
+    try:
+        report = json.loads((Path(folder) / "report.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return report if isinstance(report, dict) else None
+
+
 def short_name(request):
     words = re.findall(r"[a-z0-9]+", request.lower())[:4]
     return "-".join(words)[:30].strip("-") or "request"
 
 
 class Run:
-    """One request, start to end: the conversation, every attempt, and the run folder."""
+    """One request, start to end: the conversation, every attempt, and the run folder.
 
-    def __init__(self, request, ai, data, today=None, mutation=False, now=None):
+    The conversation goes in turns (D74): the request, an answer to a question, a change the person
+    asks for, an edited spec sent back to the AI, or an edited spec re-checked by hand. Each turn gets
+    MAX_TRIES tries by the AI, and what the run shows is the best attempt of the latest turn.
+    progress(kind, info) hears each step: asking (with the try), checking, testing, building,
+    measuring, and tried (with the try's result in words). cancel() may be called from another thread.
+    """
+
+    def __init__(self, request, ai, data, today=None, mutation=False, now=None, progress=None):
         self.request = request.strip()
         if not self.request:
             raise ValueError("the request is empty")
         self.ai, self.today, self.mutation = ai, today, mutation
+        self.progress = progress or (lambda kind, info: None)
         self.started = now or datetime.datetime.now()
         self.folder = self._new_folder(data_folder(data) / "runs")
         self.messages, self.attempts = [], []
         self.status, self.question, self.note = "new", "", ""
-        self.questions = 0
+        self.questions = self.calls = self.turn_start = 0
+        self.cancelled = False
         self.module_file, self.macro = None, ""
         self._write("request.txt", self.request + "\n")
 
@@ -369,10 +464,28 @@ class Run:
     def ai_tries(self):
         return sum(a.source == "ai" for a in self.attempts)
 
+    @property
+    def turn_tries(self):
+        return sum(a.source == "ai" for a in self.attempts[self.turn_start:])
+
+    def _new_turn(self):
+        self.turn_start = len(self.attempts)
+
+    def cancel(self):
+        """Stop the AI call in progress (from another thread); the run ends this turn as cancelled. It stays
+        cancelled until ready() (the window calls it, on its own thread, before the next piece of work)."""
+        self.cancelled = True
+        getattr(self.ai, "cancel", lambda: None)()
+
+    def ready(self):
+        self.cancelled = False
+        getattr(self.ai, "reset", lambda: None)()
+
     def start(self):
         if self.status != "new":
             raise ValueError("this run has already started")
         self._say("user", "request", self.request)
+        self._new_turn()
         return self._converse()
 
     def answer(self, text):
@@ -383,20 +496,39 @@ class Run:
             raise ValueError("the answer is empty")
         self.question = ""
         self._say("user", "answer", text.strip())
+        self._new_turn()
+        return self._converse()
+
+    def follow_up(self, text):
+        """A change the person asks for once the run has a result (rule 13: the AI reissues the spec)."""
+        if self.status not in ("proven", "not_proven"):
+            raise ValueError("a change can be asked for only once there is a result")
+        if not text.strip():
+            raise ValueError("the change is empty")
+        self._say("user", "change", text.strip())
+        self._new_turn()
         return self._converse()
 
     def retry(self):
-        """Ask the AI again after it gave no reply (status ai_error)."""
-        if self.status != "ai_error":
-            raise ValueError("only a run whose AI gave no reply is retried")
+        """Ask the AI again after it gave no reply or was cancelled; the turn keeps its tries."""
+        if self.status not in ("ai_error", "cancelled"):
+            raise ValueError("only a run whose AI gave no reply, or was cancelled, is retried")
         return self._converse()
 
     def _converse(self):
-        while self.ai_tries < MAX_TRIES:   # each pass adds an attempt or returns
+        while self.turn_tries < MAX_TRIES:   # each pass adds an attempt or returns
+            if self.cancelled:
+                return self._stop("cancelled", "cancelled")
+            self.progress("asking", {"try": self.turn_tries + 1, "of": MAX_TRIES})
+            self.calls += 1
             try:
                 text = self.ai.ask(self.conversation())
             except AiError as exc:
+                if self.cancelled:
+                    return self._stop("cancelled", "cancelled")
                 return self._stop("ai_error", f"the AI gave no reply: {exc}")
+            if self.cancelled:
+                return self._stop("cancelled", "cancelled")
             self._say("assistant", "reply", text)
             reply = read_reply(text)
             if reply.kind == "question":
@@ -406,28 +538,40 @@ class Run:
                                                     "details in the request and start a new run")
                 self.question = reply.text
                 return self._stop("question")
-            proof = prove(reply.text, self.today, self.mutation) if reply.kind == "spec" else None
-            self._attempt("ai", reply, proof)
+            step = lambda name: self.progress(name, {})   # noqa: E731
+            proof = prove(reply.text, self.today, self.mutation, step) if reply.kind == "spec" else None
+            attempt = self._attempt("ai", reply, proof)
+            self.progress("tried", {"try": self.turn_tries, "result": plain_result(attempt),
+                                    "proven": proof is not None and proof.ok})
             if proof is not None and proof.ok:
                 return self._stop("proven")
-            if self.ai_tries < MAX_TRIES:
+            if self.turn_tries < MAX_TRIES:
                 self._say("user", "repair", repair_message(reply, proof))
         best = self.best()
         return self._stop("not_proven", f"no spec passed after {MAX_TRIES} tries"
                           + (f": attempt {best.number} came closest; edit it and Re-check" if best else ""))
 
     def recheck(self, text):
-        """The person's edited spec, proven like the AI's (no AI call)."""
+        """The person's edited spec, proven like the AI's (no AI call): a turn of its own."""
         if not text.strip():
             raise ValueError("the spec is empty")
-        proof = prove(text, self.today, self.mutation)
+        self._new_turn()
+        proof = prove(text, self.today, self.mutation, lambda name: self.progress(name, {}))
         self._attempt("person", None, proof)
         self.question = ""   # an edited spec answers any question still open
         return self._stop("proven" if proof.ok else "not_proven", "" if proof.ok else "the edited spec is not proven")
 
+    def fix(self, text):
+        """The person's edited spec: proven first, and if it is not, sent to the AI with its problems."""
+        if self.recheck(text) == "proven":
+            return self.status
+        self._say("user", "fix", fix_message(self.attempts[-1].proof))
+        return self._converse()
+
     def best(self):
-        """The latest proven attempt, else the one closest to proven (Proof.distance; the later one on a tie)."""
-        proved = [a for a in self.attempts if a.proof is not None]
+        """The latest turn's latest proven attempt, else the one closest to proven (Proof.distance; the later
+        one on a tie)."""
+        proved = [a for a in self.attempts[self.turn_start:] if a.proof is not None]
         if not proved:
             return None
         return min(reversed(proved), key=lambda a: (False, -a.number) if a.proof.ok else (True, a.proof.distance()))
@@ -443,9 +587,10 @@ class Run:
             raise ValueError("no proven spec yet")
         return None if attempt.proof.kind == "BUILD" else starter_args(attempt.proof.spec)
 
-    def save_module(self, values=None, starter=True):
-        """Write the proven spec's .bas; with a starter macro for a TASK unless starter=False.
-        Returns the file's path. ValueError when a value is missing or wrong."""
+    def save_module(self, values=None, starter=True, dest=None):
+        """Write the proven spec's .bas to the run folder, and to dest when given (the window's Save As);
+        with a starter macro for a TASK unless starter=False. Returns the path written for the person
+        (dest, or the run folder's copy). ValueError when a value is missing or wrong."""
         attempt = self.proven()
         if attempt is None:
             raise ValueError("no proven spec yet")
@@ -473,15 +618,18 @@ class Run:
         name = module_name(proof.name)
         path = self.folder / f"{name}.bas"
         path.write_bytes(bas_text(name, module).encode("ascii"))
+        if dest is not None:
+            Path(dest).parent.mkdir(parents=True, exist_ok=True)
+            Path(dest).write_bytes(bas_text(name, module).encode("ascii"))
         self.module_file, self.macro = path.name, macro
         self.save_report()
-        return path
+        return Path(dest) if dest is not None else path
 
     # ---------- the report ----------
 
     STATUS_WORDS = {"new": "NOT STARTED", "question": "WAITING FOR AN ANSWER: the AI asked a question",
                     "proven": "PROVEN: the spec passed every check and every TEST",
-                    "not_proven": "NOT PROVEN", "ai_error": "NO REPLY from the AI"}
+                    "not_proven": "NOT PROVEN", "ai_error": "NO REPLY from the AI", "cancelled": "CANCELLED"}
 
     def report_lines(self):
         out = [f"KGC KRONOS run {self.name}", f"Request: {self.request}", f"AI: {self.ai.name}",
@@ -491,6 +639,11 @@ class Run:
         if self.status == "question":
             out.append(f"The AI asks: {self.question}")
         best = self.best()
+        if best is not None and best.proof.ok:
+            words = summary(best.proof)
+            out += ["", f"What it does: {words['does']}"]
+            out += ["What it assumes:"] + [f"  - {a}" for a in words["assumes"]] if words["assumes"] else []
+            out += ["What it changes:"] + [f"  - {c}" for c in words["changes"]] if words["changes"] else []
         for a in self.attempts:
             out += [""] + self.attempt_lines(a, a is best)
         if self.module_file:
@@ -546,7 +699,28 @@ class Run:
 
 # ---------- settings and the AI ----------
 
-SETTINGS = {"ai": "codex", "codex_command": CODEX_COMMAND, "codex_timeout": CODEX_TIMEOUT}
+SETTINGS = {"ai": "codex", "codex_command": CODEX_COMMAND, "codex_timeout": CODEX_TIMEOUT,
+            # the window (D74): the recipe and test strength are off by default; the first-run checklist's
+            # two ticks; where Save suggests putting the module ("" is <data folder>/macros)
+            "show_recipe": False, "measure_strength": False, "data_controls_confirmed": False,
+            "practice_confirmed": False, "macro_folder": ""}
+FLAGS = ("show_recipe", "measure_strength", "data_controls_confirmed", "practice_confirmed")
+
+
+def check_settings(settings, where="settings"):
+    if settings["ai"] not in ("codex", "fake"):
+        raise ValueError(f"the ai setting must be codex or fake, got {settings['ai']!r}")
+    if not (isinstance(settings["codex_command"], list) and settings["codex_command"]
+            and all(isinstance(a, str) for a in settings["codex_command"])):
+        raise ValueError("codex_command must be a list of strings, starting with the program")
+    if isinstance(settings["codex_timeout"], bool) or not isinstance(settings["codex_timeout"], int) \
+            or not 10 <= settings["codex_timeout"] <= 3600:
+        raise ValueError("codex_timeout must be a whole number of seconds from 10 to 3600")
+    bad = [k for k in FLAGS if not isinstance(settings[k], bool)]
+    if bad:
+        raise ValueError(f"{where}: {', '.join(bad)} must be true or false")
+    if not isinstance(settings["macro_folder"], str):
+        raise ValueError("macro_folder must be a folder name, or empty")
 
 
 def load_settings(data):
@@ -559,12 +733,16 @@ def load_settings(data):
         if unknown:
             raise ValueError(f"{path}: unknown settings {', '.join(unknown)}")
         settings.update(loaded)
-    if settings["ai"] not in ("codex", "fake"):
-        raise ValueError(f"the ai setting must be codex or fake, got {settings['ai']!r}")
-    if not (isinstance(settings["codex_command"], list) and settings["codex_command"]
-            and all(isinstance(a, str) for a in settings["codex_command"])):
-        raise ValueError("codex_command must be a list of strings, starting with the program")
+    check_settings(settings, str(path))
     return settings
+
+
+def save_settings(data, settings):
+    """Write settings.json in the data folder: the known keys only, checked first."""
+    check_settings(settings)
+    known = {k: settings[k] for k in SETTINGS}
+    (Path(data) / "settings.json").write_text(json.dumps(known, indent=1, sort_keys=True) + "\n",
+                                              encoding="utf-8", newline="\n")
 
 
 def make_ai(settings, data, replies=None):

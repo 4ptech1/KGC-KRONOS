@@ -195,6 +195,114 @@ class Runs(unittest.TestCase):
         self.assertEqual(second.name, first.name + "_2")
 
 
+class Turns(unittest.TestCase):   # the window's engine hooks (D74, D75)
+    def setUp(self):
+        self.data = Path(tempfile.mkdtemp())
+
+    def run_with(self, *replies, **kwargs):
+        ai = FakeAI(replies)
+        return K.Run(REQUEST, ai, self.data, DAY, **kwargs), ai
+
+    def test_progress(self):
+        heard = []
+        run, ai = self.run_with(block(BROKEN_TEST), block(GOOD), progress=lambda kind, info: heard.append((kind, info)))
+        run.start()
+        self.assertEqual([k for k, i in heard], ["asking", "checking", "testing", "tried", "asking", "checking",
+                                                 "testing", "building", "tried"])
+        self.assertEqual(heard[0][1], {"try": 1, "of": 3})
+        self.assertEqual(heard[3][1], {"try": 1, "result": "2 of 3 practice tests passed", "proven": False})
+        self.assertEqual(run.calls, 2)
+
+    def test_each_turn_has_its_own_tries(self):
+        run, ai = self.run_with(block(BROKEN_CHECK), QUESTION, block(BROKEN_TEST), block(BROKEN_TEST), block(GOOD))
+        self.assertEqual(run.start(), "question")   # try 1, then a question (not a try)
+        self.assertEqual(run.answer("Orders"), "proven")   # a new turn: 3 tries again, proven on its third
+        self.assertEqual((run.ai_tries, run.turn_tries, run.best().number), (4, 3, 4))
+
+    def test_a_change(self):
+        run, ai = self.run_with(block(GOOD), "Now newest last.\n" + block(GOOD))
+        with self.assertRaises(ValueError):
+            run.follow_up("too early")
+        run.start()
+        self.assertEqual(run.follow_up("Sort oldest first instead."), "proven")
+        self.assertEqual(ai.seen[1][-1], {"role": "user", "text": "Sort oldest first instead."})
+        self.assertEqual(run.best().number, 2)
+
+    def test_a_change_that_fails_shows_its_own_turn(self):
+        run, ai = self.run_with(block(GOOD), block(BROKEN_TEST), block(BROKEN_TEST), block(BROKEN_TEST))
+        run.start()
+        self.assertEqual(run.follow_up("Add a total row."), "not_proven")
+        self.assertIsNone(run.proven())   # the earlier proven recipe is not the one shown now
+        with self.assertRaises(ValueError):
+            run.save_module({"ws": "Orders"})
+
+    def test_fix(self):
+        run, ai = self.run_with(block(GOOD), block(GOOD))
+        run.start()
+        self.assertEqual(run.fix(GOOD), "proven")   # proven as edited: no AI call
+        self.assertEqual(len(ai.seen), 1)
+        self.assertEqual(run.fix(BROKEN_TEST), "proven")   # not proven as edited: the AI fixes it
+        sent = ai.seen[1][-1]["text"]
+        self.assertTrue(sent.startswith("I edited your spec by hand."))
+        self.assertIn("```vcl\nVCL 0.6\n", sent)
+        self.assertIn("[R051]", sent)
+        self.assertEqual([a.source for a in run.attempts], ["ai", "person", "person", "ai"])
+
+    def test_cancel(self):
+        run, ai = self.run_with(block(GOOD))
+        run.cancel()   # before the call: nothing is asked
+        self.assertEqual(run.start(), "cancelled")
+        self.assertEqual(ai.seen, [])
+        self.assertEqual(run.retry(), "cancelled")   # still cancelled until ready()
+        run.ready()
+        self.assertEqual(run.retry(), "proven")
+        self.assertEqual(run.report()["status"], "proven")
+
+    def test_save_where_the_person_chose(self):
+        run, ai = self.run_with(block(GOOD))
+        run.start()
+        dest = Path(tempfile.mkdtemp()) / "macros" / "mine.bas"
+        self.assertEqual(run.save_module({"ws": "Orders"}, dest=dest), dest)
+        self.assertEqual(dest.read_bytes(), (run.folder / "modKronosRemoveCancelledAndSort.bas").read_bytes())
+
+    def test_the_report_says_what_it_does(self):
+        run, ai = self.run_with(block(GOOD))
+        run.start()
+        lines = run.report_lines()
+        self.assertIn("What it does: Delete every cancelled order from the Orders sheet, then sort the rest by "
+                      "order date, newest first.", lines)
+        self.assertIn('  - anything on the sheet you give as "ws"', lines)
+
+
+class Words(unittest.TestCase):
+    def test_changes_in_words(self):
+        self.assertEqual(K.change_words('$ncr["Status"]'), 'the Status column of the sheet you give as "ncr"')
+        self.assertEqual(K.change_words('$tracker["Remark", "Balance", "Issued"]'),
+                         'the Remark, Balance and Issued columns of the sheet you give as "tracker"')
+        self.assertEqual(K.change_words("$ws fills"), 'the fill colours of the sheet you give as "ws"')
+        self.assertEqual(K.change_words("$jobs files"),
+                         'files in the folder you give as "jobs": it only adds copies, never deletes or moves')
+        self.assertEqual(K.change_words("$book sheets"),
+                         'the sheets of the workbook you give as "book": it may add or copy sheets')
+
+    def test_summary_of_a_build(self):
+        words = K.summary(K.prove(BUILD, DAY))
+        self.assertTrue(words["does"].startswith("Mark every Open NCR"))
+        self.assertEqual(len(words["steps"]), 4)
+        self.assertEqual(len(words["assumes"]), 3)
+
+    def test_sheet_hints(self):
+        self.assertEqual(K.sheet_hints(GOOD), {"ws": "Orders"})
+        self.assertEqual(K.sheet_hints(FILES), {"tracker": "Tracker"})
+        self.assertEqual(K.sheet_hints(BUILD), {})
+
+    def test_plain_results(self):
+        self.assertEqual(K.plain_result(K.Attempt(1, "ai", K.read_reply("hello"), None)),
+                         "the reply had no recipe in it")
+        self.assertEqual(K.plain_result(K.Attempt(1, "ai", None, K.prove(BROKEN_CHECK, DAY))),
+                         "the recipe broke 1 rule of the checker")
+
+
 class Module(unittest.TestCase):
     def setUp(self):
         self.data = Path(tempfile.mkdtemp())
@@ -287,20 +395,35 @@ class Starter(unittest.TestCase):   # the compiler's starter macro (D68, D72)
 
 
 class Recorder:
-    """Stands in for subprocess.run: keeps each call and writes the reply where Codex would."""
+    """Stands in for subprocess.Popen: keeps each call, what went to stdin, and writes the reply where Codex
+    would. `raises` is raised by Popen itself (an OSError) or by communicate (TimeoutExpired)."""
 
     def __init__(self, reply="```vcl\n# QUESTION: Which sheet?\n```", returncode=0, stderr=b"", stdout=b"",
-                 raises=None):
+                 raises=None, during=None):
         self.reply, self.returncode, self.stderr, self.stdout, self.raises = reply, returncode, stderr, stdout, raises
-        self.calls = []
+        self.during = during   # called inside communicate, as a running Codex would be
+        self.calls, self.input, self.timeout, self.killed = [], None, None, 0
 
     def __call__(self, args, **kwargs):
         self.calls.append((args, kwargs))
-        if self.raises:
+        if isinstance(self.raises, OSError):
             raise self.raises
-        if "--output-last-message" in args and self.reply is not None:
-            Path(args[args.index("--output-last-message") + 1]).write_text(self.reply, encoding="utf-8")
-        return subprocess.CompletedProcess(args, self.returncode, self.stdout, self.stderr)
+        self.args = args
+        return self
+
+    def communicate(self, data=None, timeout=None):
+        if self.input is None:
+            self.input, self.timeout = data, timeout
+            if isinstance(self.raises, subprocess.TimeoutExpired):
+                raise self.raises
+            if self.during:
+                self.during()
+            if "--output-last-message" in self.args and self.reply is not None:
+                Path(self.args[self.args.index("--output-last-message") + 1]).write_text(self.reply, encoding="utf-8")
+        return self.stdout, self.stderr
+
+    def kill(self):
+        self.killed += 1
 
 
 class Codex(unittest.TestCase):
@@ -308,7 +431,7 @@ class Codex(unittest.TestCase):
 
     def codex(self, runner, windows=False, which=lambda name: "/opt/codex/bin/codex", **kwargs):
         self.work = Path(tempfile.mkdtemp()) / "codex"
-        return CodexAI(self.work, "THE PROMPT", runner=runner, which=which, windows=windows, **kwargs)
+        return CodexAI(self.work, "THE PROMPT", popen=runner, which=which, windows=windows, **kwargs)
 
     def test_a_call(self):
         runner = Recorder()
@@ -316,9 +439,10 @@ class Codex(unittest.TestCase):
         (args, kwargs), = runner.calls
         self.assertEqual(args, ["/opt/codex/bin/codex", "exec", "--sandbox", "read-only", "--skip-git-repo-check",
                                 "--output-last-message", str(self.work / "last_message.txt"), "-"])
-        self.assertEqual((kwargs["cwd"], kwargs["timeout"], kwargs["capture_output"]), (str(self.work), 300, True))
+        self.assertEqual((kwargs["cwd"], runner.timeout, kwargs["stdin"], kwargs["stdout"], kwargs["stderr"]),
+                         (str(self.work), 300, subprocess.PIPE, subprocess.PIPE, subprocess.PIPE))
         self.assertNotIn("creationflags", kwargs)
-        sent = kwargs["input"].decode("utf-8")   # the whole prompt goes on stdin, never on the command line (D72)
+        sent = runner.input.decode("utf-8")   # the whole prompt goes on stdin, never on the command line (D72)
         self.assertTrue(sent.startswith("THE PROMPT\n\nCONVERSATION\n"))
         self.assertTrue(sent.endswith(f"===== USER =====\n{REQUEST}\n"))
         self.assertIn("Run no commands", (self.work / "AGENTS.md").read_text(encoding="utf-8"))
@@ -343,6 +467,26 @@ class Codex(unittest.TestCase):
             with self.assertRaisesRegex(AiError, words.replace("|", r"\|")):
                 codex.ask(self.CONVERSATION)
 
+    def test_a_slow_codex_is_stopped(self):
+        runner = Recorder(raises=subprocess.TimeoutExpired("codex", 300))
+        with self.assertRaisesRegex(AiError, "no reply within 300 seconds"):
+            self.codex(runner).ask(self.CONVERSATION)
+        self.assertEqual(runner.killed, 1)
+
+    def test_cancel(self):   # the window's Cancel, from another thread (D74)
+        codex = None
+        runner = Recorder(during=lambda: codex.cancel())
+        codex = self.codex(runner)
+        with self.assertRaisesRegex(AiError, "^cancelled$"):
+            codex.ask(self.CONVERSATION)
+        self.assertEqual(runner.killed, 1)
+        with self.assertRaisesRegex(AiError, "^cancelled$"):   # until reset, nothing more starts
+            codex.ask(self.CONVERSATION)
+        self.assertEqual(len(runner.calls), 1)
+        codex.reset()
+        codex.popen = Recorder()
+        self.assertTrue(codex.ask(self.CONVERSATION).startswith("```vcl"))
+
     def test_a_command_line_without_out(self):
         with self.assertRaisesRegex(AiError, "has no {out}"):
             self.codex(Recorder(), command=["codex", "exec", "-"]).ask(self.CONVERSATION)
@@ -365,12 +509,22 @@ class Codex(unittest.TestCase):
 class Settings(unittest.TestCase):
     def test_defaults_and_overrides(self):
         data = Path(tempfile.mkdtemp())
-        self.assertEqual(K.load_settings(data), {"ai": "codex", "codex_command": CODEX_COMMAND, "codex_timeout": 300})
+        self.assertEqual(K.load_settings(data), {"ai": "codex", "codex_command": CODEX_COMMAND, "codex_timeout": 300,
+                                                 "show_recipe": False, "measure_strength": False,
+                                                 "data_controls_confirmed": False, "practice_confirmed": False,
+                                                 "macro_folder": ""})
         (data / "settings.json").write_text('{"codex_timeout": 600}', encoding="utf-8")
         self.assertEqual(K.load_settings(data)["codex_timeout"], 600)
         self.assertIsInstance(K.make_ai(K.load_settings(data), data), CodexAI)
+        settings = K.load_settings(data)
+        settings["show_recipe"] = True
+        K.save_settings(data, settings)
+        self.assertEqual(K.load_settings(data), settings)
         for text, words in [('{"model": "x"}', "unknown settings model"), ('{"ai": "gpt"}', "codex or fake"),
-                            ('{"codex_command": "codex exec"}', "a list of strings")]:
+                            ('{"codex_command": "codex exec"}', "a list of strings"),
+                            ('{"codex_timeout": "300"}', "whole number of seconds"),
+                            ('{"codex_timeout": 5}', "from 10 to 3600"),
+                            ('{"show_recipe": "yes"}', "show_recipe must be true or false")]:
             (data / "settings.json").write_text(text, encoding="utf-8")
             with self.assertRaisesRegex(ValueError, words):
                 K.load_settings(data)
@@ -428,7 +582,8 @@ class Ask(unittest.TestCase):   # python compiler/vclc.py ask
 
 class Packaging(unittest.TestCase):
     def test_the_engine_needs_nothing_from_tests(self):   # KRONOS.exe won't have tests/ (docs/kronos-app.md)
-        code = ("import sys; sys.path.insert(0, 'compiler'); import kronos_engine; "
+        code = ("import sys; sys.path.insert(0, 'compiler'); sys.path.insert(0, 'app'); import kronos_engine; "
+                "import kronos_controller; "
                 "print(sorted(m for m in sys.modules\n"
                 "             if m.startswith(('test', 'conformance', 'vcl_selftest', 'vclc'))))")
         done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, check=True)

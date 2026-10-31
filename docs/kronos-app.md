@@ -168,7 +168,8 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
   - PROVEN (green): "Passed every check and 3 of 3 practice tests".
   - NOT PROVEN (amber): "Codex couldn't get it right in 3 tries", with [Try again], [Change my
     request] and, when the recipe setting is on, [Edit the recipe].
-  - NO REPLY (red): the Codex error in plain words, with [Try again].
+  - When Codex gives no reply, or Cancel is pressed, the wizard goes back to the step it came
+    from, with the reason in plain words and [Try again] (D75).
 - **What it does:** the GOAL lines.
 - **What it assumes:** the ASSUME lines, under "Check these match your workbook", with one
   required tick ("I checked these assumptions") before Next.
@@ -236,7 +237,7 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
   elsewhere, Segoe UI and Consolas with fallbacks. It has the frame, one frame per step, the
   working panel and the dialogs, and no logic.
 - `app/kronos_controller.py` is the wizard's state machine between the window and the engine
-  (ASK, WORKING, QUESTION, REVIEW, SAVE, with NOT PROVEN, NO REPLY and CANCELLED inside them).
+  (ask, question, review and save, with the working panel over them; D75).
   Engine work runs on a worker thread, and its events come back on a queue that the window
   reads every 100 ms (Tk is not thread-safe). It is unit-tested without a display.
 - The engine gains:
@@ -287,7 +288,7 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
 | 0 | This design and D68 to D71; the reference files say the same | merged (PR #58) |
 | 1 | The engine, `vclc ask`, the fake and Codex adapters, reply reading, the repair loop, the run folder, the starter macro | done (D72): unit tests with the fake AI cover every path (spec, question, repair, give up), and the starter macro is lint-clean |
 | 2.0 | The window's design (the wizard) and the new order of work (D74) | the docs agree |
-| 2a | The engine hooks (progress, cancel, follow-up, fix, summary, sheet hints, settings) and the wizard's controller | controller tests with the fake AI cover every path |
+| 2a | The engine hooks (progress, cancel, follow-up, fix, summary, sheet hints, settings) and the wizard's controller | done (D75): controller tests with the fake AI cover every path |
 | 2b | The wizard window: the frame, the four steps, the working panel, Cancel and `--smoke` | it starts and runs a fake request in CI under a virtual display; Boss gets screenshots of each step |
 | 2c | The first-run checklist, Settings (with Show the recipe and the Recipe window), History, Help, Codex errors in plain words | controller tests, the smoke test and screenshots |
 | 2d | Suggest for the corpus: the corpus gates on a proven run, and a candidate folder in the data folder (never `data/`) | tests; the candidate passes the gates |

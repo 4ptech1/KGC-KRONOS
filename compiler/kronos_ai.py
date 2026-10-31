@@ -12,10 +12,14 @@ about 48 KB, too long for a Windows command line and, as far as we know, longer 
 of AGENTS.md that Codex reads (D72). It runs in an empty working folder of KRONOS's data folder
 with the read-only sandbox; its last message comes back through --output-last-message. The
 command line is a setting, because Codex's flags may change.
+
+Both adapters can be cancelled from another thread (the window's Cancel, D74): cancel() stops the
+call in progress, which then raises AiError("cancelled"), and reset() makes the adapter ready again.
 """
 import os
 import shutil
 import subprocess
+import threading
 from pathlib import Path
 
 
@@ -24,22 +28,32 @@ class AiError(Exception):
 
 
 class FakeAI:
-    """Replies from a script, in order. Every conversation it was sent is kept in `seen`."""
+    """Replies from a script, in order. Every conversation it was sent is kept in `seen`. A reply may
+    be text, an exception to raise, or a function of the conversation (for the cancel tests)."""
 
     name = "fake"
 
     def __init__(self, replies):
         self.replies = list(replies)
         self.seen = []
+        self.cancel_event = threading.Event()
 
     def ask(self, conversation):
+        if self.cancel_event.is_set():
+            raise AiError("cancelled")
         self.seen.append([dict(m) for m in conversation])
         if len(self.seen) > len(self.replies):
             raise AiError(f"the fake AI has only {len(self.replies)} replies")
         reply = self.replies[len(self.seen) - 1]
         if isinstance(reply, Exception):
             raise reply
-        return reply
+        return reply(conversation) if callable(reply) else reply
+
+    def cancel(self):
+        self.cancel_event.set()
+
+    def reset(self):
+        self.cancel_event.clear()
 
 
 AGENTS_MD = """# KGC KRONOS working folder
@@ -67,19 +81,21 @@ def render(prompt, conversation):
 
 
 class CodexAI:
-    """The Codex CLI. `runner` stands in for subprocess.run in the tests."""
+    """The Codex CLI. `popen` stands in for subprocess.Popen in the tests."""
 
     name = "codex"
 
-    def __init__(self, workdir, prompt, command=None, timeout=CODEX_TIMEOUT, runner=subprocess.run,
+    def __init__(self, workdir, prompt, command=None, timeout=CODEX_TIMEOUT, popen=subprocess.Popen,
                  which=shutil.which, windows=None):
         self.workdir = Path(workdir)
         self.prompt = prompt
         self.command = list(command or CODEX_COMMAND)
         self.timeout = timeout
-        self.runner = runner
+        self.popen = popen
         self.which = which
         self.windows = os.name == "nt" if windows is None else windows
+        self.cancel_event = threading.Event()
+        self._proc = None
 
     def program(self):
         """The full path of the Codex program (on Windows this finds codex.cmd as well as codex.exe)."""
@@ -91,13 +107,37 @@ class CodexAI:
 
     def _run(self, args, stdin=b""):
         extra = {"creationflags": CREATE_NO_WINDOW} if self.windows else {}
+        if self.cancel_event.is_set():
+            raise AiError("cancelled")
         try:
-            return self.runner(args, input=stdin, capture_output=True, cwd=str(self.workdir),
-                               timeout=self.timeout, **extra)
-        except subprocess.TimeoutExpired:
-            raise AiError(f"Codex gave no reply within {self.timeout} seconds") from None
+            proc = self.popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              cwd=str(self.workdir), **extra)
         except OSError as exc:
             raise AiError(f"Codex could not start ({type(exc).__name__}: {exc})") from None
+        self._proc = proc
+        try:
+            if self.cancel_event.is_set():   # cancelled while it was starting
+                proc.kill()
+            out, err = proc.communicate(stdin, timeout=self.timeout)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.communicate()
+            raise AiError(f"Codex gave no reply within {self.timeout} seconds") from None
+        finally:
+            self._proc = None
+        if self.cancel_event.is_set():
+            raise AiError("cancelled")
+        return subprocess.CompletedProcess(args, proc.returncode, out, err)
+
+    def cancel(self):
+        """Stop the call in progress (from another thread): it raises AiError("cancelled")."""
+        self.cancel_event.set()
+        proc = self._proc
+        if proc is not None:
+            proc.kill()
+
+    def reset(self):
+        self.cancel_event.clear()
 
     def ask(self, conversation):
         self.workdir.mkdir(parents=True, exist_ok=True)
