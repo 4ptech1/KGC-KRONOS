@@ -13,7 +13,7 @@ still writes all the VBA (D31, `docs/ai-plan.md`).
 
 **Phase 0, Foundation (Oct 14 to 31, 2026): Gate 0 is met.** The work now is item 5, the KGC
 KRONOS desktop app (`docs/kronos-app.md`): its engine and `vclc ask` are built (D72), and the
-window is next; corpus batch 3 follows the app (D71). All development runs in the cloud (Claude
+window, a four-step wizard, comes before everything else (D74); corpus batch 3 follows KRONOS.exe. All development runs in the cloud (Claude
 Code on the web, GitHub Codespaces, GitHub Actions); only KRONOS.exe and the Codex CLI will run on
 the work PC, once IT approves them (D69). Every check is automated; running the generated VBA in
 Excel is optional and never blocks work.
@@ -300,3 +300,6 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
 - **2026-10-31:** Every reference file checked against the decisions (D73). The roadmap .docx gets an
   update note (Gate 0 is met; its later phases are the plan of 14 Oct, and the current order is in
   CLAUDE.md) and lists Excel 2016. The NOTE messages and a corpus tooling note are corrected.
+- **2026-10-31:** The KRONOS window comes before everything else (D74). With Boss it is designed as a
+  four-step wizard (Ask, Questions, Review, Save) with the recipe hidden behind a setting
+  (`docs/kronos-app.md` section 2), built in PRs 2a to 2d with screenshots for Boss in each.

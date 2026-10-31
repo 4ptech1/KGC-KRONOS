@@ -262,8 +262,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    for the rest is `docs/corpus-plan.md`; D64) are done; Phase 6, the corpus to 150 tasks in
    batches of about 20, is in progress (batches 1 and 2, c013 to c052, are stored: 52 pairs of 150, four of
    them held out; `data/gaps.md` logs what VCL could not say; D65, D66). Batch 3, leaning on the thin
-   registers and families (`vclc corpus --report`), waits until the KRONOS app's first usable version
-   (D71); no training before March 2027.
+   registers and families (`vclc corpus --report`), waits until KRONOS.exe is done (Phase 3; D71,
+   D74); no training before March 2027.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,
@@ -273,9 +273,14 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    Phase 1 is done (D72): the engine (`compiler/kronos_engine.py`), the fake and Codex adapters
    (`compiler/kronos_ai.py`, the prompt on stdin), reply reading (codes K001 to K004), the repair loop
    (3 tries), the run folder outside the repo, the starter macro (`vcl_codegen.starter_sub`) and
-   `python compiler/vclc.py ask "<request>"`. **Next: Phase 2**, the Tkinter window on the engine, with
-   "Suggest for the corpus". Before Boss's pilot (Phase 4): IT's approval of KRONOS.exe and the Codex
-   CLI. The parallel session is gone; this is the only session on the repo.
+   `python compiler/vclc.py ask "<request>"`. **Next: Phase 2, the window, before everything else
+   (Boss, 31 Oct 2026; D74).** It is a four-step wizard (Ask, Questions, Review, Save) with the recipe
+   hidden behind a setting, designed in `docs/kronos-app.md` section 2, in PRs 2.0 (the design, docs
+   only), 2a (engine hooks and the wizard's controller), 2b (the window and `--smoke`), 2c (first-run
+   checklist, Settings, History, Help) and 2d (Suggest for the corpus); every window PR sends Boss
+   screenshots. Then Phase 3 (KRONOS.exe and the guide), then the pilot (Phase 4) once IT approves
+   KRONOS.exe and the Codex CLI; corpus batch 3 resumes after Phase 3, and the team version (Phase 5)
+   follows the pilot. The parallel session is gone; this is the only session on the repo.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
