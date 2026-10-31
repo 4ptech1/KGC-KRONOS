@@ -1,11 +1,12 @@
 # VBA Forge
 
-VBA Forge is an offline, VBA-only code generator for Excel automation in pressure-vessel
-fabrication registers (BOM, weld log, NDE, NCR, calibration and similar). Claude writes each task
-as a spec in VCL (VBA Command Language), and VBA Forge turns the spec into VBA and proves the
-macro works with tests. Each verified spec, with its task in plain English and its proven VBA,
+VBA Forge is a VBA-only code generator for Excel automation in pressure-vessel fabrication
+registers (BOM, weld log, NDE, NCR, calibration and similar). An AI writes each task as a spec in
+VCL (VBA Command Language): Claude today, and ChatGPT Codex through the KGC KRONOS desktop app
+(`docs/kronos-app.md`, D68). VBA Forge turns the spec into VBA and proves the macro works with
+tests. Only the request-to-VCL step may go online; the toolchain and the VBA stay offline (D69). Each verified spec, with its task in plain English and its proven VBA,
 becomes training data for our own model, designed and trained from zero on in-house data only
-(`DECISIONS.md` D25). From March 2027 that model writes VCL from plain English, and the compiler
+(`DECISIONS.md` D25; a spec Codex writes counts once the toolchain proves it, D70). From March 2027 that model writes VCL from plain English, and the compiler
 still writes all the VBA (D31, `docs/ai-plan.md`).
 
 ## Current phase
@@ -52,7 +53,8 @@ GitHub Actions runs all of this on every push and pull request.
 
 ## Dataset count
 
-Dataset count: 0 verified pairs
+Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 held out in
+`data/eval/` (D66).
 
 ## Progress log
 
@@ -273,3 +275,9 @@ Dataset count: 0 verified pairs
   `data/eval`, with 3 more BUILDs. The corpus has 52 of 150 pairs. The pairs catch 656 of the 657 catchable
   mutants; every equivalent survivor was read against its spec. `data/gaps.md` grew with new language gaps, prompt
   wording problems and a tooling table (D66).
+- **2026-10-30:** Two BUILD rules found after the switch: a BUILD may not split SET_FORMULA from row
+  moves, or FILTER from SORT, across its TASKs, and it needs a wrong-sheet TEST when RunHeadless has PRE (D67).
+- **2026-10-30:** Item 5, the KGC KRONOS desktop app, designed (`docs/kronos-app.md`, D68 to D71): a
+  window where a person types a request; KRONOS asks ChatGPT Codex for the VCL, proves it with the
+  toolchain and saves the VBA. D25 now lets a proven Codex spec become training data (D70). The repo
+  stays public and synthetic; KRONOS keeps its runs outside it. Nothing built yet; Phase 1 is next.

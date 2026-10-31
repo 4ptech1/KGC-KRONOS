@@ -5,13 +5,15 @@ has the full plan and `docs/vcl-mvp-plan.md` the current build sequence.
 
 ## What this is
 
-VBA Forge is an offline, VBA-only code generator for Excel automation at KGC Engineering Projects
+VBA Forge is a VBA-only code generator for Excel automation at KGC Engineering Projects
 (pressure-vessel fabrication paper trail: BOM, weld log, NDE, NCR, calibration and similar
-registers). Claude writes task specs in VCL (VBA Command Language); VBA Forge turns each spec into
-VBA and proves the macro works with tests. From March 2027 our own model, trained from zero on our
-data (D25), will write VCL specs from plain English; the compiler stays the only thing that writes
-VBA (D31, `docs/ai-plan.md`). Until then, the goal is a verified dataset of tasks and their proven
-specs, each with its VBA.
+registers). An AI writes task specs in VCL (VBA Command Language): Claude today, and ChatGPT
+Codex through the KGC KRONOS desktop app (item 5, D68). VBA Forge turns each spec into VBA and
+proves the macro works with tests. Only the request-to-VCL step may go online; the toolchain and
+the VBA stay offline (D69). From March 2027 our own model, trained from zero on our data (D25,
+D70), will write VCL specs from plain English; the compiler stays the only thing that writes VBA
+(D31, `docs/ai-plan.md`). Until then, the goal is the KRONOS app and a verified dataset of tasks
+and their proven specs, each with its VBA.
 
 ## Working policy
 
@@ -37,28 +39,36 @@ specs, each with its VBA.
 
 ## Hard constraints until March 2027
 
-- My work PC is locked down: no local installs, no Excel Trust Center changes. All code runs in
-  the cloud (Claude Code on the web, GitHub Codespaces, GitHub Actions).
+- My work PC is locked down: no Excel Trust Center changes, and no local installs except
+  KRONOS.exe and the Codex CLI, once IT approves them (D69). All development runs in the cloud
+  (Claude Code on the web, GitHub Codespaces, GitHub Actions).
 - Excel 2016 only. No XLOOKUP, FILTER(), LET(), LAMBDA, dynamic arrays or any other
   Microsoft 365 feature, in VBA or in formulas.
-- Synthetic data only. Never put real KGC files, names, figures or customer data in the repo,
-  tests or prompts. Excel workbooks are git-ignored on purpose.
+- The repo is public: synthetic data only. Never put real KGC files, names, figures or customer
+  data in the repo, its tests, specs or corpus, or in Claude's prompts. Excel workbooks are
+  git-ignored on purpose.
+- KRONOS may receive real work requests (the company allows sending them to ChatGPT), never
+  files. Its runs stay in its own data folder outside the repo; at first only practice requests
+  with invented data. Personal ChatGPT accounts turn off "Improve the model for everyone" in
+  Data Controls. Later KRONOS moves to the company's storage drive, where real data may live
+  (D69, D70).
 - Synthetic fixtures only: every TEST uses a named FIXTURE file. `fixture=target` is banned
   until March 2027, and nothing we generate ever touches real workbooks.
 - No model training or local-model work until the new PC arrives in March 2027.
 - **Original model and context data (D25, standing rule).** The VBA Forge model is designed and
   trained from zero by us: no pre-trained weights, no fine-tuning of someone else's model, no
   scraped or downloaded code, datasets or prompts, no retrieval over outside sources. Everything it
-  learns from or reads is in-house: made by this repo's tools, by me, or by Claude through our
-  pipeline, and verified by our toolchain. General tools (Python, PyTorch) are allowed, and Claude
-  stays the design and build tool (Orchestrator, Claude Code). Compiler first, own model second:
-  the model writes VCL, never VBA (D31).
+  learns from or reads is in-house: made by this repo's tools, by me, by Claude through our
+  pipeline, or by Codex through KRONOS (D70), and verified by our toolchain. General tools (Python,
+  PyTorch) are allowed, and Claude stays the design and build tool (Orchestrator, Claude Code).
+  Compiler first, own model second: the model writes VCL, never VBA (D31).
 
 ## Sources of truth
 
 - `vcl/spec.md`: VCL 0.6, the language reference.
-- `vcl/orchestrator_prompt.txt`: the claude.ai prompt that writes specs. It contains the same
-  reference text (a unit test keeps them identical), so the two always change together.
+- `vcl/orchestrator_prompt.txt`: the prompt that writes specs, pasted into the claude.ai
+  Orchestrator and sent to Codex by the KRONOS app (D68). It contains the same reference text as
+  spec.md (a unit test keeps them identical), so the two always change together.
 - `vcl/grammar.lark`: the formal syntax. `vcl/semantics.py`: the reference meaning of the value
   functions, with conformance cases in `tests/conformance_cases.py` and the generated tables in
   `docs/vcl-semantics.md`.
@@ -69,6 +79,7 @@ specs, each with its VBA.
   tests and `DECISIONS.md`; re-run every check; rebuild `dist/forge_module.bas`; and tell me so I
   can update the Orchestrator Project.
 - `docs/VBA_Forge_Project_Roadmap.docx`: phases, gates and design decisions.
+- `docs/kronos-app.md`: the KGC KRONOS desktop app (item 5, D68 to D71).
 
 ## Repo layout
 
@@ -98,6 +109,7 @@ tests/               unit tests for the Python tools
 docs/                roadmap, plans, design documents, kgc-kronos-context.md (AI context)
 logs/
 .github/workflows/   CI
+app/                 the KGC KRONOS window (arrives in item 5 Phase 2, D68)
 (train/ and model/ arrive in March 2027)
 ```
 
@@ -182,7 +194,7 @@ label.
 Known: task_04 is bigger than a TASK should be: 48 OP lines (the validator warns above 40) and 107
 lines of VBA (rule 9: about 60); accepted for now, revisit in March.
 
-Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
+Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
 1. The Job-Pack Router MVP, `docs/vep-0.3-file-ops.md` (approved by Boss): sandbox only, COPY_FILE
    first (no MOVE), VCL 0.3. Phase 0 (blank key rows) and Phase 1 (the language surface: the VCL
    0.3 line, SAFE_NAME, PATH_JOIN, FOLDER_EXISTS, the path types, MAKE_FOLDER, COPY_FILE,
@@ -226,7 +238,7 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    and mutation scores a BUILD. Phase 4a is done (D55): ROW_OF(<range>) and DEDUPE `into=`.
    Phase 4b is done (D56): a header the spec writes to row 1 counts as checked for rule 14.
    Phase 4c is done (D57): an assertion names a sheet with spaces in quotes, `'Open NCRs'!B1`.
-   Phase 5 is done (D58): a proven BUILD, `vcl/examples/example4_build.vcl` (the prompt's
+   Phase 5 is done (D58, and D67 for two BUILD rules found after it): a proven BUILD, `vcl/examples/example4_build.vcl` (the prompt's
    Example 4; its 3 TESTs pass and catch 34 of 34 mutants), and the switch: spec.md and the
    Orchestrator prompt teach VCL 0.5 (hard rules 7, 9 and 14 changed, new hard rule 23 for BUILD
    and CALL), and Boss pastes the new prompt into the Orchestrator Project once. **Item 3 is
@@ -245,8 +257,18 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b and 6-7):
    `export`; the 12 committed specs are the pairs `c001` to `c012` in `data/verified/`; the plan
    for the rest is `docs/corpus-plan.md`; D64) are done; Phase 6, the corpus to 150 tasks in
    batches of about 20, is in progress (batches 1 and 2, c013 to c052, are stored: 52 pairs of 150, four of
-   them held out; `data/gaps.md` logs what VCL could not say; D65, D66); next is batch 3, leaning on the thin
-   registers and families (`vclc corpus --report`); no training before March 2027.
+   them held out; `data/gaps.md` logs what VCL could not say; D65, D66). Batch 3, leaning on the thin
+   registers and families (`vclc corpus --report`), waits until the KRONOS app's first usable version
+   (D71); no training before March 2027.
+5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
+   window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
+   read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,
+   lets the person edit the spec, and saves the .bas with import steps and a starter macro. Tkinter,
+   one KRONOS.exe built by GitHub Actions; Boss's PC first, then the team on the company drive. Only the
+   request-to-VCL step is online. Phase 0 (the design and the decisions) is done. **Next: Phase 1**, the
+   engine and `vclc ask` with a fake AI for the tests. Before it ships: GitHub write access for this
+   session (it is read-only; PR #58 with D67 waits to be pushed) and IT's approval of KRONOS.exe and
+   the Codex CLI. The parallel session is gone; this is the only session on the repo.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

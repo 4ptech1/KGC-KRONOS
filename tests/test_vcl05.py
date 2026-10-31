@@ -232,6 +232,39 @@ class Structure(unittest.TestCase):
                       found)
 
 
+WRITE_HEADER = 'OP       WRITE_ROW($out, 1, "Status", "Count")\n'
+MARK_DAYS = 'OP       LET(cDays, COL($ncr, "Days Open"))\n'
+
+
+class WholeTool(unittest.TestCase):   # D67: rules a TASK spec has, held across the TASKs of a BUILD
+    def test_set_formula_and_row_moves_in_two_tasks(self):   # D43
+        text = changed(WRITE_HEADER, WRITE_HEADER + 'OP       SET_FORMULA(CELL($out, 1, 3), "=COUNTA(A:A)")\n')
+        text = changed(MARK_DAYS, MARK_DAYS + "OP       DEDUPE(USED_RANGE($ncr), cols=[1], header=yes)\n", text)
+        self.assertIn("modSteps.WriteSummary uses SET_FORMULA and modSteps.MarkOverdue uses DEDUPE: a BUILD may not "
+                      "do both, because Excel rewrites formula references when rows move, which a TEST can't prove "
+                      "(D43)", errors(text))
+
+    def test_filter_and_sort_in_two_tasks(self):   # D42
+        text = changed(MARK_DAYS, MARK_DAYS + 'OP       FILTER(USED_RANGE($ncr), col=cStatus, crit="Open")\n')
+        text = changed(WRITE_HEADER, WRITE_HEADER + "OP       SORT(USED_RANGE($out), key=1, order=asc, header=yes)\n",
+                       text)
+        self.assertIn("modSteps.MarkOverdue uses FILTER and modSteps.WriteSummary uses SORT: a BUILD may not do both, "
+                      "because how Excel sorts rows that FILTER hid can't be proven by a TEST (D42)", errors(text))
+
+    def test_both_in_one_task_is_that_tasks_own_error(self):
+        found = errors(changed(WRITE_HEADER, WRITE_HEADER + 'OP       SET_FORMULA(CELL($out, 1, 3), "=COUNTA(A:A)")\n'
+                               "OP       DEDUPE(USED_RANGE($out), cols=[1], header=yes)\n"))
+        self.assertIn("a spec may not both SET_FORMULA and DEDUPE: Excel rewrites formula references when rows move, "
+                      "which a TEST can't prove (D43)", found)
+        self.assertFalse([m for m in found if "a BUILD may not do both" in m])
+
+    def test_a_wrong_sheet_test(self):   # rule 5
+        text = changed("TEST     fixture=ncr_01.xlsx call=modMain.RunHeadless(Summary, NCR) assert=RESULT = -1 AND "
+                       "ERROR_COUNT = 1\n", "")
+        self.assertEqual(errors(text), ["modMain.RunHeadless has PRE and the fixture has another sheet, but no "
+                                        "wrong-sheet TEST expects RESULT = -1 AND ERROR_COUNT = 1 (rule 5)"])
+
+
 class Interpreter(unittest.TestCase):   # Phase 2: BUILD TESTs run through modMain.RunHeadless (D52)
     DAY = datetime.date(2026, 10, 21)
 

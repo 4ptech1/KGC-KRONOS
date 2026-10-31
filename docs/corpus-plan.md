@@ -29,7 +29,11 @@ Registers: `bom`, `grn`, `weld_log`, `nde`, `ncr`, `itp`, `welder_quals`, `calib
    the spec must assume. Invented sheet names, headers and figures only. Mixed difficulty: a simple flag,
    a two-register reconcile, a request with an edge (blank cells, text numbers, repeats, a re-run).
 2. **The spec.** A helper that sees only `vcl/orchestrator_prompt.txt` and the request writes the spec, as the
-   claude.ai Orchestrator would. It may run the toolchain and fix its spec up to two rounds.
+   claude.ai Orchestrator would. It may run the toolchain and fix its spec up to two rounds. A second source,
+   once the KGC KRONOS app works (`docs/kronos-app.md`, D70): a spec ChatGPT Codex wrote for a request typed
+   into KRONOS, with the same prompt and the same two repair rounds. KRONOS offers it as a candidate; it is
+   stored only from a practice request with invented data, through `corpus-add` with
+   `--source "codex via KRONOS"` in a reviewed PR, and never into `data/eval/`.
 3. **The gates** (`corpus-add` stops at the first one that fails):
    - the spec is valid with no warnings (meta.json may accept a named warning, such as V053), VCL 0.6, with
      its GOAL lines, in the canonical layout (`vclc fmt`);
@@ -55,3 +59,4 @@ say goes to `data/gaps.md`.
 | --- | --- | --- |
 | 1 | c013 to c032 | stored (D65): 18 verified, 2 held out |
 | 2 | c033 to c052 | stored (D66): 18 verified, 2 held out |
+| 3 | c053 on | waits until the KRONOS app's first usable version (D71); its practice runs may add candidates |
