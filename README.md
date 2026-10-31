@@ -51,6 +51,15 @@ exits 1 if there is any error or no files were given; warnings alone exit 0.
 
 GitHub Actions runs all of this on every push and pull request.
 
+## KGC KRONOS from the command line
+
+`python compiler/vclc.py ask "<request>"` runs one request the way the KRONOS app will
+(`docs/kronos-app.md`, D72). It asks the AI for the spec (Codex by default; `--ai fake --replies
+FILE` gives scripted replies), proves the spec with the toolchain above, and sends problems back
+for up to 2 more tries. It then saves the module, with a starter macro for the real sheet names
+given as `--arg ws="Orders"`. Answers to the AI's questions go in `--answer "..."`. Each run is kept
+in `Documents/KGC KRONOS/runs/` (or `--data DIR`), never in the repo.
+
 ## Dataset count
 
 Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 held out in
@@ -281,3 +290,7 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
   window where a person types a request; KRONOS asks ChatGPT Codex for the VCL, proves it with the
   toolchain and saves the VBA. D25 now lets a proven Codex spec become training data (D70). The repo
   stays public and synthetic; KRONOS keeps its runs outside it. Nothing built yet; Phase 1 is next.
+- **2026-10-31:** Item 5 Phase 1, the KRONOS engine (D72): `python compiler/vclc.py ask "<request>"`
+  asks the AI (Codex, or a fake AI for the tests) for the spec, proves it with the toolchain, sends
+  problems back for up to 2 more tries, and saves a .bas with a starter macro for Alt+F8. Each run
+  keeps its conversation, attempts and report in a folder outside the repo. 46 new unit tests.

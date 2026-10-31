@@ -1,7 +1,8 @@
 # The KGC KRONOS desktop app (item 5): design
 
 Status: **design, 30 Oct 2026**, from Boss's answers of that day (DECISIONS.md D68 to D71).
-Nothing is built yet. Each phase below is one PR, verified by unit tests and CI.
+**Phase 1, the engine and `vclc ask`, is built (D72, 31 Oct 2026)**; the window is next. Each phase
+below is one PR, verified by unit tests and CI.
 
 ## What it does
 
@@ -10,7 +11,7 @@ Codex) for the VCL spec, proves the spec with the toolchain, and hands back the 
 
 ```text
 the person types a request in the KRONOS window
-  -> KRONOS sends the Orchestrator prompt + the request to Codex (codex exec, read-only)
+  -> KRONOS sends the Orchestrator prompt + the request to Codex (codex exec, read-only, on stdin)
   -> Codex replies with one vcl block, or a # QUESTION: line
        question -> KRONOS shows it; the person's answer continues the conversation
   -> KRONOS checks, tests and builds the spec (validator, TESTs in the interpreter, compiler, lint)
@@ -46,11 +47,14 @@ Excel, when they choose.
   - later, `own` (our model, March 2027, D31) and others, such as the Claude Code CLI.
   Settings choose the adapter.
 - **The Codex call:**
-  - KRONOS keeps an empty working folder in its data folder. Its only file is `AGENTS.md`,
-    which holds the Orchestrator prompt, since Codex reads it as its instructions.
-  - It runs `codex exec` there, with the read-only sandbox. The conversation goes on stdin:
-    the prompt is about 48 KB, too long for a Windows command line. The final message comes
-    back through `--output-last-message`.
+  - KRONOS keeps an empty working folder in its data folder. Its only file is a short
+    `AGENTS.md`: run no commands, write no files.
+  - It runs `codex exec` there, with the read-only sandbox. The Orchestrator prompt and the
+    conversation go on stdin, as one message (D72): the prompt is about 48 KB, too long for a
+    Windows command line and, as far as we know, longer than the 32 KiB of `AGENTS.md` that
+    Codex reads. The final message comes back through `--output-last-message`.
+  - The default command line: `codex exec --sandbox read-only --skip-git-repo-check
+    --output-last-message {out} -` (the working folder is not a git repo; `-` reads stdin).
   - It has a time limit, and the Windows process opens no console window.
   - Each call is stateless: KRONOS resends the conversation so far (the request, the earlier
     replies, the answers or problems), so nothing depends on Codex's session store.
@@ -96,7 +100,7 @@ Excel, when they choose.
   - the `.bas`.
 
   The data folder is `Documents\KGC KRONOS` by default (a setting) and never inside the repo.
-- **Corpus candidates (D70):**
+- **Corpus candidates (D70; built in Phase 2 with its button, D72):**
   - "Suggest for the corpus" runs the corpus gates (`vcl_corpus`) on a proven run, then writes
     `<data folder>\corpus_candidates\<id>\` with `task.txt`, `spec.vcl` and `meta.json`
     (`"source": "codex via KRONOS"`).
@@ -158,8 +162,8 @@ Excel, when they choose.
 
 | Phase | What | Done when |
 | --- | --- | --- |
-| 0 | This design and D68 to D71; the reference files say the same | merged |
-| 1 | The engine, `vclc ask`, the fake and Codex adapters, reply reading, the repair loop, the run folder, the starter macro | unit tests with the fake AI cover every path (spec, question, repair, give up); the starter macro is lint-clean |
+| 0 | This design and D68 to D71; the reference files say the same | merged (PR #58) |
+| 1 | The engine, `vclc ask`, the fake and Codex adapters, reply reading, the repair loop, the run folder, the starter macro | done (D72): unit tests with the fake AI cover every path (spec, question, repair, give up), and the starter macro is lint-clean |
 | 2 | The Tkinter window on the engine | controller tests; the window starts in CI |
 | 3 | KRONOS.exe, `--self-test`, the release and the guide | the Windows job builds the exe and its self-test passes |
 | 4 | Boss's pilot on his PC, after IT approves the installs | three practice requests through Codex, each proven; problems logged |
@@ -181,6 +185,8 @@ The rest of Stage A (corpus batch 3, the data generator, the benchmark) resumes 
   only, and runs stay on the PC.
 
 ## Notes for Phase 1 (found while designing, 30 Oct 2026)
+
+Phase 1 used these notes; D72 records what it decided where they left a choice.
 
 **Reading a reply and running the toolchain**
 - Nothing in the repo extracts a ```` ```vcl ```` block from an AI reply. Left in, the fence gives only V007

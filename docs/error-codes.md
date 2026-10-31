@@ -490,3 +490,12 @@ message, `{...}` stands for the part that varies.
 | R049 | error | TEST passes {v}, which is neither a sheet nor a folder of {fixture} | vcl_interp.py |
 | R050 | error | ASSERT: {assertion_text(cond)} can't be checked: {ex} | vcl_interp.py |
 | R051 | error | ASSERT: {assertion_text(cond)} is false{asserter.sides(cond)} | vcl_interp.py |
+
+## K: KRONOS engine
+
+| Code | Kind | Message | File |
+| --- | --- | --- | --- |
+| K001 | error | the reply has {len(blocks)} vcl code blocks: reply with exactly one (rule 1) | kronos_engine.py |
+| K002 | error | the vcl code block is empty: put the whole spec in it, or only # QUESTION: <one short question> | kronos_engine.py |
+| K003 | error | the reply has no vcl code block: reply with exactly one code block tagged vcl (rule 1) | kronos_engine.py |
+| K004 | error | this is a question, not a spec: KRONOS shows it to the person | kronos_engine.py |

@@ -96,7 +96,8 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      vcl_types.py (types), vcl_interp.py (reference interpreter),
                      vcl_codegen.py (VBA compiler), vcl_fixtures.py (the one fixture
                      generator), vba_lint.py, vcl_mutate.py, gen_semantics_doc.py, gen_context.py,
-                     vcl_formula.py (the SET_FORMULA check)
+                     vcl_formula.py (the SET_FORMULA check),
+                     kronos_engine.py + kronos_ai.py (the KGC KRONOS engine and `vclc ask`, D72)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
                      forge_pilot.bas are committed (builds/<NAME>.bas: one module per BUILD)
@@ -265,10 +266,13 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,
    lets the person edit the spec, and saves the .bas with import steps and a starter macro. Tkinter,
    one KRONOS.exe built by GitHub Actions; Boss's PC first, then the team on the company drive. Only the
-   request-to-VCL step is online. Phase 0 (the design and the decisions) is done. **Next: Phase 1**, the
-   engine and `vclc ask` with a fake AI for the tests. Before it ships: GitHub write access for this
-   session (it is read-only; PR #58 with D67 waits to be pushed) and IT's approval of KRONOS.exe and
-   the Codex CLI. The parallel session is gone; this is the only session on the repo.
+   request-to-VCL step is online. Phase 0 (the design and the decisions, with D67; PR #58) is done.
+   Phase 1 is done (D72): the engine (`compiler/kronos_engine.py`), the fake and Codex adapters
+   (`compiler/kronos_ai.py`, the prompt on stdin), reply reading (codes K001 to K004), the repair loop
+   (3 tries), the run folder outside the repo, the starter macro (`vcl_codegen.starter_sub`) and
+   `python compiler/vclc.py ask "<request>"`. **Next: Phase 2**, the Tkinter window on the engine, with
+   "Suggest for the corpus". Before Boss's pilot (Phase 4): IT's approval of KRONOS.exe and the Codex
+   CLI. The parallel session is gone; this is the only session on the repo.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

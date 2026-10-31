@@ -30,7 +30,7 @@ class Catalogue(unittest.TestCase):
         registry = gen_error_codes.load_registry()
         self.assertGreater(len(registry), 400)
         for code in registry:
-            self.assertRegex(code, r"^[VGTXR]\d{3}$")
+            self.assertRegex(code, r"^[VGTXRK]\d{3}$")
 
     def test_a_code_in_a_source_must_be_in_the_registry(self):
         scanned = gen_error_codes.scan(ROOT / "compiler")
