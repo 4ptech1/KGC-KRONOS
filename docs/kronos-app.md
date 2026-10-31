@@ -226,10 +226,12 @@ Phase 1 used these notes; D72 records what it decided where they left a choice.
 - A Codex SDK exists too (TypeScript; the Python `openai-codex` is still beta), but use the CLI. Keep
   every call stateless.
 
-**Out of date, to fix when touched**
-- `data/gaps.md` says plain `mutate` samples, but mutation is deterministic.
-- R028 and `vcl_codegen` say "NOTE steps need the local model", against D31.
-- The roadmap .docx lists "Desktop Excel (Microsoft 365 or 2021+)" against Excel 2016 only.
+**Out of date when designing, now fixed (D73)**
+- `data/gaps.md` said plain `mutate` samples; mutation is deterministic, and the note now says
+  how the two modes differ.
+- R028 and `vcl_codegen` said "NOTE steps need the local model", against D31; they now say a spec
+  with a NOTE goes back to Claude or Boss.
+- The roadmap .docx listed "Desktop Excel (Microsoft 365 or 2021+)"; it now says Excel 2016.
 
 ## Not in scope
 

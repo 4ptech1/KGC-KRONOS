@@ -78,7 +78,8 @@ and their proven specs, each with its VBA.
   compiler and ForgeLib as needed, the conformance cases and `docs/vcl-semantics.md`, their
   tests and `DECISIONS.md`; re-run every check; rebuild `dist/forge_module.bas`; and tell me so I
   can update the Orchestrator Project.
-- `docs/VBA_Forge_Project_Roadmap.docx`: phases, gates and design decisions.
+- `docs/VBA_Forge_Project_Roadmap.docx`: phases, gates and design decisions. Its phase list is the
+  plan of 14 Oct 2026; the current order of work is "Next" below and `docs/vcl-mvp-plan.md` (D73).
 - `docs/kronos-app.md`: the KGC KRONOS desktop app (item 5, D68 to D71).
 
 ## Repo layout
@@ -177,7 +178,9 @@ The Excel batch runner (`harness/ForgeTest.bas`, PR #4) is deferred; nothing dep
 ## Status and next steps
 
 Phase 0, Foundation (Oct 14 to 31, 2026). Gate 0: all specs validate, type-check, pass their
-TESTs in the reference interpreter and compile to lint-clean VBA, in CI.
+TESTs in the reference interpreter and compile to lint-clean VBA, in CI. **Gate 0 is met.** The
+roadmap .docx's later phases are the plan of 14 Oct 2026; the order of work is the list below
+(D73).
 
 Done: 12 specs (11 in VCL 0.2, task_12 in 0.3), VCL 0.6 in spec.md and the Orchestrator prompt (D63), the parser and validator, and the
 MVP toolchain (grammar, type checker, interpreter, compiler, ForgeLib, linter, mutation scorer,

@@ -53,4 +53,4 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | Seen in | Note |
 | --- | --- |
 | all six helpers | `vclc mutate` lists 4 survivors and then "... and N more"; there is no way to list them all (D58 knew this) |
-| c036, c050, c051 | plain `mutate` samples, so the same spec scores differently from run to run, while `--snapshot` is exact and is what the corpus gate uses; the prompt never mentions `--snapshot`. The FORMAT mutants of c050 survive in plain mode |
+| c036, c050, c051 | plain `mutate` and `--snapshot` give different scores for the same spec: plain mode counts a mutant as caught only when a TEST assertion fails, while `--snapshot` also compares the final workbooks, and the corpus gate uses `--snapshot`; the prompt never mentions it. (Neither mode samples: each gives the same score on every run, D73.) The FORMAT mutants of c050 survive in plain mode |

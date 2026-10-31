@@ -808,7 +808,8 @@ class Machine:
                 self.action(s)
             elif kind == "if_inline":
                 if s.children[1].data == "note":
-                    raise VclError(coded("NOTE steps need the local model; the interpreter can't run them", "R028"))
+                    raise VclError(coded("NOTE steps can't be run: the interpreter runs only VCL ops, so a spec with a "
+                                         "NOTE goes back to Claude or Boss (D31)", "R028"))
                 if self.ev(s.children[0]):
                     self.action(s.children[1])
             elif kind == "if_block":

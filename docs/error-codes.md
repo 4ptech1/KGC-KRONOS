@@ -466,7 +466,7 @@ message, `{...}` stands for the part that varies.
 | R025 | error | CALL {target}: more than {MAX_CALL_DEPTH} calls deep | vcl_interp.py |
 | R026 | error | {name} opens or saves a real workbook: refused until March 2027 (D36) | vcl_interp.py |
 | R027 | error | {name} is not supported by the MVP interpreter | vcl_interp.py |
-| R028 | error | NOTE steps need the local model; the interpreter can't run them | vcl_interp.py |
+| R028 | error | NOTE steps can't be run: the interpreter runs only VCL ops, so a spec with a NOTE goes back to Claude or Boss (D31) | vcl_interp.py |
 | R029 | error | {kind} is not supported by the MVP interpreter | vcl_interp.py |
 | R030 | error | type mismatch: {S.text_of(value)} is not TRUE or FALSE | vcl_interp.py |
 | R031 | error | no header [{header}] on {sheet_name} | vcl_interp.py |

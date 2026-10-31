@@ -484,7 +484,8 @@ class Gen:
             elif kind == "if_inline":
                 cond, act = s.children
                 if act.data == "note":
-                    raise CompileError(f"line {line}: NOTE steps need the local model; the MVP compiler can't translate them")
+                    raise CompileError(f"line {line}: NOTE steps can't be compiled: only VCL ops compile, so a spec "
+                                       "with a NOTE goes back to Claude or Boss (D31)")
                 cc, _ = self.ex(cond)
                 saved = self.with_facts(self.checker.facts_if(cond, True))
                 body = self.action_lines(act)
@@ -580,7 +581,8 @@ class Gen:
                 self.emit("Case Else", depth)
                 self.block(n["children"], depth + 1)
             elif kind == "note":
-                raise CompileError(f"line {line}: NOTE steps need the local model; the MVP compiler can't translate them")
+                raise CompileError(f"line {line}: NOTE steps can't be compiled: only VCL ops compile, so a spec "
+                                   "with a NOTE goes back to Claude or Boss (D31)")
             else:
                 raise CompileError(f"line {line}: {kind} is not supported by the MVP compiler")
 
