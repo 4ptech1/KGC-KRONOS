@@ -6,8 +6,9 @@
 A message is a plain str that also carries its code in `.code`, so every place that compares,
 prints or searches messages keeps working. A code, once published, never changes meaning and is
 never reused: V the validator's rules, G the grammar, T the type checker, X the fixture builder,
-R what a TEST run reports. `python compiler/gen_error_codes.py` gives new messages their codes and
-writes `docs/error-codes.md`; `--check` (and a unit test) fails on an uncoded or reused one.
+R what a TEST run reports, K the KRONOS engine's reading of an AI reply (D72).
+`python compiler/gen_error_codes.py` gives new messages their codes and writes
+`docs/error-codes.md`; `--check` (and a unit test) fails on an uncoded or reused one.
 """
 import os
 

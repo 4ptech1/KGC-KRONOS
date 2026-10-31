@@ -31,11 +31,12 @@ SITES = {
     "vcl_types.py": ("T", {"err": 1}, set(), {}),
     "vcl_fixtures.py": ("X", {"ValueError": 0}, set(), {}),
     "vcl_interp.py": ("R", {"VclError": 0}, {"found", "failed"}, {}),
+    "kronos_engine.py": ("K", {}, set(), {}),
 }
 PREFIX_NAMES = {"V": "validator and parser", "G": "grammar", "T": "type checker", "X": "fixture builder",
-                "R": "TEST run"}
+                "R": "TEST run", "K": "KRONOS engine"}
 MESSAGE_KINDS = (ast.Constant, ast.JoinedStr, ast.BinOp, ast.IfExp)
-CODE_RE = re.compile(r"[VGTXR]\d{3}")
+CODE_RE = re.compile(r"[VGTXRK]\d{3}")
 
 
 def callee(call):

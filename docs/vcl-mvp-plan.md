@@ -25,7 +25,7 @@ current):
 | Mutation score, TEST assertions only | 89.0% of 438 deliberate bugs caught (was 68% at the start) |
 | Mutation score, whole-workbook comparison | 95.4% (418 of 438); 19 of the 20 survivors are equivalent mutants (D14, D24), 1 is a small task_11 fixture gap (D24) |
 | VBA lint (the compile errors Excel would raise) | 0 problems in 1,850 lines |
-| Unit tests | 468 pass |
+| Unit tests | 514 pass |
 
 ## Honest limits
 
@@ -108,4 +108,5 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    proves it with this toolchain, sends problems back for up to 2 more tries, and saves the VBA
    module with a starter macro. Tkinter, one KRONOS.exe built by GitHub Actions; Boss's PC first,
    then the team on the company drive. It comes before corpus batch 3 (D71), and from March 2027
-   our own model replaces Codex behind the same window (D31).
+   our own model replaces Codex behind the same window (D31). Phase 0, the design, is merged (PR #58);
+   Phase 1, the engine and `vclc ask`, is done (D72); Phase 2, the window, is next.
