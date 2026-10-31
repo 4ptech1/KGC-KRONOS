@@ -14,8 +14,8 @@ Running the generated VBA in Excel is optional and never blocks work.
   so any future Excel run can be compared automatically
 
 **Status: working** for all 12 specs (task_06 uses the provable rewrite; task_12 is the router) and
-Examples 1 and 3. Numbers as of 20 Oct 2026 (`docs/kgc-kronos-context.md` section 8 is kept
-current):
+Examples 1 and 3. Numbers as of 20 Oct 2026, unit tests as of 31 Oct (`docs/kgc-kronos-context.md`
+section 8 is kept current):
 
 | Automated check | Result |
 | --- | --- |
@@ -34,11 +34,11 @@ current):
   error values or Range.Sort edge cases.
 - **One fixture generator** (item 1): `compiler/vcl_fixtures.py` builds the pilot's data
   bit for bit (`DECISIONS.md` D1).
-- **The compiler and the interpreter cover every op and function of VCL 0.4** (item 5 below
-  made them provable), except OPEN_BOOK, SAVE_AS and CLOSE_BOOK, which open and save real
-  workbooks and are refused until March 2027 (D36), and CALL, which compiles but whose
-  procedures the interpreter can't run. BUILD specs wait for their own item. `NOTE` steps go to
-  Claude or Boss until VCL covers them (D31).
+- **The compiler and the interpreter cover every op and function of VCL 0.6** (items 5 and 5b
+  below made them provable), except OPEN_BOOK, SAVE_AS and CLOSE_BOOK, which open and save real
+  workbooks and are refused until March 2027 (D36), and FORM and TARGET xlam in a BUILD (D49).
+  CALL runs inside a VCL 0.5 or later BUILD, whose TESTs go through modMain.RunHeadless (D52).
+  `NOTE` steps go to Claude or Boss until VCL covers them (D31).
 - **EXIT_IF was undefined in revision 3.** The MVP treats it as "leave the procedure". VCL 0.2
   adds EXIT_LOOP_IF for loops.
 
@@ -95,7 +95,9 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
 6. **Corpus:** 150 tasks, Orchestrator-written specs, and an expressibility report that drives
    the next VCL packs. Boss said "go item 4" on 21 Oct 2026; Stage A is designed in
    `docs/vep-0.6-stage-a.md` (D59), with the language changes (error codes, `GOAL`, `vclc fmt`)
-   first so no stored spec is ever migrated.
+   first so no stored spec is ever migrated. Those changes and the corpus tooling are done (D60 to
+   D64), and batches 1 and 2 are stored: 52 of 150 pairs, 4 of them held out (D65, D66). Batch 3
+   waits until the KRONOS app's first usable version (D71).
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read

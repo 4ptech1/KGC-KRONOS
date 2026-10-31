@@ -11,13 +11,16 @@ still writes all the VBA (D31, `docs/ai-plan.md`).
 
 ## Current phase
 
-**Phase 0, Foundation (Oct 14 to 31, 2026).** Everything runs in the cloud (Claude Code on the
-web, GitHub Codespaces, GitHub Actions) until the new PC arrives in March 2027. Every check is
-automated; running the generated VBA in Excel is optional and never blocks work.
+**Phase 0, Foundation (Oct 14 to 31, 2026): Gate 0 is met.** The work now is item 5, the KGC
+KRONOS desktop app (`docs/kronos-app.md`): its engine and `vclc ask` are built (D72), and the
+window is next; corpus batch 3 follows the app (D71). All development runs in the cloud (Claude
+Code on the web, GitHub Codespaces, GitHub Actions); only KRONOS.exe and the Codex CLI will run on
+the work PC, once IT approves them (D69). Every check is automated; running the generated VBA in
+Excel is optional and never blocks work.
 
 See `CLAUDE.md` for the working rules, `docs/vcl-mvp-plan.md` for the build sequence,
 `DECISIONS.md` for the decisions so far and `docs/VBA_Forge_Project_Roadmap.docx` for the full
-plan.
+plan (its phase list is the plan of 14 Oct 2026; the current order is in `CLAUDE.md`, D73).
 
 ## Check, test and build the specs
 
@@ -294,3 +297,6 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
   asks the AI (Codex, or a fake AI for the tests) for the spec, proves it with the toolchain, sends
   problems back for up to 2 more tries, and saves a .bas with a starter macro for Alt+F8. Each run
   keeps its conversation, attempts and report in a folder outside the repo. 46 new unit tests.
+- **2026-10-31:** Every reference file checked against the decisions (D73). The roadmap .docx gets an
+  update note (Gate 0 is met; its later phases are the plan of 14 Oct, and the current order is in
+  CLAUDE.md) and lists Excel 2016. The NOTE messages and a corpus tooling note are corrected.
