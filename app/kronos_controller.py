@@ -112,6 +112,14 @@ class Controller:
             raise ValueError("there is nothing to try again")
         self._start(self.run.retry, self.step)
 
+    def again(self):
+        """NOT PROVEN's Try again: the same request from the start, as a new run."""
+        if self.working or self.run is None:
+            raise ValueError("there is nothing to try again")
+        text = self.run.request
+        self.new_request()
+        self.ask(text)
+
     def cancel(self):
         if self.working and self.run is not None:
             self.run.cancel()
@@ -161,7 +169,7 @@ class Controller:
     def _heard(self, event):
         kind, name = event["kind"], self.ai_label
         if kind == "asking":
-            self.stage = f"{name} is writing the recipe (try {event['try']} of {event['of']})"
+            self.stage = f"{self.ai_title} is writing the recipe (try {event['try']} of {event['of']})"
         elif kind == "tried":
             then = "" if event["proven"] else f", so KRONOS sent the problems back to {name}"
             self.lines.append(f"Try {event['try']}: {event['result']}{then}")
@@ -182,7 +190,12 @@ class Controller:
 
     @property
     def ai_label(self):
-        return "Codex" if getattr(self.ai, "name", "") == "codex" else "The practice AI"
+        """The AI's name inside a sentence; ai_title starts a sentence with it."""
+        return "Codex" if getattr(self.ai, "name", "") == "codex" else "the practice AI"
+
+    @property
+    def ai_title(self):
+        return self.ai_label[0].upper() + self.ai_label[1:]
 
     @property
     def calls(self):

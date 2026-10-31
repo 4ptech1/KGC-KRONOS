@@ -194,7 +194,7 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
 - [Start a new request] goes back to step 1.
 
 **Dialogs**
-- **First-run checklist** (on first start; Ask Codex stays off until it is done):
+- **First-run checklist** (on first start; Ask Codex stays off until it is done; built in 2b, D76):
   1. the Codex CLI is found (`CodexAI.program`), with [Check again] and a hint;
   2. its flags match `codex exec --help` (`CodexAI.check`);
   3. [Test Codex], optional: one tiny prompt, using one call, showing "signed in" or the
@@ -289,8 +289,8 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
 | 1 | The engine, `vclc ask`, the fake and Codex adapters, reply reading, the repair loop, the run folder, the starter macro | done (D72): unit tests with the fake AI cover every path (spec, question, repair, give up), and the starter macro is lint-clean |
 | 2.0 | The window's design (the wizard) and the new order of work (D74) | the docs agree |
 | 2a | The engine hooks (progress, cancel, follow-up, fix, summary, sheet hints, settings) and the wizard's controller | done (D75): controller tests with the fake AI cover every path |
-| 2b | The wizard window: the frame, the four steps, the working panel, Cancel and `--smoke` | it starts and runs a fake request in CI under a virtual display; Boss gets screenshots of each step |
-| 2c | The first-run checklist, Settings (with Show the recipe and the Recipe window), History, Help, Codex errors in plain words | controller tests, the smoke test and screenshots |
+| 2b | The wizard window: the frame, the four steps, the working panel, Cancel, the first-run checklist and `--smoke` | done (D76): it starts and runs a fake request in CI under a virtual display; Boss got screenshots of each step |
+| 2c | Settings (with Show the recipe and the Recipe window), History, Help, the one-call Codex test, Codex errors in plain words | controller tests, the smoke test and screenshots |
 | 2d | Suggest for the corpus: the corpus gates on a proven run, and a candidate folder in the data folder (never `data/`) | tests; the candidate passes the gates |
 | 3 | KRONOS.exe, `--self-test`, the release and the guide | the Windows job builds the exe and its self-test passes |
 | 4 | Boss's pilot on his PC, after IT approves the installs | three practice requests through Codex, each proven; problems logged |

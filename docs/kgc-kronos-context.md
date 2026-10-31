@@ -116,7 +116,7 @@ Boss's working policy (from `CLAUDE.md`):
 
 ```
 CLAUDE.md                 standing brief for Claude Code (rules, status, next steps)
-DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D75)
+DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D76)
 README.md                 overview, how to run the checks, progress log, dataset count
 requirements.txt          one pinned dependency: lark==1.3.1 (with hash)
 vcl/spec.md               THE language reference (VCL 0.6)
@@ -143,13 +143,14 @@ compiler/vcl_formula.py   SET_FORMULA's Excel 2016 allowlist and checks (D43)
 compiler/kronos_engine.py the KGC KRONOS engine and `vclc ask`: reply reading, proof, repair loop, run folder (D72)
 compiler/kronos_ai.py     KRONOS's AI adapters: the fake AI for the tests, and the Codex CLI (D72)
 app/kronos_controller.py  the KRONOS window's wizard state, tested without a display (D75)
+app/kronos_app.py         the KRONOS window: the four-step wizard in Tkinter; --smoke runs in CI (D76)
 vba/ForgeLib.bas          the VBA runtime every generated procedure calls
 dist/forge_module.bas     committed build output: ForgeLib plus one procedure per spec (paste-ready)
 dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance case run in Excel (D34)
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/, dist/builds/<NAME>.bas (one module per BUILD)   rebuilt by vclc, git-ignored
-tests/                    543 unit tests; conformance_cases.py is shared with the docs
+tests/                    545 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/corpus-plan.md       the plan for the 150 request and spec pairs: registers, families, gates (D64)
@@ -380,7 +381,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 543 pass |
+| Unit tests | 545 pass (1 skipped without a display) |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -468,7 +469,8 @@ The 12 specs:
   starter macro (D72).
 - #69: every reference file checked against the decisions; the roadmap .docx annotated, not rewritten (D73).
 - #70: item 5 Phase 2.0, the window comes first, designed as a four-step wizard with Boss (D74).
-- Item 5 Phase 2a: the engine hooks (turns, cancel, change, fix, plain words) and the wizard's controller (D75).
+- #71: item 5 Phase 2a, the engine hooks (turns, cancel, change, fix, plain words) and the wizard's controller (D75).
+- Item 5 Phase 2b: the wizard window, its first-run checklist and `--smoke` in CI (D76).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -564,7 +566,8 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    before everything else (Boss, 31 Oct 2026; D74):** a four-step wizard (1 Ask, 2 Questions, 3 Review,
    4 Save), plain words first, the recipe hidden behind a setting, and screenshots for Boss in every
    window PR (`docs/kronos-app.md` section 2). Its PRs: 2.0 the design (done), 2a the engine hooks and the
-   controller (done, D75), 2b the window, 2c the checklist, Settings, History and Help, 2d Suggest for the corpus.
+   controller (done, D75), 2b the window and the first-run checklist (done, D76), 2c Settings, History, Help and
+   the Recipe window, 2d Suggest for the corpus.
 6. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
    VCL, never VBA (D31). Excel conformance runs.
 
@@ -3066,6 +3069,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D73 | 31 Oct 2026 | **Every reference file checked against the decisions (Boss: "do all our reference files in the repo reflect our decisions and plan? make changes according to your recommendations").** (1) The roadmap .docx keeps its phase list as the plan of 14 Oct 2026, and gains an "Update, 31 October 2026" paragraph under its Roadmap heading rather than a rewrite: Gate 0 is met. The current order of work is in CLAUDE.md and `docs/vcl-mvp-plan.md`. Phase 1 was done another way (the compiler and ForgeLib write the VBA, the reference interpreter proves every spec without Excel, and the Excel batch runner, PR #4, is deferred). Phase 2's dataset factory is Stage A. The KRONOS app comes first (D71). The roadmap picture still shows a base model and fine-tuning, which D25 rules out; the paragraph says so, because the picture can't be edited as text. Its PC table now lists desktop Excel 2016, the version every macro targets, not "Microsoft 365 or 2021+". (2) The three items `docs/kronos-app.md` listed as out of date are fixed. `data/gaps.md` said plain `mutate` samples; it doesn't (c036 scores 35 of 37 on every run and every date), and the note now says how plain mode and `--snapshot` differ. R028 and the compiler's two NOTE messages no longer say "the local model": they say a spec with a NOTE goes back to Claude or Boss (D31). R028 keeps its code, as D60 allows for a reworded message. (3) CLAUDE.md and README say Gate 0 is met and where the current order of work lives. The MVP plan's limits now cover VCL 0.6 and BUILDs, and its corpus item gives its status. The context file gets the right decision range, the vclc commands, the files CI keeps current, the 52 corpus pairs, the installs D69 allows, and a glossary entry for KGC KRONOS. (4) Left as they are: the progress logs (history, true when written), and the Orchestrator prompt's "an offline VBA code generator" (the generator is still offline, D69, and changing the prompt would make Boss paste it again). | The repo is the source of truth only if its reference files agree with the decisions. Annotating the roadmap, instead of rewriting it, keeps the original plan readable next to what changed. |
 | D74 | 31 Oct 2026 | **The KRONOS window comes before everything else, as a four-step wizard (Boss: "let the KRONOS UI take priority before other phases ... plan how the UI should look like and its functionality with codex").** (1) Order: the window (item 5 Phase 2) is the top priority, and nothing else starts until it is done. Phase 3 (KRONOS.exe and the guide) follows at once, because the window is no use to Boss until it runs on his PC. Then the pilot (Phase 4) once IT approves. Corpus batch 3 and the rest of Stage A resume after Phase 3 and may run while the pilot waits for IT. The team version (Phase 5) follows the pilot. March 2027 onward is unchanged. (2) Boss's three choices, asked in plan mode: a step-by-step wizard (1 Ask, 2 Questions, 3 Review, 4 Save) rather than two panes or tabs; screenshots of each window state in every window PR, with no live demo; and the recipe (the VCL) hidden behind a "Show the recipe (advanced)" setting, off by default. (3) The design, in `docs/kronos-app.md` section 2. Review shows the GOAL, ASSUME and MODIFIES lines in words, and Save stays off until the recipe is proven and the person ticks "I checked these assumptions". Save asks for the real sheet names, with the practice names from the TESTs as hints, and offers the import steps. A working panel shows each step and try, with Cancel, which stops Codex. A first-run checklist (Codex found, its flags, an optional one-call test, the Data Controls tick, the data folder, the practice-only tick) gates Ask Codex. Ask for a change, an answer, and Ask Codex to fix are each a new turn with 3 tries; a question is not a try. Codex errors are shown in plain words with Try again. (4) The window holds no logic: `app/kronos_controller.py` is the wizard's state machine, tested without a display, with engine work on a worker thread and events on a queue. The engine gains a progress callback, cancel, a follow-up turn, a fix turn, a plain-words summary, sheet hints and five settings keys. `--smoke` runs one fake request through all four steps, in CI under a virtual display, and later as KRONOS.exe's self-test. (5) PRs, one at a time: 2.0 this design (docs only), 2a the engine hooks and the controller, 2b the window, 2c the checklist, Settings (with the Recipe window), History and Help, and 2d Suggest for the corpus. | Boss's priority and choices. A wizard puts one decision on each screen for non-technical colleagues, and the assumptions tick makes the person read what the macro assumes before saving it. Keeping the logic in a controller lets every path be tested in the cloud, where there is no screen. |
 | D75 | 31 Oct 2026 | **Item 5 Phase 2a: the engine hooks and the wizard's controller (`app/kronos_controller.py`).** (1) Turns: the request, an answer, a change (`Run.follow_up`), an edited spec (`Run.recheck`), and an edited spec sent back to the AI (`Run.fix`) each start a turn with its own 3 tries. This refines D72, where an answer continued the request's tries. What the run shows, and what Save writes, is the best attempt of the latest turn: when a change fails, the earlier proven recipe is not offered (the conservative reading). `Run.fix` first proves the edit as it is, and calls the AI only when it is not proven. (2) Cancel: Codex now runs through `subprocess.Popen`, so `cancel()` kills it from the window's thread, and the call ends with AiError "cancelled". Writing the tests showed that a Cancel pressed just as a turn started could be lost, because the engine cleared the flag at the start of the turn. Now only `Run.ready()` clears it, and the controller calls it on the window's thread before starting any work. (3) When the AI gives no reply, or Cancel is pressed, the wizard goes back to the step the work started on, with the reason and Try again, instead of a NO REPLY banner on Review. A Review banner is only ever PROVEN or NOT PROVEN, so it always describes a recipe. (4) The plain words: `summary` gives the first GOAL, a BUILD's other GOALs as its steps, the ASSUME lines, and the MODIFIES lines in words (for a BUILD, those of modMain.RunHeadless, D49). Writing the tests also caught `change_words` matching MODIFIES only from the start, which called fills and files changes "anything on the sheet"; it now matches the whole line. `sheet_hints` gives the practice sheet names of the first TEST; `plain_result` gives each try in words. (5) Settings: `show_recipe`, `measure_strength`, the checklist's two ticks and `macro_folder`, checked by type, with `codex_timeout` from 10 to 3600 seconds. `save_settings` writes only known keys. With Show the recipe off, the controller refuses Re-check and Ask Codex to fix. (6) Save writes the module to the place the person chose (default `<data folder>/macros`) as well as to the run folder, and refuses a sheet name or value the starter macro would refuse, in words ("It must be a sheet name Excel allows ..."). History lists the runs in the data folder, and "Use again" proves a past run's shown recipe in a new run with no AI call. (7) The controller holds the steps, the step bar (Questions shown as skipped when Codex asked none), the working panel's lines and the Codex call count, with engine work on a worker thread and events on a queue. 15 controller tests and 14 engine tests cover every path with the fake AI, including a threaded Cancel. | Each person action gets a fresh, bounded set of tries, the window can always stop Codex, and nothing older or unproven slips into Save. |
+| D76 | 31 Oct 2026 | **Item 5 Phase 2b: the wizard window (`app/kronos_app.py`).** (1) The window follows `docs/kronos-app.md` section 2: the step bar, Ask, Questions, Review (a scrolling page), Save, the working panel with Cancel, and Back and the main action in the footer. It holds no logic and reads the controller's events every 100 ms. It uses the "vista" theme on Windows and "clam" elsewhere, with Segoe UI or the nearest available font, and sharp text on scaled Windows displays. (2) The first-run checklist moves from 2c into 2b, because without it Ask stays locked and the window could not be used. 2c keeps Settings, History, Help, the Recipe window, the one-call Codex test, and Codex errors in plain words. (3) Try again on NOT PROVEN starts the same request afresh as a new run (`Controller.again`); "Change my request" goes back to Ask with the request in the box. Changing the request asks before starting a new one, and starting a new request before saving asks too. (4) The screenshots for Boss, taken under a virtual display with the practice AI, caught two things the tests did not, both fixed. The Save step forgot the typed sheet name after a save, because showing the step again rebuilt its fields; the window now keeps what was typed. The AI's name read "The practice AI" in mid-sentence; now `ai_label` is "Codex" or "the practice AI", and `ai_title` starts a sentence. The plain words also improved: a change now names the sheet as the Save step does, with the practice name the TESTs used ('anything on the sheet called "ws" in the recipe (Orders in the practice tests)'), and `sheet_hints` covers a BUILD through its modMain.RunHeadless. (5) `--smoke` drives the window as a person would: the checklist, a request, the question, the assumptions tick, the sheet name and Save. It exits 0 only when the module is saved, and gives up after 60 seconds. CI runs it under `xvfb-run` after checking that Tk is there; `tests/test_kronos_app.py` runs it locally where Tk and a display exist. | The window is usable end to end with the practice AI, CI proves it on every change, and looking at it caught what the unit tests could not. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4741,7 +4745,7 @@ tests/               unit tests for the Python tools
 docs/                roadmap, plans, design documents, kgc-kronos-context.md (AI context)
 logs/
 .github/workflows/   CI
-app/                 the KGC KRONOS window: kronos_controller.py (the wizard's state, D75), kronos_app.py (2b)
+app/                 the KGC KRONOS window: kronos_controller.py (the wizard's state, D75), kronos_app.py (the window, D76)
 (train/ and model/ arrive in March 2027)
 ```
 
@@ -4906,9 +4910,11 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    `python compiler/vclc.py ask "<request>"`. **Next: Phase 2, the window, before everything else
    (Boss, 31 Oct 2026; D74).** It is a four-step wizard (Ask, Questions, Review, Save) with the recipe
    hidden behind a setting, designed in `docs/kronos-app.md` section 2, in PRs 2.0 (the design, docs
-   only; done, PR #70), 2a (engine hooks and the wizard's controller; done, D75), 2b (the window and
-   `--smoke`; next), 2c (first-run checklist, Settings, History, Help) and 2d (Suggest for the corpus);
-   every window PR sends Boss screenshots. Then Phase 3 (KRONOS.exe and the guide), then the pilot (Phase 4) once IT approves
+   only; done, PR #70), 2a (engine hooks and the wizard's controller; done, D75, PR #71), 2b (the window,
+   the first-run checklist and `--smoke`, which CI runs under xvfb-run; done, D76), 2c (Settings, History,
+   Help, the Recipe window, Codex errors in plain words; next) and 2d (Suggest for the corpus); every
+   window PR sends Boss screenshots (`python app/kronos_app.py`, Tk needed: in the cloud container,
+   Python 3.12 with `python3-tk` under `xvfb-run`). Then Phase 3 (KRONOS.exe and the guide), then the pilot (Phase 4) once IT approves
    KRONOS.exe and the Codex CLI; corpus batch 3 resumes after Phase 3, and the team version (Phase 5)
    follows the pilot. The parallel session is gone; this is the only session on the repo.
 
@@ -4945,7 +4951,7 @@ section 8 is kept current):
 | Mutation score, TEST assertions only | 89.0% of 438 deliberate bugs caught (was 68% at the start) |
 | Mutation score, whole-workbook comparison | 95.4% (418 of 438); 19 of the 20 survivors are equivalent mutants (D14, D24), 1 is a small task_11 fixture gap (D24) |
 | VBA lint (the compile errors Excel would raise) | 0 problems in 1,850 lines |
-| Unit tests | 543 pass |
+| Unit tests | 545 pass (1 skipped without a display) |
 
 ##### Honest limits
 
@@ -5032,8 +5038,8 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    then the team on the company drive. It comes before corpus batch 3 (D71), and from March 2027
    our own model replaces Codex behind the same window (D31). Phase 0, the design, is merged (PR #58);
    Phase 1, the engine and `vclc ask`, is done (D72). Phase 2, the window, comes before everything
-   else (D74): a four-step wizard (Ask, Questions, Review, Save) in PRs 2.0 to 2d (2.0 and 2a, the
-   engine hooks and the controller, are done; D75), then Phase 3
+   else (D74): a four-step wizard (Ask, Questions, Review, Save) in PRs 2.0 to 2d (2.0, 2a the engine
+   hooks and the controller, and 2b the window are done; D75, D76), then Phase 3
    (KRONOS.exe), then the pilot.
 
 ### `docs/ai-plan.md`

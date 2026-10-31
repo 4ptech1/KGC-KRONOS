@@ -36,3 +36,8 @@ jobs:
         run: python compiler/gen_semantics_doc.py --check
       - name: docs/kgc-kronos-context.md is up to date
         run: python compiler/gen_context.py --check
+      - name: The KRONOS window starts and runs a practice request (on a virtual display)
+        run: |
+          python -c "import tkinter; print('Tk', tkinter.TkVersion)"
+          command -v xvfb-run || (sudo apt-get update -q && sudo apt-get install -y -q xvfb)
+          xvfb-run -a python app/kronos_app.py --smoke

@@ -286,45 +286,54 @@ def fix_message(proof):
 
 # ---------- the spec in plain words (the window's Review and Save steps, D74) ----------
 
-def change_words(value):
-    """One MODIFIES value in words."""
+def change_words(value, hints=None):
+    """One MODIFIES value in words; hints {argument: practice sheet name} add the name the TESTs used."""
     m = MODIFIES_RE.fullmatch(value.strip())
     if not m:
         return value.strip()
-    arg = f'"{m["arg"]}"'
+    hint = (hints or {}).get(m["arg"])
+    sheet = f'the sheet called "{m["arg"]}" in the recipe' + (f" ({hint} in the practice tests)" if hint else "")
     if m["cols"]:
         cols = [c.strip().strip('"') for c in m["cols"].split(",") if c.strip()]
         names = cols[0] if len(cols) == 1 else ", ".join(cols[:-1]) + " and " + cols[-1]
-        return f"the {names} column{'' if len(cols) == 1 else 's'} of the sheet you give as {arg}"
+        return f"the {names} column{'' if len(cols) == 1 else 's'} of {sheet}"
     if m["fills"]:
-        return f"the fill colours of the sheet you give as {arg}"
+        return f"the fill colours of {sheet}"
     if m["files"]:
-        return f"files in the folder you give as {arg}: it only adds copies, never deletes or moves"
+        return f'files in the folder called "{m["arg"]}" in the recipe: it only adds copies, never deletes or moves'
     if m["sheets"]:
-        return f"the sheets of the workbook you give as {arg}: it may add or copy sheets"
-    return f"anything on the sheet you give as {arg}"
+        return f'the sheets of the workbook called "{m["arg"]}" in the recipe: it may add or copy sheets'
+    return f"anything on {sheet}"
+
+
+def owner_part(spec_text):
+    """The part of a spec whose MODIFIES and TESTs speak for it: a BUILD's modMain.RunHeadless (D49)."""
+    parts = spec_text.split("\n---\n")
+    return next((part for part in parts if re.search(r"^PROC\s+RunHeadless\s*$", part, re.M)), parts[0])
 
 
 def summary(proof):
     """What a spec does, assumes and changes, in words: {does, steps, assumes, changes, warnings}.
     For a BUILD, what changes is what its modMain.RunHeadless declares (D49)."""
-    parts = proof.spec.split("\n---\n")
     lines = proof.spec.splitlines()
     goals = [ln[4:].strip() for ln in lines if re.match(r"GOAL\s", ln)]
     assumes = [ln.split(":", 1)[1].strip() for ln in lines if ln.startswith("# ASSUME:")]
-    owner = next((part for part in parts if re.search(r"^PROC\s+RunHeadless\s*$", part, re.M)), parts[0])
-    changes = [change_words(ln.split(None, 1)[1]) for ln in owner.splitlines()
+    hints = sheet_hints(proof.spec)
+    changes = [change_words(ln.split(None, 1)[1], hints) for ln in owner_part(proof.spec).splitlines()
                if re.match(r"MODIFIES\s", ln) and len(ln.split(None, 1)) == 2]
     return {"does": goals[0] if goals else "", "steps": goals[1:] if proof.kind == "BUILD" else [],
             "assumes": assumes, "changes": changes, "warnings": [f.message for f in proof.warnings]}
 
 
 def sheet_hints(spec_text):
-    """{argument: the practice sheet name its first TEST passes}, for the Save step's placeholders."""
+    """{argument: the practice sheet name its first TEST passes}, for the Save step's placeholders. For a
+    BUILD, the arguments of its modMain.RunHeadless, which its TESTs call."""
+    build = re.match(r"VCL [0-9.]+\nBUILD\n", spec_text) is not None
     try:
-        proc, kind, args, ret = task_signature(spec_text)
+        proc, kind, args, ret = task_signature(owner_part(spec_text) if build else spec_text)
     except CompileError:
         return {}
+    proc = f"modMain.{proc}" if build else proc
     for ln in spec_text.splitlines():
         m = re.match(rf"TEST\s.*\bcall=\s*{re.escape(proc)}\(([^)]*)\)", ln)
         if m:

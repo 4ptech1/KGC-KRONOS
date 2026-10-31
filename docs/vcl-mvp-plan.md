@@ -25,7 +25,7 @@ section 8 is kept current):
 | Mutation score, TEST assertions only | 89.0% of 438 deliberate bugs caught (was 68% at the start) |
 | Mutation score, whole-workbook comparison | 95.4% (418 of 438); 19 of the 20 survivors are equivalent mutants (D14, D24), 1 is a small task_11 fixture gap (D24) |
 | VBA lint (the compile errors Excel would raise) | 0 problems in 1,850 lines |
-| Unit tests | 543 pass |
+| Unit tests | 545 pass (1 skipped without a display) |
 
 ## Honest limits
 
@@ -112,6 +112,6 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    then the team on the company drive. It comes before corpus batch 3 (D71), and from March 2027
    our own model replaces Codex behind the same window (D31). Phase 0, the design, is merged (PR #58);
    Phase 1, the engine and `vclc ask`, is done (D72). Phase 2, the window, comes before everything
-   else (D74): a four-step wizard (Ask, Questions, Review, Save) in PRs 2.0 to 2d (2.0 and 2a, the
-   engine hooks and the controller, are done; D75), then Phase 3
+   else (D74): a four-step wizard (Ask, Questions, Review, Save) in PRs 2.0 to 2d (2.0, 2a the engine
+   hooks and the controller, and 2b the window are done; D75, D76), then Phase 3
    (KRONOS.exe), then the pilot.

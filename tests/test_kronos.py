@@ -271,19 +271,19 @@ class Turns(unittest.TestCase):   # the window's engine hooks (D74, D75)
         lines = run.report_lines()
         self.assertIn("What it does: Delete every cancelled order from the Orders sheet, then sort the rest by "
                       "order date, newest first.", lines)
-        self.assertIn('  - anything on the sheet you give as "ws"', lines)
+        self.assertIn('  - anything on the sheet called "ws" in the recipe (Orders in the practice tests)', lines)
 
 
 class Words(unittest.TestCase):
     def test_changes_in_words(self):
-        self.assertEqual(K.change_words('$ncr["Status"]'), 'the Status column of the sheet you give as "ncr"')
+        self.assertEqual(K.change_words('$ncr["Status"]'), 'the Status column of the sheet called "ncr" in the recipe')
         self.assertEqual(K.change_words('$tracker["Remark", "Balance", "Issued"]'),
-                         'the Remark, Balance and Issued columns of the sheet you give as "tracker"')
-        self.assertEqual(K.change_words("$ws fills"), 'the fill colours of the sheet you give as "ws"')
+                         'the Remark, Balance and Issued columns of the sheet called "tracker" in the recipe')
+        self.assertEqual(K.change_words("$ws fills"), 'the fill colours of the sheet called "ws" in the recipe')
         self.assertEqual(K.change_words("$jobs files"),
-                         'files in the folder you give as "jobs": it only adds copies, never deletes or moves')
+                         'files in the folder called "jobs" in the recipe: it only adds copies, never deletes or moves')
         self.assertEqual(K.change_words("$book sheets"),
-                         'the sheets of the workbook you give as "book": it may add or copy sheets')
+                         'the sheets of the workbook called "book" in the recipe: it may add or copy sheets')
 
     def test_summary_of_a_build(self):
         words = K.summary(K.prove(BUILD, DAY))
@@ -294,7 +294,7 @@ class Words(unittest.TestCase):
     def test_sheet_hints(self):
         self.assertEqual(K.sheet_hints(GOOD), {"ws": "Orders"})
         self.assertEqual(K.sheet_hints(FILES), {"tracker": "Tracker"})
-        self.assertEqual(K.sheet_hints(BUILD), {})
+        self.assertEqual(K.sheet_hints(BUILD), {"ncr": "NCR", "out": "Summary"})   # modMain.RunHeadless's
 
     def test_plain_results(self):
         self.assertEqual(K.plain_result(K.Attempt(1, "ai", K.read_reply("hello"), None)),
