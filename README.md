@@ -306,3 +306,6 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
 - **2026-10-31:** Item 5 Phase 2a (D75): the engine hooks the window needs (each person action a turn
   with 3 tries, Cancel that stops Codex, Ask for a change, Ask Codex to fix, the recipe in plain
   words) and the wizard's controller, tested without a display. The tests caught two bugs, now fixed.
+- **2026-10-31:** Item 5 Phase 2b (D76): the KRONOS window, a four-step wizard (Ask, Questions, Review,
+  Save) with its first-run checklist. `python app/kronos_app.py --smoke` takes a practice request through
+  every step, and CI runs it on a virtual display. Boss got screenshots of each step.

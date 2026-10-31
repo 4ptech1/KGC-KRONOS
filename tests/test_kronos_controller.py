@@ -65,7 +65,8 @@ class Wizard(unittest.TestCase):
                                         ("save", "todo")])
         self.assertEqual(c.lines, ["Try 1: it passed every check and 3 of 3 practice tests"])
         review = c.review()
-        self.assertEqual(review["summary"]["changes"], ['anything on the sheet you give as "ws"'])
+        self.assertEqual(review["summary"]["changes"],
+                         ['anything on the sheet called "ws" in the recipe (Orders in the practice tests)'])
         self.assertEqual(len(review["summary"]["assumes"]), 3)
         self.assertEqual([(t["line"], t["passed"]) for t in review["tests"]], [(29, True), (30, True), (31, True)])
 
@@ -87,7 +88,7 @@ class Wizard(unittest.TestCase):
         kinds = [e.get("kind") for e in events if e["type"] == "progress"]
         self.assertEqual(kinds[:6], ["asking", "checking", "testing", "tried", "asking", "checking"])
         self.assertEqual(c.lines, ["Try 1: 2 of 3 practice tests passed, so KRONOS sent the problems back to "
-                                   "The practice AI", "Try 2: it passed every check and 3 of 3 practice tests"])
+                                   "the practice AI", "Try 2: it passed every check and 3 of 3 practice tests"])
         self.assertEqual((c.banner, c.calls), ("proven", 2))
 
     def test_not_proven_after_three_tries(self):
@@ -99,6 +100,15 @@ class Wizard(unittest.TestCase):
         self.assertFalse(c.can_save())
         with self.assertRaises(ValueError):
             c.go_save()
+
+    def test_try_again_after_not_proven(self):   # the same request, as a new run
+        c = self.ask(self.controller(block(BROKEN_TEST), block(BROKEN_TEST), block(BROKEN_TEST), block(GOOD)))
+        first = c.run
+        c.again()
+        c.poll()
+        self.assertEqual((c.step, c.banner, c.request), ("review", "proven", REQUEST))
+        self.assertIsNot(c.run, first)
+        self.assertEqual(len(c.history()), 2)
 
     def test_no_reply_and_try_again(self):
         c = self.ask(self.controller(AiError("Codex gave no reply within 300 seconds"), block(GOOD)))
@@ -168,8 +178,9 @@ class Wizard(unittest.TestCase):
 
     def test_a_build_names_its_own_sheets(self):
         c = self.ask(self.controller(block(BUILD)))
-        self.assertEqual(c.review()["summary"]["changes"], ['the Status column of the sheet you give as "ncr"',
-                                                            'anything on the sheet you give as "out"'])
+        self.assertEqual(c.review()["summary"]["changes"],
+                         ['the Status column of the sheet called "ncr" in the recipe (NCR in the practice tests)',
+                          'anything on the sheet called "out" in the recipe (Summary in the practice tests)'])
         c.set_assumptions(True)
         c.go_save()
         self.assertIsNone(c.sheet_fields())
