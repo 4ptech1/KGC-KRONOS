@@ -111,7 +111,8 @@ tests/               unit tests for the Python tools
 docs/                roadmap, plans, design documents, kgc-kronos-context.md (AI context)
 logs/
 .github/workflows/   CI
-app/                 the KGC KRONOS window: kronos_controller.py (the wizard's state, D75), kronos_app.py (the window, D76)
+app/                 the KGC KRONOS window: kronos_controller.py (the wizard's state, D75), kronos_app.py (the window, D76),
+                     kronos_dialogs.py (Settings, Recipe, History, Help, D77)
 (train/ and model/ arrive in March 2027)
 ```
 
@@ -278,7 +279,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    hidden behind a setting, designed in `docs/kronos-app.md` section 2, in PRs 2.0 (the design, docs
    only; done, PR #70), 2a (engine hooks and the wizard's controller; done, D75, PR #71), 2b (the window,
    the first-run checklist and `--smoke`, which CI runs under xvfb-run; done, D76), 2c (Settings, History,
-   Help, the Recipe window, Codex errors in plain words; next) and 2d (Suggest for the corpus); every
+   Help, the Recipe window, Test Codex, Codex errors in plain words; done, D77) and 2d (Suggest for the
+   corpus; next); every
    window PR sends Boss screenshots (`python app/kronos_app.py`, Tk needed: in the cloud container,
    Python 3.12 with `python3-tk` under `xvfb-run`). Then Phase 3 (KRONOS.exe and the guide), then the pilot (Phase 4) once IT approves
    KRONOS.exe and the Codex CLI; corpus batch 3 resumes after Phase 3, and the team version (Phase 5)

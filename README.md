@@ -309,3 +309,7 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
 - **2026-10-31:** Item 5 Phase 2b (D76): the KRONOS window, a four-step wizard (Ask, Questions, Review,
   Save) with its first-run checklist. `python app/kronos_app.py --smoke` takes a practice request through
   every step, and CI runs it on a virtual display. Boss got screenshots of each step.
+- **2026-11-01:** Item 5 Phase 2c (D77): the window gets Settings (with Show the recipe), the Recipe window,
+  History, Help, a one-call Test Codex, and Codex problems explained in plain words. Looking for Codex now
+  runs off the window's thread with a 30-second limit, so a slow Codex cannot freeze it. `--smoke` opens
+  every dialog in CI.

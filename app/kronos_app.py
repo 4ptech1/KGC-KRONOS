@@ -25,8 +25,9 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from kronos_controller import Controller, ROOT  # noqa: E402
 from kronos_ai import FakeAI  # noqa: E402
+from kronos_dialogs import HelpDialog, HistoryDialog, RecipeWindow, SettingsDialog  # noqa: E402
 
-VERSION = "0.2"
+VERSION = "0.3"
 EXAMPLE = ("In the Calibration sheet, list every instrument due for calibration in the next 15 days on a "
            "sheet called Due List.")
 TIPS = ["Name the sheets and the column headers it should use.",
@@ -47,7 +48,8 @@ def pick(families, wanted, fallback):
 class App:
     def __init__(self, root, controller):
         self.root, self.c = root, controller
-        self.saved_once = False
+        self.colours = COLOURS
+        self.dialogs = {}   # name -> the open dialog: one of each kind
         root.title(f"KGC KRONOS {VERSION}")
         root.minsize(900, 640)
         root.geometry("1040x720")
@@ -110,6 +112,12 @@ class App:
         top.pack(fill="x")
         ttk.Label(top, text="KGC KRONOS", style="Title.TLabel").pack(side="left")
         ttk.Label(top, text=f"  {VERSION}", style="Step.TLabel").pack(side="left", pady=(6, 0))
+        self.header_btns = []
+        for text, command in (("Help", self.open_help), ("Settings", self.open_settings),
+                              ("History", self.open_history)):
+            button = ttk.Button(top, text=text, command=command)
+            button.pack(side="right", padx=(6, 0))
+            self.header_btns.append(button)
         self.bar = ttk.Frame(self.root, padding=(18, 2, 18, 8))
         self.bar.pack(fill="x")
         self.bar_labels = {}
@@ -157,12 +165,17 @@ class App:
 
     def notice_row(self, parent):
         row = tk.Frame(parent, bg=COLOURS["note_bg"], padx=12, pady=8)
-        text = tk.Label(row, bg=COLOURS["note_bg"], fg=COLOURS["note"], font=self.f_body, justify="left",
+        left = tk.Frame(row, bg=COLOURS["note_bg"])
+        left.pack(side="left")
+        text = tk.Label(left, bg=COLOURS["note_bg"], fg=COLOURS["note"], font=self.f_body, justify="left",
                         wraplength=640)
-        text.pack(side="left")
+        text.pack(anchor="w")
+        detail = tk.Label(left, bg=COLOURS["note_bg"], fg=COLOURS["muted"], font=self.f_small, justify="left",
+                          wraplength=640)
+        detail.pack(anchor="w")
         again = ttk.Button(row, text="Try again", command=self.retry)
         again.pack(side="right")
-        row.text, row.again = text, again
+        row.text, row.detail, row.again = text, detail, again
         return row
 
     def build_question(self):
@@ -207,6 +220,7 @@ class App:
         self.banner_btns.pack(anchor="w", pady=(8, 0))
         ttk.Button(self.banner_btns, text="Try again", command=self.again).pack(side="left")
         ttk.Button(self.banner_btns, text="Change my request", command=self.back).pack(side="left", padx=8)
+        self.edit_btn = ttk.Button(self.banner_btns, text="Edit the recipe", command=self.open_recipe)
         self.review_body = ttk.Frame(f, style="Panel.TFrame")
         self.review_body.pack(fill="x", pady=(14, 0))
         change = ttk.Frame(f, style="Panel.TFrame")
@@ -312,10 +326,13 @@ class App:
             getattr(self, f"show_{c.step}")()
         self.refresh_working()
         self.refresh_footer()
+        for dialog in list(self.dialogs.values()):
+            dialog.sync()
 
     def show_notice(self, row):
         if self.c.notice:
             row.text.configure(text=self.c.notice)
+            row.detail.configure(text=f"Details: {self.c.notice_detail}" if self.c.notice_detail else "")
             if self.c.run is not None and self.c.run.status in ("ai_error", "cancelled"):
                 row.again.pack(side="right")
             else:
@@ -352,6 +369,10 @@ class App:
             self.banner_text.configure(fg=COLOURS["text"], text=f"{c.ai_title} couldn't get it right in 3 tries. "
                                                                 "Try again, or change your request.")
             self.banner_btns.pack(anchor="w", pady=(8, 0))
+            if c.settings["show_recipe"]:
+                self.edit_btn.pack(side="left")
+            else:
+                self.edit_btn.pack_forget()
         self.change_hint.configure(text=f"Something not right? Say what to change, and {c.ai_label} rewrites "
                                         "the recipe.")
         for w in self.review_body.winfo_children():
@@ -373,9 +394,14 @@ class App:
             lines.append(f"Test strength: the tests caught {review['strength'][0]} of {review['strength'][1]} "
                          "mistakes planted on purpose.")
         self.section("How it was tested", lines or [review["note"]])
+        buttons = ttk.Frame(self.review_body, style="Panel.TFrame")
+        buttons.pack(anchor="w", pady=(6, 0))
         if tests:
-            self.tests_btn = ttk.Button(self.review_body, text="Show the tests", command=self.toggle_tests)
-            self.tests_btn.pack(anchor="w", pady=(6, 0))
+            self.tests_btn = ttk.Button(buttons, text="Show the tests", command=self.toggle_tests)
+            self.tests_btn.pack(side="left")
+        if proven and c.settings["show_recipe"]:
+            ttk.Button(buttons, text="Show the recipe", command=self.open_recipe).pack(side="left", padx=8)
+        if tests:
             self.tests_table = self.build_tests_table(tests)
         self.show_notice(self.review_notice)
         self.review_canvas.yview_moveto(0)
@@ -403,7 +429,7 @@ class App:
             self.tests_table.pack_forget()
             self.tests_btn.configure(text="Show the tests")
         else:
-            self.tests_table.pack(fill="x", pady=(6, 0), after=self.tests_btn)
+            self.tests_table.pack(fill="x", pady=(6, 0), after=self.tests_btn.master)
             self.tests_btn.configure(text="Hide the tests")
 
     def toggle_conversation(self):
@@ -464,6 +490,8 @@ class App:
         c = self.c
         step = c.step
         self.back_btn.configure(state="disabled" if c.working or step == "ask" else "normal")
+        for button in self.header_btns:
+            button.configure(state="disabled" if c.working else "normal")
         if c.working:
             self.primary_btn.configure(text="Working...", state="disabled")
             return
@@ -561,6 +589,58 @@ class App:
         self.root.clipboard_clear()
         self.root.clipboard_append("\n".join(self.c.import_steps()))
 
+    # ---------- the dialogs (kronos_dialogs.py) ----------
+
+    def open(self, name, make):
+        """Open the dialog called name, or bring the one already open to the front."""
+        existing = self.dialogs.get(name)
+        if existing is not None and existing.win.winfo_exists():
+            existing.win.lift()
+            return existing
+        dialog = self.dialogs[name] = make()
+        return dialog
+
+    def forget(self, dialog):
+        self.dialogs = {k: v for k, v in self.dialogs.items() if v is not dialog}
+
+    def open_settings(self):
+        return self.open("settings", lambda: SettingsDialog(self))
+
+    def open_history(self):
+        return self.open("history", lambda: HistoryDialog(self))
+
+    def open_help(self):
+        return self.open("help", lambda: HelpDialog(self, VERSION))
+
+    def open_recipe(self):
+        if not self.c.settings["show_recipe"]:
+            messagebox.showinfo("Show the recipe", "Turn on Show the recipe in Settings first.", parent=self.root)
+            return None
+        return self.open("recipe", lambda: RecipeWindow(self))
+
+    def run_test(self, label, button):
+        """Test Codex (one call): shows the answer, or what is wrong in plain words, in label."""
+        try:
+            self.c.test_ai()
+        except ValueError as exc:
+            label.configure(text=str(exc))
+            return
+        button.configure(state="disabled")
+        label.configure(text=f"Asking {self.c.ai_label}...", foreground=COLOURS["muted"])
+
+        def check():
+            if not label.winfo_exists():
+                return
+            if self.c.testing:
+                label.after(100, check)
+                return
+            ok, words, details = self.c.test_result
+            label.configure(text=("\u2713  " if ok else "\u2717  ") + words + (f"\n{details}" if details else ""),
+                            foreground=COLOURS["ok"] if ok else COLOURS["note"])
+            button.configure(state="normal")
+
+        label.after(100, check)
+
     # ---------- the first-run checklist ----------
 
     def checklist(self):
@@ -570,24 +650,16 @@ class App:
         win.transient(self.root)
         win.resizable(False, False)
         ttk.Label(win, text="Before you start", style="Head.TLabel").pack(anchor="w")
-        items = dict((item, (ok, detail)) for item, ok, detail in c.checklist())
-        found, detail = items["codex_found"]
-        flags_ok, flags = items["codex_flags"]
-        mark = lambda ok: "✓" if ok else "✗"   # noqa: E731
-        if c.ai_label == "Codex":
-            self.label(win, f"{mark(found)}  Codex is installed: {detail}", wrap=560).pack(anchor="w", pady=(10, 0))
-        else:
-            self.label(win, "✓  The practice AI is ready (practice runs need no Codex)", wrap=560
-                       ).pack(anchor="w", pady=(10, 0))
-        if found and c.ai_label == "Codex":
-            self.label(win, f"{mark(flags_ok)}  Its command line works with this version"
-                            + ("" if flags_ok else f": {flags}"), wrap=560).pack(anchor="w")
+        found_frame = ttk.Frame(win, style="Panel.TFrame")
+        found_frame.pack(anchor="w", fill="x", pady=(10, 0))
+        looking = self.label(found_frame, f"Looking for {c.ai_label}...", "Muted.TLabel", wrap=560)
+        looking.pack(anchor="w")
         controls = tk.BooleanVar(value=c.settings["data_controls_confirmed"])
         practice = tk.BooleanVar(value=c.settings["practice_confirmed"])
         ttk.Checkbutton(win, variable=controls, text='I turned off "Improve the model for everyone" (ChatGPT > '
                         'Settings > Data Controls)').pack(anchor="w", pady=(12, 0))
-        self.label(win, f"KRONOS keeps its records in {items['data_folder'][1]}", "Muted.TLabel",
-                   wrap=560).pack(anchor="w", pady=(8, 0))
+        self.label(win, f"KRONOS keeps its records in {c.data}", "Muted.TLabel", wrap=560).pack(anchor="w",
+                                                                                              pady=(8, 0))
         ttk.Checkbutton(win, variable=practice, text="I'll use practice requests with invented data only, for now"
                         ).pack(anchor="w", pady=(8, 0))
         done = ttk.Button(win, text="Done", style="Primary.TButton")
@@ -601,6 +673,39 @@ class App:
             win.destroy()
             self.refresh()
 
+        def fill(items):
+            """Show what the controller found (it looked on its worker thread, so the window never froze)."""
+            looking.destroy()
+            found, detail = dict((item, (ok, why)) for item, ok, why in items)["codex_found"]
+            flags_ok, flags = dict((item, (ok, why)) for item, ok, why in items)["codex_flags"]
+            mark = lambda ok: "\u2713" if ok else "\u2717"   # noqa: E731
+            if c.ai_label == "Codex":
+                self.label(found_frame, f"{mark(found)}  Codex is installed: {detail}", wrap=560).pack(anchor="w")
+                if found:
+                    self.label(found_frame, f"{mark(flags_ok)}  Its command line works with this version"
+                               + ("" if flags_ok else f": {flags}"), wrap=560).pack(anchor="w")
+                    test_btn = ttk.Button(found_frame, text="Test Codex (optional, uses one call)")
+                    test_btn.pack(anchor="w", pady=(8, 0))
+                    test_label = self.label(found_frame, "", wrap=560)
+                    test_label.pack(anchor="w", pady=(4, 0))
+                    test_btn.configure(command=lambda: self.run_test(test_label, test_btn))
+            else:
+                self.label(found_frame, "\u2713  The practice AI is ready (practice runs need no Codex)",
+                           wrap=560).pack(anchor="w")
+
+        def wait_for_items():
+            if not win.winfo_exists():
+                return
+            if c.checklist_items is None:
+                win.after(100, wait_for_items)
+            else:
+                fill(c.checklist_items)
+
+        try:
+            c.start_checklist()
+            win.after(100, wait_for_items)
+        except ValueError as exc:
+            looking.configure(text=str(exc))
         controls.trace_add("write", update)
         practice.trace_add("write", update)
         done.configure(command=finish)
@@ -611,8 +716,45 @@ class App:
 # ---------- --smoke: one practice request through all four steps ----------
 
 def smoke(app, out):
-    """Drives the window as a person would; out["ok"] is set when the module is saved."""
+    """Drives the window as a person would, then opens every dialog; out["ok"] is set when all of it worked."""
     c = app.c
+    held = {}   # the dialogs the steps open
+
+    def need(condition, what):
+        if not condition:
+            raise AssertionError(what)
+
+    def settings_open():
+        held["settings"] = d = app.open_settings()
+        d.show_recipe.set(True)
+        d.test()   # Test Codex: one call to the practice AI
+
+    def settings_save():
+        need(c.test_result and c.test_result[0], "Test Codex did not answer")
+        held["settings"].save()
+        need(c.settings["show_recipe"] and "settings" not in app.dialogs, "Settings did not save")
+
+    def recipe_open():
+        held["recipe"] = d = app.open_recipe()
+        need("VCL 0.6" in d.typed(), "the recipe window shows no recipe")
+        d.recheck()
+
+    def recipe_done():
+        d = held["recipe"]
+        need("VCL 0.6" in d.typed() and "Proven" in d.status.cget("text"), "the re-check was not proven")
+        d.close()
+
+    def history():
+        d = app.open_history()
+        need(len(d.rows) >= 1, "History lists no run")
+        d.table.selection_set(next(iter(d.rows)))
+        d.show()
+        need("Status: PROVEN" in d.report.get("1.0", "end"), "History shows no report")
+        d.close()
+
+    def help_window():
+        app.open_help().close()
+
     plan = [
         ("checklist", lambda: hasattr(app, "checklist_win"), lambda: (
             app.checklist_win[1].set(True), app.checklist_win[2].set(True), app.checklist_win[3].invoke())),
@@ -625,14 +767,26 @@ def smoke(app, out):
             app.assumed.set(True), c.set_assumptions(True), app.primary())),
         ("save", lambda: c.step == "save", lambda: (
             app.field_widgets["ws"][1].set("Orders"), app.save(c.data / "smoke" / "smoke.bas"))),
-        ("saved", lambda: c.saved is not None and c.saved.exists(), lambda: out.update(ok=True)),
+        ("saved", lambda: c.saved is not None and c.saved.exists(), lambda: None),
+        ("settings", lambda: not c.working, settings_open),
+        ("settings saved", lambda: c.test_result is not None, settings_save),
+        ("recipe", lambda: c.step == "save" and not c.working, recipe_open),
+        ("recipe rechecked", lambda: c.step == "review" and not c.working and c.banner == "proven", recipe_done),
+        ("history", lambda: True, history),
+        ("help", lambda: True, help_window),
+        ("dialogs", lambda: True, lambda: out.update(ok=True)),
     ]
     out.setdefault("done", [])
 
     def step():
         if plan and plan[0][1]():
             name, cond, act = plan.pop(0)
-            act()
+            try:
+                act()
+            except Exception as exc:   # a failed step ends the run at once, with the reason
+                out["error"] = f"{name}: {type(exc).__name__}: {exc}"
+                app.root.destroy()
+                return
             out["done"].append(name)
         if plan:
             app.root.after(50, step)
@@ -675,8 +829,8 @@ def main(argv=None):
         smoke(app, out)
     root.mainloop()
     if args.smoke:
-        print("smoke: " + ("OK, all four steps and the saved module" if out.get("ok") else
-                           f"FAILED after {out.get('done')}"))
+        print("smoke: " + ("OK, all four steps, the saved module and every dialog" if out.get("ok") else
+                           f"FAILED after {out.get('done')}" + (f": {out['error']}" if out.get("error") else "")))
         return 0 if out.get("ok") else 1
     return 0
 

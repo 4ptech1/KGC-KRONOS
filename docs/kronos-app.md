@@ -194,28 +194,36 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
 - [Start a new request] goes back to step 1.
 
 **Dialogs**
-- **First-run checklist** (on first start; Ask Codex stays off until it is done; built in 2b, D76):
-  1. the Codex CLI is found (`CodexAI.program`), with [Check again] and a hint;
-  2. its flags match `codex exec --help` (`CodexAI.check`);
-  3. [Test Codex], optional: one tiny prompt, using one call, showing "signed in" or the
-     `codex login` hint;
+- **First-run checklist** (on first start; Ask Codex stays off until it is done; built in 2b and 2c,
+  D76, D77):
+  1. the Codex CLI is found (`CodexAI.program`);
+  2. its flags match `codex exec --help` (`CodexAI.check`, 30-second limit);
+  3. [Test Codex], optional: one tiny prompt (`CodexAI.ping`), using one call, showing "answered, so
+     it is installed and signed in" or the problem in plain words;
   4. a required tick: "I turned off Improve the model for everyone (ChatGPT > Settings > Data
      Controls)";
-  5. the data folder, with [Change...];
+  5. the data folder, shown;
   6. a required tick: "Practice requests with invented data only, for now".
-- **Settings** (kept in the data folder as `settings.json`):
-  - the data folder;
-  - the Codex timeout (default 300 seconds);
-  - the Codex command line (advanced);
+
+  Steps 1 and 2 run on the worker thread, so the dialog says "Looking for Codex..." and the window
+  never freezes.
+- **Settings** (kept in the data folder as `settings.json`; saved all or none, live):
+  - the data folder, shown (to move it, start KRONOS with `--data DIR`; D77);
+  - where Save suggests putting macros (empty: `macros` in the data folder);
+  - how long to wait for Codex (10 to 3600 seconds, default 300);
+  - the Codex command line (advanced), one part per line, with Reset to default; it must keep
+    `{out}`;
   - **Show the recipe (advanced)**, off by default;
   - Measure test strength, off by default;
-  - Run the checklist again.
-- **Recipe window** (only when Show the recipe is on): the VCL, editable, with line numbers; the
-  problems (click one to jump to its line); [Re-check], [Tidy layout] (`vclc fmt`) and [Ask
-  Codex to fix].
-- **History:** past runs (date, request, status). Selecting one shows its report. [Open the
-  folder]. [Use this macro again] re-proves its best attempt in a new run and goes to Save.
-- **Help/About:** the version, the data folder and the guide.
+  - [Test Codex] and [Run the checklist again].
+- **Recipe window** (only when Show the recipe is on; Review offers [Show the recipe], and [Edit the
+  recipe] when not proven): the VCL, editable, with line numbers; the problems (click one to jump
+  to its line, tinted); [Re-check], [Tidy layout] (`vclc fmt`) and [Ask Codex to fix].
+- **History:** past runs (when, request, status in words). Selecting one shows its report. [Open
+  the folder] (Windows). [Use this macro again] proves its shown recipe in a new run, with no AI
+  call, and goes to Review.
+- **Help/About:** what KRONOS does, the four steps, staying safe, where things are kept, the
+  setup guide, the AI in use and the data folder.
 
 **Working with Codex**
 - The `CodexAI` adapter as built in Phase 1: the prompt and the whole conversation on stdin, the
@@ -225,10 +233,14 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
 - **Turns and tries:** a request, an answer, a change, or "Ask Codex to fix" is one turn, and each
   turn gets 3 tries (the first spec and 2 repairs). A question is not a try; a 4th question ends
   the run.
-- **Codex errors in plain words**, each with [Try again]:
+- **Codex errors in plain words** (`plain_error`, D77), each with [Try again] and the adapter's own
+  text under it as "Details":
   - not found: install it, and see the guide;
-  - an exit that mentions login: run `codex login` in a Command Prompt;
-  - too slow: try again, or make the request smaller;
+  - an exit where Codex itself mentions login or sign-in: run `codex login` in a Command Prompt
+    (the adapter's own signed-in hint on every exit-code message does not count);
+  - any other exit: try again, or use Test Codex in Settings;
+  - too slow: try again, make the request smaller, or allow more time in Settings;
+  - would not start: ask IT; no answer: try again; a command line without `{out}`: Reset to default;
   - Cancel: "Cancelled".
 - The working panel counts the Codex calls (1 to 3 per turn), for ChatGPT's usage limits.
 
@@ -290,7 +302,7 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
 | 2.0 | The window's design (the wizard) and the new order of work (D74) | the docs agree |
 | 2a | The engine hooks (progress, cancel, follow-up, fix, summary, sheet hints, settings) and the wizard's controller | done (D75): controller tests with the fake AI cover every path |
 | 2b | The wizard window: the frame, the four steps, the working panel, Cancel, the first-run checklist and `--smoke` | done (D76): it starts and runs a fake request in CI under a virtual display; Boss got screenshots of each step |
-| 2c | Settings (with Show the recipe and the Recipe window), History, Help, the one-call Codex test, Codex errors in plain words | controller tests, the smoke test and screenshots |
+| 2c | Settings (with Show the recipe and the Recipe window), History, Help, the one-call Codex test, Codex errors in plain words | done (D77): controller tests, a 13-step smoke test that opens every dialog, and screenshots |
 | 2d | Suggest for the corpus: the corpus gates on a proven run, and a candidate folder in the data folder (never `data/`) | tests; the candidate passes the gates |
 | 3 | KRONOS.exe, `--self-test`, the release and the guide | the Windows job builds the exe and its self-test passes |
 | 4 | Boss's pilot on his PC, after IT approves the installs | three practice requests through Codex, each proven; problems logged |
