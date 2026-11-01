@@ -1,0 +1,114 @@
+name: Build KRONOS.exe
+
+# Item 5 Phase 3 (D79). On Windows, PyInstaller packs the KRONOS window and the toolchain into one KRONOS.exe, and
+# the exe runs its own --self-test (a practice request through all four steps, every dialog and a corpus
+# candidate, with the practice AI). A pull request that changes what goes into the exe builds it as a check; a
+# manual run with "release" ticked, from main, publishes it as a GitHub Release for Boss to download.
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "compiler/**"
+      - "vcl/**"
+      - "vba/**"
+      - "packaging/**"
+      - "requirements*.txt"
+      - ".github/workflows/build-exe.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "compiler/**"
+      - "vcl/**"
+      - "vba/**"
+      - "packaging/**"
+      - "requirements*.txt"
+      - ".github/workflows/build-exe.yml"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish the exe as a GitHub Release (only from main)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install the pinned dependencies and build tools
+        run: python -m pip install --require-hashes -r requirements.txt -r requirements-build.txt
+      - name: Build KRONOS.exe
+        run: python -m PyInstaller --noconfirm packaging/kronos.spec
+      - name: The version
+        id: version
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path app\kronos_app.py -Pattern '^VERSION = "(.+)"').Matches[0].Groups[1].Value
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "KRONOS $v"
+      - name: Self-test the exe (a window, so it writes its result to a log file)
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP "kronos-self-test.txt"
+          $p = Start-Process -FilePath dist\KRONOS.exe -ArgumentList "--self-test", "--log", $log -Wait -PassThru
+          if (Test-Path $log) { Get-Content $log } else { Write-Error "the self-test wrote no log" }
+          if ($p.ExitCode -ne 0) { Write-Error "KRONOS.exe --self-test exited with $($p.ExitCode)"; exit 1 }
+          if (-not (Select-String -Path $log -Pattern "smoke: OK" -Quiet)) { Write-Error "no 'smoke: OK' line"; exit 1 }
+      - name: Checksum
+        shell: pwsh
+        run: |
+          $h = (Get-FileHash dist\KRONOS.exe -Algorithm SHA256).Hash.ToLower()
+          "$h  KRONOS.exe" | Out-File -FilePath dist\KRONOS.exe.sha256.txt -Encoding ascii
+          "SHA-256: $h"
+          "Size: {0:N1} MB" -f ((Get-Item dist\KRONOS.exe).Length / 1MB)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KRONOS-exe
+          path: |
+            dist/KRONOS.exe
+            dist/KRONOS.exe.sha256.txt
+          if-no-files-found: error
+
+  release:
+    if: github.event_name == 'workflow_dispatch' && inputs.release && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: KRONOS-exe
+          path: out
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          sha=$(cut -d' ' -f1 out/KRONOS.exe.sha256.txt)
+          cat > notes.md <<NOTES
+          The KGC KRONOS desktop app, version ${VERSION}: type an Excel request in plain words, and get a macro that
+          has been tested on practice data.
+
+          **Download KRONOS.exe below.** The setup guide with every click is
+          [docs/kronos-app-guide.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/docs/kronos-app-guide.md).
+
+          - The file is **not digitally signed**, so Windows may warn about it and IT may need to allow it.
+          - SHA-256: \`${sha}\`
+          - It was built by GitHub Actions from commit ${GITHUB_SHA} and passed its own self-test before this release.
+          - KRONOS never opens, changes or runs your workbooks, and the app itself makes no network connection: the
+            request goes out only through the Codex CLI you install and sign in to yourself.
+          NOTES
+          gh release create "kronos-v${VERSION}" out/KRONOS.exe out/KRONOS.exe.sha256.txt \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "KGC KRONOS ${VERSION}" --notes-file notes.md

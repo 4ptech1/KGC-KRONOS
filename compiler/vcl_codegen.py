@@ -14,6 +14,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "vcl"))
 import semantics as S  # noqa: E402
+from resources import ROOT  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from vcl_types import Checker, build_sigs, canon, mentions  # noqa: E402
 
@@ -689,7 +690,7 @@ def compile_build_procs(text, source_name=""):
     return name, procs
 
 
-FORGELIB = HERE.parent / "vba" / "ForgeLib.bas"
+FORGELIB = ROOT / "vba" / "ForgeLib.bas"
 
 
 def module_title(n):

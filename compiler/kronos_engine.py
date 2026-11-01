@@ -27,8 +27,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
+from resources import ROOT  # noqa: E402
 from errcodes import code_of, coded, tag  # noqa: E402
 from kronos_ai import CODEX_COMMAND, CODEX_TIMEOUT, AiError, CodexAI, FakeAI  # noqa: E402
 from validator import MODIFIES_RE, validate_text  # noqa: E402

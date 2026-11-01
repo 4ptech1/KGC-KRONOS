@@ -316,3 +316,7 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
 - **2026-11-01:** Item 5 Phase 2d (D78): Suggest for the corpus. A proven run can be offered as a training
   example, after the person confirms the request used invented data. It passes the corpus gates and is kept in
   KRONOS's own data folder, never in the repo. The KRONOS window is complete; Phase 3 (KRONOS.exe) is next.
+- **2026-11-01:** Item 5 Phase 3 (D79): KRONOS.exe. GitHub builds it on Windows (PyInstaller, one file),
+  runs its `--self-test`, and a manual run publishes a release. The program finds its data files through
+  `compiler/resources.py`, so it works from a checkout or from the exe. `docs/kronos-app-guide.md` has the
+  exact clicks and a message for IT. Next is the pilot, once IT approves.

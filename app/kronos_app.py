@@ -16,6 +16,7 @@ import json
 import os
 import sys
 import tempfile
+import traceback
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
@@ -23,11 +24,12 @@ import tkinter.font as tkfont
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from kronos_controller import Controller, ROOT  # noqa: E402
+from kronos_controller import Controller  # noqa: E402
+from resources import ROOT  # noqa: E402
 from kronos_ai import FakeAI  # noqa: E402
 from kronos_dialogs import HelpDialog, HistoryDialog, RecipeWindow, SettingsDialog  # noqa: E402
 
-VERSION = "0.3"
+VERSION = "0.4"
 EXAMPLE = ("In the Calibration sheet, list every instrument due for calibration in the next 15 days on a "
            "sheet called Due List.")
 TIPS = ["Name the sheets and the column headers it should use.",
@@ -862,15 +864,36 @@ def smoke(app, out):
     app.root.after(60000, app.root.destroy)   # never hang CI
 
 
-def main(argv=None):
+def emit(text, log=None):
+    """Print, and append to the log file when there is one: a windowed KRONOS.exe has no console (D79)."""
+    if sys.stdout is not None:
+        try:
+            print(text)
+        except (OSError, ValueError):
+            pass
+    if log:
+        with open(log, "a", encoding="utf-8", newline="\n") as f:
+            f.write(text + "\n")
+
+
+def parse_args(argv):
     ap = argparse.ArgumentParser(prog="kronos_app", description="KGC KRONOS: a request in plain words to a proven "
                                                                 "Excel macro.")
     ap.add_argument("--data", help="the data folder (default: Documents/KGC KRONOS)")
     ap.add_argument("--ai", choices=("codex", "fake"))
     ap.add_argument("--replies", help="the practice AI's replies: a JSON list of strings")
     ap.add_argument("--today", type=datetime.date.fromisoformat, help="pins TODAY for the tests")
-    ap.add_argument("--smoke", action="store_true", help="run one practice request through every step, then close")
-    args = ap.parse_args(argv)
+    ap.add_argument("--smoke", "--self-test", dest="smoke", action="store_true",
+                    help="run one practice request through every step and dialog, then close (exit 0 when it worked)")
+    ap.add_argument("--log", help="also write what it says to this file (a windowed KRONOS.exe has no console)")
+    ap.add_argument("--version", action="store_true", help="say the version and stop")
+    return ap.parse_args(argv)
+
+
+def run(args):
+    if args.version:
+        emit(f"KGC KRONOS {VERSION}", args.log)
+        return 0
     if os.name == "nt":
         try:   # sharp text on scaled Windows displays
             import ctypes
@@ -895,10 +918,43 @@ def main(argv=None):
     root.mainloop()
     if args.smoke:
         failed = f"FAILED after {out.get('done')}" + (f": {out['error']}" if out.get("error") else "")
-        print("smoke: " + ("OK, all four steps, the saved module, every dialog and a corpus candidate"
-                           if out.get("ok") else failed))
+        emit("smoke: " + ("OK, all four steps, the saved module, every dialog and a corpus candidate"
+                          if out.get("ok") else failed), args.log)
         return 0 if out.get("ok") else 1
     return 0
+
+
+def crash(args):
+    """KRONOS could not start or stopped on an error: a windowed exe shows no traceback, so keep it in the data
+    folder (crash.log), say so in a box, and return the exit code."""
+    text = traceback.format_exc()
+    where = ""
+    try:
+        from kronos_engine import data_folder, default_data_folder
+        folder = data_folder(Path(args.data) if args.data else default_data_folder())
+        (folder / "crash.log").write_text(f"KGC KRONOS {VERSION}\n{text}", encoding="utf-8", newline="\n")
+        where = f"\n\nThe details are in {folder / 'crash.log'}"
+    except Exception:   # noqa: BLE001  (nothing more can be done: say what happened)
+        pass
+    emit(f"KRONOS stopped on an error:\n{text}", args.log)
+    if not args.smoke:
+        try:
+            box = tk.Tk()
+            box.withdraw()
+            messagebox.showerror("KGC KRONOS", f"KRONOS stopped on an error: {text.strip().splitlines()[-1]}{where}",
+                                 parent=box)
+            box.destroy()
+        except Exception:   # noqa: BLE001
+            pass
+    return 1
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    try:
+        return run(args)
+    except Exception:   # noqa: BLE001  (every failure is reported, never silent)
+        return crash(args)
 
 
 if __name__ == "__main__":
