@@ -268,17 +268,25 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
   virtual display, and later it is KRONOS.exe's `--self-test`.
 
 ### 3. KRONOS.exe
-- **The build:**
-  - A Windows job in GitHub Actions builds one KRONOS.exe with PyInstaller. Its pin and hash
-    go in a separate `requirements-build.txt`: it is a build tool and never runs inside
-    KRONOS.
-  - It bundles `compiler/`, `vcl/` (the prompt, grammar and semantics) and `vba/ForgeLib.bas`.
-- **The self-test:** `KRONOS.exe --self-test` runs one request end to end with the fake AI,
-  and CI runs it on the built exe.
+- **The build** (D79):
+  - A Windows job in GitHub Actions (`.github/workflows/build-exe.yml`) builds one KRONOS.exe
+    from `packaging/kronos.spec` with PyInstaller: one file, no console window, no packer. The
+    tools are pinned with their hashes in `requirements-build.txt`; they never run inside KRONOS.
+  - It bundles the program's modules and exactly the data files the code reads: the grammar, the
+    Orchestrator prompt, ForgeLib and the self-test's recipe. They are found through
+    `compiler/resources.py`, which points at the repo or at the exe's unpacking folder.
+- **The self-test:** `KRONOS.exe --self-test --log FILE` runs one request end to end with the
+  practice AI, then opens every dialog and makes a corpus candidate. It writes to the log (a
+  window has no console) and exits 0 on success. CI runs it on the built exe. `--version` says the
+  version.
 - **Delivery:**
-  - Boss downloads the exe from a GitHub Release, with exact clicks in the guide.
-  - The window title shows the version.
-  - The exe is unsigned, so IT may need to allow it.
+  - Boss downloads the exe from a GitHub Release, which a manual run of the workflow publishes
+    from main (a separate job with write permission), with its checksum and exact clicks in the
+    guide.
+  - The window title shows the version (0.4).
+  - The exe is unsigned, so IT may need to allow it. Signing, and a folder build instead of one
+    file, are the fallbacks if IT or antivirus objects.
+  - A failure at start is written to `crash.log` in the data folder and shown in a box.
 - **The guide**, `docs/kronos-app-guide.md`, with exact clicks: install the Codex CLI,
   `codex login`, Data Controls, download KRONOS.exe, the first run, a practice request,
   importing the .bas, running the starter macro.
@@ -307,7 +315,7 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
 | 2b | The wizard window: the frame, the four steps, the working panel, Cancel, the first-run checklist and `--smoke` | done (D76): it starts and runs a fake request in CI under a virtual display; Boss got screenshots of each step |
 | 2c | Settings (with Show the recipe and the Recipe window), History, Help, the one-call Codex test, Codex errors in plain words | done (D77): controller tests, a 13-step smoke test that opens every dialog, and screenshots |
 | 2d | Suggest for the corpus: the corpus gates on a proven run, and a candidate folder in the data folder (never `data/`) | done (D78): tests; the candidate passes the gates, and `corpus-add` takes it |
-| 3 | KRONOS.exe, `--self-test`, the release and the guide | the Windows job builds the exe and its self-test passes |
+| 3 | KRONOS.exe, `--self-test`, the release and the guide | done (D79): the Windows job builds the exe and its self-test passes; the release and the guide are published |
 | 4 | Boss's pilot on his PC, after IT approves the installs | three practice requests through Codex, each proven; problems logged |
 | 5 | The team version on the company drive | two copies share one folder in a test |
 

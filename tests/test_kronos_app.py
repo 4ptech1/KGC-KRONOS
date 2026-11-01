@@ -7,6 +7,7 @@ import importlib.util
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -22,6 +23,26 @@ class Window(unittest.TestCase):
                               capture_output=True, text=True, timeout=120)
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         self.assertIn("smoke: OK, all four steps, the saved module, every dialog and a corpus candidate", done.stdout)
+
+    def test_the_version_and_the_log_file(self):   # a windowed exe has no console (D79)
+        log = Path(tempfile.mkdtemp()) / "log.txt"
+        done = subprocess.run([sys.executable, str(ROOT / "app" / "kronos_app.py"), "--version", "--log", str(log)],
+                              cwd=ROOT, capture_output=True, text=True, timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(log.read_text(encoding="utf-8").strip(), done.stdout.strip())
+        self.assertRegex(done.stdout, r"^KGC KRONOS \d+\.\d+$")
+
+    def test_a_crash_is_kept_in_the_data_folder_and_reported(self):
+        data = Path(tempfile.mkdtemp()) / "KGC KRONOS"
+        code = ("import sys; sys.path.insert(0, 'app'); import kronos_app as K; "
+                "K.messagebox.showerror = lambda title, text, **kw: print('BOX:', text.splitlines()[0]); "
+                f"args = K.parse_args(['--data', {str(data)!r}])\n"
+                "try:\n    raise ValueError('boom')\nexcept ValueError:\n    print('exit', K.crash(args))")
+        done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, capture_output=True, text=True, timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn("BOX: KRONOS stopped on an error: ValueError: boom", done.stdout)
+        self.assertIn("exit 1", done.stdout)
+        self.assertIn("ValueError: boom", (data / "crash.log").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

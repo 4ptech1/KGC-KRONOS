@@ -26,3 +26,6 @@ dist/*
 !dist/forge_module.bas
 !dist/forge_selftest.bas
 !dist/forge_pilot.bas
+
+# PyInstaller's work folder (KRONOS.exe is built into dist/, which is ignored above)
+build/

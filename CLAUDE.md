@@ -113,6 +113,8 @@ logs/
 .github/workflows/   CI
 app/                 the KGC KRONOS window: kronos_controller.py (the wizard's state, D75), kronos_app.py (the window, D76),
                      kronos_dialogs.py (Settings, Recipe, History, Help, D77)
+packaging/           kronos.spec: the PyInstaller spec for KRONOS.exe (D79); the build is
+                     .github/workflows/build-exe.yml, its tools are in requirements-build.txt
 (train/ and model/ arrive in March 2027)
 ```
 
@@ -263,8 +265,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    for the rest is `docs/corpus-plan.md`; D64) are done; Phase 6, the corpus to 150 tasks in
    batches of about 20, is in progress (batches 1 and 2, c013 to c052, are stored: 52 pairs of 150, four of
    them held out; `data/gaps.md` logs what VCL could not say; D65, D66). Batch 3, leaning on the thin
-   registers and families (`vclc corpus --report`), waits until KRONOS.exe is done (Phase 3; D71,
-   D74); no training before March 2027.
+   registers and families (`vclc corpus --report`), resumes now that KRONOS.exe is done (Phase 3; D71,
+   D74, D79); no training before March 2027.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,
@@ -282,10 +284,12 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    Help, the Recipe window, Test Codex, Codex errors in plain words; done, D77) and 2d (Suggest for the
    corpus, from Review or Save, into the data folder's `corpus_candidates`; done, D78); every
    window PR sends Boss screenshots (`python app/kronos_app.py`, Tk needed: in the cloud container,
-   Python 3.12 with `python3-tk` under `xvfb-run`). **The window is complete. Next: Phase 3** (KRONOS.exe
-   and the guide), then the pilot (Phase 4) once IT approves
-   KRONOS.exe and the Codex CLI; corpus batch 3 resumes after Phase 3, and the team version (Phase 5)
-   follows the pilot. The parallel session is gone; this is the only session on the repo.
+   Python 3.12 with `python3-tk` under `xvfb-run`). **The window is complete.** Phase 3 is done (D79):
+   `packaging/kronos.spec` and `.github/workflows/build-exe.yml` build KRONOS.exe on Windows and run its
+   `--self-test`; `compiler/resources.py` finds the data files inside the exe; `docs/kronos-app-guide.md` is
+   Boss's guide with a message for IT; a manual run of the workflow with "release" ticked publishes it. **Next:
+   the pilot (Phase 4)**, once IT approves KRONOS.exe and the Codex CLI; corpus batch 3 resumes now that
+   Phase 3 is done and may run while the pilot waits for IT, and the team version (Phase 5) follows the pilot. The parallel session is gone; this is the only session on the repo.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

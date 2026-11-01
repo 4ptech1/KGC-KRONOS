@@ -25,7 +25,7 @@ section 8 is kept current):
 | Mutation score, TEST assertions only | 89.0% of 438 deliberate bugs caught (was 68% at the start) |
 | Mutation score, whole-workbook comparison | 95.4% (418 of 438); 19 of the 20 survivors are equivalent mutants (D14, D24), 1 is a small task_11 fixture gap (D24) |
 | VBA lint (the compile errors Excel would raise) | 0 problems in 1,850 lines |
-| Unit tests | 567 pass (1 skipped without a display) |
+| Unit tests | 576 pass (3 skipped without a display) |
 
 ## Honest limits
 
@@ -97,7 +97,7 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    `docs/vep-0.6-stage-a.md` (D59), with the language changes (error codes, `GOAL`, `vclc fmt`)
    first so no stored spec is ever migrated. Those changes and the corpus tooling are done (D60 to
    D64), and batches 1 and 2 are stored: 52 of 150 pairs, 4 of them held out (D65, D66). Batch 3
-   waits until KRONOS.exe is done (Phase 3 of item 9; D71, D74).
+   resumes now that KRONOS.exe is done (Phase 3 of item 9; D71, D74, D79).
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
@@ -114,5 +114,6 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    Phase 1, the engine and `vclc ask`, is done (D72). Phase 2, the window, comes before everything
    else (D74): a four-step wizard (Ask, Questions, Review, Save) in PRs 2.0 to 2d (2.0, 2a the engine
    hooks and the controller, 2b the window, 2c Settings, History, Help and the Recipe window, and 2d
-   Suggest for the corpus are done; D75 to D78: the window is complete), then Phase 3
-   (KRONOS.exe), then the pilot.
+   Suggest for the corpus are done; D75 to D78: the window is complete). Phase 3, KRONOS.exe built on
+   Windows with its self-test, a release workflow and the guide, is done (D79). Next is the pilot
+   (Phase 4), once IT approves KRONOS.exe and the Codex CLI.

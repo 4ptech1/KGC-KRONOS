@@ -18,8 +18,7 @@ import threading
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "compiler"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "compiler"))
 import kronos_engine as engine  # noqa: E402
 from kronos_ai import AiError, CodexAI  # noqa: E402
 from vcl_codegen import CompileError, starter_value  # noqa: E402

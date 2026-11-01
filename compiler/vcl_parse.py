@@ -12,8 +12,9 @@ from lark import Lark, Token, Tree
 from lark.exceptions import LarkError, UnexpectedInput
 
 from errcodes import coded
+from resources import ROOT
 
-GRAMMAR = Path(__file__).resolve().parent.parent / "vcl" / "grammar.lark"
+GRAMMAR = ROOT / "vcl" / "grammar.lark"
 
 TASK_ORDER = ["GOAL", "PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
               "ALLOW", "FIXTURE", "TEST"]
