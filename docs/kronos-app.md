@@ -102,12 +102,15 @@ Excel, when they choose.
   - the `.bas`.
 
   The data folder is `Documents\KGC KRONOS` by default (a setting) and never inside the repo.
-- **Corpus candidates (D70; built in Phase 2d with its button, D72, D74):**
-  - "Suggest for the corpus" runs the corpus gates (`vcl_corpus`) on a proven run, then writes
-    `<data folder>\corpus_candidates\<id>\` with `task.txt`, `spec.vcl` and `meta.json`
-    (`"source": "codex via KRONOS"`).
+- **Corpus candidates (D70; built in Phase 2d, D78):**
+  - "Suggest for the corpus" (on Review and Save) asks "only if the request used invented data",
+    runs the corpus gates (`vcl_corpus.make_candidate`, the same as `corpus-add` except the
+    register and family) on a proven run, then writes `<data folder>\corpus_candidates\<run>\`
+    with `task.txt` (the request, then "Details:" lines for the answers and changes), `spec.vcl` and
+    `meta.json` (`"source": "codex via KRONOS"`). A recipe whose tests catch under 90% of the
+    mutants that can be caught is refused, with the survivors listed.
   - While the repo is public, a candidate reaches `data/verified/` only from a practice
-    request, through `corpus-add` in a reviewed PR.
+    request, through `corpus-add` in a reviewed PR (with `--registers`, `--family` and `--source`).
 - **`python compiler/vclc.py ask "<request>"`**: the same engine from the command line, for
   tests and for anyone without the window.
 
@@ -303,7 +306,7 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
 | 2a | The engine hooks (progress, cancel, follow-up, fix, summary, sheet hints, settings) and the wizard's controller | done (D75): controller tests with the fake AI cover every path |
 | 2b | The wizard window: the frame, the four steps, the working panel, Cancel, the first-run checklist and `--smoke` | done (D76): it starts and runs a fake request in CI under a virtual display; Boss got screenshots of each step |
 | 2c | Settings (with Show the recipe and the Recipe window), History, Help, the one-call Codex test, Codex errors in plain words | done (D77): controller tests, a 13-step smoke test that opens every dialog, and screenshots |
-| 2d | Suggest for the corpus: the corpus gates on a proven run, and a candidate folder in the data folder (never `data/`) | tests; the candidate passes the gates |
+| 2d | Suggest for the corpus: the corpus gates on a proven run, and a candidate folder in the data folder (never `data/`) | done (D78): tests; the candidate passes the gates, and `corpus-add` takes it |
 | 3 | KRONOS.exe, `--self-test`, the release and the guide | the Windows job builds the exe and its self-test passes |
 | 4 | Boss's pilot on his PC, after IT approves the installs | three practice requests through Codex, each proven; problems logged |
 | 5 | The team version on the company drive | two copies share one folder in a test |

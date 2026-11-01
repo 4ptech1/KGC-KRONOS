@@ -74,6 +74,15 @@ def plain_error(note):
     return "Something went wrong with the AI. Press Try again.", text
 
 
+def plain_words(message):
+    """A corpus message with its file names in words: the person never sees task.txt or spec.vcl."""
+    for old, new in (("task.txt must be", "the request must be"), ("plain printable ASCII", "plain characters, no "
+                     "accents or symbols"), ("task.txt", "the request"), ("spec.vcl line", "recipe line"),
+                     ("spec.vcl", "the recipe"), ("meta.json", "the details"), ("mutants", "planted mistakes")):
+        message = message.replace(old, new)
+    return message
+
+
 class Controller:
     def __init__(self, data, ai=None, today=None, threaded=True):
         self.data = engine.data_folder(data)
@@ -86,6 +95,7 @@ class Controller:
         self.notice, self.notice_detail = "", ""
         self.testing, self.test_result = False, None   # Test Codex: (ok, words, details) when it is done
         self.checklist_items = None                    # start_checklist: [(item, ok, detail)] when it is done
+        self.suggesting, self.suggest_result = False, None   # Suggest for the corpus: (ok, words) when done
         self.asked = False            # Codex asked a question in this run (the step bar shows Questions)
         self.assumptions_ok = False   # the person ticked "I checked these assumptions"
         self.saved = None             # the path of the module the person saved
@@ -186,7 +196,7 @@ class Controller:
     # ---------- the steps ----------
 
     def can_ask(self, text):
-        return bool(self.checklist_done and not self.working and not self.testing
+        return bool(self.checklist_done and not self.working and not self.testing and not self.suggesting
                     and len(text.strip()) >= MIN_REQUEST)
 
     def ask(self, text):
@@ -234,9 +244,10 @@ class Controller:
     def _start(self, work, origin):
         if self.run is not None:
             self.run.ready()   # here, on the window's thread, so a Cancel pressed from now on is never lost
-        if self.testing:
-            raise ValueError("wait for Test Codex to finish")
+        if self.testing or self.suggesting:
+            raise ValueError("wait for the check in progress to finish")
         self.working, self.origin, self.notice, self.notice_detail = True, origin, "", ""
+        self.suggest_result = None
         self.lines, self.stage, self.started_at = [], "", time.monotonic()
         if not self.threaded:
             self._work(work)
@@ -266,6 +277,8 @@ class Controller:
                 self._heard(event)
             elif event["type"] == "checklist":
                 self.testing, self.checklist_items = False, event["items"]
+            elif event["type"] == "suggested":
+                self.suggesting, self.suggest_result = False, (event["ok"], event["words"])
             elif event["type"] == "tested":
                 self.testing, self.test_result = False, (event["ok"], event["words"], event["details"])
             elif event["type"] == "done":
@@ -322,6 +335,7 @@ class Controller:
         if self.working:
             raise ValueError("wait for the work to finish, or cancel it")
         self.run, self.step, self.notice, self.asked = None, "ask", "", False
+        self.suggest_result = None
         self.assumptions_ok, self.saved, self.lines = False, None, []
 
     @property
@@ -463,6 +477,38 @@ class Controller:
             return format_text(text)
         except FormatError as exc:
             raise ValueError(str(exc.args[0][0]) if exc.args and exc.args[0] else "the recipe has errors") from None
+
+    # ---------- Suggest for the corpus (D78) ----------
+
+    def can_suggest(self):
+        return bool(self.run and self.run.proven() and self.step in ("review", "save") and not self.working
+                    and not self.testing and not self.suggesting)
+
+    def suggest(self, invented_data):
+        """Offer the proven recipe as a corpus candidate, on the worker thread (measuring the tests' strength
+        takes a while). The person must say the request used invented data only: while the repo is public, only
+        practice requests may join its corpus (D70). suggest_result is (ok, words) when it is done."""
+        if not invented_data:
+            raise ValueError("only a request that used invented data may be suggested")
+        if not self.can_suggest():
+            raise ValueError("there is no proven recipe to suggest")
+        self.suggesting, self.suggest_result = True, None
+        if not self.threaded:
+            self._suggest()
+            return
+        threading.Thread(target=self._suggest, daemon=True).start()
+
+    def _suggest(self):
+        try:
+            folder, problems = self.run.suggest()
+            if problems:
+                ok, words = False, "Not suggested: " + " ".join(
+                    plain_words(re.sub(r"^[^:]+: ", "", line)) for line in problems[:3])
+            else:
+                ok, words = True, f"Saved as a candidate in {folder}"
+        except Exception as exc:   # the window must hear about any failure
+            ok, words = False, f"Something went wrong inside KRONOS: {type(exc).__name__}: {exc}"
+        self.events.put({"type": "suggested", "ok": ok, "words": words})
 
     # ---------- History ----------
 

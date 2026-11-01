@@ -33,6 +33,7 @@ from errcodes import code_of, coded, tag  # noqa: E402
 from kronos_ai import CODEX_COMMAND, CODEX_TIMEOUT, AiError, CodexAI, FakeAI  # noqa: E402
 from validator import MODIFIES_RE, validate_text  # noqa: E402
 from vba_lint import lint  # noqa: E402
+from vcl_corpus import make_candidate  # noqa: E402
 from vcl_codegen import (CompileError, assemble, compile_build_procs, compile_text, starter_args,  # noqa: E402
                          starter_sub, task_signature)
 from vcl_fmt import FormatError, format_text  # noqa: E402
@@ -633,6 +634,24 @@ class Run:
         self.module_file, self.macro = path.name, macro
         self.save_report()
         return Path(dest) if dest is not None else path
+
+    # ---------- suggest for the corpus (D78) ----------
+
+    def candidate_request(self):
+        """The request as the corpus keeps it: what the person typed, then their answers and changes, which
+        the proven recipe depends on."""
+        later = [m["text"] for m in self.messages if m["role"] == "user" and m["kind"] in ("answer", "change")]
+        return "\n".join([self.request] + [f"Details: {text}" for text in later])
+
+    def suggest(self):
+        """Offer the proven recipe as a corpus candidate: the same gates as `vclc corpus-add`, written to
+        <data folder>/corpus_candidates/<run>/, never to the repo's data/. Returns (folder, problems)."""
+        attempt = self.proven()
+        if attempt is None:
+            raise ValueError("no proven recipe yet")
+        source = f"{self.ai.name} via KRONOS" + (", edited by hand" if attempt.source == "person" else "")
+        folder = self.folder.parent.parent / "corpus_candidates" / self.name
+        return folder, make_candidate(folder, self.candidate_request(), attempt.proof.spec, source)
 
     # ---------- the report ----------
 

@@ -280,9 +280,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    only; done, PR #70), 2a (engine hooks and the wizard's controller; done, D75, PR #71), 2b (the window,
    the first-run checklist and `--smoke`, which CI runs under xvfb-run; done, D76), 2c (Settings, History,
    Help, the Recipe window, Test Codex, Codex errors in plain words; done, D77) and 2d (Suggest for the
-   corpus; next); every
+   corpus, from Review or Save, into the data folder's `corpus_candidates`; done, D78); every
    window PR sends Boss screenshots (`python app/kronos_app.py`, Tk needed: in the cloud container,
-   Python 3.12 with `python3-tk` under `xvfb-run`). Then Phase 3 (KRONOS.exe and the guide), then the pilot (Phase 4) once IT approves
+   Python 3.12 with `python3-tk` under `xvfb-run`). **The window is complete. Next: Phase 3** (KRONOS.exe
+   and the guide), then the pilot (Phase 4) once IT approves
    KRONOS.exe and the Codex CLI; corpus batch 3 resumes after Phase 3, and the team version (Phase 5)
    follows the pilot. The parallel session is gone; this is the only session on the repo.
 

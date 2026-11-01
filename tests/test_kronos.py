@@ -274,6 +274,73 @@ class Turns(unittest.TestCase):   # the window's engine hooks (D74, D75)
         self.assertIn('  - anything on the sheet called "ws" in the recipe (Orders in the practice tests)', lines)
 
 
+class Candidate(unittest.TestCase):   # Suggest for the corpus (D78)
+    def setUp(self):
+        self.data = Path(tempfile.mkdtemp())
+
+    def proven(self, *replies):
+        run = K.Run(REQUEST, FakeAI(replies or [block(GOOD)]), self.data, DAY)
+        run.start()
+        return run
+
+    def test_the_candidate_goes_through_the_corpus_gates_and_stays_out_of_the_repo(self):
+        run = self.proven()
+        folder, problems = run.suggest()
+        self.assertEqual(problems, [])
+        self.assertEqual(folder, self.data / "corpus_candidates" / run.name)
+        self.assertNotIn(str(ROOT / "data"), str(folder))
+        meta = json.loads((folder / "meta.json").read_text(encoding="utf-8"))
+        self.assertEqual((meta["id"], meta["source"], meta["registers"], meta["family"]),
+                         (run.name, "fake via KRONOS", [], ""))   # classified when it is added to data/
+
+    def test_a_candidate_can_be_added_to_the_corpus(self):   # the same gates, with the register and family chosen
+        import vcl_corpus
+        folder, problems = self.proven().suggest()
+        self.assertEqual(problems, [])
+        real = vcl_corpus.DATA
+        vcl_corpus.DATA = Path(tempfile.mkdtemp())   # never the repo's data/
+        try:
+            found = vcl_corpus.add_item("c900", (folder / "task.txt").read_text(encoding="utf-8"),
+                                        (folder / "spec.vcl").read_text(encoding="utf-8"), ["ncr"], "clean",
+                                        source="codex via KRONOS")
+            self.assertEqual(found, [])
+            self.assertTrue((vcl_corpus.DATA / "verified" / "c900" / "spec.vcl").exists())
+        finally:
+            vcl_corpus.DATA = real
+
+    def test_the_request_keeps_the_answers_and_changes(self):
+        run = self.proven(QUESTION, "```vcl\n" + GOOD + "```", "Done.\n```vcl\n" + GOOD + "```")
+        run.answer("It is called Orders.")
+        run.follow_up("Keep the cancelled rows on a sheet.")
+        self.assertEqual(run.candidate_request(),
+                         REQUEST + "\nDetails: It is called Orders.\nDetails: Keep the cancelled rows on a sheet.")
+
+    def test_an_edit_by_hand_is_marked(self):
+        run = self.proven()
+        run.recheck(GOOD)
+        folder, problems = run.suggest()
+        self.assertEqual(problems, [])
+        self.assertEqual(json.loads((folder / "meta.json").read_text(encoding="utf-8"))["source"],
+                         "fake via KRONOS, edited by hand")
+
+    def test_not_proven_has_no_candidate(self):
+        run = self.proven(block(BROKEN_TEST), block(BROKEN_TEST), block(BROKEN_TEST))
+        with self.assertRaises(ValueError):
+            run.suggest()
+
+    def test_a_spec_whose_tests_are_too_weak_is_refused_and_nothing_is_kept(self):
+        import vcl_corpus
+        real = vcl_corpus.mutate_report
+        vcl_corpus.mutate_report = lambda text, snapshot=False, today=None: (3, 10, [(29, "'>' -> '>='")])
+        try:
+            folder, problems = self.proven().suggest()
+        finally:
+            vcl_corpus.mutate_report = real
+        self.assertTrue(any("under the 90% floor" in line for line in problems), problems)
+        self.assertTrue(any("survives: line 29" in line for line in problems))
+        self.assertFalse(folder.exists())   # nothing is kept
+
+
 class Words(unittest.TestCase):
     def test_changes_in_words(self):
         self.assertEqual(K.change_words('$ncr["Status"]'), 'the Status column of the sheet called "ncr" in the recipe')

@@ -254,6 +254,7 @@ class App:
         self.steps_label = self.label(f, "")
         self.steps_label.pack(anchor="w")
         ttk.Button(f, text="Copy steps", command=self.copy_steps).pack(anchor="w", pady=(8, 0))
+        self.save_suggest = self.add_suggest(f)
         self.field_widgets = {}
         self.entered = {}   # what the person typed on Save, kept when the step is shown again
         return f
@@ -401,6 +402,8 @@ class App:
             self.tests_btn.pack(side="left")
         if proven and c.settings["show_recipe"]:
             ttk.Button(buttons, text="Show the recipe", command=self.open_recipe).pack(side="left", padx=8)
+        if proven:
+            self.review_suggest = self.add_suggest(self.review_body)
         if tests:
             self.tests_table = self.build_tests_table(tests)
         self.show_notice(self.review_notice)
@@ -474,6 +477,7 @@ class App:
                     p.configure(text=self.c.check_value(t, v.get()) if v.get() else ""), self.refresh_footer()))
                 self.field_widgets[name] = (typ, var)
         self.saved_label.configure(text=f"Saved: {self.c.saved}" if self.c.saved else "")
+        self.show_suggest(self.save_suggest[1])
         self.steps_label.configure(text="\n".join(self.c.import_steps()))
 
     def refresh_working(self):
@@ -588,6 +592,55 @@ class App:
     def copy_steps(self):
         self.root.clipboard_clear()
         self.root.clipboard_append("\n".join(self.c.import_steps()))
+
+    # ---------- suggest for the corpus (D78) ----------
+
+    def add_suggest(self, parent):
+        """The Suggest for the corpus button and the line that says how it went: (button, label)."""
+        row = ttk.Frame(parent, style="Panel.TFrame")
+        row.pack(anchor="w", fill="x", pady=(10, 0))
+        label = self.label(row, "", wrap=760)
+        button = ttk.Button(row, text="Suggest for the corpus")
+        button.configure(command=lambda: self.suggest(label, button))
+        button.pack(anchor="w")
+        label.pack(anchor="w", pady=(4, 0))
+        self.show_suggest(label)
+        return button, label
+
+    def show_suggest(self, label):
+        result = self.c.suggest_result
+        if result:
+            label.configure(text=("\u2713  " if result[0] else "\u2717  ") + result[1],
+                            foreground=COLOURS["ok"] if result[0] else COLOURS["note"])
+        else:
+            label.configure(text="")
+
+    def suggest(self, label, button, ask=True):
+        """Offer the proven recipe as a training example, kept in KRONOS's own data folder."""
+        if ask and not messagebox.askyesno(
+                "Suggest for the corpus",
+                "KRONOS will keep this request and its proven recipe in a candidate folder inside its data folder, "
+                "so it can be added to the training examples later.\n\nDo this only if the request used invented "
+                "data. Go on?", parent=self.root):
+            return
+        try:
+            self.c.suggest(True)
+        except ValueError as exc:
+            label.configure(text=str(exc), foreground=COLOURS["note"])
+            return
+        button.configure(state="disabled")
+        label.configure(text="Measuring how strong the tests are...", foreground=COLOURS["muted"])
+
+        def check():
+            if not label.winfo_exists():
+                return
+            if self.c.suggesting:
+                label.after(100, check)
+                return
+            self.show_suggest(label)
+            button.configure(state="normal")
+
+        label.after(100, check)
 
     # ---------- the dialogs (kronos_dialogs.py) ----------
 
@@ -744,6 +797,16 @@ def smoke(app, out):
         need("VCL 0.6" in d.typed() and "Proven" in d.status.cget("text"), "the re-check was not proven")
         d.close()
 
+    def suggest_start():
+        button, label = app.review_suggest
+        app.suggest(label, button, ask=False)
+
+    def suggest_done():
+        need(c.suggest_result and c.suggest_result[0], f"the candidate was not saved: {c.suggest_result}")
+        (folder,) = list((c.data / "corpus_candidates").iterdir())
+        need(sorted(f.name for f in folder.iterdir()) == ["meta.json", "spec.vcl", "task.txt"],
+             "the candidate folder is incomplete")
+
     def history():
         d = app.open_history()
         need(len(d.rows) >= 1, "History lists no run")
@@ -772,6 +835,8 @@ def smoke(app, out):
         ("settings saved", lambda: c.test_result is not None, settings_save),
         ("recipe", lambda: c.step == "save" and not c.working, recipe_open),
         ("recipe rechecked", lambda: c.step == "review" and not c.working and c.banner == "proven", recipe_done),
+        ("suggest", lambda: c.step == "review" and not c.working, suggest_start),
+        ("suggested", lambda: not c.suggesting and c.suggest_result is not None, suggest_done),
         ("history", lambda: True, history),
         ("help", lambda: True, help_window),
         ("dialogs", lambda: True, lambda: out.update(ok=True)),
@@ -829,8 +894,9 @@ def main(argv=None):
         smoke(app, out)
     root.mainloop()
     if args.smoke:
-        print("smoke: " + ("OK, all four steps, the saved module and every dialog" if out.get("ok") else
-                           f"FAILED after {out.get('done')}" + (f": {out['error']}" if out.get("error") else "")))
+        failed = f"FAILED after {out.get('done')}" + (f": {out['error']}" if out.get("error") else "")
+        print("smoke: " + ("OK, all four steps, the saved module, every dialog and a corpus candidate"
+                           if out.get("ok") else failed))
         return 0 if out.get("ok") else 1
     return 0
 
