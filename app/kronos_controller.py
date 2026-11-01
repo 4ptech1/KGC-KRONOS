@@ -31,6 +31,49 @@ STAGES = {"checking": "Checking the recipe", "testing": "Testing it on practice 
           "building": "Building the macro", "measuring": "Measuring how strong the tests are"}
 
 
+LOGIN_WORDS = ("login", "log in", "logged in", "sign in", "signed in", "sign-in", "auth", "401", "credential",
+               "token")
+GIVE_UP = " (is it signed in? run `codex login`)"   # the adapter adds this to every exit-code message
+
+
+def duration(seconds):
+    if seconds >= 60 and seconds % 60 == 0:
+        return f"{seconds // 60} minute{'' if seconds == 60 else 's'}"
+    return f"{seconds} seconds"
+
+
+def plain_error(note):
+    """(words, details): what the AI's failure means for the person, and the adapter's own text (D77).
+    The adapter adds a signed-in hint to every exit-code message, so only what Codex itself said counts."""
+    text = note.split("the AI gave no reply: ", 1)[-1].strip()
+    low = text.lower()
+    if low == "cancelled":
+        return "Cancelled.", ""
+    if "was not found" in low:
+        return ("Codex isn't installed on this PC, or KRONOS can't find it. Install the Codex CLI (the setup "
+                "guide has the steps), then press Try again."), text
+    if "exit code" in low:
+        said = text.split(": ", 1)[-1].replace(GIVE_UP, "").lower()
+        if any(word in said for word in LOGIN_WORDS):
+            return ("Codex isn't signed in. Open a Command Prompt, type codex login, sign in with your ChatGPT "
+                    "account, then press Try again."), text
+        return ("Codex stopped with an error. Press Try again. If it keeps happening, open Settings and press "
+                "Test Codex."), text
+    m = re.search(r"within (\d+) seconds", text)
+    if m:
+        return (f"Codex took longer than {duration(int(m[1]))}. Try again, or make the request smaller. Settings "
+                "can allow more time."), text
+    if "could not start" in low:
+        return "Windows would not start Codex. Ask IT whether Codex may run on this PC.", text
+    if "finished without a reply" in low:
+        return "Codex finished without an answer. Press Try again.", text
+    if "has no {out}" in low:
+        return ("The Codex command line in Settings has lost its {out} part. Press Reset to default there."), text
+    if "fake ai has only" in low:
+        return "The practice AI has no more replies.", text
+    return "Something went wrong with the AI. Press Try again.", text
+
+
 class Controller:
     def __init__(self, data, ai=None, today=None, threaded=True):
         self.data = engine.data_folder(data)
@@ -40,7 +83,9 @@ class Controller:
         self.events = queue.Queue()
         self.run = None
         self.step, self.working, self.origin = "ask", False, "ask"
-        self.notice = ""
+        self.notice, self.notice_detail = "", ""
+        self.testing, self.test_result = False, None   # Test Codex: (ok, words, details) when it is done
+        self.checklist_items = None                    # start_checklist: [(item, ok, detail)] when it is done
         self.asked = False            # Codex asked a question in this run (the step bar shows Questions)
         self.assumptions_ok = False   # the person ticked "I checked these assumptions"
         self.saved = None             # the path of the module the person saved
@@ -70,21 +115,79 @@ class Controller:
                         ("data_folder", True, str(self.data)),
                         ("practice", self.settings["practice_confirmed"], "")]
 
+    def start_checklist(self):
+        """Look for Codex on the worker thread: starting it can take seconds on a locked-down PC, and the window
+        must not freeze (D77). checklist_items is [(item, ok, detail)] when it is done."""
+        if self.working or self.testing:
+            raise ValueError("wait for the work to finish first")
+        self.testing, self.checklist_items = True, None   # one call to the AI at a time
+        if not self.threaded:
+            self._look()
+            return
+        threading.Thread(target=self._look, daemon=True).start()
+
+    def _look(self):
+        try:
+            items = self.checklist()
+        except Exception as exc:   # the dialog must hear about any failure
+            items = [("codex_found", False, f"{type(exc).__name__}: {exc}"), ("codex_flags", False, ""),
+                     ("data_controls", self.settings["data_controls_confirmed"], ""),
+                     ("data_folder", True, str(self.data)), ("practice", self.settings["practice_confirmed"], "")]
+        self.events.put({"type": "checklist", "items": items})
+
     def confirm_checklist(self, data_controls, practice):
         self.settings["data_controls_confirmed"] = bool(data_controls)
         self.settings["practice_confirmed"] = bool(practice)
         engine.save_settings(self.data, self.settings)
 
     def set_setting(self, key, value):
-        changed = dict(self.settings, **{key: value})
+        self.apply_settings({key: value})
+
+    def apply_settings(self, changes):
+        """Check, save and apply settings (the Settings dialog's Save): all or none. The Codex time limit and
+        command line reach the live adapter, so no restart is needed (D77)."""
+        if self.working or self.testing:
+            raise ValueError("wait for the work to finish, or cancel it, before changing settings")
+        changed = dict(self.settings, **changes)
         engine.check_settings(changed)
+        if "{out}" not in changed["codex_command"]:
+            raise ValueError("the Codex command line must keep its {out} part: it is where Codex writes its reply")
+        engine.save_settings(self.data, changed)
         self.settings = changed
-        engine.save_settings(self.data, self.settings)
+        if isinstance(self.ai, CodexAI):
+            self.ai.timeout, self.ai.command = changed["codex_timeout"], list(changed["codex_command"])
+
+    # ---------- Test Codex (one call) ----------
+
+    def test_ai(self):
+        """One cheap call to the AI, on the worker thread; test_result is (ok, words, details) when it is done."""
+        if self.working or self.testing:
+            raise ValueError("wait for the work to finish first")
+        self.testing, self.test_result = True, None
+        if not self.threaded:
+            self._test()
+            return
+        threading.Thread(target=self._test, daemon=True).start()
+
+    def _test(self):
+        name = self.ai_label
+        try:
+            getattr(self.ai, "reset", lambda: None)()
+            reply = self.ai.ping()
+            ok, words, details = bool(reply.strip()), f"{self.ai_title} answered, so it is installed and signed in.", ""
+            if not ok:
+                words, details = plain_error("Codex finished without a reply")
+        except AiError as exc:
+            ok, (words, details) = False, plain_error(str(exc))
+        except Exception as exc:   # the dialog must hear about any failure
+            ok, words, details = False, f"Something went wrong inside KRONOS: {type(exc).__name__}: {exc}", ""
+        self.events.put({"type": "tested", "ok": ok, "words": words, "details": details, "name": name})
 
     # ---------- the steps ----------
 
     def can_ask(self, text):
-        return bool(self.checklist_done and not self.working and len(text.strip()) >= MIN_REQUEST)
+        return bool(self.checklist_done and not self.working and not self.testing
+                    and len(text.strip()) >= MIN_REQUEST)
 
     def ask(self, text):
         """Step 1: a new request, so a new run."""
@@ -131,7 +234,9 @@ class Controller:
     def _start(self, work, origin):
         if self.run is not None:
             self.run.ready()   # here, on the window's thread, so a Cancel pressed from now on is never lost
-        self.working, self.origin, self.notice = True, origin, ""
+        if self.testing:
+            raise ValueError("wait for Test Codex to finish")
+        self.working, self.origin, self.notice, self.notice_detail = True, origin, "", ""
         self.lines, self.stage, self.started_at = [], "", time.monotonic()
         if not self.threaded:
             self._work(work)
@@ -159,6 +264,10 @@ class Controller:
             out.append(event)
             if event["type"] == "progress":
                 self._heard(event)
+            elif event["type"] == "checklist":
+                self.testing, self.checklist_items = False, event["items"]
+            elif event["type"] == "tested":
+                self.testing, self.test_result = False, (event["ok"], event["words"], event["details"])
             elif event["type"] == "done":
                 self.working = False
                 self._settle()
@@ -186,7 +295,7 @@ class Controller:
                 self.lines[-1] = self.lines[-1].split(", so KRONOS")[0]   # the last try was not sent back
         else:   # ai_error or cancelled: back where the work started, with Try again
             self.step = self.origin
-            self.notice = "Cancelled." if status == "cancelled" else self.run.note
+            self.notice, self.notice_detail = plain_error("cancelled" if status == "cancelled" else self.run.note)
 
     @property
     def ai_label(self):

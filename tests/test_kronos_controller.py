@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "app"))
 sys.path.insert(0, str(ROOT / "compiler"))
 from kronos_ai import AiError, CodexAI, FakeAI  # noqa: E402
-from kronos_controller import Controller  # noqa: E402
+from kronos_ai import CODEX_COMMAND  # noqa: E402
+from kronos_controller import Controller, plain_error  # noqa: E402
 
 DAY = datetime.date(2026, 10, 21)
 EXAMPLES = ROOT / "vcl" / "examples"
@@ -27,6 +28,37 @@ REQUEST = "In the Orders sheet, delete every cancelled order, then sort the rest
 
 def block(spec):
     return f"```vcl\n{spec}```\n"
+
+
+class Words(unittest.TestCase):   # Codex problems in plain words (D77)
+    GAVE = "the AI gave no reply: "
+
+    def test_each_problem(self):
+        signed_out = f"Codex stopped with exit code 1: error: not logged in{' (is it signed in? run `codex login`)'}"
+        cases = [(self.GAVE + "the Codex CLI (codex) was not found: install it, run `codex login`, and try again",
+                  "Codex isn't installed on this PC"),
+                 (self.GAVE + signed_out, "Codex isn't signed in. Open a Command Prompt, type codex login"),
+                 (self.GAVE + "Codex stopped with exit code 2: panic: boom (is it signed in? run `codex login`)",
+                  "Codex stopped with an error. Press Try again."),
+                 (self.GAVE + "Codex gave no reply within 300 seconds", "Codex took longer than 5 minutes."),
+                 (self.GAVE + "Codex gave no reply within 90 seconds", "Codex took longer than 90 seconds."),
+                 (self.GAVE + "Codex gave no reply within 60 seconds", "Codex took longer than 1 minute."),
+                 (self.GAVE + "Codex could not start (PermissionError: denied)", "Windows would not start Codex."),
+                 (self.GAVE + "Codex finished without a reply", "Codex finished without an answer."),
+                 (self.GAVE + "the Codex command line has no {out}: KRONOS can't read the reply without it",
+                  "The Codex command line in Settings has lost its {out} part."),
+                 (self.GAVE + "the fake AI has only 2 replies", "The practice AI has no more replies."),
+                 (self.GAVE + "something nobody planned for", "Something went wrong with the AI."),
+                 ("cancelled", "Cancelled.")]
+        for note, start in cases:
+            words, details = plain_error(note)
+            self.assertTrue(words.startswith(start), (note, words))
+
+    def test_the_signed_in_hint_the_adapter_adds_is_not_evidence(self):
+        words, details = plain_error(self.GAVE + "Codex stopped with exit code 3: disk full (is it signed in? "
+                                                 "run `codex login`)")
+        self.assertTrue(words.startswith("Codex stopped with an error."))
+        self.assertIn("disk full", details)
 
 
 class Wizard(unittest.TestCase):
@@ -112,7 +144,9 @@ class Wizard(unittest.TestCase):
 
     def test_no_reply_and_try_again(self):
         c = self.ask(self.controller(AiError("Codex gave no reply within 300 seconds"), block(GOOD)))
-        self.assertEqual((c.step, c.notice), ("ask", "the AI gave no reply: Codex gave no reply within 300 seconds"))
+        self.assertEqual((c.step, c.notice), ("ask", "Codex took longer than 5 minutes. Try again, or make the "
+                                                     "request smaller. Settings can allow more time."))
+        self.assertEqual(c.notice_detail, "Codex gave no reply within 300 seconds")   # the adapter's own words
         c.retry()
         c.poll()
         self.assertEqual((c.step, c.banner, c.notice), ("review", "proven", ""))
@@ -232,6 +266,114 @@ class Wizard(unittest.TestCase):
         c.poll()
         self.assertEqual((c.working, c.step), (False, "ask"))
         self.assertEqual(c.notice, "Something went wrong inside KRONOS: ZeroDivisionError: division by zero")
+
+    def test_settings_are_checked_saved_and_reach_codex(self):
+        codex = CodexAI(Path(tempfile.mkdtemp()), "P", which=lambda name: "/opt/codex")
+        c = Controller(Path(tempfile.mkdtemp()), ai=codex, today=DAY, threaded=False)
+        c.apply_settings({"codex_timeout": 600, "show_recipe": True, "macro_folder": "D:\\Macros",
+                          "codex_command": ["codex", "exec", "--output-last-message", "{out}", "-"]})
+        self.assertEqual((codex.timeout, codex.command[-3:]), (600, ["--output-last-message", "{out}", "-"]))
+        self.assertTrue(Controller(c.data, ai=codex).settings["show_recipe"])   # kept in settings.json
+        for changes, words in [({"codex_timeout": 5}, "from 10 to 3600"),
+                               ({"codex_timeout": "soon"}, "whole number of seconds"),
+                               ({"codex_command": ["codex", "exec", "-"]}, r"keep its \{out\} part"),
+                               ({"show_recipe": "yes"}, "must be true or false")]:
+            with self.assertRaisesRegex(ValueError, words):
+                c.apply_settings(dict(changes, macro_folder="E:\\Other"))   # all or none
+            self.assertEqual(c.settings["macro_folder"], "D:\\Macros")
+        c.apply_settings({"codex_command": list(CODEX_COMMAND)})
+        self.assertEqual(codex.command, list(CODEX_COMMAND))
+
+    def test_no_settings_change_while_working(self):
+        c = self.controller(block(GOOD), threaded=True)
+        c.working = True
+        with self.assertRaisesRegex(ValueError, "wait for the work"):
+            c.apply_settings({"show_recipe": True})
+
+    def test_test_codex(self):
+        c = self.controller()
+        c.test_ai()
+        c.poll()
+        self.assertEqual(c.test_result, (True, "The practice AI answered, so it is installed and signed in.", ""))
+        self.assertFalse(c.testing)
+
+    def test_test_codex_failing(self):
+        class Down(FakeAI):
+            def ping(self):
+                raise AiError("the Codex CLI (codex) was not found: install it")
+        c = Controller(Path(tempfile.mkdtemp()), ai=Down([]), today=DAY, threaded=False)
+        c.test_ai()
+        c.poll()
+        ok, words, details = c.test_result
+        self.assertFalse(ok)
+        self.assertTrue(words.startswith("Codex isn't installed on this PC"))
+        self.assertIn("was not found", details)
+
+    def test_test_codex_threaded_blocks_asking(self):
+        gate = threading.Event()
+
+        class Slow(FakeAI):
+            def ping(self):
+                gate.wait(10)
+                return "OK"
+        c = Controller(Path(tempfile.mkdtemp()), ai=Slow([]), today=DAY, threaded=True)
+        c.confirm_checklist(True, True)
+        c.test_ai()
+        self.assertTrue(c.testing)
+        self.assertFalse(c.can_ask(REQUEST))   # one call to the AI at a time
+        with self.assertRaises(ValueError):
+            c.test_ai()
+        gate.set()
+        for _ in range(500):
+            c.poll()
+            if not c.testing:
+                break
+            time.sleep(0.02)
+        self.assertEqual(c.test_result[0], True)
+        self.assertTrue(c.can_ask(REQUEST))
+
+    def test_the_checklist_looks_on_the_worker_thread(self):   # a slow Codex must not freeze the window (D77)
+        gate, seen = threading.Event(), []
+
+        class Slow(FakeAI):
+            def ping(self):
+                return "OK"
+
+        class SlowCodex(CodexAI):
+            def program(self):
+                seen.append(threading.current_thread() is threading.main_thread())
+                gate.wait(10)
+                return "/opt/codex"
+
+            def check(self):
+                return []
+        c = Controller(Path(tempfile.mkdtemp()), ai=SlowCodex(Path(tempfile.mkdtemp()), "P"), today=DAY,
+                       threaded=True)
+        c.start_checklist()
+        self.assertTrue(c.testing and c.checklist_items is None)
+        self.assertFalse(c.can_ask(REQUEST))
+        with self.assertRaises(ValueError):
+            c.start_checklist()
+        gate.set()
+        for _ in range(500):
+            c.poll()
+            if c.checklist_items is not None:
+                break
+            time.sleep(0.02)
+        self.assertEqual(seen, [False])   # not the window's thread
+        self.assertEqual(dict((i, ok) for i, ok, d in c.checklist_items)["codex_found"], True)
+        self.assertFalse(c.testing)
+
+    def test_a_failure_while_looking_is_reported(self):
+        class Broken(CodexAI):
+            def program(self):
+                raise RuntimeError("boom")
+        c = Controller(Path(tempfile.mkdtemp()), ai=Broken(Path(tempfile.mkdtemp()), "P"), today=DAY, threaded=False)
+        c.start_checklist()
+        c.poll()
+        found = dict((i, (ok, d)) for i, ok, d in c.checklist_items)
+        self.assertEqual(found["codex_found"], (False, "RuntimeError: boom"))
+        self.assertFalse(c.testing)
 
     def test_the_checklist_finds_no_codex(self):
         ai = CodexAI(Path(tempfile.mkdtemp()), "P", which=lambda name: None)

@@ -21,7 +21,7 @@ class Window(unittest.TestCase):
         done = subprocess.run([sys.executable, str(ROOT / "app" / "kronos_app.py"), "--smoke"], cwd=ROOT,
                               capture_output=True, text=True, timeout=120)
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
-        self.assertIn("smoke: OK, all four steps and the saved module", done.stdout)
+        self.assertIn("smoke: OK, all four steps, the saved module and every dialog", done.stdout)
 
 
 if __name__ == "__main__":

@@ -49,6 +49,9 @@ class FakeAI:
             raise reply
         return reply(conversation) if callable(reply) else reply
 
+    def ping(self):
+        return "OK"
+
     def cancel(self):
         self.cancel_event.set()
 
@@ -65,6 +68,8 @@ only the text of your last message. Everything you need is in the message itself
 # {out} is the file Codex writes its last message to; "-" reads the message from stdin.
 CODEX_COMMAND = ["codex", "exec", "--sandbox", "read-only", "--skip-git-repo-check",
                  "--output-last-message", "{out}", "-"]
+PING_MESSAGE = "Reply with the single word OK. Do nothing else."
+CHECK_TIMEOUT = 30   # seconds: `codex exec --help` answers at once, so a slow one is a problem to report
 CODEX_TIMEOUT = 300   # seconds: a spec of about 50 lines can take Codex a few minutes
 CREATE_NO_WINDOW = 0x08000000   # Windows: the Codex process opens no console window
 
@@ -105,7 +110,7 @@ class CodexAI:
                           "and try again (docs/kronos-app.md)")
         return found
 
-    def _run(self, args, stdin=b""):
+    def _run(self, args, stdin=b"", timeout=None):
         extra = {"creationflags": CREATE_NO_WINDOW} if self.windows else {}
         if self.cancel_event.is_set():
             raise AiError("cancelled")
@@ -118,11 +123,11 @@ class CodexAI:
         try:
             if self.cancel_event.is_set():   # cancelled while it was starting
                 proc.kill()
-            out, err = proc.communicate(stdin, timeout=self.timeout)
+            out, err = proc.communicate(stdin, timeout=timeout or self.timeout)
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.communicate()
-            raise AiError(f"Codex gave no reply within {self.timeout} seconds") from None
+            raise AiError(f"Codex gave no reply within {timeout or self.timeout} seconds") from None
         finally:
             self._proc = None
         if self.cancel_event.is_set():
@@ -140,6 +145,14 @@ class CodexAI:
         self.cancel_event.clear()
 
     def ask(self, conversation):
+        return self._exec(render(self.prompt, conversation))
+
+    def ping(self):
+        """One cheap call, with the same command line and no Orchestrator prompt: is Codex installed and
+        signed in? Returns its reply (the window's Test Codex, D77)."""
+        return self._exec(PING_MESSAGE)
+
+    def _exec(self, message):
         self.workdir.mkdir(parents=True, exist_ok=True)
         (self.workdir / "AGENTS.md").write_text(AGENTS_MD, encoding="utf-8", newline="\n")
         out = self.workdir / "last_message.txt"
@@ -148,7 +161,7 @@ class CodexAI:
         if "{out}" not in self.command:
             raise AiError("the Codex command line has no {out}: KRONOS can't read the reply without it")
         args = [self.program()] + [str(out) if a == "{out}" else a for a in self.command[1:]]
-        done = self._run(args, render(self.prompt, conversation).encode("utf-8"))
+        done = self._run(args, message.encode("utf-8"))
         if done.returncode != 0:
             tail = (done.stderr or b"").decode("utf-8", "replace").strip().splitlines()[-5:]
             raise AiError(f"Codex stopped with exit code {done.returncode}: " + (" | ".join(tail) or "no message")
@@ -166,7 +179,7 @@ class CodexAI:
             return [str(exc)]
         self.workdir.mkdir(parents=True, exist_ok=True)
         try:
-            done = self._run([program, "exec", "--help"])
+            done = self._run([program, "exec", "--help"], timeout=CHECK_TIMEOUT)
         except AiError as exc:
             return [str(exc)]
         text = (done.stdout or b"").decode("utf-8", "replace") + (done.stderr or b"").decode("utf-8", "replace")

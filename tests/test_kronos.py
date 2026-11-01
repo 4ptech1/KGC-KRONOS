@@ -467,11 +467,32 @@ class Codex(unittest.TestCase):
             with self.assertRaisesRegex(AiError, words.replace("|", r"\|")):
                 codex.ask(self.CONVERSATION)
 
+    def test_ping_is_one_cheap_call(self):   # Test Codex (D77)
+        runner = Recorder(reply="OK")
+        self.assertEqual(self.codex(runner).ping(), "OK")
+        (args, kwargs), = runner.calls
+        self.assertEqual(args[:5], ["/opt/codex/bin/codex", "exec", "--sandbox", "read-only", "--skip-git-repo-check"])
+        sent = runner.input.decode("utf-8")
+        self.assertEqual(sent, "Reply with the single word OK. Do nothing else.")   # no Orchestrator prompt
+        self.assertNotIn("THE PROMPT", sent)
+
+    def test_ping_failures_are_the_same_errors(self):
+        with self.assertRaisesRegex(AiError, "exit code 1"):
+            self.codex(Recorder(returncode=1, stderr=b"error: not logged in")).ping()
+        with self.assertRaisesRegex(AiError, "finished without a reply"):
+            self.codex(Recorder(reply="")).ping()
+        self.assertEqual(FakeAI([]).ping(), "OK")
+
     def test_a_slow_codex_is_stopped(self):
         runner = Recorder(raises=subprocess.TimeoutExpired("codex", 300))
         with self.assertRaisesRegex(AiError, "no reply within 300 seconds"):
             self.codex(runner).ask(self.CONVERSATION)
         self.assertEqual(runner.killed, 1)
+
+    def test_the_help_check_has_a_short_limit(self):   # `codex exec --help` answers at once (D77)
+        runner = Recorder(raises=subprocess.TimeoutExpired("codex", 30))
+        found = self.codex(runner).check()
+        self.assertEqual((runner.timeout, found), (30, ["Codex gave no reply within 30 seconds"]))
 
     def test_cancel(self):   # the window's Cancel, from another thread (D74)
         codex = None
