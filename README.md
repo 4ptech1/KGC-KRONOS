@@ -313,3 +313,6 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
   History, Help, a one-call Test Codex, and Codex problems explained in plain words. Looking for Codex now
   runs off the window's thread with a 30-second limit, so a slow Codex cannot freeze it. `--smoke` opens
   every dialog in CI.
+- **2026-11-01:** Item 5 Phase 2d (D78): Suggest for the corpus. A proven run can be offered as a training
+  example, after the person confirms the request used invented data. It passes the corpus gates and is kept in
+  KRONOS's own data folder, never in the repo. The KRONOS window is complete; Phase 3 (KRONOS.exe) is next.

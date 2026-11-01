@@ -332,6 +332,69 @@ class Wizard(unittest.TestCase):
         self.assertEqual(c.test_result[0], True)
         self.assertTrue(c.can_ask(REQUEST))
 
+    def test_suggest_for_the_corpus(self):   # D78
+        c = self.ask(self.controller(QUESTION, block(GOOD)))
+        c.answer("The sheet is called Orders.")
+        c.poll()
+        self.assertTrue(c.can_suggest())
+        with self.assertRaisesRegex(ValueError, "invented data"):
+            c.suggest(False)   # the person must say the request used invented data only
+        c.suggest(True)
+        c.poll()
+        ok, words = c.suggest_result
+        self.assertTrue(ok and words.startswith("Saved as a candidate in "), words)
+        folder = c.data / "corpus_candidates" / c.run.name
+        self.assertEqual(sorted(p.name for p in folder.iterdir()), ["meta.json", "spec.vcl", "task.txt"])
+        self.assertEqual((folder / "task.txt").read_text(encoding="utf-8"),
+                         REQUEST + "\nDetails: The sheet is called Orders.\n")   # the answer the recipe depends on
+        self.assertEqual((folder / "spec.vcl").read_text(encoding="utf-8"), GOOD)
+        c.suggest(True)   # once
+        c.poll()
+        self.assertEqual(c.suggest_result, (False, "Not suggested: already suggested"))
+        c.new_request()
+        self.assertIsNone(c.suggest_result)
+
+    def test_nothing_to_suggest_until_proven(self):
+        c = self.ask(self.controller(block(BROKEN_TEST), block(BROKEN_TEST), block(BROKEN_TEST)))
+        self.assertFalse(c.can_suggest())
+        with self.assertRaisesRegex(ValueError, "no proven recipe"):
+            c.suggest(True)
+        self.assertFalse((c.data / "corpus_candidates").exists())
+
+    def test_a_request_the_corpus_would_refuse_is_not_suggested(self):
+        c = self.ask(self.controller(block(GOOD)), REQUEST.replace("Orders", "Bestellungen \u00fcber"))
+        c.suggest(True)
+        c.poll()
+        ok, words = c.suggest_result
+        self.assertFalse(ok)
+        self.assertIn("the request must be 20 to 1500 characters of plain characters, no accents or symbols", words)
+        self.assertNotIn("task.txt", words)
+        self.assertFalse((c.data / "corpus_candidates" / c.run.name).exists())   # nothing is kept
+
+    def test_suggest_blocks_other_work_while_it_runs(self):
+        gate = threading.Event()
+        c = self.controller(block(GOOD), threaded=True)
+        c.ask(REQUEST)
+        self.wait_for(c)
+        real = c.run.suggest
+        c.run.suggest = lambda: (gate.wait(10), real())[1]
+        c.suggest(True)
+        self.assertTrue(c.suggesting)
+        self.assertFalse(c.can_ask(REQUEST))
+        with self.assertRaises(ValueError):
+            c.change("not while measuring")
+        gate.set()
+        self.wait_for_suggest(c)
+        self.assertTrue(c.suggest_result[0])
+
+    def wait_for_suggest(self, c):
+        for _ in range(500):
+            c.poll()
+            if not c.suggesting:
+                return
+            time.sleep(0.02)
+        self.fail("the suggestion never finished")
+
     def test_the_checklist_looks_on_the_worker_thread(self):   # a slow Codex must not freeze the window (D77)
         gate, seen = threading.Event(), []
 

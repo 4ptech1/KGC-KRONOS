@@ -87,8 +87,9 @@ def build_problems(text, name):
     return [f"VBA lint: {line}" for line in found]
 
 
-def check_item(folder, mutation=False):
-    """The problems with one pair (an empty list when it is sound)."""
+def check_item(folder, mutation=False, classified=True):
+    """The problems with one pair (an empty list when it is sound). classified=False skips the register and
+    family checks: a KRONOS candidate (D78) is classified when it is added to data/, not before."""
     name = folder.name
     files = {p.name for p in folder.iterdir()}
     problems = [f"{name}: missing {f}" for f in sorted(FILES - files)]
@@ -139,12 +140,13 @@ def check_item(folder, mutation=False):
         problems.append(f"{name}: meta.json kind is {meta['kind']!r}, the spec is a {spec.kind}")
     if meta["ops"] != ops or meta["op_lines"] != steps:
         problems.append(f"{name}: meta.json ops or op_lines are stale (the spec uses {len(ops)} ops in {steps} steps)")
-    if not meta["registers"] or any(r not in REGISTERS for r in meta["registers"]):
-        problems.append(f"{name}: registers must be some of {', '.join(REGISTERS)}")
-    if meta["family"] not in QUOTAS:
-        problems.append(f"{name}: family must be one of {', '.join(QUOTAS)}")
-    elif (meta["family"] == "build") != (spec.kind == "BUILD"):
-        problems.append(f"{name}: family build and kind BUILD go together")
+    if classified:
+        if not meta["registers"] or any(r not in REGISTERS for r in meta["registers"]):
+            problems.append(f"{name}: registers must be some of {', '.join(REGISTERS)}")
+        if meta["family"] not in QUOTAS:
+            problems.append(f"{name}: family must be one of {', '.join(QUOTAS)}")
+        elif (meta["family"] == "build") != (spec.kind == "BUILD"):
+            problems.append(f"{name}: family build and kind BUILD go together")
     mutants = meta["mutation"]
     if set(mutants) != {"killed", "total", "equivalent", "note"}:
         problems.append(f"{name}: mutation must hold killed, total, equivalent and note")
@@ -263,6 +265,37 @@ def add_item(item_id, request, spec_text, registers, family, kind_set="verified"
         folder.rmdir()
         if survivors and any("floor" in line for line in problems):
             problems += [f"{item_id}: survives: line {line}: {what}" for line, what in survivors[:6]]
+    return problems
+
+
+def make_candidate(folder, request, spec_text, source):
+    """A KRONOS candidate (D78): the same gates as add_item, in a folder of the caller's choice (KRONOS's own
+    data folder, never data/), not yet classified. The folder is named by its run, which is its id. Returns
+    the problems; nothing is kept when there are any."""
+    folder = Path(folder)
+    if folder.exists():
+        return [f"{folder.name}: already suggested"]
+    try:
+        spec_text = format_text(spec_text)
+    except FormatError as err:
+        return [f"{folder.name}: the spec can't be formatted: {err.problems[0]}"]
+    spec = parse_spec(spec_text)
+    ops, steps = ops_used(spec_text)
+    killed, total, survivors = mutate_report(spec_text, snapshot=True)
+    meta = {"id": folder.name, "kind": spec.kind, "registers": [], "family": "", "ops": ops, "op_lines": steps,
+            "source": source, "accepted_warnings": [],
+            "mutation": {"killed": killed, "total": total, "equivalent": 0, "note": ""}}
+    folder.mkdir(parents=True)
+    (folder / "task.txt").write_text(request.strip() + "\n", encoding="utf-8")
+    (folder / "spec.vcl").write_text(spec_text, encoding="utf-8")
+    (folder / "meta.json").write_text(dump(meta), encoding="utf-8")
+    problems = check_item(folder, classified=False)
+    if problems:
+        for f in folder.iterdir():
+            f.unlink()
+        folder.rmdir()
+        if survivors and any("floor" in line for line in problems):
+            problems += [f"{folder.name}: survives: line {line}: {what}" for line, what in survivors[:4]]
     return problems
 
 
