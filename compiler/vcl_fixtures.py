@@ -465,6 +465,22 @@ def build_workbooks(fixture_trees, today=None):
 
 # ---------------------------------------------------------------- the fixture-builder VBA
 
+def vba_text(s):
+    """A VBA string expression (the self-test and the pilot use it) for s: printable ASCII in quotes, anything else as ChrW(code)."""
+    parts, run = [], ""
+    for ch in s:
+        if 32 <= ord(ch) <= 126:
+            run += '""' if ch == '"' else ch
+        else:
+            if run:
+                parts.append(f'"{run}"')
+                run = ""
+            parts.append(f"ChrW({ord(ch)})")
+    if run or not parts:
+        parts.append(f'"{run}"')
+    return " & ".join(parts)
+
+
 def vba_literal(value):
     if value is None:
         return "Empty"

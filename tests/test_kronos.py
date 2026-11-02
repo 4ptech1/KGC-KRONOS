@@ -7,6 +7,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -15,10 +16,15 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 import kronos_engine as K  # noqa: E402
 from kronos_ai import CODEX_COMMAND, CREATE_NO_WINDOW, AiError, CodexAI, FakeAI, render  # noqa: E402
-from vba_lint import lint  # noqa: E402
+import re  # noqa: E402
+from vba_lint import lint, public_helpers  # noqa: E402
+from vcl_codegen import FORGELIB as FORGELIB_PATH  # noqa: E402
+from vcl_parse import parse  # noqa: E402
+from vcl_pilot import expected_lines  # noqa: E402
 from vcl_codegen import CompileError, assemble, compile_text, starter_args, starter_sub  # noqa: E402
 
 DAY = datetime.date(2026, 10, 21)
+FORGELIB = FORGELIB_PATH.read_text(encoding="utf-8")
 EXAMPLES = ROOT / "vcl" / "examples"
 GOOD = (EXAMPLES / "example1_rev3.vcl").read_text(encoding="utf-8")    # RemoveCancelledAndSortByDate(ws)
 FILES = (EXAMPLES / "example3_files.vcl").read_text(encoding="utf-8")   # FileJobReports(tracker, dump, jobs)
@@ -412,6 +418,109 @@ class Module(unittest.TestCase):
         self.assertEqual(path.name, "modKronosNcrReview.bas")
         self.assertEqual(run.macro, "Run")
         self.assertEqual(lint(path.read_text(encoding="ascii").split("\n", 1)[1].replace("\r\n", "\n")), [])
+
+
+class Practice(unittest.TestCase):   # the practice run beside the saved module (D81)
+    def setUp(self):
+        self.data = Path(tempfile.mkdtemp())
+
+    def proven(self, spec):
+        run = K.Run(REQUEST, FakeAI([block(spec)]), self.data, DAY)
+        self.assertEqual(run.start(), "proven")
+        return run
+
+    def test_saved_beside_the_module(self):
+        run = self.proven(GOOD)
+        dest = self.data / "my macros" / "Orders tidy.bas"
+        run.save_module({"ws": "Orders"}, dest=dest)
+        self.assertEqual(run.practice_file, self.data / "my macros" / "Orders tidy_practice.bas")
+        for path in (run.practice_file, run.folder / "modKronosPractice.bas"):
+            first, module = path.read_bytes().decode("ascii").split("\r\n", 1)
+            self.assertEqual(first, 'Attribute VB_Name = "modKronosPractice"')
+            module = module.replace("\r\n", "\n")
+            self.assertEqual(lint(module, public_helpers(FORGELIB)), [])
+            self.assertEqual(re.findall(r"^Public (?:Sub|Function) (\w+)", module, re.M), ["TryOnPracticeData"])
+            self.assertIn('If Not PilotBookIsSafe(Array("Orders")) Then', module)
+            self.assertIn("RemoveCancelledAndSortByDate(ThisWorkbook.Worksheets(\"Orders\"))", module)
+        report = (run.folder / "report.txt").read_text(encoding="utf-8")
+        self.assertIn("Practice run: Orders tidy_practice.bas", report)
+        self.assertIn("choose TryOnPracticeData and click Run", report)
+        self.assertEqual(K.read_report(run.folder)["practice"], "Orders tidy_practice.bas")
+
+    def test_not_wanted_or_not_possible(self):
+        run = self.proven(GOOD)
+        run.save_module({"ws": "Orders"}, practice=False)
+        self.assertIsNone(run.practice_file)
+        self.assertFalse((run.folder / "modKronosPractice.bas").exists())
+        build = self.proven(BUILD)
+        build.save_module()
+        self.assertIsNone(build.practice_file)
+        self.assertIn("BUILD", build.practice_note)
+        self.assertIn("No practice run: a set of macros (BUILD)", (build.folder / "report.txt").read_text(encoding="utf-8"))
+        with self.assertRaisesRegex(ValueError, "single macro"):
+            build.check_practice("PILOT 1 spec(s)")
+
+    def test_file_copies_get_a_sandbox(self):
+        run = self.proven(FILES)
+        run.save_module({"tracker": "Tracker", "dump": "C:\\Dump", "jobs": "C:\\Jobs"})
+        module = run.practice_file.read_text(encoding="ascii")
+        self.assertIn("root = ForgeSandbox_reports_01()", module)   # new folders below %TEMP%, as the pilot (D30)
+
+    def test_every_proven_task_has_one_unless_it_is_given_a_workbook(self):
+        """The committed specs and the verified and held-out corpus (all proven by their own tests): each TASK
+        gets a lint-clean practice run, except those whose TESTs pass a whole workbook, which say why."""
+        paths = sorted((ROOT / "specs").glob("*.vcl")) + sorted(
+            (ROOT / "data").glob("v*/c*/spec.vcl")) + sorted((ROOT / "data").glob("eval/c*/spec.vcl"))
+        self.assertGreaterEqual(len(paths), 60)
+        built, declined = 0, {}
+        for path in paths:
+            text = path.read_text(encoding="utf-8")
+            spec, problems = parse(text)
+            self.assertEqual(problems, [], path)
+            proof = types.SimpleNamespace(kind=spec["kind"], spec=text)
+            module, why = K.practice_module(proof)
+            if spec["kind"] != "TASK":
+                self.assertIsNone(module)
+                self.assertIn("BUILD", why)
+            elif module is None:
+                declined[path.parent.name] = why
+            else:
+                built += 1
+                self.assertEqual(why, "")
+                self.assertEqual(lint(module, public_helpers(FORGELIB)), [], path)
+        self.assertEqual(sorted(declined), ["c028", "c048"])   # ADD_SHEET and COPY_SHEET take a Workbook argument
+        for why in declined.values():
+            self.assertTrue(why.startswith("its practice tests give the macro a whole workbook"), why)
+        self.assertGreaterEqual(built, 55)
+
+    def test_an_odd_spec_never_stops_saving(self):
+        """The practice run is an extra: if building it fails in any way, the macro is still saved."""
+        run = self.proven(GOOD)
+        with mock.patch.object(K, "pilot_module", side_effect=KeyError("boom")):
+            run.save_module({"ws": "Orders"})
+        self.assertIsNone(run.practice_file)
+        self.assertIn("the practice run could not be built (KeyError: 'boom')", run.practice_note)
+        self.assertTrue((run.folder / "modKronosRemoveCancelledAndSort.bas").exists())
+        self.assertIn("No practice run: the practice run could not be built",
+                      (run.folder / "report.txt").read_text(encoding="utf-8"))
+
+    def test_checking_what_excel_pasted(self):
+        run = self.proven(GOOD)
+        run.save_module({"ws": "Orders"})
+        spec = run.proven().proof.spec
+        good = expected_lines([(K.SPEC_NAME, spec)], datetime.date(2026, 11, 2))
+        self.assertEqual(run.check_practice("\r\n".join(good) + "\r\n"), [])
+        self.assertEqual(K.read_report(run.folder)["practice_check"],
+                         {"agrees": True, "date": "2026-11-02", "differences": 0, "first": []})
+        self.assertIn("Practice run in Excel (2026-11-02): Excel and KRONOS agree",
+                      (run.folder / "report.txt").read_text(encoding="utf-8"))
+        bad = [line.replace("ERRORS=0", "ERRORS=1", 1) if line.startswith("TEST 30 ") else line for line in good]
+        found = run.check_practice("\n".join(bad))
+        self.assertEqual(found, ["spec.vcl TEST line 30: Excel has 'TEST 30 RESULT=8 ERRORS=1', the interpreter "
+                                 "'TEST 30 RESULT=8 ERRORS=0'"])
+        self.assertIn("1 difference(s)", (run.folder / "report.txt").read_text(encoding="utf-8"))
+        self.assertEqual((run.folder / "practice_paste.txt").read_text(encoding="utf-8").splitlines(), bad)
+        self.assertIn("no DATE line", run.check_practice("")[-1])
 
 
 class Starter(unittest.TestCase):   # the compiler's starter macro (D68, D72)

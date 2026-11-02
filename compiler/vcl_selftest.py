@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT / "vcl"))
 sys.path.insert(0, str(ROOT / "tests"))
 from semantics import XlError  # noqa: E402
 from conformance_cases import CASES  # noqa: E402
+from vcl_fixtures import vba_text  # noqa: E402,F401  (vba_text lives there: KRONOS.exe needs it, D81)
 
 CASES_PER_PROC = 40   # keeps each VBA procedure small
 MAX_LINE = 1000       # VBA allows 1023 characters per line
@@ -42,22 +43,6 @@ CALLS = {
 }
 XL_ERRORS = {"#N/A": "xlErrNA", "#DIV/0!": "xlErrDiv0", "#VALUE!": "xlErrValue", "#REF!": "xlErrRef",
              "#NAME?": "xlErrName", "#NUM!": "xlErrNum", "#NULL!": "xlErrNull"}
-
-
-def vba_text(s):
-    """A VBA string expression for s: printable ASCII in quotes, anything else as ChrW(code)."""
-    parts, run = [], ""
-    for ch in s:
-        if 32 <= ord(ch) <= 126:
-            run += '""' if ch == '"' else ch
-        else:
-            if run:
-                parts.append(f'"{run}"')
-                run = ""
-            parts.append(f"ChrW({ord(ch)})")
-    if run or not parts:
-        parts.append(f'"{run}"')
-    return " & ".join(parts)
 
 
 def vba_value(v):

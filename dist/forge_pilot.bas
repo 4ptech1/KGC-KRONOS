@@ -11,6 +11,13 @@ Private gLine As Long
 Public Sub ForgePilotRun()
     ' Runs every TEST of the piloted specs. Results: the sheet ForgePilot, one line per row.
     On Error GoTo PilotFailed
+    Set gOut = Nothing
+    If Not PilotBookIsSafe(Array("Tracker", "Notes")) Then
+        MsgBox "This builds practice sheets, so it runs only in a new, empty workbook, where nothing real " & _
+            "can change. In Excel click File > New > Blank workbook, add the modules there, and run it again.", _
+            vbExclamation
+        Exit Sub
+    End If
     Set gOut = FixtureSheet(ThisWorkbook, "ForgePilot")
     gLine = 0
     PilotLine "PILOT 1 spec(s)"
@@ -21,10 +28,44 @@ Public Sub ForgePilotRun()
     MsgBox "Pilot done: " & gLine & " lines on the sheet ForgePilot. Copy column A and paste it to Claude."
     Exit Sub
 PilotFailed:
+    If gOut Is Nothing Then
+        MsgBox "Pilot stopped by error " & Err.Number & ": " & Err.Description
+        Exit Sub
+    End If
     PilotLine "ABORTED error " & Err.Number & ": " & Err.Description
     ForgeSandboxUnlock
-    MsgBox "Pilot stopped by error " & Err.Number & ". Copy column A of the sheet ForgePilot to Claude."
+    MsgBox "Pilot stopped by error " & Err.Number & ". Copy column A of the sheet ForgePilot and paste it to Claude."
 End Sub
+
+Private Function PilotBookIsSafe(ByVal practiceSheets As Variant) As Boolean
+    ' The pilot empties the sheets it builds (FixtureSheet), so it runs only in a workbook that holds nothing
+    ' else: every sheet with anything on it must be the pilot's own. The sheet ForgePilot is the pilot's own
+    ' only if its first line is the one the pilot writes ("PILOT n spec(s)"), and a practice sheet counts as
+    ' the pilot's own only once such a ForgePilot shows that an earlier run in this workbook made it. A sheet
+    ' ForgeSelfTest is left alone, because the pilot never builds or empties it (D81).
+    Dim ws As Worksheet
+    Dim i As Long
+    Dim ours As Boolean
+    Dim ranBefore As Boolean
+    For Each ws In ThisWorkbook.Worksheets
+        If StrComp(ws.Name, "ForgePilot", vbTextCompare) = 0 Then
+            If Left$(ws.Cells(1, 1).Text, 6) = "PILOT " Then ranBefore = True
+        End If
+    Next ws
+    For Each ws In ThisWorkbook.Worksheets
+        If Application.WorksheetFunction.CountA(ws.Cells) > 0 Or ws.UsedRange.Address(False, False) <> "A1" Then
+            ours = (StrComp(ws.Name, "ForgeSelfTest", vbTextCompare) = 0)
+            If StrComp(ws.Name, "ForgePilot", vbTextCompare) = 0 Then ours = ranBefore
+            If ranBefore Then
+                For i = LBound(practiceSheets) To UBound(practiceSheets)
+                    If StrComp(ws.Name, practiceSheets(i), vbTextCompare) = 0 Then ours = True
+                Next i
+            End If
+            If Not ours Then Exit Function
+        End If
+    Next ws
+    PilotBookIsSafe = True
+End Function
 
 Private Sub PilotLine(ByVal s As String)
     gLine = gLine + 1

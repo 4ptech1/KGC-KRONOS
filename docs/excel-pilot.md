@@ -61,6 +61,8 @@ Click cell **H4** on that sheet, press **Ctrl+C**, and paste it to Claude. It lo
 `SELFTEST 229/229 FAILED: none`.
 
 **6. Run the router pilot.** Press **Alt+F8**, click **ForgePilotRun**, then **Run**.
+(If a message says it runs only in a new, empty workbook, this workbook has something else in it: go back to step 1
+and use a new one. The pilot empties the sheets it builds, so it refuses to start anywhere else, D81.)
 *Expected:*
 - After a few seconds, a message says `Pilot done: <n> lines on the sheet ForgePilot.`
 - A new sheet, ForgePilot, has the lines in column A, from `PILOT 1 spec(s)` down to `END`.

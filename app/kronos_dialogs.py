@@ -1,5 +1,5 @@
 """The KGC KRONOS window's dialogs (item 5 Phase 2c, docs/kronos-app.md section 2, D77): Settings, the
-Recipe window, History and Help. Like the window, they hold no logic: they show what the controller says
+Recipe window, History and Help, and Check a practice run (D81). Like the window, they hold no logic: they show what the controller says
 and call its methods. Each is built with the App (app/kronos_app.py), which keeps one of each open.
 """
 import os
@@ -17,7 +17,8 @@ HELP = [
                        "2 Questions: only if the AI needs to ask you something.\n"
                        "3 Review: read what the macro does, assumes and changes, and tick that you checked the "
                        "assumptions.\n"
-                       "4 Save: type your real sheet names and save the macro file."),
+                       "4 Save: type your real sheet names and save the macro file. A practice run is saved "
+                       "beside it: try the macro in a new, empty workbook first, then Check a practice run."),
     ("Staying safe", "KRONOS never opens, changes or runs your workbooks. You run the macro yourself in Excel, "
                      "on a copy of your workbook first.\n"
                      "Use practice requests with invented data only, for now. Keep \"Improve the model for "
@@ -383,3 +384,38 @@ class HelpDialog(Dialog):
         ttk.Separator(self.win).pack(fill="x", pady=(14, 8))
         self.muted(f"AI in use: {self.c.ai_label}\nData folder: {self.c.data}").pack(anchor="w")
         ttk.Button(self.win, text="Close", command=self.close).pack(anchor="e", pady=(10, 0))
+
+
+class PracticeDialog(Dialog):
+    """Check a practice run (D81): the steps, a box for column A of the sheet ForgePilot, and the verdict."""
+
+    def __init__(self, app):
+        super().__init__(app, "Check a practice run")
+        self.win.geometry("820x620")
+        self.heading("Check a practice run")
+        app.label(self.win, "\n".join(self.c.practice_steps()), wrap=760).pack(anchor="w", pady=(6, 10))
+        ttk.Label(self.win, text="Paste column A of the sheet ForgePilot here", style="Section.TLabel").pack(
+            anchor="w")
+        self.box = app.text_box(self.win, 9, mono=True)
+        self.box.pack(fill="both", expand=True, pady=(4, 8))
+        self.verdict = app.label(self.win, "", wrap=760)
+        self.verdict.pack(anchor="w")
+        self.details = self.muted("", wrap=760)
+        self.details.pack(anchor="w", pady=(2, 0))
+        bottom = ttk.Frame(self.win, style="Panel.TFrame")
+        bottom.pack(fill="x", pady=(10, 0))
+        ttk.Button(bottom, text="Close", command=self.close).pack(side="right")
+        ttk.Button(bottom, text="Check", style="Primary.TButton", command=self.check).pack(side="right", padx=8)
+        if self.c.practice_result:
+            self.show(*self.c.practice_result)
+
+    def check(self):
+        try:
+            self.show(*self.c.check_practice(self.box.get("1.0", "end")))
+        except ValueError as exc:
+            self.show(False, str(exc), "")
+
+    def show(self, ok, words, details):
+        self.verdict.configure(text=("\u2713  " if ok else "\u2717  ") + words,
+                               foreground=self.colours["ok"] if ok else self.colours["note"])
+        self.details.configure(text=details)

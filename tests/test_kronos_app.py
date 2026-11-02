@@ -22,7 +22,7 @@ class Window(unittest.TestCase):
         done = subprocess.run([sys.executable, str(ROOT / "app" / "kronos_app.py"), "--smoke"], cwd=ROOT,
                               capture_output=True, text=True, timeout=120)
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
-        self.assertIn("smoke: OK, all four steps, the saved module, every dialog and a corpus candidate", done.stdout)
+        self.assertIn("smoke: OK, all four steps, the saved module, a practice run, every dialog and a corpus candidate", done.stdout)
 
     def test_the_version_and_the_log_file(self):   # a windowed exe has no console (D79)
         log = Path(tempfile.mkdtemp()) / "log.txt"

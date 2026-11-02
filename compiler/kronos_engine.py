@@ -32,19 +32,26 @@ from resources import ROOT  # noqa: E402
 from errcodes import code_of, coded, tag  # noqa: E402
 from kronos_ai import CODEX_COMMAND, CODEX_TIMEOUT, AiError, CodexAI, FakeAI  # noqa: E402
 from validator import MODIFIES_RE, validate_text  # noqa: E402
-from vba_lint import lint  # noqa: E402
+from vba_lint import lint, public_helpers  # noqa: E402
 from vcl_corpus import make_candidate  # noqa: E402
-from vcl_codegen import (CompileError, assemble, compile_build_procs, compile_text, starter_args,  # noqa: E402
-                         starter_sub, task_signature)
+from vcl_codegen import (FORGELIB, CompileError, assemble, compile_build_procs, compile_text,  # noqa: E402
+                         starter_args, starter_sub, task_signature)
 from vcl_fmt import FormatError, format_text  # noqa: E402
 from vcl_interp import VclError, run_tests  # noqa: E402
 from vcl_mutate import mutate_report  # noqa: E402
 from vcl_parse import parse  # noqa: E402
+from vcl_pilot import check as pilot_check, pilot_module  # noqa: E402
 
 PROMPT = ROOT / "vcl" / "orchestrator_prompt.txt"
 MAX_TRIES = 3        # in each turn, the AI's first spec and 2 more tries (D68, D74)
 MAX_QUESTIONS = 3    # then the person puts the details in the request instead
 SPEC_NAME = "spec.vcl"   # the name the repair messages give the spec, as vclc prints a file
+PRACTICE_MODULE = "modKronosPractice"   # the practice run's module (D81)
+PRACTICE_MACRO = "TryOnPracticeData"
+PRACTICE_WORDS = {"entry": PRACTICE_MACRO, "done_words": "Practice run done", "stopped_words": "The practice run stopped",
+                  "paste_to": "into KRONOS (Check a practice run)",
+                  "head": ["' Made by KGC KRONOS (D81). Import it with the macro's module into a NEW, empty workbook,",
+                           "' run TryOnPracticeData, then paste column A of the sheet ForgePilot into KRONOS."]}
 QUESTION = "# QUESTION:"
 FENCE = re.compile(r"```[ \t]*([A-Za-z0-9_+-]*)[ \t]*")
 
@@ -381,6 +388,36 @@ def import_steps(file_name, macro):
             "If Excel shows a yellow bar saying macros are disabled, click Enable Content."]
 
 
+def practice_module(proof):
+    """(text, why): the practice run of a proven TASK (D81): vcl_pilot's module, which builds the TESTs'
+    practice data in a new, empty workbook, runs the macro as each TEST does, and writes what it found
+    for KRONOS to check. (None, why not) for a BUILD, or if the module fails lint."""
+    if proof.kind != "TASK":
+        return None, "a set of macros (BUILD) has no practice run yet; try it on a copy of a workbook"
+    try:
+        text = pilot_module([(SPEC_NAME, proof.spec)], PRACTICE_WORDS)   # ValueError: why it can't be piloted
+    except ValueError as exc:
+        return None, str(exc)
+    except Exception as exc:   # the practice run is an extra: whatever a spec looks like, Save must still work
+        return None, f"the practice run could not be built ({type(exc).__name__}: {exc})"
+    found = lint(text, public_helpers(FORGELIB.read_text(encoding="utf-8")))
+    if found:
+        return None, "the practice run failed lint: " + "; ".join(f"line {n}: {m}" for n, m in found[:3])
+    return text, ""
+
+
+def practice_steps(module_file, practice_file):
+    return ["Try it safely first, on practice data:",
+            "1. In Excel 2016 click File > New > Blank workbook (a new, empty one: the practice run refuses any "
+            "other).",
+            f"2. Press Alt+F11. Click File > Import File..., choose {module_file}, click Open; do the same for "
+            f"{practice_file}.",
+            f"3. Close the VBA editor. Press Alt+F8, choose {PRACTICE_MACRO} and click Run. It builds the practice "
+            "sheets KRONOS tested with, runs the macro the same way, and lists what it found on the sheet ForgePilot.",
+            "4. On the sheet ForgePilot click the A column header, press Ctrl+C, and paste it into KRONOS: Check a "
+            "practice run. KRONOS says whether Excel gave the same answers as its practice tests."]
+
+
 # ---------- one run ----------
 
 @dataclass
@@ -428,6 +465,7 @@ class Run:
         self.questions = self.calls = self.turn_start = 0
         self.cancelled = False
         self.module_file, self.macro = None, ""
+        self.practice_file, self.practice_note, self.practice_check = None, "", None   # D81
         self._write("request.txt", self.request + "\n")
 
     def _new_folder(self, runs):
@@ -597,10 +635,11 @@ class Run:
             raise ValueError("no proven spec yet")
         return None if attempt.proof.kind == "BUILD" else starter_args(attempt.proof.spec)
 
-    def save_module(self, values=None, starter=True, dest=None):
+    def save_module(self, values=None, starter=True, dest=None, practice=True):
         """Write the proven spec's .bas to the run folder, and to dest when given (the window's Save As);
-        with a starter macro for a TASK unless starter=False. Returns the path written for the person
-        (dest, or the run folder's copy). ValueError when a value is missing or wrong."""
+        with a starter macro for a TASK unless starter=False, and with practice the practice run beside it
+        (practice_module, D81). Returns the path written for the person (dest, or the run folder's copy).
+        ValueError when a value is missing or wrong."""
         attempt = self.proven()
         if attempt is None:
             raise ValueError("no proven spec yet")
@@ -632,8 +671,34 @@ class Run:
             Path(dest).parent.mkdir(parents=True, exist_ok=True)
             Path(dest).write_bytes(bas_text(name, module).encode("ascii"))
         self.module_file, self.macro = path.name, macro
+        self.practice_file, self.practice_note, self.practice_check = None, "", None
+        if practice:
+            text, self.practice_note = practice_module(proof)
+            if text is not None:
+                body = bas_text(PRACTICE_MODULE, text).encode("ascii")
+                (self.folder / f"{PRACTICE_MODULE}.bas").write_bytes(body)
+                where = Path(dest) if dest is not None else path
+                self.practice_file = where.with_name(f"{where.stem}_practice.bas")
+                self.practice_file.write_bytes(body)
         self.save_report()
         return Path(dest) if dest is not None else path
+
+    def check_practice(self, pasted):
+        """Compare what Excel wrote in a practice run (column A of the sheet ForgePilot, pasted) with what the
+        interpreter gives on Excel's date (vcl_pilot.check, D81). Returns the differences, [] when they agree;
+        the paste and the verdict are kept in the run folder."""
+        attempt = self.proven()
+        if attempt is None or attempt.proof.kind != "TASK":
+            raise ValueError("a practice run needs a proven single macro")
+        lines = [line for line in str(pasted).replace("\r\n", "\n").replace("\r", "\n").split("\n")]
+        problems = pilot_check(lines, [(SPEC_NAME, attempt.proof.spec)])
+        date = next((line.split(" ", 1)[1].strip() for line in lines if line.strip().startswith("DATE ")), "")
+        self.practice_check = {"agrees": not problems, "date": date, "differences": len(problems),
+                               "first": problems[:20]}
+        self._write("practice_paste.txt", "\n".join(lines).rstrip("\n") + "\n")
+        self._write("practice_check.txt", "\n".join(problems or ["PRACTICE OK: Excel and KRONOS agree"]) + "\n")
+        self.save_report()
+        return problems
 
     # ---------- suggest for the corpus (D78) ----------
 
@@ -680,6 +745,16 @@ class Run:
                 out += import_steps(self.module_file, self.macro)
             else:
                 out.append("No starter macro: call the procedure from your own macro, or give the real sheet names.")
+            if self.practice_file:
+                out += ["", f"Practice run: {self.practice_file.name}"] + practice_steps(self.module_file,
+                                                                                          self.practice_file.name)
+            elif self.practice_note:
+                out += ["", f"No practice run: {self.practice_note}"]
+        if self.practice_check is not None:
+            check = self.practice_check
+            out += ["", f"Practice run in Excel ({check['date'] or 'no date'}): "
+                    + ("Excel and KRONOS agree" if check["agrees"] else f"{check['differences']} difference(s)")]
+            out += [f"  {line}" for line in check["first"]]
         return out
 
     def attempt_lines(self, attempt, best):
@@ -718,6 +793,8 @@ class Run:
                 "note": self.note, "question": self.question, "questions": self.questions,
                 "today": self.today.isoformat() if self.today else None,
                 "best": best.number if best else None, "module": self.module_file,
+                "practice": self.practice_file.name if self.practice_file else None,
+                "practice_check": self.practice_check,
                 "attempts": [attempt_json(a) for a in self.attempts]}
 
     def save_report(self):
