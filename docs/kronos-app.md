@@ -55,8 +55,10 @@ Excel, when they choose.
     conversation go on stdin, as one message (D72): the prompt is about 48 KB, too long for a
     Windows command line and, as far as we know, longer than the 32 KiB of `AGENTS.md` that
     Codex reads. The final message comes back through `--output-last-message`.
-  - The default command line: `codex exec --sandbox read-only --skip-git-repo-check
-    --output-last-message {out} -` (the working folder is not a git repo; `-` reads stdin).
+  - The default command line: `codex exec --ephemeral --sandbox read-only --skip-git-repo-check
+    --output-last-message {out} -` (the working folder is not a git repo; `-` reads stdin;
+    `--ephemeral` keeps no session copy, D80). Before the first call KRONOS asks
+    `codex login status` whether someone is signed in (D80).
   - It has a time limit, and the Windows process opens no console window.
   - Each call is stateless: KRONOS resends the conversation so far (the request, the earlier
     replies, the answers or problems), so nothing depends on Codex's session store.
@@ -283,13 +285,23 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
   - Boss downloads the exe from a GitHub Release, which a manual run of the workflow publishes
     from main (a separate job with write permission), with its checksum and exact clicks in the
     guide.
-  - The window title shows the version (0.4).
+  - The window title shows the version (0.5 from D80; the first release was 0.4).
   - The exe is unsigned, so IT may need to allow it. Signing, and a folder build instead of one
     file, are the fallbacks if IT or antivirus objects.
   - A failure at start is written to `crash.log` in the data folder and shown in a box.
 - **The guide**, `docs/kronos-app-guide.md`, with exact clicks: install the Codex CLI,
   `codex login`, Data Controls, download KRONOS.exe, the first run, a practice request,
   importing the .bas, running the starter macro.
+- **Checked against the real Codex CLI** (D80, version 0.166.0, signed out, before the pilot):
+  - The flags and `-` for stdin are right; `--ephemeral` keeps Codex from storing its own copy.
+  - Signed out, `codex exec` would try OpenAI anyway, so KRONOS asks `codex login status` (at
+    once, offline) before its first call; the first-run checklist shows "Codex is signed in".
+  - When Codex can't reach OpenAI it waits for ever ("waiting for network"): KRONOS reads its
+    messages as they come and stops it at that line, in plain words.
+  - On Windows codex.cmd starts node, which starts codex.exe, so Cancel and the time limit stop
+    the whole tree (`taskkill /T`).
+  - The `codex-check` job runs the adapter on Windows against a stand-in process tree and the
+    real Codex (npm, signed out); a release needs it green.
 
 ### 4. The team version (later, D71)
 - Each person: KRONOS.exe, their own Codex CLI and ChatGPT login.
@@ -316,6 +328,7 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
 | 2c | Settings (with Show the recipe and the Recipe window), History, Help, the one-call Codex test, Codex errors in plain words | done (D77): controller tests, a 13-step smoke test that opens every dialog, and screenshots |
 | 2d | Suggest for the corpus: the corpus gates on a proven run, and a candidate folder in the data folder (never `data/`) | done (D78): tests; the candidate passes the gates, and `corpus-add` takes it |
 | 3 | KRONOS.exe, `--self-test`, the release and the guide | done (D79): the Windows job builds the exe and its self-test passes; the release and the guide are published |
+| 3b | KRONOS against the real Codex CLI, signed out: sign-in check, offline stop, Windows process tree, `--ephemeral` | done (D80): real-process tests on Linux and Windows, and the Windows job against the real Codex |
 | 4 | Boss's pilot on his PC, after IT approves the installs | three practice requests through Codex, each proven; problems logged |
 | 5 | The team version on the company drive | two copies share one folder in a test |
 
@@ -327,7 +340,8 @@ The team version follows the pilot.
 ## Risks
 
 - **Codex CLI flags change.** KRONOS checks the version and the help text, and the command
-  line is a setting.
+  line is a setting. CI checks the pinned version on Windows (D80); a new Codex version is
+  checked by changing the pin.
 - **Codex writes weaker specs than Claude.** The toolchain proves every spec, the repair loop
   helps, and the prompt is the same. The pilot measures it.
 - **IT blocks an unsigned exe.** IT allows it, or KRONOS runs from a folder with Python as the

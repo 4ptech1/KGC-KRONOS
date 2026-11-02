@@ -33,6 +33,8 @@ STAGES = {"checking": "Checking the recipe", "testing": "Testing it on practice 
 LOGIN_WORDS = ("login", "log in", "logged in", "sign in", "signed in", "sign-in", "auth", "401", "credential",
                "token")
 GIVE_UP = " (is it signed in? run `codex login`)"   # the adapter adds this to every exit-code message
+SIGN_IN = ("Codex isn't signed in. Open a Command Prompt, type codex login, sign in with your ChatGPT account, then "
+           "press Try again.")
 
 
 def duration(seconds):
@@ -51,11 +53,15 @@ def plain_error(note):
     if "was not found" in low:
         return ("Codex isn't installed on this PC, or KRONOS can't find it. Install the Codex CLI (the setup "
                 "guide has the steps), then press Try again."), text
+    if low.startswith("codex is not signed in"):   # `codex login status` said so (D80)
+        return SIGN_IN, text
+    if low.startswith("codex can't reach openai"):   # it was waiting for the network (D80)
+        return ("Codex can't reach OpenAI over the internet. Check the PC is online, then press Try again. On the "
+                "work PC, IT may need to let Codex through the firewall or proxy."), text
     if "exit code" in low:
         said = text.split(": ", 1)[-1].replace(GIVE_UP, "").lower()
         if any(word in said for word in LOGIN_WORDS):
-            return ("Codex isn't signed in. Open a Command Prompt, type codex login, sign in with your ChatGPT "
-                    "account, then press Try again."), text
+            return SIGN_IN, text
         return ("Codex stopped with an error. Press Try again. If it keeps happening, open Settings and press "
                 "Test Codex."), text
     m = re.search(r"within (\d+) seconds", text)
@@ -118,11 +124,21 @@ class Controller:
                 items += [("codex_found", True, found), ("codex_flags", not problems, "; ".join(problems))]
             except AiError as exc:
                 items += [("codex_found", False, str(exc)), ("codex_flags", False, "")]
+            items.append(self._signed_in() if items[0][1] else ("codex_signed_in", False, ""))
         else:
-            items += [("codex_found", True, "the practice AI"), ("codex_flags", True, "")]
+            items += [("codex_found", True, "the practice AI"), ("codex_flags", True, ""),
+                      ("codex_signed_in", True, "")]
         return items + [("data_controls", self.settings["data_controls_confirmed"], ""),
                         ("data_folder", True, str(self.data)),
                         ("practice", self.settings["practice_confirmed"], "")]
+
+    def _signed_in(self):
+        """("codex_signed_in", ok, detail): ok is True, False, or None when this Codex can't say (D80)."""
+        try:
+            state, said = self.ai.signed_in()
+        except AiError as exc:
+            state, said = None, str(exc)
+        return ("codex_signed_in", state, said)
 
     def start_checklist(self):
         """Look for Codex on the worker thread: starting it can take seconds on a locked-down PC, and the window
@@ -140,7 +156,7 @@ class Controller:
             items = self.checklist()
         except Exception as exc:   # the dialog must hear about any failure
             items = [("codex_found", False, f"{type(exc).__name__}: {exc}"), ("codex_flags", False, ""),
-                     ("data_controls", self.settings["data_controls_confirmed"], ""),
+                     ("codex_signed_in", False, ""), ("data_controls", self.settings["data_controls_confirmed"], ""),
                      ("data_folder", True, str(self.data)), ("practice", self.settings["practice_confirmed"], "")]
         self.events.put({"type": "checklist", "items": items})
 

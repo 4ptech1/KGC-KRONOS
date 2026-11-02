@@ -29,7 +29,10 @@ from resources import ROOT  # noqa: E402
 from kronos_ai import FakeAI  # noqa: E402
 from kronos_dialogs import HelpDialog, HistoryDialog, RecipeWindow, SettingsDialog  # noqa: E402
 
-VERSION = "0.4"
+VERSION = "0.5"
+SIGNED_IN_WORDS = {True: "Codex is signed in",   # the first-run checklist, from `codex login status` (D80)
+                   False: "Codex isn't signed in: open a Command Prompt, type codex login and sign in",
+                   None: "KRONOS couldn't tell whether Codex is signed in: Test Codex will show it"}
 EXAMPLE = ("In the Calibration sheet, list every instrument due for calibration in the next 15 days on a "
            "sheet called Due List.")
 TIPS = ["Name the sheets and the column headers it should use.",
@@ -731,14 +734,17 @@ class App:
         def fill(items):
             """Show what the controller found (it looked on its worker thread, so the window never froze)."""
             looking.destroy()
-            found, detail = dict((item, (ok, why)) for item, ok, why in items)["codex_found"]
-            flags_ok, flags = dict((item, (ok, why)) for item, ok, why in items)["codex_flags"]
-            mark = lambda ok: "\u2713" if ok else "\u2717"   # noqa: E731
+            seen = dict((item, (ok, why)) for item, ok, why in items)
+            (found, detail), (flags_ok, flags) = seen["codex_found"], seen["codex_flags"]
+            signed, said = seen["codex_signed_in"]
+            mark = lambda ok: "?" if ok is None else "\u2713" if ok else "\u2717"   # noqa: E731
             if c.ai_label == "Codex":
                 self.label(found_frame, f"{mark(found)}  Codex is installed: {detail}", wrap=560).pack(anchor="w")
                 if found:
                     self.label(found_frame, f"{mark(flags_ok)}  Its command line works with this version"
                                + ("" if flags_ok else f": {flags}"), wrap=560).pack(anchor="w")
+                    self.label(found_frame, f"{mark(signed)}  " + SIGNED_IN_WORDS[signed]
+                               + (f" ({said})" if said and signed is not True else ""), wrap=560).pack(anchor="w")
                     test_btn = ttk.Button(found_frame, text="Test Codex (optional, uses one call)")
                     test_btn.pack(anchor="w", pady=(8, 0))
                     test_label = self.label(found_frame, "", wrap=560)

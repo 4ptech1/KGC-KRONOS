@@ -24,7 +24,8 @@ Send IT this message. Both are needed; nothing else is installed, and nothing ab
 >      deletes or moves files.
 > 2. **The OpenAI Codex CLI**, OpenAI's own command-line tool, signed in with the user's ChatGPT account.
 >    KRONOS starts it only to turn a typed request into a recipe. This is the only part that uses the internet:
->    the typed request (never a file) goes to OpenAI.
+>    the typed request (never a file) goes to OpenAI, over HTTPS. If the PC reaches the internet through a proxy,
+>    the Codex CLI needs to be allowed through it. KRONOS was checked with Codex CLI version 0.166.0.
 >
 > Please tell us where KRONOS.exe may be saved and run from, and whether the Codex CLI may be installed and
 > reach OpenAI's servers.
@@ -41,6 +42,8 @@ Send IT this message. Both are needed; nothing else is installed, and nothing ab
 3. Sign in. In the same black window type `codex login` and press **Enter**. A browser page opens: sign in with
    **your own ChatGPT account** (Plus or Pro).
    *Expected:* the page, or the black window, says you are signed in.
+4. Check it. Type `codex login status` and press **Enter**.
+   *Expected:* a line saying you are logged in. If it says **Not logged in**, do step 3 again.
 
 ## 3. Turn off ChatGPT's "Improve the model for everyone"
 
@@ -63,8 +66,9 @@ Send IT this message. Both are needed; nothing else is installed, and nothing ab
 1. Double-click **KRONOS.exe**. The first start takes a few seconds, because it unpacks itself.
 2. If Windows shows **Windows protected your PC**, click **More info**, then **Run anyway**. (If IT blocks it,
    stop and tell IT; see "If something goes wrong".)
-3. A window **Before you start** opens. *Expected:* a tick next to "Codex is installed" and next to "Its command
-   line works with this version".
+3. A window **Before you start** opens. *Expected:* a tick next to "Codex is installed", "Its command line works
+   with this version" and "Codex is signed in". (A cross next to the last one: sign in again as in section 2,
+   then reopen KRONOS.)
 4. Optional: click **Test Codex**. It makes one short call. *Expected:* "Codex answered, so it is installed and
    signed in."
 5. Tick **I turned off "Improve the model for everyone"** and **I'll use practice requests with invented data
@@ -124,6 +128,7 @@ Everything is in `Documents\KGC KRONOS`:
 | Windows won't run KRONOS.exe | IT has blocked it, or it is not allowed to run from that folder | Tell IT; ask where it may run |
 | "Codex isn't installed on this PC" | KRONOS can't find the `codex` command | Step 2; then close and reopen KRONOS |
 | "Codex isn't signed in" | You need to sign in again | In the black window, `codex login` |
+| "Codex can't reach OpenAI over the internet" | The PC is offline, or a firewall or proxy blocks Codex (KRONOS stops it after about 15 seconds instead of waiting) | Check the internet works; on the work PC, tell IT Codex must reach OpenAI over HTTPS |
 | "Codex took longer than 5 minutes" | The request was big, or the connection is slow | Try again, or make the request smaller; **Settings** can allow more time |
 | "Windows would not start Codex" | A security rule blocks it | Tell IT |
 | NOT PROVEN after 3 tries | Codex couldn't write a recipe that passed every test | **Change my request** (name the sheets and headers); nothing is ever offered as a macro unless it is proven |
