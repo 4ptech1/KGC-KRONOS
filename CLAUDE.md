@@ -287,9 +287,18 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    Python 3.12 with `python3-tk` under `xvfb-run`). **The window is complete.** Phase 3 is done (D79):
    `packaging/kronos.spec` and `.github/workflows/build-exe.yml` build KRONOS.exe on Windows and run its
    `--self-test`; `compiler/resources.py` finds the data files inside the exe; `docs/kronos-app-guide.md` is
-   Boss's guide with a message for IT; a manual run of the workflow with "release" ticked publishes it. **Next:
-   the pilot (Phase 4)**, once IT approves KRONOS.exe and the Codex CLI; corpus batch 3 resumes now that
-   Phase 3 is done and may run while the pilot waits for IT, and the team version (Phase 5) follows the pilot. The parallel session is gone; this is the only session on the repo.
+   Boss's guide with a message for IT; a manual run of the workflow with "release" ticked publishes it
+   (release `kronos-v0.4` is published). Boss asked on 2 Nov 2026 whether the MVP was ready; it was built
+   but never run against the real Codex or in Excel, so two more PRs went in before the pilot: 3b (D80,
+   PR #76) ran KRONOS against the real Codex CLI 0.166.0, signed out, and fixed what it showed (it asks
+   `codex login status` first, stops a Codex that can't reach OpenAI instead of waiting 5 minutes, stops
+   the whole codex.cmd process tree on Windows, `--ephemeral`; a Windows `codex-check` job in CI); 3c (D81)
+   adds the practice run: Save also writes `<name>_practice.bas`, which in a new, empty workbook builds the
+   TESTs' practice data and runs the macro, and the window's Check a practice run compares Excel's answers
+   with the tests (the version is 0.5; its release follows the PR). **Next: the pilot (Phase 4)**, once IT
+   approves KRONOS.exe and the Codex CLI; corpus batch 3 resumes and may run while the pilot waits for IT,
+   and the team version (Phase 5) follows the pilot. Still unproven, and what the pilot is for: Codex's
+   real reply to the Orchestrator prompt, and any macro running in real Excel. The parallel session is gone; this is the only session on the repo.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

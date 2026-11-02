@@ -320,3 +320,11 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
   runs its `--self-test`, and a manual run publishes a release. The program finds its data files through
   `compiler/resources.py`, so it works from a checkout or from the exe. `docs/kronos-app-guide.md` has the
   exact clicks and a message for IT. Next is the pilot, once IT approves.
+- **2026-11-02:** Item 5 Phase 3b (D80): KRONOS checked against the real Codex CLI (0.166.0, signed out). It now
+  asks `codex login status` before the first call, stops a Codex that can't reach OpenAI at once and says so in
+  plain words (it used to wait for the 5-minute limit), stops the whole codex.cmd process tree on Windows, and
+  adds `--ephemeral`. A Windows job in CI installs the same Codex with npm and runs KRONOS against it.
+- **2026-11-02:** Item 5 Phase 3c (D81): the practice run. Save also writes `<name>_practice.bas`: in a new,
+  empty workbook it builds the practice data the tests used and runs the macro, and the window's Check a practice
+  run compares what Excel did with what the tests expect. It refuses to run in a workbook that holds anything
+  else. A BUILD, and a macro given a whole workbook, get no practice run and the Save step says why. Version 0.5.

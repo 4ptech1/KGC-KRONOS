@@ -27,7 +27,9 @@ sys.path.insert(0, str(HERE))
 from kronos_controller import Controller  # noqa: E402
 from resources import ROOT  # noqa: E402
 from kronos_ai import FakeAI  # noqa: E402
-from kronos_dialogs import HelpDialog, HistoryDialog, RecipeWindow, SettingsDialog  # noqa: E402
+import kronos_engine as engine  # noqa: E402
+from vcl_pilot import expected_lines  # noqa: E402
+from kronos_dialogs import HelpDialog, HistoryDialog, PracticeDialog, RecipeWindow, SettingsDialog  # noqa: E402
 
 VERSION = "0.5"
 SIGNED_IN_WORDS = {True: "Codex is signed in",   # the first-run checklist, from `codex login status` (D80)
@@ -255,7 +257,15 @@ class App:
         self.save_btn.pack(side="left")
         self.saved_label = self.label(row, "", "Panel.TLabel", wrap=640)
         self.saved_label.pack(side="left", padx=12)
-        ttk.Label(f, text="How to use it in Excel", style="Section.TLabel").pack(anchor="w", pady=(20, 2))
+        ttk.Label(f, text="First, try it on practice data (recommended)", style="Section.TLabel").pack(
+            anchor="w", pady=(18, 2))
+        practice = ttk.Frame(f, style="Panel.TFrame")
+        practice.pack(fill="x")
+        self.practice_label = self.label(practice, "", wrap=760)
+        self.practice_label.pack(side="left", anchor="w")
+        self.practice_btn = ttk.Button(practice, text="Check a practice run...", command=self.open_practice)
+        self.practice_btn.pack(side="right")
+        ttk.Label(f, text="How to use it in Excel", style="Section.TLabel").pack(anchor="w", pady=(16, 2))
         self.steps_label = self.label(f, "")
         self.steps_label.pack(anchor="w")
         ttk.Button(f, text="Copy steps", command=self.copy_steps).pack(anchor="w", pady=(8, 0))
@@ -482,6 +492,8 @@ class App:
                     p.configure(text=self.c.check_value(t, v.get()) if v.get() else ""), self.refresh_footer()))
                 self.field_widgets[name] = (typ, var)
         self.saved_label.configure(text=f"Saved: {self.c.saved}" if self.c.saved else "")
+        self.practice_label.configure(text=self.c.practice_words())
+        self.practice_btn.configure(state="normal" if self.c.practice_file() else "disabled")
         self.show_suggest(self.save_suggest[1])
         self.steps_label.configure(text="\n".join(self.c.import_steps()))
 
@@ -596,7 +608,8 @@ class App:
 
     def copy_steps(self):
         self.root.clipboard_clear()
-        self.root.clipboard_append("\n".join(self.c.import_steps()))
+        practice = self.c.practice_steps()
+        self.root.clipboard_append("\n".join(practice + ([""] if practice else []) + self.c.import_steps()))
 
     # ---------- suggest for the corpus (D78) ----------
 
@@ -669,6 +682,11 @@ class App:
 
     def open_help(self):
         return self.open("help", lambda: HelpDialog(self, VERSION))
+
+    def open_practice(self):
+        if not self.c.practice_file():
+            return None
+        return self.open("practice", lambda: PracticeDialog(self))
 
     def open_recipe(self):
         if not self.c.settings["show_recipe"]:
@@ -826,6 +844,19 @@ def smoke(app, out):
     def help_window():
         app.open_help().close()
 
+    def practice():   # D81: the practice run saved beside the module, and a paste from Excel checked
+        need(c.practice_file() and c.practice_file().name == "smoke_practice.bas", "no practice run was saved")
+        d = app.open_practice()
+        d.box.insert("1.0", "PILOT 1 spec(s)\nDATE 2026-01-01\nTEST 1 RESULT=0 ERRORS=0\nEND\n")
+        d.check()
+        need(c.practice_result and not c.practice_result[0], "a wrong practice run was accepted")
+        lines = expected_lines([(engine.SPEC_NAME, c.recipe())], c.today or datetime.date.today())
+        d.box.delete("1.0", "end")
+        d.box.insert("1.0", "\r\n".join(lines))
+        d.check()
+        need(c.practice_result and c.practice_result[0], f"the practice run did not agree: {c.practice_result}")
+        d.close()
+
     plan = [
         ("checklist", lambda: hasattr(app, "checklist_win"), lambda: (
             app.checklist_win[1].set(True), app.checklist_win[2].set(True), app.checklist_win[3].invoke())),
@@ -839,6 +870,7 @@ def smoke(app, out):
         ("save", lambda: c.step == "save", lambda: (
             app.field_widgets["ws"][1].set("Orders"), app.save(c.data / "smoke" / "smoke.bas"))),
         ("saved", lambda: c.saved is not None and c.saved.exists(), lambda: None),
+        ("practice", lambda: True, practice),
         ("settings", lambda: not c.working, settings_open),
         ("settings saved", lambda: c.test_result is not None, settings_save),
         ("recipe", lambda: c.step == "save" and not c.working, recipe_open),
@@ -924,7 +956,7 @@ def run(args):
     root.mainloop()
     if args.smoke:
         failed = f"FAILED after {out.get('done')}" + (f": {out['error']}" if out.get("error") else "")
-        emit("smoke: " + ("OK, all four steps, the saved module, every dialog and a corpus candidate"
+        emit("smoke: " + ("OK, all four steps, the saved module, a practice run, every dialog and a corpus candidate"
                           if out.get("ok") else failed), args.log)
         return 0 if out.get("ok") else 1
     return 0

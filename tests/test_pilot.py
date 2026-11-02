@@ -10,7 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 from vba_lint import lint, public_helpers  # noqa: E402
-from vcl_pilot import PILOT_SPECS, check, expected_lines, pilot_module  # noqa: E402
+from vcl_parse import parse  # noqa: E402
+from vcl_pilot import PILOT_SPECS, check, expected_lines, not_piloted, pilot_module, unquote  # noqa: E402
 
 FORGELIB = (ROOT / "vba" / "ForgeLib.bas").read_text(encoding="utf-8")
 SPECS = [(name, (ROOT / "specs" / name).read_text(encoding="utf-8")) for name in PILOT_SPECS]
@@ -43,6 +44,57 @@ class Module(unittest.TestCase):
         self.assertEqual(spec.count("    ForgeSandboxUnlock\n"), 4)                 # locks released each TEST
         self.assertEqual(spec.count("        ForgeClearLog\n"), 4)                  # ERROR_COUNT of the last run
         self.assertEqual(re.findall(r"^    PilotReport (\d+),", self.MODULE, re.M), ["43", "44", "45", "46"])
+
+    def test_it_runs_only_in_a_workbook_with_nothing_else(self):   # FixtureSheet empties sheets (D81)
+        entry = self.MODULE[self.MODULE.index("Public Sub ForgePilotRun()"):]
+        entry = entry[:entry.index("End Sub")]
+        guard = entry.index('If Not PilotBookIsSafe(Array("Tracker", "Notes")) Then')
+        self.assertLess(guard, entry.index('Set gOut = FixtureSheet(ThisWorkbook, "ForgePilot")'))
+        self.assertLess(guard, entry.index("PilotSpec_task_12"))
+        self.assertIn("Exit Sub", entry[guard:entry.index("End If", guard)])
+        safe = self.MODULE[self.MODULE.index("Private Function PilotBookIsSafe("):]
+        safe = safe[:safe.index("End Function")]
+        self.assertIn('Application.WorksheetFunction.CountA(ws.Cells) > 0 Or ws.UsedRange.Address(False, False) <> "A1"',
+                      safe)   # anything on a sheet, a value or only formatting, makes it someone's sheet
+        self.assertIn("If ranBefore Then", safe)   # practice sheets count as the pilot's own only after a run
+        self.assertIn('If Left$(ws.Cells(1, 1).Text, 6) = "PILOT " Then ranBefore = True', safe)   # a real marker
+        self.assertIn('If StrComp(ws.Name, "ForgePilot", vbTextCompare) = 0 Then ours = ranBefore', safe)
+        self.assertNotRegex(safe, r"(?i)\b(Delete|Clear|Remove)\b")   # the check itself changes nothing
+
+    def test_other_words_for_kronos(self):   # KRONOS's practice run (D81)
+        words = {"entry": "TryOnPracticeData", "done_words": "Practice run done", "stopped_words": "It stopped",
+                 "paste_to": "into KRONOS", "head": ["' a KRONOS practice run"]}
+        module = pilot_module(SPECS, words)
+        self.assertEqual(lint(module, public_helpers(FORGELIB)), [])
+        self.assertEqual(re.findall(r"^Public (?:Sub|Function) (\w+)", module, re.M), ["TryOnPracticeData"])
+        self.assertIn('MsgBox "Practice run done: " & gLine & " lines on the sheet ForgePilot. Copy column A and '
+                      'paste it into KRONOS."', module)
+        self.assertIn("' a KRONOS practice run\nOption Explicit", module)
+        self.assertNotIn("{", module.replace("{LF}", "").replace("{CR}", "").replace("{TAB}", ""))
+
+    def test_what_cannot_be_piloted_is_said_in_plain_words(self):   # D81
+        spec = (ROOT / "vcl" / "examples" / "example1_rev3.vcl").read_text(encoding="utf-8")
+        parsed, _ = parse(spec)
+        self.assertEqual(not_piloted(parsed, spec), "")
+        book = (ROOT / "data" / "verified" / "c028" / "spec.vcl").read_text(encoding="utf-8")   # a Workbook argument
+        whole = spec.replace("OP       LET(removed, 0)", "OP       LET(removed, SHEETS(THIS_BOOK))")
+        for text, words in ((book, "give the macro a whole workbook"), (whole, "looks at the whole workbook")):
+            parsed, problems = parse(text)
+            self.assertEqual(problems, [])
+            self.assertIn(words, not_piloted(parsed, text))
+            with self.assertRaisesRegex(ValueError, words):
+                pilot_module([("a.vcl", text)])
+
+    def test_excel_quotes_a_pasted_cell_that_holds_a_quote(self):   # D81
+        self.assertEqual(unquote('"CELL Orders 3 3 [5"" pipe]"'), 'CELL Orders 3 3 [5" pipe]')
+        self.assertEqual(unquote("CELL Orders 3 3 [5 pipe]"), "CELL Orders 3 3 [5 pipe]")
+        self.assertEqual(unquote('"'), '"')
+        lines = list(Check.GOOD)
+        lines[lines.index("CELL Tracker 2 3 [Copied]")] = '"CELL Tracker 2 3 [Copied]"'   # as pasted, wrapped
+        self.assertEqual(check(lines, SPECS), [])
+        lines[lines.index('"CELL Tracker 2 3 [Copied]"')] = '"CELL Tracker 2 3 [Co""pied]"'
+        self.assertEqual(check(lines, SPECS), ["task_12.vcl TEST line 43: missing in Excel: CELL Tracker 2 3 [Copied]",
+                                               'task_12.vcl TEST line 43: only in Excel: CELL Tracker 2 3 [Co"pied]'])
 
     def test_the_file_walk_only_reads(self):
         body = self.MODULE[self.MODULE.index("Private Sub PilotFiles("):]

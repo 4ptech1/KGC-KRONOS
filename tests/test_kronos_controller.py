@@ -14,6 +14,8 @@ sys.path.insert(0, str(ROOT / "compiler"))
 from kronos_ai import AiError, CodexAI, FakeAI  # noqa: E402
 from kronos_ai import CODEX_COMMAND  # noqa: E402
 from kronos_controller import Controller, plain_error  # noqa: E402
+import kronos_engine as engine  # noqa: E402
+from vcl_pilot import expected_lines  # noqa: E402
 
 DAY = datetime.date(2026, 10, 21)
 EXAMPLES = ROOT / "vcl" / "examples"
@@ -224,6 +226,47 @@ class Wizard(unittest.TestCase):
         self.assertIsNone(c.sheet_fields())
         c.save({})
         self.assertIn("choose Run and click Run", c.import_steps()[3])
+
+    def test_the_practice_run(self):   # D81
+        c = self.ask(self.controller(block(GOOD)))
+        c.set_assumptions(True)
+        c.go_save()
+        self.assertIsNone(c.practice_file())
+        self.assertTrue(c.practice_words().startswith("Saving also makes a practice run"))
+        self.assertEqual(c.practice_steps(), [])
+        with self.assertRaisesRegex(ValueError, "practice run first"):
+            c.check_practice("PILOT")
+        dest = Path(tempfile.mkdtemp()) / "chosen.bas"
+        c.save({"ws": "Orders"}, dest)
+        self.assertEqual(c.practice_file(), dest.with_name("chosen_practice.bas"))
+        self.assertTrue(c.practice_words().startswith("Saved beside it: chosen_practice.bas."))
+        self.assertIn("choose chosen.bas, click Open; do the same for chosen_practice.bas.", c.practice_steps()[2])
+        good = expected_lines([(engine.SPEC_NAME, c.recipe())], DAY)
+        ok, words, details = c.check_practice("\r\n".join(good))
+        self.assertTrue(ok)
+        self.assertEqual(words, "Excel gave the same answers as KRONOS's practice tests: 3 tests, with the same "
+                                "results, cell values and colours. The macro is ready to try on a copy of your "
+                                "workbook.")
+        self.assertEqual(c.practice_result, (ok, words, details))
+        self.assertEqual(c.check_practice("  \n"), (False, "Paste column A of the sheet ForgePilot first.", ""))
+        ok, words, details = c.check_practice("\n".join(good[:-3]))
+        self.assertFalse(ok)
+        self.assertTrue(words.startswith("That isn't a whole practice run."))
+        ok, words, details = c.check_practice("\n".join(line.replace("RESULT=8", "RESULT=9") for line in good))
+        self.assertFalse(ok)
+        self.assertTrue(words.startswith("Excel did something different from KRONOS's tests (2 differences). Don't use"))
+        self.assertIn("TEST line 30: Excel has 'TEST 30 RESULT=9 ERRORS=0'", details)
+        c.save({"ws": "Orders"}, dest, practice=False)   # saved again without it
+        self.assertIsNone(c.practice_file())
+        self.assertIsNone(c.practice_result)
+
+    def test_a_build_has_no_practice_run(self):
+        c = self.ask(self.controller(block(BUILD)))
+        c.set_assumptions(True)
+        c.go_save()
+        c.save({})
+        self.assertIsNone(c.practice_file())
+        self.assertTrue(c.practice_words().startswith("No practice run for this one: a set of macros (BUILD)"))
 
     def test_the_recipe_is_hidden_unless_turned_on(self):
         c = self.ask(self.controller(block(GOOD), block(GOOD)))

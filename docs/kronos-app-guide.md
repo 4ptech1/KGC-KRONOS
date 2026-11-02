@@ -4,7 +4,7 @@ For Boss, in plain steps. KRONOS is a window where you type what Excel should do
 Codex writes a recipe, KRONOS tests it on practice data, and you get a macro file to import into Excel.
 
 **You need, in this order:** IT's OK for two programs (step 1), the Codex tool signed in (steps 2 and 3),
-KRONOS.exe (step 4). Then you try it (steps 5 to 7).
+KRONOS.exe (step 4). Then you try it (steps 5 to 8).
 
 Practice requests with invented data only, for now. KRONOS never opens, changes or runs your workbooks.
 
@@ -78,10 +78,6 @@ Send IT this message. Both are needed; nothing else is installed, and nothing ab
 
 ## 6. Your first practice request
 
-Make a practice workbook first, so nothing real is involved: in Excel, make a new workbook, name the first sheet
-**Orders**, type the headers **Order No**, **Order Date**, **Customer**, **Status** in row 1, add six made-up rows
-(some with Status "Cancelled"), and save it as `practice.xlsx`.
-
 1. In KRONOS, type: *In the Orders sheet, delete every row whose Status says Cancelled, then sort what's left by
    Order Date, newest first.* and click **Ask Codex**.
 2. Watch the working panel. It says what it is doing and each try. **Cancel** stops it at any time.
@@ -90,16 +86,37 @@ Make a practice workbook first, so nothing real is involved: in Excel, make a ne
 4. On **Review**, read **PROVEN** (green) and then what the macro does, **assumes**, **changes** and **never does**.
    Tick **I checked these assumptions**, then click **Next: Save the macro**.
    If it says **NOT PROVEN** (amber), click **Try again** or **Change my request**.
-5. On **Save**, type the real name of your sheet (**Orders**), click **Save macro file...** and click **Save**.
-   *Expected:* "Saved:" and the file's location, and the steps for using it in Excel.
+5. On **Save**, type the sheet name (**Orders**), click **Save macro file...** and click **Save**.
+   *Expected:* "Saved:" and the file's location, and "Saved beside it:" a second file whose name ends in
+   `_practice.bas`. That second file is the **practice run**.
 
-## 7. Use the macro in Excel (on a copy)
+## 7. Try it in Excel on practice data (no real data involved)
+
+The practice run builds, in a new workbook, exactly the made-up data KRONOS tested the macro with, runs the macro
+the same way, and lists what happened. KRONOS then tells you whether Excel did exactly what its tests did.
+
+1. In Excel 2016 click **File > New > Blank workbook**. (It must be a new, empty workbook: the practice run refuses
+   to start in any workbook that has something in it, so it can never change real data.)
+2. Press **Alt+F11** (the macro editor opens). Click **File > Import File...**, choose the macro file KRONOS saved,
+   click **Open**. Do the same again for the `_practice.bas` file.
+   *Expected:* two modules under **Modules**: one named after the macro, and **modKronosPractice**.
+3. Close the editor, press **Alt+F8**, choose **TryOnPracticeData**, click **Run**.
+   *Expected:* after a few seconds, "Practice run done: ... lines on the sheet ForgePilot". New sheets appear: the
+   practice data, and **ForgePilot** with a list in column A.
+4. On the sheet **ForgePilot**, click the **A** column header and press **Ctrl+C**.
+5. In KRONOS, on the **Save** step, click **Check a practice run...**, click in the box, press **Ctrl+V**, then
+   **Check**.
+   *Expected:* a green tick: "Excel did exactly what KRONOS's tests did". If it says something is different, don't
+   use the macro on real data: open **History** and send that run's report to Claude Code.
+6. Close the practice workbook without saving it.
+
+## 8. Use the macro on your own workbook (on a copy)
 
 KRONOS's **Save** screen lists these steps with your macro's exact name. In short, on a **copy** of your workbook,
 in Excel 2016:
 
 1. Press **Alt+F11** (the macro editor opens).
-2. Click **File > Import File...**, choose the `.bas` file KRONOS saved, click **Open**.
+2. Click **File > Import File...**, choose the macro file KRONOS saved (not the `_practice.bas` one), click **Open**.
 3. Close the editor, press **Alt+F8**, choose the macro named on KRONOS's Save screen, click **Run**.
    *Expected:* a message saying it finished, with its result (for a job like this one, how many rows it removed).
 4. To keep the macro, save the workbook as an **Excel Macro-Enabled Workbook (.xlsm)**.
@@ -113,7 +130,7 @@ Everything is in `Documents\KGC KRONOS`:
 | Folder or file | What it holds |
 | --- | --- |
 | `runs\` | one folder per request: your words, the whole conversation, each recipe, the report |
-| `macros\` | the macro files you saved |
+| `macros\` | the macro files you saved, each with its `_practice.bas` practice run |
 | `corpus_candidates\` | requests you offered as training examples ("Suggest for the corpus") |
 | `settings.json` | your settings |
 | `crash.log` | only if KRONOS ever stops on an error |
@@ -131,13 +148,15 @@ Everything is in `Documents\KGC KRONOS`:
 | "Codex can't reach OpenAI over the internet" | The PC is offline, or a firewall or proxy blocks Codex (KRONOS stops it after about 15 seconds instead of waiting) | Check the internet works; on the work PC, tell IT Codex must reach OpenAI over HTTPS |
 | "Codex took longer than 5 minutes" | The request was big, or the connection is slow | Try again, or make the request smaller; **Settings** can allow more time |
 | "Windows would not start Codex" | A security rule blocks it | Tell IT |
+| "This builds practice sheets, so it runs only in a new, empty workbook" | The practice run found something in this workbook and stopped, changing nothing | **File > New > Blank workbook**, import both files there, run it again |
+| "Excel did something different from KRONOS's tests" | The macro behaved differently in your Excel | Don't use it on real data; send the run's report from **History** to Claude Code |
 | NOT PROVEN after 3 tries | Codex couldn't write a recipe that passed every test | **Change my request** (name the sheets and headers); nothing is ever offered as a macro unless it is proven |
 | Anything else | | Look in `Documents\KGC KRONOS\crash.log`, and tell Claude Code what the window said |
 
 ## For the pilot (Phase 4)
 
-Do three practice requests of your own, with invented data. After each, open **History**, select the run, and
-copy its report to Claude Code, with a word about anything confusing. Claude Code reads them and fixes what the
+Do three practice requests of your own, with invented data, each with its practice run in Excel (step 7). After
+each, open **History**, select the run, and copy its report to Claude Code, with a word about anything confusing. Claude Code reads them and fixes what the
 real Codex and your real PC show.
 
 ## Updating and removing

@@ -104,6 +104,7 @@ class Controller:
         self.asked = False            # Codex asked a question in this run (the step bar shows Questions)
         self.assumptions_ok = False   # the person ticked "I checked these assumptions"
         self.saved = None             # the path of the module the person saved
+        self.practice_result = None   # (ok, words, details) of the last practice run checked (D81)
         self.lines = []               # the working panel: one line per try, in plain words
         self.stage = ""               # the working panel: the step now running
         self.started_at = 0.0
@@ -221,6 +222,7 @@ class Controller:
         self.run = engine.Run(text, self.ai, self.data, self.today, self.settings["measure_strength"],
                               progress=self._progress)
         self.asked, self.assumptions_ok, self.saved = False, False, None
+        self.practice_result = None
         self._start(self.run.start, "ask")
 
     def answer(self, text):
@@ -352,6 +354,7 @@ class Controller:
         self.run, self.step, self.notice, self.asked = None, "ask", "", False
         self.suggest_result = None
         self.assumptions_ok, self.saved, self.lines = False, None, []
+        self.practice_result = None
 
     @property
     def request(self):
@@ -436,8 +439,9 @@ class Controller:
         folder = Path(self.settings["macro_folder"]) if self.settings["macro_folder"] else self.data / "macros"
         return folder / f"{engine.module_name(attempt.proof.name)}.bas"
 
-    def save(self, values, dest=None):
-        """Write the module (with its starter macro) to dest, or to the default place; returns the path."""
+    def save(self, values, dest=None, practice=True):
+        """Write the module (with its starter macro) to dest, or to the default place, and with practice its
+        practice run beside it (D81); returns the path."""
         if self.step != "save" or self.working:
             raise ValueError("not on the Save step")
         fields = self.sheet_fields() or []
@@ -445,7 +449,9 @@ class Controller:
                  for problem in [self.check_value(typ, values.get(name, ""))] if problem]
         if wrong:
             raise ValueError("; ".join(wrong))
-        self.saved = self.run.save_module(values, dest=Path(dest) if dest else self.default_save_path())
+        self.saved = self.run.save_module(values, dest=Path(dest) if dest else self.default_save_path(),
+                                          practice=practice)
+        self.practice_result = None
         return self.saved
 
     def import_steps(self):
@@ -453,6 +459,48 @@ class Controller:
         name = self.saved.name if self.saved else f"{engine.module_name(attempt.proof.name)}.bas"
         macro = self.run.macro or ("Run" if attempt.proof.kind == "BUILD" else "Run" + attempt.proof.name)
         return engine.import_steps(name, macro)
+
+    # ---------- the practice run (D81) ----------
+
+    def practice_file(self):
+        """The practice run saved beside the module, or None."""
+        return self.run.practice_file if self.saved and self.run and self.run.practice_file else None
+
+    def practice_words(self):
+        """One line for the Save step about the practice run."""
+        if self.practice_file():
+            return (f"Saved beside it: {self.practice_file().name}. In a new, empty workbook it builds the practice "
+                    "data KRONOS tested with and runs the macro the same way, so you can check Excel does the same.")
+        if self.saved and self.run.practice_note:
+            return f"No practice run for this one: {self.run.practice_note}."
+        return "Saving also makes a practice run, to try the macro in Excel on practice data first (recommended)."
+
+    def practice_steps(self):
+        if not self.practice_file():
+            return []
+        return engine.practice_steps(self.saved.name, self.practice_file().name)
+
+    def check_practice(self, text):
+        """(ok, words, details) for what the person pasted from the sheet ForgePilot; kept as practice_result."""
+        if not self.practice_file():
+            raise ValueError("save the macro with its practice run first")
+        if not text.strip():
+            return False, "Paste column A of the sheet ForgePilot first.", ""
+        problems = self.run.check_practice(text)
+        tests = sum(1 for line in text.splitlines() if line.strip().startswith("TEST "))
+        if not problems:
+            result = (True, f"Excel gave the same answers as KRONOS's practice tests: {tests} test{'' if tests == 1 else 's'}"
+                            ", with the same results, cell values and colours. The macro is ready to try on a copy of "
+                            "your workbook.", "")
+        elif any(p.startswith(("no DATE line", "no END line")) for p in problems):
+            result = (False, "That isn't a whole practice run. On the sheet ForgePilot click the A column header, "
+                             "press Ctrl+C, and paste everything here again.", "\n".join(problems[:20]))
+        else:
+            result = (False, f"Excel did something different from KRONOS's tests ({len(problems)} "
+                             f"difference{'' if len(problems) == 1 else 's'}). Don't use this macro on real data yet: "
+                             "open History and send this run's report to Claude Code.", "\n".join(problems[:20]))
+        self.practice_result = result
+        return result
 
     # ---------- the recipe (only with Show the recipe on) ----------
 
@@ -561,6 +609,7 @@ class Controller:
         self.run = engine.Run(report["request"], self.ai, self.data, self.today, self.settings["measure_strength"],
                               progress=self._progress)
         self.asked, self.assumptions_ok, self.saved = False, False, None
+        self.practice_result = None
         text = spec.read_text(encoding="utf-8")
         self._start(lambda: self.run.recheck(text), "ask")
 

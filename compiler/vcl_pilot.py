@@ -34,10 +34,9 @@ sys.path.insert(0, str(HERE.parent / "vcl"))
 import semantics as S  # noqa: E402
 from vcl_codegen import vba_name  # noqa: E402
 from vcl_fixtures import (EXCEL_SANDBOX_MAX, FIXTURE_HELPERS, SANDBOX, parse_fixture, parse_folder,  # noqa: E402
-                          proc_name, sandbox_name, vba_for_file, vba_for_folders, vba_literal)
+                          proc_name, sandbox_name, vba_for_file, vba_for_folders, vba_literal, vba_text)
 from vcl_interp import run_tests  # noqa: E402
 from vcl_parse import parse  # noqa: E402
-from vcl_selftest import vba_text  # noqa: E402
 
 PILOT_SPECS = ("task_12.vcl",)   # the router MVP (docs/vep-0.3-file-ops.md, Phase 5)
 ESCAPES = (("\n", "{LF}"), ("\r", "{CR}"), ("\t", "{TAB}"))
@@ -65,11 +64,33 @@ def test_calls(spec):
     return found
 
 
+WHOLE_BOOK = re.compile(r"\b(THIS_BOOK|ACTIVE_BOOK|ACTIVE_SHEET|SHEETS|SHEET|SHEET_EXISTS|ADD_SHEET|COPY_SHEET)\b")
+
+
+def not_piloted(spec, text):
+    """Why a parsed TASK can't be piloted, in plain words, or "" when it can (D81). The pilot builds the TESTs'
+    sheets in the workbook that holds the macro, which also holds the pilot's own sheets and, after another
+    TEST, that TEST's sheets. A macro that only touches the sheets it is given can't tell; one that is given
+    a whole workbook, or looks at the workbook itself, could."""
+    for line, fixture, vals, runs in test_calls(spec):
+        if any(isinstance(v, Token) and v.type == "FILENAME" for v in vals):
+            return ("its practice tests give the macro a whole workbook, and the practice workbook would hold "
+                    "sheets of its own besides")
+    for raw in text.splitlines():
+        if raw.split(None, 1)[:1] == ["OP"] and WHOLE_BOOK.search(raw):
+            return ("the macro looks at the whole workbook, not just the sheets it is given, and the practice "
+                    "workbook would hold sheets of its own besides")
+    return ""
+
+
 def spec_procedure(name, text):
     """The VBA that runs every TEST of one spec, and the fixture files it needs."""
     spec, problems = parse(text)
     if problems or spec["kind"] != "TASK":
         raise ValueError(f"{name}: only a TASK spec that parses can be piloted")
+    why = not_piloted(spec, text)
+    if why:
+        raise ValueError(why)
     keys = {k["key"]: k["tree"] for k in spec["keys"] if k["key"] in ("PROC", "KIND")}
     proc, kind = str(keys["PROC"].children[0]), str(keys["KIND"].children[0])
     trees = [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]
@@ -112,9 +133,16 @@ def spec_procedure(name, text):
 RUNNER = r'''Private gOut As Worksheet
 Private gLine As Long
 
-Public Sub ForgePilotRun()
+Public Sub {entry}()
     ' Runs every TEST of the piloted specs. Results: the sheet ForgePilot, one line per row.
     On Error GoTo PilotFailed
+    Set gOut = Nothing
+    If Not PilotBookIsSafe(Array({sheets})) Then
+        MsgBox "This builds practice sheets, so it runs only in a new, empty workbook, where nothing real " & _
+            "can change. In Excel click File > New > Blank workbook, add the modules there, and run it again.", _
+            vbExclamation
+        Exit Sub
+    End If
     Set gOut = FixtureSheet(ThisWorkbook, "ForgePilot")
     gLine = 0
     PilotLine "PILOT {count} spec(s)"
@@ -122,13 +150,47 @@ Public Sub ForgePilotRun()
 {specs}
     PilotLine "END"
     gOut.Columns("A").AutoFit
-    MsgBox "Pilot done: " & gLine & " lines on the sheet ForgePilot. Copy column A and paste it to Claude."
+    MsgBox "{done_words}: " & gLine & " lines on the sheet ForgePilot. Copy column A and paste it {paste_to}."
     Exit Sub
 PilotFailed:
+    If gOut Is Nothing Then
+        MsgBox "{stopped_words} by error " & Err.Number & ": " & Err.Description
+        Exit Sub
+    End If
     PilotLine "ABORTED error " & Err.Number & ": " & Err.Description
     ForgeSandboxUnlock
-    MsgBox "Pilot stopped by error " & Err.Number & ". Copy column A of the sheet ForgePilot to Claude."
+    MsgBox "{stopped_words} by error " & Err.Number & ". Copy column A of the sheet ForgePilot and paste it {paste_to}."
 End Sub
+
+Private Function PilotBookIsSafe(ByVal practiceSheets As Variant) As Boolean
+    ' The pilot empties the sheets it builds (FixtureSheet), so it runs only in a workbook that holds nothing
+    ' else: every sheet with anything on it must be the pilot's own. The sheet ForgePilot is the pilot's own
+    ' only if its first line is the one the pilot writes ("PILOT n spec(s)"), and a practice sheet counts as
+    ' the pilot's own only once such a ForgePilot shows that an earlier run in this workbook made it. A sheet
+    ' ForgeSelfTest is left alone, because the pilot never builds or empties it (D81).
+    Dim ws As Worksheet
+    Dim i As Long
+    Dim ours As Boolean
+    Dim ranBefore As Boolean
+    For Each ws In ThisWorkbook.Worksheets
+        If StrComp(ws.Name, "ForgePilot", vbTextCompare) = 0 Then
+            If Left$(ws.Cells(1, 1).Text, 6) = "PILOT " Then ranBefore = True
+        End If
+    Next ws
+    For Each ws In ThisWorkbook.Worksheets
+        If Application.WorksheetFunction.CountA(ws.Cells) > 0 Or ws.UsedRange.Address(False, False) <> "A1" Then
+            ours = (StrComp(ws.Name, "ForgeSelfTest", vbTextCompare) = 0)
+            If StrComp(ws.Name, "ForgePilot", vbTextCompare) = 0 Then ours = ranBefore
+            If ranBefore Then
+                For i = LBound(practiceSheets) To UBound(practiceSheets)
+                    If StrComp(ws.Name, practiceSheets(i), vbTextCompare) = 0 Then ours = True
+                Next i
+            End If
+            If Not ours Then Exit Function
+        End If
+    Next ws
+    PilotBookIsSafe = True
+End Function
 
 Private Sub PilotLine(ByVal s As String)
     gLine = gLine + 1
@@ -180,10 +242,16 @@ End Sub
 '''
 
 
-def pilot_module(specs):
+CLAUDE = {"entry": "ForgePilotRun", "done_words": "Pilot done", "stopped_words": "Pilot stopped",
+          "paste_to": "to Claude",
+          "head": ["' Paste into a NEW module next to forge_module.bas, then run ForgePilotRun (docs/excel-pilot.md)."]}
+
+
+def pilot_module(specs, words=CLAUDE):
     """One paste-ready module: ForgePilotRun for [(spec file name, spec text)], with its own
-    private copies of the fixture builders, so nothing else but forge_module.bas is needed."""
-    procs, calls, builders, seen = [], [], [], {}
+    private copies of the fixture builders, so nothing else but forge_module.bas is needed.
+    words names its macro and says where its results go (KRONOS's practice run uses its own, D81)."""
+    procs, calls, builders, seen, sheets = [], [], [], {}, []
     for name, text in specs:
         proc, files = spec_procedure(name, text)
         procs.append(proc)
@@ -199,17 +267,21 @@ def pilot_module(specs):
                     raise ValueError(f"fixture {file} is defined differently in two piloted specs")
                 continue
             seen[file] = shape
+            sheets += [fx.sheet for fx in shape[0] if fx.sheet not in sheets]
             if shape[0]:
                 builders.append(privately(vba_for_file(file, shape[0])))
             if shape[1]:
                 builders.append(privately(vba_for_folders(file, [t for t in mine if t.data == "folder_fixture"])))
     head = ["' VBA Forge pilot: runs the TESTs of " + ", ".join(n for n, _ in specs) + " in Excel and writes",
             "' the results to the sheet ForgePilot. Generated by compiler/vcl_pilot.py; do not edit by hand.",
-            "' Paste into a NEW module next to forge_module.bas, then run ForgePilotRun (docs/excel-pilot.md).",
+            *words["head"],
             "Option Explicit", "",
             f"Private Const SANDBOX_MAX_ROOT As Long = {EXCEL_SANDBOX_MAX}",
             f"Private Const SANDBOX_TEST_ROOT As Long = {len(SANDBOX)}   ' the interpreter's {SANDBOX}"]
     runner = RUNNER.replace("{count}", str(len(specs))).replace("{specs}", "\n".join(calls))
+    runner = runner.replace("{sheets}", ", ".join(vba_literal(s) for s in sheets))
+    for key in ("entry", "done_words", "stopped_words", "paste_to"):
+        runner = runner.replace("{" + key + "}", words[key])
     return ("\n".join(head) + "\n" + runner + "\n" + privately(FIXTURE_HELPERS) + "\n"
             + "\n".join(procs) + "\n" + "\n".join(builders) + "\n")
 
@@ -240,11 +312,19 @@ def expected_lines(specs, today):
     return lines + ["END"]
 
 
+def unquote(line):
+    """A pasted line as the pilot wrote it. Copying a cell that holds a double quote puts the whole text in quotes
+    and doubles the quote inside, and no line the pilot writes begins with a quote (D81)."""
+    if len(line) >= 2 and line[0] == '"' and line[-1] == '"':
+        return line[1:-1].replace('""', '"')
+    return line
+
+
 def read_results(lines):
     """Pasted lines -> (date, {(spec, test line): {"head": ..., "rows": set}}, problems)."""
     date, spec, test, tests, problems = None, None, None, {}, []
     for raw in lines:
-        line = raw.strip("\r\n").strip()
+        line = unquote(raw.strip("\r\n").strip())
         if not line:
             continue
         word = line.split(" ", 1)[0]

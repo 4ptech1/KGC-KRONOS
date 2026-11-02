@@ -195,6 +195,14 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
   already names its sheets" and no fields.
 - [Save macro file...]: a Save As dialog. The default is `modKronos<Name>.bas` in
   `Documents\KGC KRONOS\macros`. Then "Saved: <path>" and [Open the folder].
+- "First, try it on practice data" (D81): saving also writes `<name>_practice.bas` beside the macro.
+  In a new, empty workbook, its macro `TryOnPracticeData` builds the practice data the TESTs used,
+  runs the macro as each TEST does, and writes what it found on the sheet ForgePilot.
+  [Check a practice run...] opens a window with the 4 steps and a box: Boss pastes column A of
+  ForgePilot, and KRONOS says "Excel gave the same answers as KRONOS's practice tests" (green) or
+  lists the differences and says not to use the macro on real data (red). A BUILD, and a macro that
+  is given a whole workbook or looks at the workbook itself, get no practice run and the Save step
+  says why.
 - "How to use it in Excel": the 5 numbered steps (`import_steps`) and [Copy steps].
 - [Start a new request] goes back to step 1.
 
@@ -285,7 +293,7 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
   - Boss downloads the exe from a GitHub Release, which a manual run of the workflow publishes
     from main (a separate job with write permission), with its checksum and exact clicks in the
     guide.
-  - The window title shows the version (0.5 from D80; the first release was 0.4).
+  - The window title shows the version (0.5 from D80 and D81; the first release was 0.4).
   - The exe is unsigned, so IT may need to allow it. Signing, and a folder build instead of one
     file, are the fallbacks if IT or antivirus objects.
   - A failure at start is written to `crash.log` in the data folder and shown in a box.
@@ -302,6 +310,12 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
     the whole tree (`taskkill /T`).
   - The `codex-check` job runs the adapter on Windows against a stand-in process tree and the
     real Codex (npm, signed out); a release needs it green.
+- **The practice run** (D81): `compiler/vcl_pilot.py` (the Excel pilot of D35) is reused for any
+  proven TASK, with its own macro name and words. It starts only in a workbook that holds nothing
+  else, because it empties the sheets it builds; it never opens, adds or saves a workbook. KRONOS
+  checks the pasted result with `vcl_pilot.check` on Excel's own date (`Run.check_practice`) and
+  keeps the paste and the verdict in the run folder. Like all KRONOS output it has not run in real
+  Excel yet: this is how the pilot will find out, with a comparison.
 
 ### 4. The team version (later, D71)
 - Each person: KRONOS.exe, their own Codex CLI and ChatGPT login.
@@ -329,6 +343,7 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
 | 2d | Suggest for the corpus: the corpus gates on a proven run, and a candidate folder in the data folder (never `data/`) | done (D78): tests; the candidate passes the gates, and `corpus-add` takes it |
 | 3 | KRONOS.exe, `--self-test`, the release and the guide | done (D79): the Windows job builds the exe and its self-test passes; the release and the guide are published |
 | 3b | KRONOS against the real Codex CLI, signed out: sign-in check, offline stop, Windows process tree, `--ephemeral` | done (D80): real-process tests on Linux and Windows, and the Windows job against the real Codex |
+| 3c | The practice run: practice data and a check of Excel's answers, in a new empty workbook | done (D81): the practice module is lint-clean for every proven single macro we have (all but 2 of 59), the guard and the check are tested, and the self-test covers it |
 | 4 | Boss's pilot on his PC, after IT approves the installs | three practice requests through Codex, each proven; problems logged |
 | 5 | The team version on the company drive | two copies share one folder in a test |
 
