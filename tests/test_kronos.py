@@ -461,36 +461,83 @@ class Starter(unittest.TestCase):   # the compiler's starter macro (D68, D72)
             starter_sub(BUILD, {})
 
 
-class Recorder:
-    """Stands in for subprocess.Popen: keeps each call, what went to stdin, and writes the reply where Codex
-    would. `raises` is raised by Popen itself (an OSError) or by communicate (TimeoutExpired)."""
+class FakeProc:
+    """One running Codex, as Recorder starts it: stdin keeps what KRONOS sent, stdout and stderr are what Codex
+    prints. The first poll() is Codex running (`during` is called then); the next one finishes it, writing the
+    reply where Codex would, unless it hangs until it is stopped."""
 
-    def __init__(self, reply="```vcl\n# QUESTION: Which sheet?\n```", returncode=0, stderr=b"", stdout=b"",
-                 raises=None, during=None):
-        self.reply, self.returncode, self.stderr, self.stdout, self.raises = reply, returncode, stderr, stdout, raises
-        self.during = during   # called inside communicate, as a running Codex would be
-        self.calls, self.input, self.timeout, self.killed = [], None, None, 0
+    def __init__(self, recorder, args, returncode, stdout, stderr, reply, hang, during, instant=False):
+        self.recorder, self.args, self.pid = recorder, args, 4242
+        self.code, self.reply, self.hang, self.during = returncode, reply, hang, during
+        self.stdin = self
+        self.stdout, self.stderr = io.BytesIO(stdout), io.BytesIO(stderr)
+        self.polls, self.returncode = 0, None
+        if instant:   # `codex login status` answers at once
+            self.returncode = returncode
 
-    def __call__(self, args, **kwargs):
-        self.calls.append((args, kwargs))
-        if isinstance(self.raises, OSError):
-            raise self.raises
-        self.args = args
-        return self
+    def write(self, data):   # stdin
+        self.recorder.input = data
 
-    def communicate(self, data=None, timeout=None):
-        if self.input is None:
-            self.input, self.timeout = data, timeout
-            if isinstance(self.raises, subprocess.TimeoutExpired):
-                raise self.raises
+    def close(self):
+        pass
+
+    def poll(self):
+        self.polls += 1
+        if self.returncode is not None:
+            return self.returncode
+        if self.polls == 1:
             if self.during:
                 self.during()
-            if "--output-last-message" in self.args and self.reply is not None:
-                Path(self.args[self.args.index("--output-last-message") + 1]).write_text(self.reply, encoding="utf-8")
-        return self.stdout, self.stderr
+            return None
+        if self.hang:
+            return None
+        if "--output-last-message" in self.args and self.reply is not None:
+            Path(self.args[self.args.index("--output-last-message") + 1]).write_text(self.reply, encoding="utf-8")
+        self.returncode = self.code
+        return self.code
 
     def kill(self):
-        self.killed += 1
+        self.recorder.killed += 1
+        self.returncode = -9
+
+    def wait(self, timeout=None):
+        return self.returncode
+
+
+class Recorder:
+    """Stands in for subprocess.Popen: keeps each call (`calls`; the `codex login status` calls apart in `status`),
+    what went to stdin, and how often Codex was stopped. `raises` is an OSError Popen itself raises; `hang` is a
+    Codex that never finishes; `status` is what `codex login status` answers (signed in by default)."""
+
+    SIGNED_IN = (0, b"Logged in using ChatGPT\n")
+    SIGNED_OUT = (1, b"Not logged in\n")   # codex-cli 0.166.0, on stderr
+
+    def __init__(self, reply="```vcl\n# QUESTION: Which sheet?\n```", returncode=0, stderr=b"", stdout=b"",
+                 raises=None, during=None, hang=False, status=SIGNED_IN):
+        self.reply, self.returncode, self.stderr, self.stdout, self.raises = reply, returncode, stderr, stdout, raises
+        self.during, self.hang, self.status_reply = during, hang, status
+        self.calls, self.status, self.input, self.killed = [], [], None, 0
+
+    def __call__(self, args, **kwargs):
+        if isinstance(self.raises, OSError):
+            raise self.raises
+        if args[1:3] == ["login", "status"]:
+            self.status.append((args, kwargs))
+            code, said = self.status_reply
+            return FakeProc(self, args, code, b"", said, None, False, None, instant=True)
+        self.calls.append((args, kwargs))
+        return FakeProc(self, args, self.returncode, self.stdout, self.stderr, self.reply, self.hang, self.during)
+
+
+class Clock:
+    """Stands in for time.monotonic: every look is `step` seconds after the last, so a time limit passes at once."""
+
+    def __init__(self, step=1000):
+        self.now, self.step = 0, step
+
+    def __call__(self):
+        self.now += self.step
+        return self.now
 
 
 class Codex(unittest.TestCase):
@@ -504,31 +551,65 @@ class Codex(unittest.TestCase):
         runner = Recorder()
         self.assertEqual(self.codex(runner).ask(self.CONVERSATION), "```vcl\n# QUESTION: Which sheet?\n```")
         (args, kwargs), = runner.calls
-        self.assertEqual(args, ["/opt/codex/bin/codex", "exec", "--sandbox", "read-only", "--skip-git-repo-check",
-                                "--output-last-message", str(self.work / "last_message.txt"), "-"])
-        self.assertEqual((kwargs["cwd"], runner.timeout, kwargs["stdin"], kwargs["stdout"], kwargs["stderr"]),
-                         (str(self.work), 300, subprocess.PIPE, subprocess.PIPE, subprocess.PIPE))
+        self.assertEqual(args, ["/opt/codex/bin/codex", "exec", "--ephemeral", "--sandbox", "read-only",
+                                "--skip-git-repo-check", "--output-last-message", str(self.work / "last_message.txt"),
+                                "-"])
+        self.assertEqual((kwargs["cwd"], kwargs["stdin"], kwargs["stdout"], kwargs["stderr"]),
+                         (str(self.work), subprocess.PIPE, subprocess.PIPE, subprocess.PIPE))
         self.assertNotIn("creationflags", kwargs)
         sent = runner.input.decode("utf-8")   # the whole prompt goes on stdin, never on the command line (D72)
         self.assertTrue(sent.startswith("THE PROMPT\n\nCONVERSATION\n"))
         self.assertTrue(sent.endswith(f"===== USER =====\n{REQUEST}\n"))
         self.assertIn("Run no commands", (self.work / "AGENTS.md").read_text(encoding="utf-8"))
 
+    def test_signed_in_is_asked_once(self):   # `codex login status` before the first call (D80)
+        runner = Recorder()
+        codex = self.codex(runner)
+        codex.ask(self.CONVERSATION)
+        codex.ask(self.CONVERSATION)
+        self.assertEqual([args for args, kwargs in runner.status], [["/opt/codex/bin/codex", "login", "status"]])
+        self.assertEqual(len(runner.calls), 2)
+        self.assertEqual(codex.signed_in(), (True, "Logged in using ChatGPT"))
+
+    def test_signed_out_stops_before_codex_runs(self):   # signed out, `codex exec` would try OpenAI anyway (D80)
+        runner = Recorder(status=Recorder.SIGNED_OUT)
+        codex = self.codex(runner)
+        with self.assertRaisesRegex(AiError, r"^Codex is not signed in \(`codex login status` says: Not logged in\)$"):
+            codex.ask(self.CONVERSATION)
+        with self.assertRaisesRegex(AiError, "not signed in"):
+            codex.ping()
+        self.assertEqual((runner.calls, len(runner.status)), ([], 2))   # asked again: they may have signed in since
+        runner.status_reply = Recorder.SIGNED_IN
+        self.assertTrue(codex.ask(self.CONVERSATION).startswith("```vcl"))
+
+    def test_signed_in_answers(self):
+        cases = [((0, b"API key configured - sk-abc***-0000\nAuthentication is checked when you send a request.\n"),
+                  (True, "API key configured - sk-abc***-0000 Authentication is checked when you send a request.")),
+                 ((1, b"WARNING: proceeding\nNot logged in\n"), (False, "Not logged in")),
+                 ((2, b"error: unrecognized subcommand 'status'\n"), (None, "error: unrecognized subcommand 'status'")),
+                 ((2, b""), (None, "exit code 2"))]
+        for status, expected in cases:
+            self.assertEqual(self.codex(Recorder(status=status)).signed_in(), expected)
+        runner = Recorder(status=(2, b"error: unrecognized subcommand 'status'\n"))   # an older Codex: carry on
+        self.assertTrue(self.codex(runner).ask(self.CONVERSATION).startswith("```vcl"))
+
     def test_windows_opens_no_console(self):
         runner = Recorder()
         self.codex(runner, windows=True).ask(self.CONVERSATION)
         self.assertEqual(runner.calls[0][1]["creationflags"], CREATE_NO_WINDOW)
+        self.assertEqual(runner.status[0][1]["creationflags"], CREATE_NO_WINDOW)
 
     def test_failures(self):
         cases = [(Recorder(), lambda name: None, "was not found: install it, run `codex login`"),
-                 (Recorder(raises=subprocess.TimeoutExpired("codex", 300)), None, "no reply within 300 seconds"),
+                 (Recorder(hang=True), None, "no reply within 300 seconds"),
                  (Recorder(raises=PermissionError("denied")), None, "could not start"),
                  (Recorder(returncode=1, stderr=b"progress\nerror: not logged in\n"), None,
                   "exit code 1: progress | error: not logged in"),
                  (Recorder(reply=None), None, "finished without a reply"),
                  (Recorder(reply="  \n"), None, "finished without a reply")]
         for runner, which, words in cases:
-            codex = self.codex(runner, **({"which": which} if which else {}))
+            slow = {"clock": Clock()} if runner.hang else {}   # a time limit that passes at once
+            codex = self.codex(runner, **slow, **({"which": which} if which else {}))
             (self.work).mkdir(parents=True, exist_ok=True)
             (self.work / "last_message.txt").write_text("an old reply", encoding="utf-8")   # never read again
             with self.assertRaisesRegex(AiError, words.replace("|", r"\|")):
@@ -538,7 +619,8 @@ class Codex(unittest.TestCase):
         runner = Recorder(reply="OK")
         self.assertEqual(self.codex(runner).ping(), "OK")
         (args, kwargs), = runner.calls
-        self.assertEqual(args[:5], ["/opt/codex/bin/codex", "exec", "--sandbox", "read-only", "--skip-git-repo-check"])
+        self.assertEqual(args[:6], ["/opt/codex/bin/codex", "exec", "--ephemeral", "--sandbox", "read-only",
+                                    "--skip-git-repo-check"])
         sent = runner.input.decode("utf-8")
         self.assertEqual(sent, "Reply with the single word OK. Do nothing else.")   # no Orchestrator prompt
         self.assertNotIn("THE PROMPT", sent)
@@ -551,19 +633,36 @@ class Codex(unittest.TestCase):
         self.assertEqual(FakeAI([]).ping(), "OK")
 
     def test_a_slow_codex_is_stopped(self):
-        runner = Recorder(raises=subprocess.TimeoutExpired("codex", 300))
+        runner = Recorder(hang=True)
         with self.assertRaisesRegex(AiError, "no reply within 300 seconds"):
-            self.codex(runner).ask(self.CONVERSATION)
+            self.codex(runner, clock=Clock()).ask(self.CONVERSATION)
         self.assertEqual(runner.killed, 1)
 
     def test_the_help_check_has_a_short_limit(self):   # `codex exec --help` answers at once (D77)
-        runner = Recorder(raises=subprocess.TimeoutExpired("codex", 30))
-        found = self.codex(runner).check()
-        self.assertEqual((runner.timeout, found), (30, ["Codex gave no reply within 30 seconds"]))
+        runner = Recorder(hang=True)
+        found = self.codex(runner, clock=Clock(step=29)).check()   # 29 s is in time, 58 s is not
+        self.assertEqual(found, ["Codex gave no reply within 30 seconds"])
+
+    def test_offline_codex_is_stopped_at_once(self):   # Codex retries, then waits for the network for ever (D80)
+        said = (b"OpenAI Codex v0.166.0\nuser\nReply with OK\n"
+                b"ERROR: Reconnecting... 5/5\n"
+                b"warning: Falling back from WebSockets to HTTPS transport. stream disconnected before completion: "
+                b"URL error: Proxy connection failed: HTTP CONNECT failed with status 403\n"
+                b"ERROR: Reconnecting... waiting for network\n")   # codex-cli 0.166.0 behind a proxy that refused it
+        runner = Recorder(hang=True, stderr=said)
+        with self.assertRaisesRegex(AiError, r"^Codex can't reach OpenAI's servers: ERROR: Reconnecting\.\.\. 5/5 \| "
+                                    r"warning: Falling back .* status 403 \| ERROR: Reconnecting\.\.\. waiting for "
+                                    r"network$"):
+            self.codex(runner).ask(self.CONVERSATION)   # the real clock: stopped long before 300 seconds
+        self.assertEqual(runner.killed, 1)
+
+    def test_offline_words_only_count_from_exec(self):   # the help check is not watched: it answers at once
+        runner = Recorder(stdout=" ".join(CODEX_COMMAND).encode(), stderr=b"waiting for network\n")
+        self.assertEqual(self.codex(runner).check(), [])
 
     def test_cancel(self):   # the window's Cancel, from another thread (D74)
         codex = None
-        runner = Recorder(during=lambda: codex.cancel())
+        runner = Recorder(during=lambda: codex.cancel(), hang=True)
         codex = self.codex(runner)
         with self.assertRaisesRegex(AiError, "^cancelled$"):
             codex.ask(self.CONVERSATION)
@@ -575,6 +674,19 @@ class Codex(unittest.TestCase):
         codex.popen = Recorder()
         self.assertTrue(codex.ask(self.CONVERSATION).startswith("```vcl"))
 
+    def test_windows_stops_the_whole_tree(self):   # codex.cmd -> node -> codex.exe (D80)
+        killed = []
+        codex = None
+        runner = Recorder(during=lambda: codex.cancel(), hang=True)
+        codex = self.codex(runner, windows=True, kill_tree=killed.append)
+        with self.assertRaisesRegex(AiError, "^cancelled$"):
+            codex.ask(self.CONVERSATION)
+        self.assertEqual((killed, runner.killed), ([4242], 1))   # taskkill /T, then the first process itself
+        killed.clear()
+        with self.assertRaises(AiError):
+            self.codex(Recorder(hang=True), windows=False, kill_tree=killed.append, clock=Clock()).ping()
+        self.assertEqual(killed, [])   # elsewhere one process is all there is
+
     def test_a_command_line_without_out(self):
         with self.assertRaisesRegex(AiError, "has no {out}"):
             self.codex(Recorder(), command=["codex", "exec", "-"]).ask(self.CONVERSATION)
@@ -582,10 +694,23 @@ class Codex(unittest.TestCase):
     def test_check_the_flags(self):
         full = " ".join(CODEX_COMMAND).encode()
         self.assertEqual(self.codex(Recorder(stdout=full)).check(), [])
-        found = self.codex(Recorder(stdout=b"--sandbox --output-last-message")).check()
+        found = self.codex(Recorder(stdout=b"--ephemeral --sandbox --output-last-message")).check()
         self.assertEqual(found, ["`codex exec --help` doesn't list --skip-git-repo-check: update the Codex command "
                                  "line in settings.json"])
         self.assertIn("was not found", self.codex(Recorder(), which=lambda name: None).check()[0])
+
+    def test_the_real_codex_help_lists_every_flag(self):   # from `codex exec --help`, codex-cli 0.166.0 (D80)
+        help_lines = ["Usage: codex exec [OPTIONS] [PROMPT]",
+                      "  [PROMPT]  Initial instructions for the agent. If not provided as an argument (or if `-` is "
+                      "used), instructions are read from stdin.",
+                      "  -s, --sandbox <SANDBOX_MODE>  [possible values: read-only, workspace-write, danger-full-access]",
+                      "      --skip-git-repo-check  Allow running Codex outside a Git repository",
+                      "      --ephemeral  Run without persisting session files to disk",
+                      "  -o, --output-last-message <FILE>  Specifies file where the last message from the agent "
+                      "should be written"]
+        runner = Recorder(stdout="\n".join(help_lines).encode())
+        self.assertEqual(self.codex(runner).check(), [])
+        self.assertIn("read-only", help_lines[2])
 
     def test_the_conversation(self):
         text = render("P", [{"role": "user", "text": "a"}, {"role": "assistant", "text": "b"},

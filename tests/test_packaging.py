@@ -66,6 +66,16 @@ class BuildTools(unittest.TestCase):
         for words in ("windows-latest", "--require-hashes", "packaging/kronos.spec", "--self-test", "--log"):
             self.assertIn(words, text)
 
+    def test_the_workflow_checks_the_real_codex_before_a_release(self):   # D80
+        text = (ROOT / ".github" / "workflows" / "build-exe.yml").read_text(encoding="utf-8")
+        version = re.search(r"@openai/codex@(\d+\.\d+\.\d+)", text)
+        self.assertIsNotNone(version, "the Codex CLI must be pinned to one version")
+        for words in ("codex-check:", "tests.test_codex_process", "tests.test_codex_live", 'KRONOS_LIVE_CODEX: "1"',
+                      "needs: [build, codex-check]"):
+            self.assertIn(words, text)
+        self.assertIn(f"codex-cli {version[1]}", (ROOT / "compiler" / "kronos_ai.py").read_text(encoding="utf-8")
+                      .replace("Codex CLI ", "codex-cli "))   # the adapter names the version it was checked with
+
 
 class Frozen(unittest.TestCase):
     def test_the_data_files_come_from_the_unpacking_folder(self):

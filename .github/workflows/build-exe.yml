@@ -4,11 +4,14 @@ name: Build KRONOS.exe
 # the exe runs its own --self-test (a practice request through all four steps, every dialog and a corpus
 # candidate, with the practice AI). A pull request that changes what goes into the exe builds it as a check; a
 # manual run with "release" ticked, from main, publishes it as a GitHub Release for Boss to download.
+# The codex-check job (D80) runs KRONOS's Codex adapter on Windows against a stand-in process tree and against the
+# real Codex CLI, installed with npm as on Boss's PC and signed out (no account; nothing is sent to OpenAI).
 
 on:
   pull_request:
     paths:
       - "app/**"
+      - "tests/test_codex_*.py"
       - "compiler/**"
       - "vcl/**"
       - "vba/**"
@@ -19,6 +22,7 @@ on:
     branches: [main]
     paths:
       - "app/**"
+      - "tests/test_codex_*.py"
       - "compiler/**"
       - "vcl/**"
       - "vba/**"
@@ -80,9 +84,32 @@ jobs:
             dist/KRONOS.exe.sha256.txt
           if-no-files-found: error
 
+  codex-check:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install the pinned dependencies
+        run: python -m pip install --require-hashes -r requirements.txt
+      - name: Install the Codex CLI (the version KRONOS was checked with, D80)
+        run: |
+          node --version
+          npm install --global @openai/codex@0.166.0
+      - name: The Codex adapter against a stand-in process tree (codex.cmd, then two processes)
+        run: python -m unittest tests.test_codex_process -v
+      - name: KRONOS against the real Codex CLI, signed out
+        env:
+          KRONOS_LIVE_CODEX: "1"
+        run: |
+          codex --version
+          python -m unittest tests.test_codex_live -v
+
   release:
     if: github.event_name == 'workflow_dispatch' && inputs.release && github.ref == 'refs/heads/main'
-    needs: build
+    needs: [build, codex-check]
     runs-on: ubuntu-latest
     permissions:
       contents: write

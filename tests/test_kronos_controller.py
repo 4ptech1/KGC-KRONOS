@@ -48,6 +48,10 @@ class Words(unittest.TestCase):   # Codex problems in plain words (D77)
                  (self.GAVE + "the Codex command line has no {out}: KRONOS can't read the reply without it",
                   "The Codex command line in Settings has lost its {out} part."),
                  (self.GAVE + "the fake AI has only 2 replies", "The practice AI has no more replies."),
+                 (self.GAVE + "Codex is not signed in (`codex login status` says: Not logged in)",
+                  "Codex isn't signed in. Open a Command Prompt, type codex login"),
+                 (self.GAVE + "Codex can't reach OpenAI's servers: ERROR: Reconnecting... waiting for network",
+                  "Codex can't reach OpenAI over the internet."),
                  (self.GAVE + "something nobody planned for", "Something went wrong with the AI."),
                  ("cancelled", "Cancelled.")]
         for note, start in cases:
@@ -80,8 +84,8 @@ class Wizard(unittest.TestCase):
         with self.assertRaises(ValueError):
             c.ask(REQUEST)
         self.assertEqual([(item, ok) for item, ok, detail in c.checklist()],
-                         [("codex_found", True), ("codex_flags", True), ("data_controls", False),
-                          ("data_folder", True), ("practice", False)])
+                         [("codex_found", True), ("codex_flags", True), ("codex_signed_in", True),
+                          ("data_controls", False), ("data_folder", True), ("practice", False)])
         c.confirm_checklist(True, False)
         self.assertFalse(c.can_ask(REQUEST))
         c.confirm_checklist(True, True)
@@ -410,6 +414,10 @@ class Wizard(unittest.TestCase):
 
             def check(self):
                 return []
+
+            def signed_in(self):
+                seen.append(threading.current_thread() is threading.main_thread())
+                return True, "Logged in using ChatGPT"
         c = Controller(Path(tempfile.mkdtemp()), ai=SlowCodex(Path(tempfile.mkdtemp()), "P"), today=DAY,
                        threaded=True)
         c.start_checklist()
@@ -423,7 +431,7 @@ class Wizard(unittest.TestCase):
             if c.checklist_items is not None:
                 break
             time.sleep(0.02)
-        self.assertEqual(seen, [False])   # not the window's thread
+        self.assertEqual(seen, [False, False])   # installed? signed in? Neither on the window's thread
         self.assertEqual(dict((i, ok) for i, ok, d in c.checklist_items)["codex_found"], True)
         self.assertFalse(c.testing)
 
@@ -444,7 +452,31 @@ class Wizard(unittest.TestCase):
         found = dict((item, (ok, detail)) for item, ok, detail in c.checklist())
         self.assertFalse(found["codex_found"][0])
         self.assertIn("codex login", found["codex_found"][1])
+        self.assertEqual(found["codex_signed_in"], (False, ""))   # nothing to ask
         self.assertEqual(c.ai_label, "Codex")
+
+    def test_the_checklist_asks_whether_codex_is_signed_in(self):   # `codex login status` (D80)
+        class Status(CodexAI):
+            def __init__(self, answer):
+                super().__init__(Path(tempfile.mkdtemp()), "P", which=lambda name: "/opt/codex")
+                self.answer = answer
+
+            def check(self):
+                return []
+
+            def signed_in(self):
+                if isinstance(self.answer, Exception):
+                    raise self.answer
+                return self.answer
+
+        for answer, expected in [((True, "Logged in using ChatGPT"), (True, "Logged in using ChatGPT")),
+                                 ((False, "Not logged in"), (False, "Not logged in")),
+                                 ((None, "error: unrecognized subcommand"), (None, "error: unrecognized subcommand")),
+                                 (AiError("Codex gave no reply within 30 seconds"),
+                                  (None, "Codex gave no reply within 30 seconds"))]:
+            c = Controller(Path(tempfile.mkdtemp()), ai=Status(answer), today=DAY, threaded=False)
+            found = dict((item, (ok, detail)) for item, ok, detail in c.checklist())
+            self.assertEqual(found["codex_signed_in"], expected)
 
 
 if __name__ == "__main__":
