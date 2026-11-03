@@ -1,0 +1,3 @@
+OK   check  work/c067/spec.vcl
+       line 42: warning: SKIP_IF skips blank "Dispatch No" cells, but FIXTURE sheet Dispatch has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]
+OK   test   work/c067/spec.vcl  (8/8 tests)

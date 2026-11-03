@@ -38,6 +38,11 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c069 | read row visibility in a Function (VISIBLE_COUNT is an assertion function only) | returns the number of rows whose Result is SAME as "Reject", which equals the visible count only because FILTER uses the same SAME test |
 | c061, c064 | "On a No WPS / Rejected Welds sheet ...": create the output sheet if it is missing and also rebuild it every run (rule 22) | the output sheet is an argument, ASSUMEd to exist (same as c057, c058, c059, c070) |
 | c061, c064 | copy a cell's number format (VCL has no op for it) | the Expiry Date and Report Date values are copied with WRITE_ROW and rely on Excel's default date format on assignment; TESTs check values only |
+| c065 | a numeric FIXTURE column that also holds non-numeric text (`+boundary` on `int()`, `num()`, `seq()` and `dates()` takes numbers or dates and "" only; V262) | grn_01 covers blank quantities with numeric ones, and grn_02 holds text-typed quantities ("TBC", "n/a", "20") built with `values()`, so the output cells hold the original text |
+| c065 | "On a Short Receipts sheet ...": create the output sheet if it is missing and rebuild it every run (rule 22) | the output sheet is an argument, ASSUMEd to exist (same as c057 to c064, c070) |
+| c066 | the request names four statuses (Copied, Already there, Missing, Bad name), but COPY_FILE also gives Conflict, Locked and Too long, and in Excel Check copy and Failed | Status shows the op's own word, stated in an ASSUME; the fixture includes Conflict and Locked rows |
+| c067 | "if the file holds a different number, update it": WRITE_TEXT never overwrites | a different existing number gives status Conflict in G1 and the file is left unchanged (ASSUMEd); a real gap, because the file can go stale |
+| c067 | a spaces-only Actual Date cell in a `dates()` fixture | counts as missing (IS_EMPTY semantics, on an ASSUME) but no TEST covers it, because a `dates()` column cannot hold a spaces-only cell |
 
 ## Wording of the prompt to fix
 
@@ -103,6 +108,12 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c064 | SORT on a header-only or one-row range | nothing says what SORT does there, so the helper first wrote a guard `IF listed > 1` that turned out to be redundant (c059 did the same) |
 | c061, c064 | FIXTURE: "+boundary(v1,v2,...)" shows dates only as day offsets for reldates, and "For values(...) the values move up, so the counts stay the same" | the helper assumed `dates(...)` takes yyyy-mm-dd literals (it worked) and does not know whether the boundary list must match the values counts, so it kept them consistent everywhere (same as c026, c060) |
 | c061 | rule 14: "check every header you use with a PRE line" | unclear for an output heading copied from another sheet's header cell, as in `WRITE_ROW($out, 1, CELL($quals, 1, cWelder), ...)`; the exception mentions only quoted text; the helper checked the source headers in PRE and none on the output sheet, and it validated |
+| c065 | EXPRESSIONS: "= and <> with text on either side they compare that text exactly ... compare numbers or dates only after IS_NUMBER or IS_DATE" | misled the helper: it read this as "after an IS_NUMBER guard, `<` compares numerically", but for text-typed numbers `<`, `>`, `<=` and `>=` compare as text ("10" < "9" is TRUE) even though IS_NUMBER is true for both; try 1 listed a line it should not have and missed another; the prompt never says so; suggested sentence: "IS_NUMBER true for \"25\" does not make < or > numeric on text: subtract first (LET(gap, a - b), IF gap > 0)" |
+| c065 | rule 19 and FIXTURE SPEC | nothing says that `+boundary` on int/num/seq/dates accepts only numbers or dates (and "" for a blank); non-numeric text in a numeric column needs `values()`, whose values are all text |
+| c065 | rule 5: "When the test workbook has another sheet, add a wrong-sheet TEST that passes it" | unclear whether the rebuilt output sheet itself counts as "another sheet"; the helper added an unrelated Notes sheet, as in Example 3 (same as c064) |
+| c065 | rule 11: READ_ARRAY for more than about 1,000 rows | does not say whether the array's columns match the sheet's columns when the data does not start at A1; the helper ASSUMEd it starts at A1 |
+| c067 | rule 19 / V059: "at least one blank cell" | seen only when the check runs; does not say it applies to every FIXTURE file that has the sheet (same as c025, c057, c059, c060); it cost a try |
+| c067 | "A folder exists when a file is below it" | for the Docs folder the helper had to add a dummy notes.txt or the FOLDER_EXISTS PRE fails; easy to miss when the macro's own output file is the only thing the folder will hold |
 
 ## Tooling notes (not the language)
 
@@ -111,3 +122,4 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | all six helpers | `vclc mutate` lists 4 survivors and then "... and N more"; there is no way to list them all (D58 knew this) |
 | c036, c050, c051 | plain `mutate` and `--snapshot` give different scores for the same spec: plain mode counts a mutant as caught only when a TEST assertion fails, while `--snapshot` also compares the final workbooks, and the corpus gate uses `--snapshot`; the prompt never mentions it. (Neither mode samples: each gives the same score on every run, D73.) The FORMAT mutants of c050 survive in plain mode |
 | c060 | V059 names only the first offending line, and a second fixture file can trip it again after the first is fixed (c057 had the same); a lint that listed every FIXTURE sheet lacking the blank would save a round |
+| c066 | the helper had overwritten its try-1 draft before saving it, so `try1.vcl` was rebuilt from its own first draft and `try1.txt` is the real check output of that rebuilt file (it reproduces the same V253), so the repair seed is faithful but reconstructed |

@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "files",
+ "id": "c066",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 15,
+  "note": "",
+  "total": 15
+ },
+ "op_lines": 9,
+ "ops": [
+  "COPY_FILE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "nde"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

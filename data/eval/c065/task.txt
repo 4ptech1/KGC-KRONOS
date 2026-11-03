@@ -1,0 +1,1 @@
+On a Short Receipts sheet list every line of the GRN sheet (GRN No, Part No, Ordered Qty, Received Qty) where Received Qty is less than Ordered Qty, with the same headings plus a Shortfall column (ordered minus received), biggest shortfall first. Lines with a blank or non-numeric quantity are skipped. The sheet is rebuilt every run.

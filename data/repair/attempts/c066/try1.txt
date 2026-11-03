@@ -1,0 +1,2 @@
+FAIL check  work/c066/try1.vcl
+       line 33: error: B: values(...) counts add up to 9, but rows=10 [V253]

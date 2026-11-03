@@ -1,0 +1,1 @@
+For every row of the NDE Report sheet (Weld Seam No, Report File, Status) copy the file named in Report File from the Reports folder into the Archive folder (two folder paths I give the macro), and write Copied, Already there, Missing or Bad name in Status. Never overwrite or delete a file.
