@@ -1,0 +1,27 @@
+### check
+OK   check  work/c070/try1.vcl
+       line 42: warning: the spec adds to a dictionary, but no FIXTURE column repeats a key: add +dupes(n) so the TESTs see repeated keys (rule 19) [V057]
+exit=0
+### test
+OK   test   work/c070/try1.vcl  (5/5 tests)
+exit=0
+### all
+OK   check  work/c070/try1.vcl
+       line 42: warning: the spec adds to a dictionary, but no FIXTURE column repeats a key: add +dupes(n) so the TESTs see repeated keys (rule 19) [V057]
+OK   test   work/c070/try1.vcl  (5/5 tests)
+OK   build  work/c070/try1.vcl
+OK   lint   work/c070/out_try1/forge_module.bas  (1185 lines)
+OK   lint   work/c070/out_try1/forge_selftest.bas  (669 lines)
+OK   lint   work/c070/out_try1/forge_fixtures.bas  (192 lines)
+
+ALL STAGES PASSED
+exit=0
+### mutate
+ 90.9%  mutate work/c070/try1.vcl  (20/22)
+        survives: line 27: 2 -> 3
+        survives: line 31: 1 -> 2
+Overall mutation score: 90.9%
+exit=0
+### fmt
+1 file in canonical form
+exit=0
