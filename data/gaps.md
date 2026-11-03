@@ -31,6 +31,11 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c058, c070 | "write/rebuild a summary sheet": create the sheet if it is missing and also rebuild it on every run (rule 22; a BUILD cannot hand a freshly made sheet on, because CALL passes only the caller's own $arguments) | the output sheet is an argument, ASSUMEd to exist, cleared and rebuilt; the helper added a PRE of its own (`COL($out, "PQR Ref") = 0`, `COL($out, "Heat No") = 0`) so a register passed as `out` by mistake is left alone, which nobody asked for |
 | c070 | which spelling a dictionary key keeps when later DICT_ADDs differ in case or spaces | stores the cleaned first spelling as the value with `mode=keep` and writes that value, so no TEST depends on how keys are folded |
 | c060 | a `reldates` fixture column that holds text such as "TBC" | a separate `values(...)` fixture holds the text dates (same gap as c019 and c057) |
+| c054 | "clear old highlights first" as a block clear: the prompt does not say whether RANGE's A1 reference can be built at run time (for example "A2:D" & last row) | clears each row's fill inside the one loop (`FORMAT fill=none`, then green or red), so the heading row keeps any fill it had |
+| c063 | one FIXTURE column that holds text dates and real dates together (`+boundary` on a `reldates` column takes only day numbers and ""; there is no documented way to put text in a `dates()` column; V262 rejected the text) | two fixture sheets with the same headings, PlannedText (text dates, blanks and other text in Planned Date, real dates in Actual Date) and ActualText (the reverse), and the same macro runs on both (same gap as c019, c057, c060) |
+| c063 | what display format SET_VALUE gives a converted date, and whether a Text-formatted cell accepts one | the cells keep their number format; adding `FORMAT numfmt` would force a whole-sheet MODIFIES and lose the automatic collateral check |
+| c063 | a TEST assertion that tells a real date from date-looking text (`VALUE(cell) = "2026-03-05"` is TRUE for both) | proved by `runs=2` with RESULT = 0 (the second run finds nothing left) and an exact RESULT count on the first run |
+| c069 | read row visibility in a Function (VISIBLE_COUNT is an assertion function only) | returns the number of rows whose Result is SAME as "Reject", which equals the visible count only because FILTER uses the same SAME test |
 
 ## Wording of the prompt to fix
 
@@ -78,6 +83,17 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c058 | rule 5: the wrong-sheet TEST | does not say whether each PRE condition needs its own isolating wrong-sheet TEST; the mutation tool did not require it, and the helper added swapped-argument and decoy TESTs anyway |
 | c058, c060 | "status VARs and READ_TEXT's text VAR are String" | does not say what type DICT_GET's `into=` VAR needs; Long for counts and String for text were both accepted |
 | c055, c058, c060 | MODIFIES: "Every TEST then checks that nothing else changed ... (unless the whole sheet is declared)" | a spec that adds a heading must declare the whole sheet, which switches that check off, and the prompt does not say to make up for it with PRE_ comparisons; the helpers added COUNTA and COUNTIF checks of the untouched columns |
+| c054, c059, c069 | rule 17: "Put a second count in a cell: a TEST can read a cell, not a MSG." | does not say how a TASK should "tell the user" when the request says "tell me"; all three RETURN the count only (same as c053, c062, c055, c058, c060, c070: nine of nine helpers hit it) |
+| c054 | "Option names are reserved words: ... fill ..." with the list of fill names (red, green ...) | unclear whether a VAR may be called red; the helper used redRows to be safe |
+| c054, c063 | "Loop variables ... never repeat them in VAR." | silent on whether two sequential loops may reuse one variable name; c063 used `r` and `q` just in case |
+| c059 | rule 19: "Give each column that a SKIP_IF IS_EMPTY tests at least one blank cell" | does not say it applies to every FIXTURE sheet a TEST passes in; an extra sheet added to close a mutant triggered V059 and cost a try (same as c025, c057, c060) |
+| c059 | the prompt never mentions the 90% mutation floor or the corpus gate | and it does not warn that when a SORT follows the row writes, offset and guard mutants are masked, so fixtures with exactly 1 and exactly 2 groups are needed (try 1 scored 87.5%) |
+| c059 | rule 22 against "make a ... sheet" | clear in itself, but it conflicts with a request that says "make a ... sheet" (same as c057, c058, c070) |
+| c059 | FIXTURE values(...) | does not say that a quoted value with spaces at its ends (" Apex Steel ") is kept exactly; it worked, but the helper had to assume it |
+| c063 | FIXTURE: "+boundary(v1,v2,...) the first data rows hold exactly these values ("" is a blank cell; numbers of days for reldates)" | does not say that reldates boundaries accept only numbers and "", or what `dates()` and `text()` boundaries accept; no example for text dates, the usual cleaning case; one sentence ("a column holds one kind of value: use two sheets to test text dates and real dates") would have saved a try |
+| c063 | "values(...) ... dates(...)" | does not say that date-looking text in `values("2026-03-05"...)` stays text; it did, but the helper assumed it |
+| c063 | PARSE_DATE: "day and month 1 or 2 digits" | means "2026-6-1" counts as a valid text date; the helper kept such values out of the fixtures |
+| c069 | TEST ASSERTIONS list VISIBLE_COUNT, but the Value functions list has no way to count visible rows | "tell me how many rows are visible" needed the SAME-count workaround; the prompt could say so or offer such a function |
 
 ## Tooling notes (not the language)
 
