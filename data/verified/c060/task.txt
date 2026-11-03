@@ -1,0 +1,1 @@
+Check the Dispatch sheet (Dispatch No, Job ID, Actual Date) against the Job Tracker (Job ID, Customer, Status). In the Job Tracker write Dispatched in a Dispatch Remark column for every job that has at least one dispatch with an Actual Date, and clear it on the others. Add the heading if it's missing. Job IDs sometimes have stray spaces. Tell me how many jobs are dispatched.

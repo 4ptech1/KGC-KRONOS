@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c058",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 27,
+  "note": "line 32 (first output row 2 -> 3) and line 37 (row step 1 -> 2) only leave blank rows between the rows written; the next step SORTs the whole used range and a sort puts blank rows last, so the finished sheet is identical",
+  "total": 29
+ },
+ "op_lines": 16,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "wps_pqr"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

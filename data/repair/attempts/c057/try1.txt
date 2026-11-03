@@ -1,0 +1,29 @@
+### check
+OK   check  work/c057/spec.vcl
+       line 55: warning: SKIP_IF skips blank "Process" cells, but FIXTURE sheet Quals has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]
+exit=0
+### test
+OK   test   work/c057/spec.vcl  (5/5 tests)
+exit=0
+### all
+OK   check  work/c057/spec.vcl
+       line 55: warning: SKIP_IF skips blank "Process" cells, but FIXTURE sheet Quals has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]
+OK   test   work/c057/spec.vcl  (5/5 tests)
+OK   build  work/c057/spec.vcl
+OK   lint   work/c057/out/forge_module.bas  (1205 lines)
+OK   lint   work/c057/out/forge_selftest.bas  (669 lines)
+OK   lint   work/c057/out/forge_fixtures.bas  (178 lines)
+
+ALL STAGES PASSED
+exit=0
+### mutate
+ 92.3%  mutate work/c057/spec.vcl  (48/52)
+        survives: line 32: step deleted
+        survives: line 33: step deleted
+        survives: line 35: 'mode=sum' -> 'mode=overwrite'
+        survives: line 40: 'mode=sum' -> 'mode=overwrite'
+Overall mutation score: 92.3%
+exit=0
+### fmt
+1 file in canonical form
+exit=0

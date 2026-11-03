@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c060",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 28,
+  "note": "line 28 (mode=keep -> mode=overwrite, stored value 1 -> 2): the Dictionary is used only as a set of Job IDs and only EXISTS reads it, so the stored value and how a repeated key combines it never reach any cell or result",
+  "total": 30
+ },
+ "op_lines": 16,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "dispatch",
+  "job_tracker"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

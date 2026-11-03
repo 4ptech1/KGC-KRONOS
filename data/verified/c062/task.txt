@@ -1,0 +1,1 @@
+The Inspection Status cells in the ITP Tracker are messy: 'open', 'OPEN ', ' closed'. Make every status that is Open or Closed (ignoring case and stray spaces) read exactly Open or Closed, leave any other status alone, and tell me how many cells I changed.

@@ -1,0 +1,27 @@
+### check
+OK   check  work/c060/try1.vcl
+       line 42: warning: SKIP_IF skips blank "Job ID" cells, but FIXTURE sheet Dispatch has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]
+exit=0
+### test
+OK   test   work/c060/try1.vcl  (5/5 tests)
+exit=0
+### all
+OK   check  work/c060/try1.vcl
+       line 42: warning: SKIP_IF skips blank "Job ID" cells, but FIXTURE sheet Dispatch has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]
+OK   test   work/c060/try1.vcl  (5/5 tests)
+OK   build  work/c060/try1.vcl
+OK   lint   work/c060/out_try1/forge_module.bas  (1192 lines)
+OK   lint   work/c060/out_try1/forge_selftest.bas  (669 lines)
+OK   lint   work/c060/out_try1/forge_fixtures.bas  (197 lines)
+
+ALL STAGES PASSED
+exit=0
+### mutate
+ 93.3%  mutate work/c060/try1.vcl  (28/30)
+        survives: line 28: 'mode=keep' -> 'mode=overwrite'
+        survives: line 28: 1 -> 2
+Overall mutation score: 93.3%
+exit=0
+### fmt
+1 file in canonical form
+exit=0

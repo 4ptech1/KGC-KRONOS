@@ -1,0 +1,1 @@
+In the ITP Tracker (ITP No, Point, Inspection Status, Planned Date) write Overdue in a Flag column for every point that is not Closed and has a Planned Date before today, and clear the Flag on all the other points. Add the Flag heading if it isn't there. Tell me how many points are overdue.

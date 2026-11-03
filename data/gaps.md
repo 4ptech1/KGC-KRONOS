@@ -24,6 +24,10 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c049 | FIND limited to one column (no column range, and RANGE refuses whole columns) | `FIND(USED_RANGE(...))` with an ASSUME that the NCR number appears only in the NCR No column |
 | c050 | the latest value per key (DICT_ADD has no max or latest mode) | `DICT_GET` + `IS_DATE` + compare + overwrite; two equivalent mutants |
 | c050 | ROUND, or a percentage | a fraction shown with `FORMAT numfmt="0.0%"`; the fixture counts make every rate exact in binary |
+| c057 | build a summary sheet that is made on the first run and rebuilt on every later run (rule 22: only the run that adds a sheet may write to it) | the summary sheet is an argument, ASSUMEd to exist, and rebuilt with CLEAR and WRITE_ROW on every run |
+| c057 | alphabetical order of a dictionary's keys (KEYS walks in first-seen order) | writes the rows, then `SORT(USED_RANGE($out), key=1, order=asc, header=yes)` |
+| c057 | a `reldates` fixture column that holds text (`+boundary` takes day numbers and blanks only) | "no valid Expiry Date" is tested with blank cells in quals_01 and a second fixture file whose whole Expiry Date column is `text(10)` |
+| c068 | a formula's text cannot call COL(), and a TEST can check only the formula text (FORMULA), never the value it computes | PRE pins Planned Date to column 2 and Actual Date to column 3, each cell gets the R1C1 text `=IF(RC3="","",RC3-RC2)` in a LOOP_ROWS, and a second fixture with the columns swapped expects RESULT = -1 |
 
 ## Wording of the prompt to fix
 
@@ -47,6 +51,18 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c036, c038, c041 | DICT_GET and `SET_VALUE(cell, "")` | the prompt never says what DICT_GET gives for a missing key (a Long variable gets 0), or whether `SET_VALUE(cell, "")` leaves the cell empty (c034 used it; c035, c041, c042, c043 used `CLEAR(..., what=contents)`) |
 | c037 | SORT | the prompt does not say whether SORT is stable or how it orders text; the spec has an ASSUME that ties come in no fixed order |
 | c044 | TEST ASSERTIONS | `VALUE(cell) = "text"` compares with case, `COUNTIF` does not; this is said only under "= and <>" |
+| c057 | rule 19: "Give each column that a SKIP_IF IS_EMPTY tests at least one blank cell (a "" boundary value in an early row, or +blank(<n>); ...)" | V059 wants the blank in every FIXTURE sheet that has the column, not once per spec: the second fixture file got V059 (same as c025) |
+| c057 | rule 19: "repeat dictionary keys with +dupes(<n>) or values() counts of 2 or more" | a spec with several `DICT_ADD mode=sum` lines needs a key added at least twice through each such line, or `sum` to `overwrite` survives (c057 try 1, two survivors) |
+| c057 | SEMANTICS: nothing says what DICT_GET gives for a key that is not there | the helper seeded all three dictionaries with 0 "to be safe", which made two seed lines equivalent mutants (see c036, c038, c041) |
+| c057 | rule 22: "Only the run that adds a sheet can write to it, so a tool that rebuilds an output sheet on every run takes that sheet as an argument and ASSUMEs that it exists." | dense, and it conflicts with a plain "build a ... sheet" request; the helper understood it only through Example 4 |
+| c057 | rule 19: stale=<n> | nothing says how to choose n; the helper worked out that it must exceed the number of rows the macro writes (stale=6 for 4 rows; same as c036, c037, c051) |
+| c057, c068 | MODIFIES: lists "CLEAR what=all or formats" as needing the whole sheet | never says that `CLEAR what=contents` on a CELL, or SET_FORMULA, is allowed under `MODIFIES $ws["<header>"]`; the validator accepts both, so the helper only inferred it |
+| c057 | rule 15: guard date comparisons "in a nested IF" | the SEMANTICS line for SKIP_IF says `SKIP_IF NOT IS_DATE(x)` guards x for the rest of the pass; rule 15 should name SKIP_IF (same as c019) |
+| c057 | FIXTURE: "For values(...) the values move up, so the counts stay the same." | cryptic; the helper worked out from Examples 3 and 4 that `+boundary` must be a sub-multiset of `values(...)`, and that a boundary list covering every row makes the column fully fixed (see c026) |
+| c053, c062 | rule 17: "a TEST can read a cell, not a MSG", against requests that say "tell me how many" | no example shows MSG in a TASK Function; the helpers wrote MSG plus RETURN(count), and c053 dropped `PERF screen_off` because a message box with screen updating off may not repaint |
+| c057 | rule 5: the wrong-sheet TEST | for a TASK with two Worksheet arguments it does not say which to swap (a BUILD's wording does); the helper swapped the two |
+| c057 | SORT `key=<col>` | stated only inside the DEDUPE paragraph ("cols= are sheet column numbers, as for SORT"); the helper used key=1 on a range that starts at column A |
+| c062 | `VALUE(Sheet![Header]n) = "text"` in a TEST | its case- and space-exactness is said only for `=` and `<>` in expressions (see c044); c062 relies on it, and its 20 of 20 is consistent with it but does not prove it |
 
 ## Tooling notes (not the language)
 
