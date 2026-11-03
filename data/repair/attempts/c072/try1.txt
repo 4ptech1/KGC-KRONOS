@@ -1,0 +1,19 @@
+== all (check, test, build) ==
+OK   check  work/c072/spec.vcl
+OK   test   work/c072/spec.vcl  (8/8 tests)
+OK   lint   work/c072/out/builds/InspectionFollowUp.bas  (1371 lines)
+OK   build  work/c072/spec.vcl
+OK   lint   work/c072/out/forge_selftest.bas  (669 lines)
+OK   lint   work/c072/out/forge_fixtures.bas  (263 lines)
+
+ALL STAGES PASSED
+== mutate --snapshot ==
+ 97.3%  mutate work/c072/spec.vcl  (110/113)
+        survives: line 137: 1 -> 2
+        survives: line 182: 2 -> 3
+        survives: line 188: 1 -> 2
+Overall mutation score: 97.3%
+== all survivors ==
+137 1 -> 2 | LET(cFlag, LASTCOL($itp, 1) + 1)   (closable: LASTCOL row 1 -> 2 reads the same width in insp_02)
+182 2 -> 3 | LET(outRow, 2) in WriteMethodSummary
+188 1 -> 2 | LET(outRow, outRow + 1) in WriteMethodSummary

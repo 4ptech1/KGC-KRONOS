@@ -1,0 +1,5 @@
+OK   check  work/c071/spec.vcl
+FAIL test   work/c071/spec.vcl  (7/8 tests)
+       line 45: RESULT=1 ERROR_COUNT=0
+         ASSERT: RESULT = 0 is false (left 1, right 0) [R051]
+         ASSERT: COUNTA(Wps![Remark]) = 1 is false (left 2, right 1) [R051]

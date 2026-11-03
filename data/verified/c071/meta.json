@@ -1,0 +1,35 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c071",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 4,
+  "killed": 123,
+  "note": "4 mutants cannot change a result: (a) DICT_ADD(known, ..., 1, mode=keep): mode=overwrite and value 2 never matter because the known dictionary's values are never read, only EXISTS on its keys; (b) LET(outRow, 2 -> 3) and LET(outRow, outRow + 1 -> + 2) in WriteProcessSummary only leave blank gap rows between the summary rows, and the final SORT (blank rows always sort last, then are beyond the used range) puts the rows back to exactly the same final sheet",
+  "total": 127
+ },
+ "op_lines": 74,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "wps_pqr",
+  "welder_quals"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}
