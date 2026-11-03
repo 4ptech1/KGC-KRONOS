@@ -1,0 +1,33 @@
+== check/test/all ==
+OK   check  work/c071/spec.vcl
+OK   test   work/c071/spec.vcl  (7/7 tests)
+OK   lint   work/c071/out/builds/WpsCheck.bas  (1401 lines)
+OK   build  work/c071/spec.vcl
+OK   lint   work/c071/out/forge_selftest.bas  (669 lines)
+OK   lint   work/c071/out/forge_fixtures.bas  (182 lines)
+
+ALL STAGES PASSED
+== mutate --snapshot ==
+ 89.0%  mutate work/c071/spec.vcl  (113/127)
+        survives: line 134: 2 -> 3
+        survives: line 135: 'SKIP_IF' -> 'EXIT_LOOP_IF'
+        survives: line 136: 'mode=keep' -> 'mode=overwrite'
+        survives: line 136: 1 -> 2
+        ... and 10 more
+Overall mutation score: 89.0%
+== all survivors (mutate_report snapshot) ==
+113 127
+134 2 -> 3 | OP       LOOP_ROWS dir=down from=2 to=LASTROW($wps, cNo) var=r
+135 'SKIP_IF' -> 'EXIT_LOOP_IF' | OP         SKIP_IF IS_EMPTY(CELL($wps, r, cNo)) OR IS_EMPTY(CELL($wps, r, cProc))
+136 'mode=keep' -> 'mode=overwrite' | OP         DICT_ADD(known, TRIM(CELL($wps, r, cProc)), 1, mode=keep)
+136 1 -> 2 | OP         DICT_ADD(known, TRIM(CELL($wps, r, cProc)), 1, mode=keep)
+138 2 -> 3 | OP       LOOP_ROWS dir=down from=2 to=LASTROW($quals, cWelder) var=q
+181 'OR' -> 'AND' | OP         SKIP_IF IS_EMPTY(CELL($quals, q, cWelder)) OR IS_EMPTY(CELL($quals, q, cQProc))
+181 step deleted | OP         SKIP_IF IS_EMPTY(CELL($quals, q, cWelder)) OR IS_EMPTY(CELL($quals, q, cQProc))
+183 2 -> 3 | OP       LET(outRow, 2)
+186 0 -> 1 | OP         LET(nCheck, 0)
+186 step deleted | OP         LET(nCheck, 0)
+188 0 -> 1 | OP         LET(nQual, 0)
+188 step deleted | OP         LET(nQual, 0)
+191 1 -> 2 | OP         LET(outRow, outRow + 1)
+192 1 -> 2 | OP       SORT(USED_RANGE($out), key=1, order=asc, header=yes)

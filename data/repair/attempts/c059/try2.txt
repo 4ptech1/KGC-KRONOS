@@ -1,0 +1,14 @@
+## vclc check
+OK   check  work/c059/spec.vcl
+       line 47: warning: SKIP_IF skips blank "Supplier" cells, but FIXTURE sheet CertsTwo has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]
+
+## vclc mutate --snapshot
+ 93.8%  mutate work/c059/spec.vcl  (30/32)
+        survives: line 38: 1 -> 2
+        survives: line 39: '>' -> '>='
+Overall mutation score: 93.8%
+
+## vclc corpus-add (gate)
+c059: spec.vcl line 47: warning SKIP_IF skips blank "Supplier" cells, but FIXTURE sheet CertsTwo has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059] (not in accepted_warnings)
+not stored: 1 problems
+exit: 1

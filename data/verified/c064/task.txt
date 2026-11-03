@@ -1,0 +1,1 @@
+List on a Rejected Welds sheet every row of the NDE Report (Weld Seam No, Method, Result, Report Date) whose Result is Reject, with the same headings, newest Report Date first. The sheet is rebuilt every time it runs.

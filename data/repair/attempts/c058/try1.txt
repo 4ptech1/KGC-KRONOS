@@ -1,0 +1,27 @@
+### check
+OK   check  work/c058/try1.vcl
+       line 42: warning: FIXTURE sheet WPS has no stale=<n> rows, so no TEST proves old rows are cleared (rule 19) [V055]
+exit=0
+### test
+OK   test   work/c058/try1.vcl  (6/6 tests)
+exit=0
+### all
+OK   check  work/c058/try1.vcl
+       line 42: warning: FIXTURE sheet WPS has no stale=<n> rows, so no TEST proves old rows are cleared (rule 19) [V055]
+OK   test   work/c058/try1.vcl  (6/6 tests)
+OK   build  work/c058/try1.vcl
+OK   lint   work/c058/out_try1/forge_module.bas  (1191 lines)
+OK   lint   work/c058/out_try1/forge_selftest.bas  (669 lines)
+OK   lint   work/c058/out_try1/forge_fixtures.bas  (180 lines)
+
+ALL STAGES PASSED
+exit=0
+### mutate
+ 93.1%  mutate work/c058/try1.vcl  (27/29)
+        survives: line 32: 2 -> 3
+        survives: line 37: 1 -> 2
+Overall mutation score: 93.1%
+exit=0
+### fmt
+1 file in canonical form
+exit=0

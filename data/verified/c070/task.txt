@@ -1,0 +1,1 @@
+List every supplier from the Material Certs sheet (Heat No, MTC No, Supplier) once on a Suppliers sheet, with a Supplier heading, in alphabetical order. 'Acme Steel' and 'ACME STEEL' are the same supplier, and rows with no supplier are ignored. The sheet is rebuilt every run.

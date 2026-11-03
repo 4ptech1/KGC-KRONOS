@@ -1,0 +1,35 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c072",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 111,
+  "note": "LET(outRow, 2 -> 3) and LET(outRow, outRow + 1 -> + 2) in WriteMethodSummary only leave blank gap rows between the summary rows; every method key is non-blank, so the final SORT by Method (blank rows always sort last, beyond the used range) puts the rows back into exactly the same final sheet, RESULT and ROWS_USED",
+  "total": 113
+ },
+ "op_lines": 64,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "nde",
+  "itp"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

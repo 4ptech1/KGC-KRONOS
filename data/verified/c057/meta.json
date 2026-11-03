@@ -1,0 +1,31 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c057",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 50,
+  "note": "Lines 32 and 33 seed the soon and gone dictionaries with 0 for each process; DICT_GET of a key that is not in a dictionary gives 0 in the reference interpreter (COUNTA shows the cell holds a number), so deleting either seed cannot change any result. They are kept so no DICT_GET ever meets a missing key.",
+  "total": 52
+ },
+ "op_lines": 27,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "welder_quals"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

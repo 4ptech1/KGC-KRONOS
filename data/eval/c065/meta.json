@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "rebuild",
+ "id": "c065",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 30,
+  "note": "line 40 IF outRow > 2 only skips a sort of a header-only or one-row range; '>' to '>=' sorts a header-only range and '2' to '3' skips the sort of a single row, neither changes any cell",
+  "total": 32
+ },
+ "op_lines": 18,
+ "ops": [
+  "CLEAR",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "READ_ARRAY",
+  "RETURN",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "grn"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

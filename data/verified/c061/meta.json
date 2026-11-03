@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c061",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 27,
+  "note": "DICT_ADD value is never read: covered is only tested with EXISTS, so mode=keep vs overwrite and the stored value 1 vs 2 cannot change any result",
+  "total": 29
+ },
+ "op_lines": 15,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "welder_quals",
+  "wps_pqr"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}
