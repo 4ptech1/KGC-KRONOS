@@ -1,0 +1,1 @@
+In the Weld Log (Weld Seam No, Welder ID, Weld Date, Process, Visual, Remark) write Repeat in Remark for every row whose Weld Seam No appears more than once, and clear the Remark on the others. Seam numbers can have stray spaces or different upper and lower case, so 'ws-12' and ' WS-12 ' are the same seam. Tell me how many rows I marked.

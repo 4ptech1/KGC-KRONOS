@@ -1,0 +1,15 @@
+OK   check  work/c061/spec.vcl
+OK   test   work/c061/spec.vcl  (4/4 tests)
+OK   build  work/c061/spec.vcl
+OK   lint   work/c061/out/forge_module.bas  (1191 lines)
+OK   lint   work/c061/out/forge_selftest.bas  (669 lines)
+OK   lint   work/c061/out/forge_fixtures.bas  (154 lines)
+
+ALL STAGES PASSED
+ 86.2%  mutate work/c061/spec.vcl  (25/29)
+        survives: line 27: 2 -> 3
+        survives: line 29: 'mode=keep' -> 'mode=overwrite'
+        survives: line 29: 1 -> 2
+        survives: line 32: 2 -> 3
+Overall mutation score: 86.2%
+1 file in canonical form

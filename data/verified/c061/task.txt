@@ -1,0 +1,1 @@
+Compare the Welder Quals sheet (Welder ID, Process, Expiry Date) with the WPS Register (WPS No, Process). On a No WPS sheet, with the same headings as Welder Quals, list every qualification whose Process has no WPS in the register. Upper and lower case don't matter, so 'gtaw' and 'GTAW' match. Tell me how many I listed.

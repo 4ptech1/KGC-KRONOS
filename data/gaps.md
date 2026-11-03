@@ -36,6 +36,8 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c063 | what display format SET_VALUE gives a converted date, and whether a Text-formatted cell accepts one | the cells keep their number format; adding `FORMAT numfmt` would force a whole-sheet MODIFIES and lose the automatic collateral check |
 | c063 | a TEST assertion that tells a real date from date-looking text (`VALUE(cell) = "2026-03-05"` is TRUE for both) | proved by `runs=2` with RESULT = 0 (the second run finds nothing left) and an exact RESULT count on the first run |
 | c069 | read row visibility in a Function (VISIBLE_COUNT is an assertion function only) | returns the number of rows whose Result is SAME as "Reject", which equals the visible count only because FILTER uses the same SAME test |
+| c061, c064 | "On a No WPS / Rejected Welds sheet ...": create the output sheet if it is missing and also rebuild it every run (rule 22) | the output sheet is an argument, ASSUMEd to exist (same as c057, c058, c059, c070) |
+| c061, c064 | copy a cell's number format (VCL has no op for it) | the Expiry Date and Report Date values are copied with WRITE_ROW and rely on Excel's default date format on assignment; TESTs check values only |
 
 ## Wording of the prompt to fix
 
@@ -94,6 +96,13 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c063 | "values(...) ... dates(...)" | does not say that date-looking text in `values("2026-03-05"...)` stays text; it did, but the helper assumed it |
 | c063 | PARSE_DATE: "day and month 1 or 2 digits" | means "2026-6-1" counts as a valid text date; the helper kept such values out of the fixtures |
 | c069 | TEST ASSERTIONS list VISIBLE_COUNT, but the Value functions list has no way to count visible rows | "tell me how many rows are visible" needed the SAME-count workaround; the prompt could say so or offer such a function |
+| c064 | rule 5: "When the test workbook has another sheet, add a wrong-sheet TEST that passes it and expects RESULT = -1 AND ERROR_COUNT = 1." | when the output sheet has the same headings as the source, swapping the two does not stop at PRE; the helper added a Notes sheet and passed that; the prompt could say the wrong sheet must lack the headers the PRE checks |
+| c056 | SEMANTICS: "VARs start at 0, "" or FALSE", against Example 1, which still writes `LET(removed, 0)` | the helper copied the example, and the mutator flagged `LET(marked, 0)` as a redundant step (c056 try 1 scored 20 of 24); the example and the rule disagree in spirit |
+| c056, c061 | DICT_GET and DICT_ADD: what DICT_GET gives for a key that is not there, and whether an empty key such as TRIM("") may be added | the helpers only read keys the first pass had added, relied on EXISTS, and dropped a blank-key SKIP_IF that the interpreter accepts but the prompt does not promise works in Excel (same as c036, c038, c041, c057) |
+| c056 | blanking one cell: SET_VALUE "stores text as exactly that text" | the helper was unsure that `SET_VALUE(cell, "")` gives an empty cell and used `CLEAR(CELL(...), what=contents)` under `MODIFIES $ws["Remark"]`, which validated; the prompt never says which to use (same as c034, c035, c041) |
+| c064 | SORT on a header-only or one-row range | nothing says what SORT does there, so the helper first wrote a guard `IF listed > 1` that turned out to be redundant (c059 did the same) |
+| c061, c064 | FIXTURE: "+boundary(v1,v2,...)" shows dates only as day offsets for reldates, and "For values(...) the values move up, so the counts stay the same" | the helper assumed `dates(...)` takes yyyy-mm-dd literals (it worked) and does not know whether the boundary list must match the values counts, so it kept them consistent everywhere (same as c026, c060) |
+| c061 | rule 14: "check every header you use with a PRE line" | unclear for an output heading copied from another sheet's header cell, as in `WRITE_ROW($out, 1, CELL($quals, 1, cWelder), ...)`; the exception mentions only quoted text; the helper checked the source headers in PRE and none on the output sheet, and it validated |
 
 ## Tooling notes (not the language)
 

@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "rebuild",
+ "id": "c064",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 24,
+  "note": "WRITE_ROW row listed + 1 -> listed + 2 leaves row 2 blank; the SORT that follows puts a blank row last, so the final sheet is identical",
+  "total": 25
+ },
+ "op_lines": 12,
+ "ops": [
+  "CLEAR",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "nde"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}
