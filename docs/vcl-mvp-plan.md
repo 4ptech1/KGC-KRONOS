@@ -96,8 +96,8 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    the next VCL packs. Boss said "go item 4" on 21 Oct 2026; Stage A is designed in
    `docs/vep-0.6-stage-a.md` (D59), with the language changes (error codes, `GOAL`, `vclc fmt`)
    first so no stored spec is ever migrated. Those changes and the corpus tooling are done (D60 to
-   D64), and batches 1 and 2 are stored: 52 of 150 pairs, 4 of them held out (D65, D66). Batch 3
-   resumes now that KRONOS.exe is done (Phase 3 of item 9; D71, D74, D79).
+   D64), and batches 1 to 3 are stored: 72 of 150 pairs, 6 of them held out (D65, D66, D82). Batch 4
+   may run while the pilot waits for IT (D71, D74, D79).
 7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read

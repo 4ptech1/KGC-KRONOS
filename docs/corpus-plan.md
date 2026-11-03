@@ -61,4 +61,5 @@ say goes to `data/gaps.md`.
 | --- | --- | --- |
 | 1 | c013 to c032 | stored (D65): 18 verified, 2 held out |
 | 2 | c033 to c052 | stored (D66): 18 verified, 2 held out |
-| 3 | c053 on | KRONOS.exe is done (Phase 3, D79), so it can start (D71, D74); its practice runs may add candidates |
+| 3 | c053 to c072 | stored (D82): 18 verified, 2 held out; the corpus has 72 of 150 pairs |
+| 4 | c073 on | next: build (7 of 20), flag, summarise; registers consumables and wps_pqr, then bom, calibration, job_tracker and material_certs; at most two helpers at once (D82); its practice runs may add candidates |

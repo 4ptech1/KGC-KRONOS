@@ -13,7 +13,7 @@ still writes all the VBA (D31, `docs/ai-plan.md`).
 
 **Phase 0, Foundation (Oct 14 to 31, 2026): Gate 0 is met.** The work now is item 5, the KGC
 KRONOS desktop app (`docs/kronos-app.md`): its engine and `vclc ask` are built (D72), and the
-window, a four-step wizard, comes before everything else (D74); corpus batch 3 follows KRONOS.exe. All development runs in the cloud (Claude
+window, a four-step wizard, comes before everything else (D74); corpus batch 3 is stored (D82). All development runs in the cloud (Claude
 Code on the web, GitHub Codespaces, GitHub Actions); only KRONOS.exe and the Codex CLI will run on
 the work PC, once IT approves them (D69). Every check is automated; running the generated VBA in
 Excel is optional and never blocks work.
@@ -327,4 +327,10 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
 - **2026-11-02:** Item 5 Phase 3c (D81): the practice run. Save also writes `<name>_practice.bas`: in a new,
   empty workbook it builds the practice data the tests used and runs the macro, and the window's Check a practice
   run compares what Excel did with what the tests expect. It refuses to run in a workbook that holds anything
-  else. A BUILD, and a macro given a whole workbook, get no practice run and the Save step says why. Version 0.5.
+  else. A BUILD, and a macro given a whole workbook, get no practice run and the Save step says why. Version 0.5 is published.
+- **2026-11-03:** Stage A Phase 6, batch 3: 20 more pairs (c053 to c072), 18 in `data/verified` and 2 held out in
+  `data/eval`, with two larger BUILDs (74 and 64 steps). The corpus has 72 of 150 pairs. The pairs catch 638 of 638
+  catchable mutants; every equivalent survivor was read against its spec. Only 7 of 20 passed first time, and the
+  14 earlier tries are kept as repair seeds. `data/gaps.md` grew by 22 language gaps, 56 wording problems and 3
+  tooling notes; the first prompt fix to make is that `<` and `>` compare text-typed numbers as text. Three helpers
+  hit the usage limit and were resumed, so from now on at most two run at once (D82).

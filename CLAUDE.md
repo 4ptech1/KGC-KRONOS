@@ -263,10 +263,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    Boss pastes the new prompt once) and Phase 5 (the corpus tooling: `vclc corpus`, `corpus-add`,
    `export`; the 12 committed specs are the pairs `c001` to `c012` in `data/verified/`; the plan
    for the rest is `docs/corpus-plan.md`; D64) are done; Phase 6, the corpus to 150 tasks in
-   batches of about 20, is in progress (batches 1 and 2, c013 to c052, are stored: 52 pairs of 150, four of
-   them held out; `data/gaps.md` logs what VCL could not say; D65, D66). Batch 3, leaning on the thin
-   registers and families (`vclc corpus --report`), resumes now that KRONOS.exe is done (Phase 3; D71,
-   D74, D79); no training before March 2027.
+   batches of about 20, is in progress (batches 1 to 3, c013 to c072, are stored: 72 pairs of 150, six of
+   them held out; `data/gaps.md` logs what VCL could not say; D65, D66, D82). Batch 4, leaning on the thin
+   families and registers (`vclc corpus --report`: build 7 of 20, flag, summarise; consumables and wps_pqr),
+   may run while the pilot waits for IT, with at most two helpers at once (D82); no training before March 2027.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,
@@ -288,15 +288,15 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    `packaging/kronos.spec` and `.github/workflows/build-exe.yml` build KRONOS.exe on Windows and run its
    `--self-test`; `compiler/resources.py` finds the data files inside the exe; `docs/kronos-app-guide.md` is
    Boss's guide with a message for IT; a manual run of the workflow with "release" ticked publishes it
-   (release `kronos-v0.4` is published). Boss asked on 2 Nov 2026 whether the MVP was ready; it was built
+   (releases `kronos-v0.4` and `kronos-v0.5` are published). Boss asked on 2 Nov 2026 whether the MVP was ready; it was built
    but never run against the real Codex or in Excel, so two more PRs went in before the pilot: 3b (D80,
    PR #76) ran KRONOS against the real Codex CLI 0.166.0, signed out, and fixed what it showed (it asks
    `codex login status` first, stops a Codex that can't reach OpenAI instead of waiting 5 minutes, stops
    the whole codex.cmd process tree on Windows, `--ephemeral`; a Windows `codex-check` job in CI); 3c (D81)
    adds the practice run: Save also writes `<name>_practice.bas`, which in a new, empty workbook builds the
    TESTs' practice data and runs the macro, and the window's Check a practice run compares Excel's answers
-   with the tests (the version is 0.5; its release follows the PR). **Next: the pilot (Phase 4)**, once IT
-   approves KRONOS.exe and the Codex CLI; corpus batch 3 resumes and may run while the pilot waits for IT,
+   with the tests (version 0.5, published, SHA-256 on its release page). **Next: the pilot (Phase 4)**, once IT
+   approves KRONOS.exe and the Codex CLI; corpus batch 4 may run while the pilot waits for IT (batch 3 is stored, D82),
    and the team version (Phase 5) follows the pilot. Still unproven, and what the pilot is for: Codex's
    real reply to the Orchestrator prompt, and any macro running in real Excel. The parallel session is gone; this is the only session on the repo.
 
