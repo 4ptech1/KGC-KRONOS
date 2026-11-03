@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c059",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 30,
+  "note": "line 38 (outRow + 1 -> + 2): the SORT that follows moves blank rows below the data, and with one supplier the increment is never used; line 39 ('>' -> '>='): differs only at one supplier, where sorting a header plus one data row changes nothing",
+  "total": 32
+ },
+ "op_lines": 18,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "material_certs"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 3)"
+}

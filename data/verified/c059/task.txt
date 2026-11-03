@@ -1,0 +1,1 @@
+From the Material Certs sheet (Heat No, MTC No, Supplier) make a Supplier Summary sheet with the number of certificates per supplier and, next to it, how many of them have no MTC No, the supplier with the most certificates first. Ignore rows with no supplier.

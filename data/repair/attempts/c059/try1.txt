@@ -1,0 +1,16 @@
+## vclc mutate --snapshot
+ 87.5%  mutate work/c059/spec.vcl  (28/32)
+        survives: line 33: 2 -> 3
+        survives: line 38: 1 -> 2
+        survives: line 39: '>' -> '>='
+        survives: line 39: 1 -> 2
+Overall mutation score: 87.5%
+
+## vclc corpus-add (gate)
+c059: the TESTs catch 28 of 32 mutants, under the 90% floor
+c059: survives: line 33: 2 -> 3
+c059: survives: line 38: 1 -> 2
+c059: survives: line 39: '>' -> '>='
+c059: survives: line 39: 1 -> 2
+not stored: 5 problems
+exit: 1
