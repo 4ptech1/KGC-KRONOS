@@ -48,7 +48,7 @@ from vcl_mutate import mutate_report  # noqa: E402
 from vcl_pilot import PILOT_SPECS, check as pilot_check, pilot_module  # noqa: E402
 from vcl_selftest import selftest_module  # noqa: E402
 from vcl_parse import parse  # noqa: E402
-from validator import validate_file  # noqa: E402
+from validator import expand, validate_file  # noqa: E402
 
 
 def cmd_check(files):
@@ -212,6 +212,7 @@ def main(argv):
         if not args[i].startswith("--"):
             files.append(args[i])
         i += 1
+    files = expand(files)   # Windows cmd and PowerShell leave specs\*.vcl to us, as the validator does (D83)
     if not files:
         print("no spec files given")
         return 1
