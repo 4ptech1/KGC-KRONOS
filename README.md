@@ -334,3 +334,7 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
   14 earlier tries are kept as repair seeds. `data/gaps.md` grew by 22 language gaps, 56 wording problems and 3
   tooling notes; the first prompt fix to make is that `<` and `>` compare text-typed numbers as text. Three helpers
   hit the usage limit and were resumed, so from now on at most two run at once (D82).
+- **2026-11-07:** OpenAI Codex as a second assistant (D83). `AGENTS.md` is Codex's front page: it sends Codex to
+  `CLAUDE.md` first and adds Codex's rules (advise, practise VCL, propose code through `codex_changes/`; only Claude
+  commits). `vclc` now expands `specs\*.vcl` itself, for Windows. Boss gets the whole project plus KRONOS.exe as one
+  zip for the Codex app on his own PC.

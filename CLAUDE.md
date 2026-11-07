@@ -60,7 +60,9 @@ and their proven specs, each with its VBA.
   scraped or downloaded code, datasets or prompts, no retrieval over outside sources. Everything it
   learns from or reads is in-house: made by this repo's tools, by me, by Claude through our
   pipeline, or by Codex through KRONOS (D70), and verified by our toolchain. General tools (Python,
-  PyTorch) are allowed, and Claude stays the design and build tool (Orchestrator, Claude Code).
+  PyTorch) are allowed, and Claude stays the design and build tool (Orchestrator, Claude Code) and the only
+  one who commits. OpenAI Codex on Boss's own PC may advise, practise VCL and propose code, which comes back
+  through `codex_changes/` for Claude to review, verify and merge; its rules are in `AGENTS.md` (D83).
   Compiler first, own model second: the model writes VCL, never VBA (D31).
 
 ## Sources of truth
@@ -86,6 +88,7 @@ and their proven specs, each with its VBA.
 
 ```
 CLAUDE.md            this brief
+AGENTS.md            the front page for OpenAI Codex: read CLAUDE.md first, then its own rules (D83)
 DECISIONS.md         language decisions and Claude's own decisions
 README.md            overview, progress log, dataset count
 requirements.txt     pinned dependencies (lark, with its hash)
