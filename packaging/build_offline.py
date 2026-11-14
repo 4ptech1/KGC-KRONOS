@@ -22,12 +22,14 @@ same inputs give the same bytes; beside it go <zip>.sha256.txt and build-info.js
 import argparse
 import datetime
 import hashlib
+import http.client
 import io
 import json
 import re
 import shutil
 import sys
 import tarfile
+import time
 import urllib.error
 import urllib.request
 import zipfile
@@ -112,11 +114,15 @@ def download(url, cache, want):
     path = cache / url.rsplit("/", 1)[1]
     if path.is_file() and sha256(path.read_bytes()) == want:
         return path.read_bytes()
-    try:
-        with urllib.request.urlopen(url, timeout=120) as response:   # noqa: S310 (a pinned https URL)
-            data = response.read()
-    except (urllib.error.URLError, OSError) as exc:
-        raise Unreachable(f"could not download {url}: {exc}") from None
+    for attempt in (1, 2, 3):   # a download that is cut off is tried again; a wrong file never is
+        try:
+            with urllib.request.urlopen(url, timeout=120) as response:   # noqa: S310 (a pinned https URL)
+                data = response.read()
+            break
+        except (urllib.error.URLError, http.client.HTTPException, OSError) as exc:
+            if attempt == 3:
+                raise Unreachable(f"could not download {url}: {exc}") from None
+            time.sleep(2 * attempt)
     got = sha256(data)
     if got != want:
         raise ValueError(f"{url} has SHA-256 {got}, not the pinned {want}: refused")

@@ -259,6 +259,7 @@ class Workflow(unittest.TestCase):
                       "runs-on: ubuntu-22.04", "runs-on: windows-latest", "packaging/offline_test/chromium109.txt",
                       "packaging/offline_test/firefox115.txt", "tests.test_offline.InTheBrowser", "shell: powershell",
                       '"Start KRONOS (Windows).bat"', "gh release create \"kronos-offline-v${VERSION}\"",
+                      "--latest=false",   # the Latest badge stays on KRONOS.exe's release
                       "github.ref == 'refs/heads/main'", "needs: [build, old-browsers, powershell]"):
             self.assertIn(words, text)
         self.assertEqual(text.count("contents: write"), 1)   # only the release job writes

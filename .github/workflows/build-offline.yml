@@ -273,5 +273,7 @@ jobs:
             line endings, the browser engine against normal Python, the page offline in Chromium (and in Chromium 109
             and Firefox 115 where they could be installed), and the launcher's PowerShell server on Windows.
           NOTES
-          gh release create "kronos-offline-v${VERSION}" "out/${ZIP}" "out/${ZIP}.sha256.txt" \
+          # --latest=false: GitHub's "Latest" badge stays on the newest KGC KRONOS (KRONOS.exe) release, which
+          # docs/kronos-app-guide.md sends people to; every handover gives this release's own link.
+          gh release create "kronos-offline-v${VERSION}" "out/${ZIP}" "out/${ZIP}.sha256.txt" --latest=false \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "KRONOS Offline ${VERSION}" --notes-file notes.md

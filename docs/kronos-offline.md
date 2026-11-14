@@ -107,8 +107,10 @@ Also keep:
   `importScripts('pyodide/pyodide.js', 'pyodide/pyodide.asm.js')`, and Pyodide skips its own load. BlueForce's four
   files stay exactly as they are apart from the name, the port and the version line; because `serve.py` answers one
   request at a time like `serve.ps1`, every page test through it also guards this.
-- **One browser tab for KRONOS.** A one-request-at-a-time server waits for whoever it is sending to; in CI a second
-  browser that stopped reading (the runner's Edge) held up the others for minutes. On the work PC, use one tab.
+- **A one-request-at-a-time server waits for whoever it is sending to.** So a page that stops reading holds up
+  everything else: before the fix above, the launcher step in CI waited four minutes for a 404 behind the Edge window
+  that `Open-Browser` had opened; after it, the same requests are answered in under a second while Edge loads the
+  page. Never add a synchronous load (`importScripts`, a synchronous XMLHttpRequest) while a download is under way.
 
 ## 5. The zip
 
@@ -174,8 +176,10 @@ It writes `build/offline/KRONOS-Offline/`, the zip, its `.sha256.txt` and `build
 **A new copy for Boss:** make the change, add a row for version N+1 to the version list below (with "(added after
 the release)" in its commit column and what changed in a few words), and open the PR. When CI is green, merge, then
 release: GitHub, Actions, **Build KRONOS Offline**, Run workflow, branch `main`, tick "release". It publishes
-`kronos-offline-v<N>` with the zip and its SHA-256, as `build-exe.yml` does for KRONOS.exe (D79). Then put the
-release's commit into the version list in a docs-only PR.
+`kronos-offline-v<N>` with the zip and its SHA-256, as `build-exe.yml` does for KRONOS.exe (D79). GitHub's "Latest"
+badge stays on the newest KGC KRONOS (KRONOS.exe) release (`--latest=false`), so give Boss this release's own link:
+`https://github.com/4ptech1/KGC-KRONOS/releases/tag/kronos-offline-v<N>`. Then put the release's commit into the
+version list in a docs-only PR.
 
 **The checks** (`tests/test_offline.py`; in CI they run with `KRONOS_OFFLINE_REQUIRED=1`, so they fail instead of
 skipping):
