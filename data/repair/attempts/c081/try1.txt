@@ -1,0 +1,1 @@
+FAIL check: line 49: warning FIXTURE sheet Jobs has no stale=<n> rows, so no TEST proves old rows are cleared (rule 19) [V055]
