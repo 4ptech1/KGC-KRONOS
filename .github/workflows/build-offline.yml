@@ -185,6 +185,8 @@ jobs:
           DATE: ${{ needs.build.outputs.date }}
         run: |
           "Windows PowerShell " + $PSVersionTable.PSVersion.ToString() + " (version 2 can't be run on GitHub's machines)"
+          $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest's progress bar makes big downloads very slow in 5.1
+          function Say([string]$words) { (Get-Date -Format 'HH:mm:ss') + "  " + $words }
           Expand-Archive -Path "build\offline\$env:ZIP" -DestinationPath fresh
           Set-Location fresh\KRONOS-Offline
           $empty = Join-Path $env:RUNNER_TEMP "nothing.txt"; Set-Content -Path $empty -Value ""
@@ -200,14 +202,17 @@ jobs:
           }
           try {
             if (-not $up) { throw "the launcher's server did not start" }
+            Say "the page: $($page.StatusCode)"
             if ($page.StatusCode -ne 200 -or $page.Content -notmatch "Version $env:VERSION ") { throw "the page is wrong" }
             $wasm = Invoke-WebRequest -Uri "http://localhost:5181/pyodide/pyodide.asm.wasm" -UseBasicParsing
             $want = (Get-Item app\pyodide\pyodide.asm.wasm).Length
             "wasm: $($wasm.Headers['Content-Type']), $($wasm.RawContentLength) bytes (the file has $want)"
             if ($wasm.Headers['Content-Type'] -ne 'application/wasm' -or $wasm.RawContentLength -ne $want) { throw "the .wasm file is wrong" }
+            Say "the .wasm file came"
             $missing = $null
             try { Invoke-WebRequest -Uri "http://localhost:5181/nothing-here.txt" -UseBasicParsing | Out-Null } catch { $missing = $_.Exception.Response.StatusCode.value__ }
             if ($missing -ne 404) { throw "a missing file gave $missing, not 404" }
+            Say "a missing file: 404"
           } finally {
             taskkill /T /F /PID $p.Id | Out-Null
             Start-Sleep -Seconds 2

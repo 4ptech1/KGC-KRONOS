@@ -436,7 +436,8 @@ def fetch(path):
 
 
 class Served:
-    """One of the zip's servers, started from the fresh folder as the launcher starts it, stopped afterwards."""
+    """One of the zip's servers, started from the fresh folder as the launcher starts it, stopped afterwards. If the
+    test fails while it runs, what the server printed is shown."""
 
     def __init__(self, command):
         self.command = command
@@ -458,13 +459,15 @@ class Served:
         self.process.kill()
         raise AssertionError(f"{self.command} did not start: {self.process.communicate()[0]}")
 
-    def __exit__(self, *exc):
+    def __exit__(self, kind, value, trace):
         self.process.terminate()
         try:
             self.output = self.process.communicate(timeout=10)[0]
         except subprocess.TimeoutExpired:
             self.process.kill()
             self.output = self.process.communicate()[0]
+        if kind is not None:
+            print(f"\n--- {self.command[-1]} said:\n{self.output}", file=sys.stderr)
         for _ in range(50):
             if port_free():
                 break
@@ -480,9 +483,11 @@ def servers():
     elif REQUIRED:
         raise AssertionError("KRONOS_OFFLINE_REQUIRED=1, but Node.js is not installed")
     found.append(("serve.py", [sys.executable, os.path.join("server", "serve.py")]))
-    if os.name == "nt":
-        found.append(("serve.ps1", ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-                                    "server\\serve.ps1", str(unpacked() / "app")]))
+    if os.name == "nt":   # as the launcher starts it, but with Start-Process a no-op, so that Open-Browser opens no
+        # second browser to compete with the test's own (the workflow's launcher step runs it exactly, browser and all)
+        app = str(unpacked() / "app")
+        found.append(("serve.ps1", ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
+                                    f"function Start-Process {{ }}; & '.\\server\\serve.ps1' '{app}'"]))
     wanted = os.environ.get("KRONOS_OFFLINE_SERVERS")
     if wanted:
         found = [(name, command) for name, command in found if name in wanted.split(",")]
@@ -519,7 +524,9 @@ class Serving(unittest.TestCase):
             if path.endswith(".js"):
                 self.assertEqual(kind.split(";")[0], "text/javascript", path)
         self.assertEqual(fetch("nothing-here.txt")[0], 404)
-        self.assertEqual(fetch("..%2Fserver%2Fserve.py")[0], 404)
+        status, _, body = fetch("..%2Fserver%2Fserve.py")   # Windows itself answers 403 to this one, before serve.ps1
+        self.assertIn(status, (403, 404))
+        self.assertEqual(body, b"")
 
 
 class InTheBrowser(unittest.TestCase):
