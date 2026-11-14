@@ -290,6 +290,13 @@ class Page(unittest.TestCase):
         # server would then wait for them forever, D86)
         self.assertIn("importScripts('pyodide/pyodide.js', 'pyodide/pyodide.asm.js')", sources["worker.js"])
         self.assertEqual(sources["index.html"].count(B.PAGE_MARK), 1)
+        # the "this browser can't run KRONOS" line is hidden at once where KRONOS can run, and stays in Internet Explorer
+        head = sources["index.html"].split("</head>")[0]
+        self.assertIn("if (window.WebAssembly && window.fetch && window.Worker) { document.documentElement.className = "
+                      "'can-run'; }", head)
+        self.assertIn(".can-run .old-browser { display: none; }", css)
+        self.assertIn('id="old-browser">This browser can\'t run KRONOS. Open Chrome, Edge or Firefox and type '
+                      "localhost:5181.</p>", sources["index.html"])
 
     def test_the_look_is_blueforces(self):
         css = self.sources()["styles.css"]
@@ -596,6 +603,7 @@ class InTheBrowser(unittest.TestCase):
             with self.subTest(server=name), Served(command):
                 page = self.open(name)
                 self.assertEqual(page.text_content("#version"), f"Version {info['version']} · {info['date']}")
+                self.assertEqual(page.locator("#old-browser").count(), 0)   # only a browser that can't run it keeps it
                 # Cancel while Python is still starting: the panel goes, and a fresh worker starts
                 page.fill("#recipe", EXAMPLE)
                 page.click("#check")

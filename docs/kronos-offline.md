@@ -90,7 +90,8 @@ The errors BlueForce met, and the rule for each:
    terminators". The app's own files (page, Pyodide, toolchain) stay byte for byte as in the repo and in Pyodide's
    package: the browser reads them, not Notepad, and the toolchain must be the repo's exact files.
 4. **A blank page in Internet Explorer.** Rule: the message to Boss says to use Chrome, Edge or Firefox. (The page
-   also shows one line saying so when its script can't run.)
+   itself says so too, in one line, in a browser without WebAssembly such as Internet Explorer; `index.html` hides
+   that line at once everywhere else, so it never flashes while the page loads.)
 
 Also keep:
 

@@ -6,6 +6,11 @@
 <title>KGC KRONOS Offline</title>
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
+<script>
+  // A browser that can run KRONOS hides the "can't run" line at once (styles.css), so it never flashes while the
+  // page loads; Internet Explorer has none of these and keeps it. Plain old JavaScript, so that it runs anywhere.
+  if (window.WebAssembly && window.fetch && window.Worker) { document.documentElement.className = 'can-run'; }
+</script>
 </head>
 <body>
 <header class="topbar">

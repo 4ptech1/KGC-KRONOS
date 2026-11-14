@@ -4,7 +4,7 @@
 (function () {
   'use strict'
 
-  const oldBrowser = document.getElementById('old-browser')   // stays on screen only where this script can't run
+  const oldBrowser = document.getElementById('old-browser')   // index.html hides it where KRONOS can run
   if (oldBrowser) oldBrowser.parentNode.removeChild(oldBrowser)
 
   const $ = (id) => document.getElementById(id)
@@ -53,7 +53,7 @@
 
   function heard(message) {
     if (message.type === 'status') {
-      $('python').textContent = message.text.toLowerCase()
+      $('python').textContent = message.short
       if (job) workingStep.textContent = message.text
     } else if (message.type === 'ready') {
       ready = true

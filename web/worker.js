@@ -4,7 +4,7 @@
 // toolchain/, listed in toolchain/manifest.json. The toolchain answers through compiler/kronos_web.py, the same
 // module the tests call in normal Python.
 //
-// Messages from the page: {type: 'check', id, text, today}. To the page: {type: 'status', text},
+// Messages from the page: {type: 'check', id, text, today}. To the page: {type: 'status', text, short},
 // {type: 'ready', python, pyodide, files}, {type: 'step', id, name}, {type: 'result', id, json} and
 // {type: 'error', id, message, details, fatal}.
 
@@ -28,14 +28,14 @@ async function bytes(path) {
   return new Uint8Array(await (await get(path)).arrayBuffer())
 }
 
-function status(text) {
-  postMessage({ type: 'status', text })
+function status(text, short) {
+  postMessage({ type: 'status', text, short })
 }
 
 async function start() {
-  status('Starting Python')
+  status('Starting Python', 'starting')
   const pyodide = await loadPyodide({ indexURL: new URL('pyodide/', self.location.href).href })
-  status('Loading the KRONOS toolchain')
+  status('Loading the KRONOS toolchain', 'loading the KRONOS toolchain')
   const manifest = await (await get('toolchain/manifest.json')).json()
   const site = pyodide.runPython('import site; site.getsitepackages()[0]')
   for (const wheel of manifest.wheels) {

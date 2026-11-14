@@ -49,6 +49,7 @@ body { background: var(--page); color: var(--text); font-family: var(--font); fo
 .version { margin-left: auto; text-align: right; }
 
 .old-browser { margin: 24px; font-size: 18px; font-weight: 700; }
+.can-run .old-browser { display: none; }
 
 .page { max-width: 1100px; margin: 0 auto; padding: 24px; }
 
