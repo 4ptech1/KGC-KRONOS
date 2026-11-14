@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c078",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 27,
+  "note": "LET(outRow, 2 -> 3) and LET(outRow, outRow + 1 -> + 2) only leave blank gap rows between the summary rows; the SORT by Total Qty Issued that follows puts blank rows last, beyond the used range, so the final sheet, RESULT and ROWS_USED are the same",
+  "total": 29
+ },
+ "op_lines": 18,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "consumables"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}

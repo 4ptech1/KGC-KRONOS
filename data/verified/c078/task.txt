@@ -1,0 +1,1 @@
+From the Consumable Issue log (Issue No, Batch No, Qty Issued, Job ID) build a Job Issue Summary sheet with one row per Job ID: the number of issues and the total Qty Issued, the biggest total first. Ignore rows with no Job ID, and leave out of the total any Qty Issued that is not a number. The sheet is rebuilt every run.

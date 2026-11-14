@@ -1,0 +1,7 @@
+mutation: 90 of 95 caught (94.7%); the floor is 90% of the mutants that can be caught
+  survives: line 130: 2 -> 3
+  survives: line 134: 1 -> 2
+  survives: line 168: 'mode=sum' -> 'mode=overwrite'
+  survives: line 171: 2 -> 3
+  survives: line 177: 1 -> 2
+PASS: 4 TESTs, lint-clean VBA, 90 of 95 mutants
