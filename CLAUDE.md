@@ -117,7 +117,8 @@ logs/
 app/                 the KGC KRONOS window: kronos_controller.py (the wizard's state, D75), kronos_app.py (the window, D76),
                      kronos_dialogs.py (Settings, Recipe, History, Help, D77)
 packaging/           kronos.spec: the PyInstaller spec for KRONOS.exe (D79); the build is
-                     .github/workflows/build-exe.yml, its tools are in requirements-build.txt
+                     .github/workflows/build-exe.yml, its tools are in requirements-build.txt;
+                     check-release-exe.yml tests an exe that is already published (D84)
 (train/ and model/ arrive in March 2027)
 ```
 
@@ -298,7 +299,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    the whole codex.cmd process tree on Windows, `--ephemeral`; a Windows `codex-check` job in CI); 3c (D81)
    adds the practice run: Save also writes `<name>_practice.bas`, which in a new, empty workbook builds the
    TESTs' practice data and runs the macro, and the window's Check a practice run compares Excel's answers
-   with the tests (version 0.5, published, SHA-256 on its release page). **Next: the pilot (Phase 4)**, once IT
+   with the tests (version 0.5, published, SHA-256 on its release page). The published 0.5 was checked again on 14 Nov 2026 (D84):
+   the manual workflow `.github/workflows/check-release-exe.yml` downloads KRONOS.exe from a release, compares its SHA-256 and runs
+   its `--self-test` on Windows; it passed. **Next: the pilot (Phase 4)**, once IT
    approves KRONOS.exe and the Codex CLI; corpus batch 4 may run while the pilot waits for IT (batch 3 is stored, D82),
    and the team version (Phase 5) follows the pilot. Still unproven, and what the pilot is for: Codex's
    real reply to the Orchestrator prompt, and any macro running in real Excel. The parallel session is gone; this is the only session on the repo.
