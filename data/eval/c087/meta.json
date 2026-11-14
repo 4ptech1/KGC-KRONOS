@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "files",
+ "id": "c087",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 20,
+  "note": "IF found > 0 -> found > 1: on that branch found is still 0 or was set to a loop row, and the loop runs from the last row up to row 2, so found is 0 or at least 2 and both comparisons always agree",
+  "total": 21
+ },
+ "op_lines": 15,
+ "ops": [
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "READ_TEXT",
+  "RETURN",
+  "SET_VALUE"
+ ],
+ "registers": [
+  "material_certs"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}
