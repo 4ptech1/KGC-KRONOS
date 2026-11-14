@@ -1,0 +1,1 @@
+FAIL check: line 52: warning SKIP_IF skips blank "MTC No" cells, but FIXTURE sheet Certs has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]

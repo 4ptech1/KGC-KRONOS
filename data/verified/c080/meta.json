@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c080",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 25,
+  "note": "LET(outRow, 2 -> 3) and LET(outRow, outRow + 1 -> + 2) only leave blank gap rows between the unit rows; the SORT by Unit that follows puts blank rows last, beyond the used range, so the final sheet and RESULT are the same",
+  "total": 27
+ },
+ "op_lines": 20,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "bom"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}

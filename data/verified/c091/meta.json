@@ -1,0 +1,34 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c091",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 5,
+  "killed": 73,
+  "note": "All five are in WriteChaseList. The dictionary is only a set of supplier names read by KEYS, so DICT_ADD mode=keep -> overwrite and its value 1 -> 2 change nothing that is read. With the SKIP_IF on a blank Supplier deleted, a Check row with no supplier (certs_01 has one) adds the key \"\", which is written as an empty cell that the SORT puts last, beyond the used range. LET(outRow, 2 -> 3) and LET(outRow, outRow + 1 -> + 2) only leave blank gap rows that the same SORT moves below the names",
+  "total": 78
+ },
+ "op_lines": 51,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "material_certs"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}
