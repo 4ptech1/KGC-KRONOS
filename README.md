@@ -338,3 +338,6 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
   `CLAUDE.md` first and adds Codex's rules (advise, practise VCL, propose code through `codex_changes/`; only Claude
   commits). `vclc` now expands `specs\*.vcl` itself, for Windows. Boss gets the whole project plus KRONOS.exe as one
   zip for the Codex app on his own PC.
+- **2026-11-14:** The published KRONOS.exe 0.5 checked on Windows (D84). A new manual workflow, "Check a published
+  KRONOS.exe", downloads the exe from a release, compares its SHA-256 with the release's checksum file and runs its
+  self-test; it passed, and so did a fresh build of `main`. Nothing was published.
