@@ -99,10 +99,16 @@ Also keep:
 - No Node.js advice for old Windows: current Node.js needs Windows 10 or later. On older Windows the PowerShell server
   is the way.
 - Boss never runs commands in a terminal: everything is a double-click.
-- **KRONOS's own finding (D86): `serve.py` answers connections side by side** (`ThreadingTCPServer`). BlueForce's
-  answers one connection at a time, and the browser's parallel requests for Pyodide's files stalled it: the page
-  never got past "starting Python". The fix is the only change to BlueForce's four files beyond the name, the port
-  5181 and the version line; BlueForce's own `serve.py` may meet the same on a PC with Python.
+- **KRONOS's own finding (D86): the worker loads `pyodide.asm.js` itself, first.** BlueForce's `serve.py` and
+  `serve.ps1` answer one request at a time. Pyodide starts downloading its two big files (the Python library and the
+  `.wasm`, 9 MB each) and then loads `pyodide.asm.js` synchronously, so the worker stops reading while the server is
+  still sending a big file, and the server never gets to `pyodide.asm.js`: the page never got past "starting Python"
+  (seen with `serve.py` here and with `serve.ps1` on Windows in CI). `web/worker.js` now does
+  `importScripts('pyodide/pyodide.js', 'pyodide/pyodide.asm.js')`, and Pyodide skips its own load. BlueForce's four
+  files stay exactly as they are apart from the name, the port and the version line; because `serve.py` answers one
+  request at a time like `serve.ps1`, every page test through it also guards this.
+- **One browser tab for KRONOS.** A one-request-at-a-time server waits for whoever it is sending to; in CI a second
+  browser that stopped reading (the runner's Edge) held up the others for minutes. On the work PC, use one tab.
 
 ## 5. The zip
 
@@ -177,14 +183,14 @@ skipping):
 | Check | Where |
 | --- | --- |
 | The launcher is CRLF, tries node, py -3, python, PowerShell in that order, and passes `"%CD%\app"` | always |
-| `serve.ps1` keeps `param([string]$AppFolder)`, `Open-Browser` and no bare `Start-Process "http`; all three servers use 5181 on localhost only and send `.wasm` as `application/wasm`; `serve.py` is threaded | always |
+| `serve.ps1` keeps `param([string]$AppFolder)`, `Open-Browser` and no bare `Start-Process "http`; all three servers use 5181 on localhost only and send `.wasm` as `application/wasm`; `serve.py` answers one request at a time, like `serve.ps1` | always |
 | The pins are well formed, lark's equals `requirements.txt`, every licence is committed; the test tools are pinned with hashes | always |
 | The manifest holds every module `kronos_web` imports, every `compiler/*.py` and every `kronos.spec` data file | always |
-| The page uses only what Chrome 109 and Firefox 115 have and names no outside address; the look is BlueForce's values | always |
+| The page uses only what Chrome 109 and Firefox 115 have and names no outside address; the worker loads `pyodide.asm.js` first; the look is BlueForce's values | always |
 | `kronos_web` answers a proven recipe, a broken one, a failing TEST, a question, a reply with no recipe and a whole AI reply | always |
 | The zip's name and file list, nothing stray; CRLF and the version line where they belong; the toolchain byte for byte; the same inputs give the same bytes | needs the downloads |
 | Under Pyodide in Node.js, `kronos_web.check` equals normal Python's text, with the same steps | needs the downloads and Node.js |
-| From a freshly unpacked zip, `serve.mjs` and `serve.py` (and on Windows `serve.ps1`, started as the .bat starts it) serve every file, `.wasm` as `application/wasm`, and 404 for anything else or outside `app/` | needs the downloads |
+| From a freshly unpacked zip, `serve.mjs` and `serve.py` (and on Windows `serve.ps1`, started as the .bat starts it but opening no browser) serve every file, `.wasm` as `application/wasm`, and nothing outside `app/` (404; Windows itself answers 403 to a path that climbs out) | needs the downloads |
 | With Playwright and every request outside localhost blocked: the version line, Cancel while Python starts, Python ready, the example PROVEN with exactly normal Python's answer, a broken recipe NOT PROVEN with its problems, an empty box, no page errors | needs Playwright; CI: today's Chromium, Chromium 109 and Firefox 115 on Ubuntu 22.04, and Chromium on Windows through all three servers |
 | The launcher itself on Windows with no Node.js or Python on the PATH: it falls back to PowerShell, which serves the page and the `.wasm` file and prints the version | CI, `powershell` job |
 

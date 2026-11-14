@@ -8,7 +8,11 @@
 // {type: 'ready', python, pyodide, files}, {type: 'step', id, name}, {type: 'result', id, json} and
 // {type: 'error', id, message, details, fatal}.
 
-importScripts('pyodide/pyodide.js')
+// pyodide.asm.js is loaded here, before loadPyodide starts its big downloads (the Python library and the .wasm, 9 MB
+// each). Pyodide would otherwise load it itself, synchronously, while those downloads wait unread, and a server that
+// answers one request at a time (BlueForce's PowerShell server, which the work PC uses) would wait for them to be
+// read before sending pyodide.asm.js: neither side could move (D86). Pyodide skips its own load when it is here.
+importScripts('pyodide/pyodide.js', 'pyodide/pyodide.asm.js')
 
 const ROOT = '/kronos'   // compiler/resources.py finds vcl/ and vba/ beside compiler/
 let kronos = null

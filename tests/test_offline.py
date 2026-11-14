@@ -168,10 +168,10 @@ class Servers(unittest.TestCase):
         for name in B.SERVERS:
             self.assertRegex(self.read(name), r"'\.wasm'\s*[:=]\s*'application/wasm'", name)
 
-    def test_the_python_server_answers_connections_side_by_side(self):   # one at a time stalls Pyodide (D86)
-        text = self.read("serve.py")
-        self.assertIn("server = socketserver.ThreadingTCPServer(('127.0.0.1', PORT)", text)
-        self.assertNotIn("socketserver.TCPServer", text)
+    def test_the_python_server_answers_one_request_at_a_time_like_the_powershell_one(self):   # D86
+        # BlueForce's serve.py, unchanged in this: so every page test through it also checks that the page loads from
+        # a server that answers one request at a time, as serve.ps1 does on the work PC
+        self.assertIn("server = socketserver.TCPServer(('127.0.0.1', PORT)", self.read("serve.py"))
 
 
 class Pins(unittest.TestCase):
@@ -285,7 +285,9 @@ class Page(unittest.TestCase):
             self.assertNotRegex(sources[name], r"(?m)^\s*(import|export)\s", name)
             self.assertNotRegex(sources[name], r"(?<![\w.])import\(", name)   # pyodide.pyimport( is Pyodide's
         self.assertIn("new Worker('worker.js')", sources["app.js"])   # a classic worker
-        self.assertIn("importScripts('pyodide/pyodide.js')", sources["worker.js"])
+        # pyodide.asm.js first, so Pyodide never loads it while its big downloads wait unread (a one-request-at-a-time
+        # server would then wait for them forever, D86)
+        self.assertIn("importScripts('pyodide/pyodide.js', 'pyodide/pyodide.asm.js')", sources["worker.js"])
         self.assertEqual(sources["index.html"].count(B.PAGE_MARK), 1)
 
     def test_the_look_is_blueforces(self):
