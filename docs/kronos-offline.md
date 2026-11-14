@@ -100,18 +100,32 @@ Also keep:
 - No Node.js advice for old Windows: current Node.js needs Windows 10 or later. On older Windows the PowerShell server
   is the way.
 - Boss never runs commands in a terminal: everything is a double-click.
-- **KRONOS's own finding (D86): the worker loads `pyodide.asm.js` itself, first.** BlueForce's `serve.py` and
-  `serve.ps1` answer one request at a time. Pyodide starts downloading its two big files (the Python library and the
-  `.wasm`, 9 MB each) and then loads `pyodide.asm.js` synchronously, so the worker stops reading while the server is
-  still sending a big file, and the server never gets to `pyodide.asm.js`: the page never got past "starting Python"
-  (seen with `serve.py` here and with `serve.ps1` on Windows in CI). `web/worker.js` now does
-  `importScripts('pyodide/pyodide.js', 'pyodide/pyodide.asm.js')`, and Pyodide skips its own load. BlueForce's four
-  files stay exactly as they are apart from the name, the port and the version line; because `serve.py` answers one
-  request at a time like `serve.ps1`, every page test through it also guards this.
-- **A one-request-at-a-time server waits for whoever it is sending to.** So a page that stops reading holds up
-  everything else: before the fix above, the launcher step in CI waited four minutes for a 404 behind the Edge window
-  that `Open-Browser` had opened; after it, the same requests are answered in under a second while Edge loads the
-  page. Never add a synchronous load (`importScripts`, a synchronous XMLHttpRequest) while a download is under way.
+- **KRONOS's first finding (D86): the worker loads `pyodide.asm.js` itself, first.** `serve.ps1` answers the
+  requests in the order they come, each to its end before the next. Pyodide starts downloading its two big files (the
+  Python library and the `.wasm`, 9 MB each) and then loads `pyodide.asm.js` synchronously, so the worker stops
+  reading while the server is still sending a big file, and the server never gets to `pyodide.asm.js`: the page never
+  got past "starting Python" (on Windows in CI, where the launcher step also waited four minutes for a 404 behind the
+  Edge window that `Open-Browser` had opened). `web/worker.js` now does
+  `importScripts('pyodide/pyodide.js', 'pyodide/pyodide.asm.js')`, and Pyodide skips its own load; the same requests
+  are then answered in under a second. **Never add a synchronous load** (`importScripts`, a synchronous
+  XMLHttpRequest) while a download is under way: such a server waits for whoever it is sending to.
+- **KRONOS's second finding (D86, version 2): `serve.py` gives every connection its own thread.** A browser keeps
+  spare connections open without asking for anything. BlueForce's `serve.py` reads one connection at a time, so while
+  such a connection is open it answers nobody: a test shows it without a browser (one idle connection, and version
+  1's `serve.py` gives no answer; `serve.mjs` answers in 0.02 s). No run here has shown a browser causing it, but
+  Python's own `python -m http.server` has used threads since 3.7 for exactly this. `ThreadingTCPServer` is the one
+  change to BlueForce's four files beyond the name, the port and the version line. `serve.mjs` and `serve.ps1` never
+  had the weakness: Node.js and Windows take in every connection at once. BlueForce's own `serve.py` has it, on a PC
+  with Python and no Node.js.
+- **How the tests keep both.** A stand-in in `tests/test_offline.py` (`OneAnswerAtATime`) answers the way `serve.ps1`
+  does, on any computer: every request is taken in at once, and one loop answers them in the order they came. The
+  page test runs through it on every browser (the page's old loader hangs on it), and on Windows through `serve.ps1`
+  itself. A second test opens a connection that asks for nothing and then fetches a file from each real server.
+- **A test keeps a server's output in a file, never in a pipe.** The one failed Windows run of the page test was the
+  test's own fault: nobody reads a pipe while the server runs, a Windows pipe holds 4 KB, `serve.py` prints a
+  traceback for every download the browser gives up, and in the middle of its third one it blocked and served nothing
+  more. In a console window, as in real use, that can't happen. (I first took that failure for the spare connection
+  above; the log, cut off at 4,096 bytes, said otherwise.)
 
 ## 5. The zip
 
@@ -188,15 +202,15 @@ skipping):
 | Check | Where |
 | --- | --- |
 | The launcher is CRLF, tries node, py -3, python, PowerShell in that order, and passes `"%CD%\app"` | always |
-| `serve.ps1` keeps `param([string]$AppFolder)`, `Open-Browser` and no bare `Start-Process "http`; all three servers use 5181 on localhost only and send `.wasm` as `application/wasm`; `serve.py` answers one request at a time, like `serve.ps1` | always |
+| `serve.ps1` keeps `param([string]$AppFolder)`, `Open-Browser` and no bare `Start-Process "http`; all three servers use 5181 on localhost only and send `.wasm` as `application/wasm`; `serve.py` gives every connection its own thread | always |
 | The pins are well formed, lark's equals `requirements.txt`, every licence is committed; the test tools are pinned with hashes | always |
 | The manifest holds every module `kronos_web` imports, every `compiler/*.py` and every `kronos.spec` data file | always |
 | The page uses only what Chrome 109 and Firefox 115 have and names no outside address; the worker loads `pyodide.asm.js` first; the look is BlueForce's values | always |
 | `kronos_web` answers a proven recipe, a broken one, a failing TEST, a question, a reply with no recipe and a whole AI reply | always |
 | The zip's name and file list, nothing stray; CRLF and the version line where they belong; the toolchain byte for byte; the same inputs give the same bytes | needs the downloads |
 | Under Pyodide in Node.js, `kronos_web.check` equals normal Python's text, with the same steps | needs the downloads and Node.js |
-| From a freshly unpacked zip, `serve.mjs` and `serve.py` (and on Windows `serve.ps1`, started as the .bat starts it but opening no browser) serve every file, `.wasm` as `application/wasm`, and nothing outside `app/` (404; Windows itself answers 403 to a path that climbs out) | needs the downloads |
-| With Playwright and every request outside localhost blocked: the version line, Cancel while Python starts, Python ready, the example PROVEN with exactly normal Python's answer, a broken recipe NOT PROVEN with its problems, an empty box, no page errors | needs Playwright; CI: today's Chromium, Chromium 109 and Firefox 115 on Ubuntu 22.04, and Chromium on Windows through all three servers |
+| From a freshly unpacked zip, `serve.mjs` and `serve.py` (and on Windows `serve.ps1`, started as the .bat starts it but opening no browser) serve every file, `.wasm` as `application/wasm`, and nothing outside `app/` (404; Windows itself answers 403 to a path that climbs out); each still answers while a connection that asks for nothing is open | needs the downloads |
+| With Playwright and every request outside localhost blocked: the version line, Cancel while Python starts, Python ready, the example PROVEN with exactly normal Python's answer, a broken recipe NOT PROVEN with its problems, an empty box, no page errors | needs Playwright; through each server and the PowerShell stand-in; CI: today's Chromium, Chromium 109 and Firefox 115 on Ubuntu 22.04, and Chromium on Windows through all three servers and the stand-in |
 | The launcher itself on Windows with no Node.js or Python on the PATH: it falls back to PowerShell, which serves the page and the `.wasm` file and prints the version | CI, `powershell` job |
 
 What CI can't check: Windows PowerShell 2 (GitHub's Windows machines have 5.1, and version 2 can't be run there), and
@@ -249,7 +263,7 @@ BlueForce is built with React and Ant Design; KRONOS Offline recreates the look 
 
 Each phase is one pull request with green CI and screenshots for Boss, and hands over a new version.
 
-**Phase 1, the proof (done, version 1, D86):** the decision; this file; `build_offline.py`; the four server files; a
+**Phase 1, the proof (done, versions 1 and 2, D86):** the decision; this file; `build_offline.py`; the four server files; a
 one-screen page in BlueForce's look that loads Pyodide offline and checks, tests and builds a pasted recipe (or a
 whole AI reply), showing PROVEN or the problems, with the practice example and Cancel; the CI checks; the release
 workflow.
@@ -297,4 +311,9 @@ Boss's whole brief, word for word, with BlueForce's original four files, is in t
 
 | Version | Date | Built from (main) | What changed |
 | --- | --- | --- | --- |
-| 1 | 14-11-2026 | (added after the release) | The proof: one screen that checks, tests and builds a pasted recipe in the browser, offline, with the practice example and Cancel. |
+| 1 | 14-11-2026 | `2ed9f79` | The proof: one screen that checks, tests and builds a pasted recipe in the browser, offline, with the practice example and Cancel. |
+| 2 | 14-11-2026 | (added after the release) | The Python server (`serve.py`) gives every connection its own thread: version 1's answers nobody while a connection is open that asks for nothing, as a browser's spare one (not seen with a real browser). One sentence of the page no longer says "this first version". The PowerShell and Node.js servers are as in version 1. |
+
+Each copy is the release `kronos-offline-v<N>`, and its SHA-256 is on its release page and in the `.sha256.txt`
+beside the zip. Version 1's is `8bc0685b19bad6bce4c0042e628bcb589deda223133acf059a84e7a3b890b8a1`; a second build of
+the same commit, on another machine, gave the same bytes.

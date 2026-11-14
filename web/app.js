@@ -1,4 +1,4 @@
-// KRONOS Offline, version 1's one screen (D86): paste a recipe, check it in the browser, see PROVEN or the
+// KRONOS Offline, Phase 1's one screen (D86): paste a recipe, check it in the browser, see PROVEN or the
 // problems. The checking runs in worker.js; Cancel stops that worker and starts a fresh one. Plain JavaScript
 // that Chrome 109 and Firefox 115 run, with no framework and no build step.
 (function () {
@@ -203,7 +203,7 @@
         parts.push(el('h2', {}, 'Warnings (the recipe still passes)'))
         parts.push(table(['Where', 'Warning', 'Code'], ['col-where', '', 'col-code'], warnings.map((f) => [where(f), f.message, f.code])))
       }
-      parts.push(el('p', { class: 'details muted' }, 'This first version checks recipes only. Asking the AI and saving the macro come in the next version.'))
+      parts.push(el('p', { class: 'details muted' }, 'For now KRONOS Offline only checks recipes. Asking the AI and saving the macro come in a later version.'))
     } else {
       parts.push(banner('not-proven', 'NOT PROVEN', `${capital(data.words)}.`))
       const rows = problemRows(data)

@@ -14,11 +14,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Cache-Control', 'no-cache')
         super().end_headers()
 
+# One thread for each connection (they end with the program). A browser keeps spare connections
+# open without asking for anything, and a server that reads one connection at a time waits on
+# such a connection for ever, so the page stops loading.
+socketserver.ThreadingTCPServer.daemon_threads = True
 # Mac and Linux keep a just-closed port reserved for a while, so allow re-using it. Not on Windows,
 # where that would let two copies share the port without noticing.
 socketserver.TCPServer.allow_reuse_address = os.name != 'nt'
 try:
-    server = socketserver.TCPServer(('127.0.0.1', PORT), functools.partial(Handler, directory=ROOT))
+    server = socketserver.ThreadingTCPServer(('127.0.0.1', PORT), functools.partial(Handler, directory=ROOT))
 except OSError:
     print(f'\nPort {PORT} is busy. KRONOS may already be running: open http://localhost:{PORT}/ in your browser.\n')
     sys.exit(1)

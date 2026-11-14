@@ -6,26 +6,31 @@ list is in order, the page uses only what Chrome 109 and Firefox 115 have, and c
 
 Needing the downloads (Pyodide, the lark wheel, Inter): the zip is built and checked; under Pyodide in Node.js,
 kronos_web.check gives exactly normal Python's text for the 12 specs and the examples; the built zip's servers serve
-it; and with Playwright, with every request outside localhost blocked, the page proves the example, shows the
-problems of a broken recipe and cancels. Without the network, Node.js or Playwright these skip; with
-KRONOS_OFFLINE_REQUIRED=1 (CI's build-offline.yml) they fail instead.
+it, also while a connection that asks for nothing is open; and with Playwright, with every request outside localhost
+blocked, the page proves the example, shows the problems of a broken recipe and cancels, through each server and
+through a stand-in that answers one request at a time as the PowerShell server does. Without the network, Node.js or
+Playwright these skip; with KRONOS_OFFLINE_REQUIRED=1 (CI's build-offline.yml) they fail instead.
 
     KRONOS_OFFLINE_BUILD=<folder>     use a copy build_offline.py already built there (with build-info.json)
     KRONOS_OFFLINE_BROWSER=firefox    the page test's browser (default chromium)
     KRONOS_OFFLINE_BROWSER_PATH=<exe> a browser already on this computer, instead of Playwright's own
     KRONOS_OFFLINE_SHOTS=<folder>     save screenshots of the page there
 """
+import http.server
 import json
 import os
+import queue
 import re
 import shutil
 import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -168,10 +173,10 @@ class Servers(unittest.TestCase):
         for name in B.SERVERS:
             self.assertRegex(self.read(name), r"'\.wasm'\s*[:=]\s*'application/wasm'", name)
 
-    def test_the_python_server_answers_one_request_at_a_time_like_the_powershell_one(self):   # D86
-        # BlueForce's serve.py, unchanged in this: so every page test through it also checks that the page loads from
-        # a server that answers one request at a time, as serve.ps1 does on the work PC
-        self.assertIn("server = socketserver.TCPServer(('127.0.0.1', PORT)", self.read("serve.py"))
+    def test_the_python_server_gives_every_connection_its_own_thread(self):   # D86: a spare connection held it up
+        text = self.read("serve.py")
+        self.assertIn("server = socketserver.ThreadingTCPServer(('127.0.0.1', PORT)", text)
+        self.assertIn("socketserver.ThreadingTCPServer.daemon_threads = True", text)
 
 
 class Pins(unittest.TestCase):
@@ -437,9 +442,9 @@ def port_free():
         return s.connect_ex(("127.0.0.1", PORT)) != 0
 
 
-def fetch(path):
+def fetch(path, timeout=30):
     try:
-        with urllib.request.urlopen(URL + path, timeout=30) as response:
+        with urllib.request.urlopen(URL + path, timeout=timeout) as response:
             return response.status, response.headers.get("Content-Type", ""), response.read()
     except urllib.error.HTTPError as exc:
         return exc.code, exc.headers.get("Content-Type", ""), b""
@@ -447,19 +452,28 @@ def fetch(path):
 
 class Served:
     """One of the zip's servers, started from the fresh folder as the launcher starts it, stopped afterwards. If the
-    test fails while it runs, what the server printed is shown."""
+    test fails while it runs, what the server printed is shown.
+
+    What it prints goes to a file, never to a pipe. Nobody reads a pipe while the server runs, and a full one (4 KB
+    on Windows) stops a server in the middle of a line: serve.py prints a traceback for every download the browser
+    gives up, and on its third one it stopped serving, which failed the page test on Windows once (D86)."""
 
     def __init__(self, command):
         self.command = command
 
+    def said(self):
+        self.log.seek(0)
+        return self.log.read().decode("utf-8", "replace").replace("\r\n", "\n")
+
     def __enter__(self):
         if not port_free():
             raise AssertionError(f"port {PORT} is already in use: stop whatever runs there first")
-        # BROWSER: Python's webbrowser runs `true` instead of opening a browser. PYTHONUNBUFFERED: Python prints its
-        # start message at once, as it does in the black window (into a pipe it would wait for a full buffer).
+        # BROWSER: Python's webbrowser runs `true` instead of opening a browser. PYTHONUNBUFFERED: Python writes its
+        # start message at once, as it does in the black window (into a file it would wait for a full buffer).
         env = dict(os.environ, BROWSER="true", PYTHONUNBUFFERED="1")
-        self.process = subprocess.Popen(self.command, cwd=unpacked(), env=env, stdout=subprocess.PIPE,
-                                        stderr=subprocess.STDOUT, text=True)
+        self.log = tempfile.TemporaryFile()
+        self.process = subprocess.Popen(self.command, cwd=unpacked(), env=env, stdout=self.log,
+                                        stderr=subprocess.STDOUT)
         for _ in range(100):
             if not port_free():
                 return self
@@ -467,15 +481,18 @@ class Served:
                 break
             time.sleep(0.1)
         self.process.kill()
-        raise AssertionError(f"{self.command} did not start: {self.process.communicate()[0]}")
+        self.process.wait()
+        raise AssertionError(f"{self.command} did not start: {self.said()}")
 
     def __exit__(self, kind, value, trace):
         self.process.terminate()
         try:
-            self.output = self.process.communicate(timeout=10)[0]
+            self.process.wait(timeout=10)
         except subprocess.TimeoutExpired:
             self.process.kill()
-            self.output = self.process.communicate()[0]
+            self.process.wait()
+        self.output = self.said()
+        self.log.close()
         if kind is not None:
             print(f"\n--- {self.command[-1]} said:\n{self.output}", file=sys.stderr)
         for _ in range(50):
@@ -506,7 +523,99 @@ def servers():
     return found
 
 
+class OneAnswerAtATime:
+    """A stand-in for serve.ps1 that runs on any computer, for the page tests. Like the real one, every request is
+    taken in as it comes (Windows does that for serve.ps1), and one loop answers them in the order they came, each
+    to its end before the next, with the same headers and the whole file every time. A page that waits for one file
+    while it leaves an earlier one unread stops for ever on such a server (D86): this is how Chromium 109 and
+    Firefox 115 are checked against that on Linux, where PowerShell's own server can't run."""
+
+    TYPES = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+             ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".json": "application/json",
+             ".wasm": "application/wasm", ".woff2": "font/woff2"}
+
+    def __enter__(self):
+        if not port_free():
+            raise AssertionError(f"port {PORT} is already in use: stop whatever runs there first")
+        self.root, self.waiting = (unpacked() / "app").resolve(), queue.Queue()
+        waiting = self.waiting
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"   # a connection stays open between requests, as with the real one
+            disable_nagle_algorithm = True   # send each piece at once, so that a small answer doesn't wait 40 ms
+
+            def do_GET(self):   # hand the request to the loop, and wait for its answer
+                answered = threading.Event()
+                waiting.put((self, answered))
+                answered.wait()
+
+            def log_message(self, *args):
+                pass
+
+        class Server(http.server.ThreadingHTTPServer):
+            def handle_error(self, request, client_address):   # a browser that stopped listening is not news
+                pass
+
+        self.server = Server(("127.0.0.1", PORT), Handler)
+        threading.Thread(target=self.answer, daemon=True).start()
+        threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True).start()
+        return self
+
+    def answer(self):
+        """serve.ps1's loop: the next request that came, its whole file, then the one after it."""
+        while True:
+            request, answered = self.waiting.get()
+            if request is None:
+                return
+            try:
+                relative = urllib.parse.unquote(urllib.parse.urlsplit(request.path).path).lstrip("/") or "index.html"
+                file = (self.root / relative).resolve()
+                found = self.root in file.parents and file.is_file()
+                body = file.read_bytes() if found else b""
+                request.send_response(200 if found else 404)
+                if found:
+                    request.send_header("Content-Type", self.TYPES.get(file.suffix.lower(), "application/octet-stream"))
+                    request.send_header("Cache-Control", "no-cache")
+                request.send_header("Content-Length", str(len(body)))
+                request.end_headers()
+                request.wfile.write(body)
+            except Exception:   # noqa: BLE001 (the browser hung up, as after Cancel: on to the next request)
+                request.close_connection = True
+            finally:
+                answered.set()
+
+    def __exit__(self, kind, value, trace):
+        self.server.shutdown()
+        self.server.server_close()
+        self.waiting.put((None, None))
+        self.output = ""
+
+
+def page_servers():
+    """[(name, a way to start it)]: the zip's servers, and the stand-in for the PowerShell one."""
+    real = [(name, lambda command=command: Served(command)) for name, command in servers()]
+    return real + [("one-answer-at-a-time", OneAnswerAtATime)]
+
+
 class Serving(unittest.TestCase):
+    def test_a_connection_that_asks_for_nothing_holds_up_nobody(self):
+        """A browser keeps spare connections open without asking for anything. A server that reads one connection at
+        a time waits on such a connection and answers nobody else: BlueForce's serve.py does (D86). Not seen with a
+        real browser in any run; this shows it without one."""
+        fresh = unpacked()
+        for name, command in servers():
+            with self.subTest(server=name), Served(command):
+                with socket.create_connection(("127.0.0.1", PORT), timeout=10):
+                    time.sleep(0.5)   # the spare connection is the first one the server gets
+                    began = time.monotonic()
+                    try:
+                        status, _, body = fetch("worker.js", timeout=20)
+                    except OSError as exc:   # a timeout, when the server waits on the spare connection
+                        self.fail(f"{name} gave no answer while a connection that asks for nothing was open: {exc}")
+                    self.assertEqual(status, 200)
+                    self.assertEqual(body, (fresh / "app" / "worker.js").read_bytes())
+                    self.assertLess(time.monotonic() - began, 15)
+
     def test_each_server_serves_the_app_and_nothing_outside_it(self):
         fresh = unpacked()
         _, info = built()
@@ -599,8 +708,8 @@ class InTheBrowser(unittest.TestCase):
 
     def test_the_page_proves_the_example_shows_problems_and_cancels(self):
         _, info = built()
-        for name, command in servers():
-            with self.subTest(server=name), Served(command):
+        for name, start in page_servers():
+            with self.subTest(server=name), start():
                 page = self.open(name)
                 self.assertEqual(page.text_content("#version"), f"Version {info['version']} · {info['date']}")
                 self.assertEqual(page.locator("#old-browser").count(), 0)   # only a browser that can't run it keeps it
