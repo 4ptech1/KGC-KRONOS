@@ -1,0 +1,34 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c092",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 5,
+  "killed": 99,
+  "note": "DICT_ADD(pqrs, key, \"OK\" -> other text) in MarkPqrRemarks: the stored text is only ever compared with \"Fail\", so any other text gives the same remarks. LET(outRow, 2 -> 3) and LET(outRow, outRow + 1 -> + 2) in ListProblemWps and in WriteProcessSummary only leave blank gap rows between the written rows; the SORT that follows in each TASK puts blank rows last, beyond the used range, so both final sheets are the same",
+  "total": 104
+ },
+ "op_lines": 65,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "wps_pqr"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}

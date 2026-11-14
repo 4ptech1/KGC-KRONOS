@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c079",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 36,
+  "note": "",
+  "total": 36
+ },
+ "op_lines": 20,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "wps_pqr"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}
