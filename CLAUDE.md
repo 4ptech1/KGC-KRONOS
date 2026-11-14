@@ -323,8 +323,12 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    done: version 1 checks, tests and builds a pasted recipe offline, its answers equal normal Python's, and CI checks the
    zip, the servers (PowerShell on Windows included) and the page on today's Chromium, Chromium 109 and Firefox 115;
    it is published as the release `kronos-offline-v1` (built from main `2ed9f79` by `build-offline.yml`; its SHA-256
-   is on the release page, and the downloaded zip passed every check again). **Next: Boss tries
-   version 1 on the work PC; then Phase 2, the wizard** (the four steps with the copy-paste AI step and the .bas
+   is on the release page, and the downloaded zip passed every check again). Version 2, the same day, only makes the
+   Python server (`serve.py`) give every connection its own thread, after it stalled in CI on Windows; the page and the
+   PowerShell server, which the work PC uses, are unchanged. Two rules came out of Phase 1 for every later phase: the
+   page never loads anything synchronously while a download is under way, and the tests run the page through a
+   stand-in that answers one request at a time as `serve.ps1` does. **Next: Boss tries
+   the newest version on the work PC; then Phase 2, the wizard** (the four steps with the copy-paste AI step and the .bas
    download), then Phase 3 (History, the practice-run check, the corpus suggestion, Help), each its own plan, PR and
    version.
 

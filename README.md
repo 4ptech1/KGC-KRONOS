@@ -358,5 +358,7 @@ Dataset count: 91 proven pairs of the planned 150: 83 in `data/verified/` and 8 
   BlueForce's look; its answers equal normal Python's for every spec. CI checks the zip, the three servers (the
   launcher's PowerShell fallback on Windows included) and the page on today's Chromium, Chromium 109 and Firefox 115.
   The tests found that Pyodide's loader deadlocks a server that answers one request at a time, as BlueForce's PowerShell
-  server does; the page now loads Pyodide's main script first, and BlueForce's servers stay unchanged. Version 1 is
-  published as the release `kronos-offline-v1`.
+  server does; the page now loads Pyodide's main script first. Version 1 is published as the release
+  `kronos-offline-v1`. Version 2 followed the same day: BlueForce's Python server read one connection at a time and
+  stalled when the browser kept a spare connection open (met in CI on Windows), so it now gives every connection its
+  own thread; the PowerShell and Node.js servers never had the problem.
