@@ -452,19 +452,28 @@ def fetch(path, timeout=30):
 
 class Served:
     """One of the zip's servers, started from the fresh folder as the launcher starts it, stopped afterwards. If the
-    test fails while it runs, what the server printed is shown."""
+    test fails while it runs, what the server printed is shown.
+
+    What it prints goes to a file, never to a pipe. Nobody reads a pipe while the server runs, and a full one (4 KB
+    on Windows) stops a server in the middle of a line: serve.py prints a traceback for every download the browser
+    gives up, and on its third one it stopped serving, which failed the page test on Windows once (D86)."""
 
     def __init__(self, command):
         self.command = command
 
+    def said(self):
+        self.log.seek(0)
+        return self.log.read().decode("utf-8", "replace").replace("\r\n", "\n")
+
     def __enter__(self):
         if not port_free():
             raise AssertionError(f"port {PORT} is already in use: stop whatever runs there first")
-        # BROWSER: Python's webbrowser runs `true` instead of opening a browser. PYTHONUNBUFFERED: Python prints its
-        # start message at once, as it does in the black window (into a pipe it would wait for a full buffer).
+        # BROWSER: Python's webbrowser runs `true` instead of opening a browser. PYTHONUNBUFFERED: Python writes its
+        # start message at once, as it does in the black window (into a file it would wait for a full buffer).
         env = dict(os.environ, BROWSER="true", PYTHONUNBUFFERED="1")
-        self.process = subprocess.Popen(self.command, cwd=unpacked(), env=env, stdout=subprocess.PIPE,
-                                        stderr=subprocess.STDOUT, text=True)
+        self.log = tempfile.TemporaryFile()
+        self.process = subprocess.Popen(self.command, cwd=unpacked(), env=env, stdout=self.log,
+                                        stderr=subprocess.STDOUT)
         for _ in range(100):
             if not port_free():
                 return self
@@ -472,15 +481,18 @@ class Served:
                 break
             time.sleep(0.1)
         self.process.kill()
-        raise AssertionError(f"{self.command} did not start: {self.process.communicate()[0]}")
+        self.process.wait()
+        raise AssertionError(f"{self.command} did not start: {self.said()}")
 
     def __exit__(self, kind, value, trace):
         self.process.terminate()
         try:
-            self.output = self.process.communicate(timeout=10)[0]
+            self.process.wait(timeout=10)
         except subprocess.TimeoutExpired:
             self.process.kill()
-            self.output = self.process.communicate()[0]
+            self.process.wait()
+        self.output = self.said()
+        self.log.close()
         if kind is not None:
             print(f"\n--- {self.command[-1]} said:\n{self.output}", file=sys.stderr)
         for _ in range(50):
@@ -588,8 +600,8 @@ def page_servers():
 class Serving(unittest.TestCase):
     def test_a_connection_that_asks_for_nothing_holds_up_nobody(self):
         """A browser keeps spare connections open without asking for anything. A server that reads one connection at
-        a time waits on such a connection for ever, and the page stops loading: BlueForce's serve.py did, and the
-        page test met it on Windows about one run in six (D86)."""
+        a time waits on such a connection and answers nobody else: BlueForce's serve.py does (D86). Not seen with a
+        real browser in any run; this shows it without one."""
         fresh = unpacked()
         for name, command in servers():
             with self.subTest(server=name), Served(command):

@@ -110,17 +110,22 @@ Also keep:
   are then answered in under a second. **Never add a synchronous load** (`importScripts`, a synchronous
   XMLHttpRequest) while a download is under way: such a server waits for whoever it is sending to.
 - **KRONOS's second finding (D86, version 2): `serve.py` gives every connection its own thread.** A browser keeps
-  spare connections open without asking for anything. BlueForce's `serve.py` reads one connection at a time, so it
-  waited on such a connection for ever and the page stopped loading (on Windows in CI, about one run in six, after
-  Cancel; Python's own `python -m http.server` has used threads since 3.7 for the same reason). `ThreadingTCPServer` is the one
+  spare connections open without asking for anything. BlueForce's `serve.py` reads one connection at a time, so while
+  such a connection is open it answers nobody: a test shows it without a browser (one idle connection, and version
+  1's `serve.py` gives no answer; `serve.mjs` answers in 0.02 s). No run here has shown a browser causing it, but
+  Python's own `python -m http.server` has used threads since 3.7 for exactly this. `ThreadingTCPServer` is the one
   change to BlueForce's four files beyond the name, the port and the version line. `serve.mjs` and `serve.ps1` never
-  had the problem: Node.js and Windows take in every connection at once. BlueForce's own `serve.py` has it, on a PC
+  had the weakness: Node.js and Windows take in every connection at once. BlueForce's own `serve.py` has it, on a PC
   with Python and no Node.js.
 - **How the tests keep both.** A stand-in in `tests/test_offline.py` (`OneAnswerAtATime`) answers the way `serve.ps1`
   does, on any computer: every request is taken in at once, and one loop answers them in the order they came. The
   page test runs through it on every browser (the page's old loader hangs on it), and on Windows through `serve.ps1`
-  itself. A second test opens a connection that asks for nothing and then fetches a file from each real server
-  (version 1's `serve.py` never answered).
+  itself. A second test opens a connection that asks for nothing and then fetches a file from each real server.
+- **A test keeps a server's output in a file, never in a pipe.** The one failed Windows run of the page test was the
+  test's own fault: nobody reads a pipe while the server runs, a Windows pipe holds 4 KB, `serve.py` prints a
+  traceback for every download the browser gives up, and in the middle of its third one it blocked and served nothing
+  more. In a console window, as in real use, that can't happen. (I first took that failure for the spare connection
+  above; the log, cut off at 4,096 bytes, said otherwise.)
 
 ## 5. The zip
 
@@ -307,7 +312,7 @@ Boss's whole brief, word for word, with BlueForce's original four files, is in t
 | Version | Date | Built from (main) | What changed |
 | --- | --- | --- | --- |
 | 1 | 14-11-2026 | `2ed9f79` | The proof: one screen that checks, tests and builds a pasted recipe in the browser, offline, with the practice example and Cancel. |
-| 2 | 14-11-2026 | (added after the release) | The Python server (`serve.py`) gives every connection its own thread: version 1's stopped answering when the browser kept a spare connection open. The page and the PowerShell and Node.js servers are as in version 1. |
+| 2 | 14-11-2026 | (added after the release) | The Python server (`serve.py`) gives every connection its own thread: version 1's answers nobody while a connection is open that asks for nothing, as a browser's spare one (not seen with a real browser). The page and the PowerShell and Node.js servers are as in version 1. |
 
 Each copy is the release `kronos-offline-v<N>`, and its SHA-256 is on its release page and in the `.sha256.txt`
 beside the zip. Version 1's is `8bc0685b19bad6bce4c0042e628bcb589deda223133acf059a84e7a3b890b8a1`; a second build of
