@@ -1,0 +1,1 @@
+In the Calibration Tracker (Instrument ID, Type, Location, Status) the Status cells are typed many ways. Make every status that reads ok, in cal or calibrated (any case, stray spaces) read exactly Calibrated, and every one that reads oos or out of service read exactly Out of Service. Leave any other status and blank cells alone, and tell me how many cells I changed.
