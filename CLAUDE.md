@@ -325,8 +325,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    it is published as the release `kronos-offline-v1` (built from main `2ed9f79` by `build-offline.yml`; its SHA-256
    is on the release page, and the downloaded zip passed every check again). Version 2, the same day, only makes the
    Python server (`serve.py`) give every connection its own thread (version 1's answers nobody while an idle
-   connection is open; not seen with a real browser); the page and the PowerShell server, which the work PC uses, are
-   unchanged. Three rules came out of Phase 1 for every later phase: the page never loads anything synchronously
+   connection is open; not seen with a real browser); the page, but for one sentence, and the PowerShell server, which
+   the work PC uses, are unchanged. Three rules came out of Phase 1 for every later phase: the page never loads anything synchronously
    while a download is under way; the tests run the page through a stand-in that answers one request at a time as
    `serve.ps1` does; and a test keeps a server's output in a file, never a pipe (a full 4 KB pipe stopped `serve.py`
    in one Windows run). **Next: Boss tries
