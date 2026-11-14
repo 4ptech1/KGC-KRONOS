@@ -444,7 +444,9 @@ class Served:
     def __enter__(self):
         if not port_free():
             raise AssertionError(f"port {PORT} is already in use: stop whatever runs there first")
-        env = dict(os.environ, BROWSER="true")   # Python's webbrowser runs `true` instead of opening a browser
+        # BROWSER: Python's webbrowser runs `true` instead of opening a browser. PYTHONUNBUFFERED: Python prints its
+        # start message at once, as it does in the black window (into a pipe it would wait for a full buffer).
+        env = dict(os.environ, BROWSER="true", PYTHONUNBUFFERED="1")
         self.process = subprocess.Popen(self.command, cwd=unpacked(), env=env, stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT, text=True)
         for _ in range(100):
@@ -494,26 +496,30 @@ class Serving(unittest.TestCase):
         fresh = unpacked()
         _, info = built()
         for name, command in servers():
-            with self.subTest(server=name), Served(command) as served:
-                status, kind, body = fetch("")
-                self.assertEqual((status, kind.split(";")[0]), (200, "text/html"))
-                self.assertIn(f"Version {info['version']}".encode(), body)
-                status, kind, body = fetch("pyodide/pyodide.asm.wasm")
-                self.assertEqual((status, kind), (200, "application/wasm"))
-                self.assertEqual(body, (fresh / "app" / "pyodide" / "pyodide.asm.wasm").read_bytes())
-                for path in ("pyodide/pyodide.js", "pyodide/python_stdlib.zip", "pyodide/pyodide-lock.json",
-                             "toolchain/manifest.json", "toolchain/vcl/grammar.lark", "toolchain/vba/ForgeLib.bas",
-                             "toolchain/compiler/kronos_web.py", "wheels/lark-1.3.1-py3-none-any.whl",
-                             "fonts/inter-latin-400-normal.woff2", "worker.js"):
-                    status, kind, body = fetch(path)
-                    self.assertEqual(status, 200, path)
-                    self.assertEqual(body, (fresh / "app" / path).read_bytes(), path)
-                    if path.endswith(".js"):
-                        self.assertEqual(kind.split(";")[0], "text/javascript", path)
-                self.assertEqual(fetch("nothing-here.txt")[0], 404)
-                self.assertEqual(fetch("..%2Fserver%2Fserve.py")[0], 404)
-            self.assertIn(f"KRONOS Offline, version {info['version']}, built {info['date']}", served.output)
-            self.assertIn(f"KRONOS is running at {URL}", served.output)
+            with self.subTest(server=name):
+                with Served(command) as served:
+                    self.serves_the_app(fresh, info)
+                self.assertIn(f"KRONOS Offline, version {info['version']}, built {info['date']}", served.output)
+                self.assertIn(f"KRONOS is running at {URL}", served.output)
+
+    def serves_the_app(self, fresh, info):
+        status, kind, body = fetch("")
+        self.assertEqual((status, kind.split(";")[0]), (200, "text/html"))
+        self.assertIn(f"Version {info['version']}".encode(), body)
+        status, kind, body = fetch("pyodide/pyodide.asm.wasm")
+        self.assertEqual((status, kind), (200, "application/wasm"))
+        self.assertEqual(body, (fresh / "app" / "pyodide" / "pyodide.asm.wasm").read_bytes())
+        for path in ("pyodide/pyodide.js", "pyodide/python_stdlib.zip", "pyodide/pyodide-lock.json",
+                     "toolchain/manifest.json", "toolchain/vcl/grammar.lark", "toolchain/vba/ForgeLib.bas",
+                     "toolchain/compiler/kronos_web.py", "wheels/lark-1.3.1-py3-none-any.whl",
+                     "fonts/inter-latin-400-normal.woff2", "worker.js"):
+            status, kind, body = fetch(path)
+            self.assertEqual(status, 200, path)
+            self.assertEqual(body, (fresh / "app" / path).read_bytes(), path)
+            if path.endswith(".js"):
+                self.assertEqual(kind.split(";")[0], "text/javascript", path)
+        self.assertEqual(fetch("nothing-here.txt")[0], 404)
+        self.assertEqual(fetch("..%2Fserver%2Fserve.py")[0], 404)
 
 
 class InTheBrowser(unittest.TestCase):
