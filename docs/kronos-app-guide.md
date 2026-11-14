@@ -55,8 +55,9 @@ Send IT this message. Both are needed; nothing else is installed, and nothing ab
 
 ## 4. Download KRONOS.exe
 
-1. Open https://github.com/4ptech1/KGC-KRONOS/releases and click the newest release (named "KGC KRONOS" and a
-   version number).
+1. Open https://github.com/4ptech1/KGC-KRONOS/releases and click the newest release named "KGC KRONOS" and a
+   version number. (A release named "KRONOS Offline" is a different thing: the copy that runs in the browser with
+   nothing installed, `docs/kronos-offline.md`.)
 2. Under **Assets**, click **KRONOS.exe**. Save it in the folder IT approved.
 3. Optional check that the file is the one GitHub built: in the black window go to that folder and type
    `certutil -hashfile KRONOS.exe SHA256`. *Expected:* a long code that matches the **SHA-256** on the release page.

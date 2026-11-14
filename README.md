@@ -63,6 +63,13 @@ for up to 2 more tries. It then saves the module, with a starter macro for the r
 given as `--arg ws="Orders"`. Answers to the AI's questions go in `--answer "..."`. Each run is kept
 in `Documents/KGC KRONOS/runs/` (or `--data DIR`), never in the repo.
 
+## KRONOS Offline
+
+KRONOS in the browser, with nothing installed (`docs/kronos-offline.md`, D86): a zip with a double-click launcher,
+three tiny local servers (Node.js, Python, Windows PowerShell) and a page that runs this repo's toolchain through
+Pyodide. `python packaging/build_offline.py` builds it into `build/offline/`; a manual run of the "Build KRONOS
+Offline" workflow from `main`, with "release" ticked, publishes it as `kronos-offline-v<N>`.
+
 ## Dataset count
 
 Dataset count: 91 proven pairs of the planned 150: 83 in `data/verified/` and 8 held out in
@@ -346,3 +353,9 @@ Dataset count: 91 proven pairs of the planned 150: 83 in `data/verified/` and 8 
   91 of 150 pairs. The pairs catch 785 of 785 catchable mutants, and 31 equivalents are explained. c074 did not pass its
   three tries and is not stored: `<=` compares numbers typed as text as text, the first prompt fix to make. `data/gaps.md`
   grew by 19 language gaps, 31 wording problems and 6 tooling notes. Six helpers ran two at a time with no usage limit.
+- **2026-11-14:** KRONOS Offline, Phase 1 (D86): KRONOS in the browser with nothing installed, for the locked-down PC
+  while KRONOS.exe waits for IT. Version 1 checks, tests and builds a pasted recipe through Pyodide 0.24.1, offline, in
+  BlueForce's look; its answers equal normal Python's for every spec. CI checks the zip, the three servers (the
+  launcher's PowerShell fallback on Windows included) and the page on today's Chromium, Chromium 109 and Firefox 115.
+  The tests found that Pyodide's loader deadlocks a server that answers one request at a time, as BlueForce's PowerShell
+  server does; the page now loads Pyodide's main script first, and BlueForce's servers stay unchanged.

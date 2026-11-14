@@ -58,6 +58,7 @@ that proves every macro without Excel.
 | Boss | Locked-down work PC, browser, phone | Gives requests and decisions. Does no testing or debugging. Runs Excel only when he chooses. |
 | Orchestrator | claude.ai Project, instructions = `vcl/orchestrator_prompt.txt` | Turns a request into exactly one VCL spec in one code block, or one `# QUESTION:` line. Never writes VBA. |
 | KGC KRONOS app (item 5: the engine is built, D72; the window, a four-step wizard, comes first, D74) | KRONOS.exe on the work PC, with the Codex CLI signed in to the person's ChatGPT account | Sends the request and the same prompt to Codex, proves the reply with the toolchain, sends problems back (up to 2 more tries), saves the VBA module. Never runs VBA (D68). |
+| KRONOS Offline (D86: version 1, the proof, is done) | A folder on the work PC, nothing installed: a double-click starts a tiny local server, and the page runs in Chrome, Edge or Firefox | Checks, tests and builds a pasted recipe in the browser through Pyodide, with the repo's own toolchain. Phase 2 adds the AI step as copy and paste with an AI chat, and the .bas download. |
 | Claude Code | Cloud session on the repo (claude.ai/code) | Builds and verifies everything: code, tests, CI, PRs. Merges its own PR when CI is green. |
 | OpenAI Codex (D83) | The Codex app or CLI on Boss's own PC, in an unzipped copy of the repo | Advises, practises VCL and proposes code changes, guided by `AGENTS.md`. Never commits: changed files go into `codex_changes/` for Claude Code to review, verify and merge. |
 | You (the reader of this file) | Any Claude chat | Advise, plan, review specs, explain. Changes to the repo go through Claude Code, as a short brief. |
@@ -78,7 +79,8 @@ Boss's working policy (from `CLAUDE.md`):
 ## 3. Hard constraints (until March 2027)
 
 - **Locked-down work PC:** no Excel Trust Center changes, and no installs except KRONOS.exe and
-  the Codex CLI once IT approves them (D69). All development runs in the cloud: Claude Code on the
+  the Codex CLI once IT approves them (D69). KRONOS Offline needs no install at all: a browser page
+  served by Windows' own PowerShell (D86). All development runs in the cloud: Claude Code on the
   web, GitHub Codespaces, GitHub Actions. Macros can run on his PC (he confirmed this).
 - **Excel 2016 only.** No XLOOKUP, FILTER(), LET(), LAMBDA, dynamic arrays, TEXTJOIN, IFS or
   any other Microsoft 365 or 2019 feature, in VBA or in formulas.
@@ -118,7 +120,7 @@ Boss's working policy (from `CLAUDE.md`):
 ```
 CLAUDE.md                 standing brief for Claude Code (rules, status, next steps)
 AGENTS.md                 the front page for OpenAI Codex: CLAUDE.md first, then Codex's own rules (D83)
-DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D85)
+DECISIONS.md              every language decision (G, S, T, E, F ids) and Claude's own (D1-D86)
 README.md                 overview, how to run the checks, progress log, dataset count
 requirements.txt          one pinned dependency: lark==1.3.1 (with hash)
 vcl/spec.md               THE language reference (VCL 0.6)
@@ -144,6 +146,11 @@ compiler/gen_error_codes.py  gives new messages their codes; writes error_codes.
 compiler/vcl_formula.py   SET_FORMULA's Excel 2016 allowlist and checks (D43)
 compiler/kronos_engine.py the KGC KRONOS engine and `vclc ask`: reply reading, proof, repair loop, run folder (D72)
 compiler/kronos_ai.py     KRONOS's AI adapters: the fake AI for the tests, and the Codex CLI (D72)
+compiler/kronos_web.py    KRONOS Offline's bridge: the page's Pyodide and the tests call check(text) (D86)
+web/                      KRONOS Offline's page: index.html, styles.css, app.js, worker.js (Pyodide), logo.svg (D86)
+packaging/kronos.spec     the PyInstaller spec for KRONOS.exe (D79)
+packaging/build_offline.py  builds KRONOS Offline's zip from offline/ (launcher, servers, licences), offline_pins.json and web/ (D86)
+docs/kronos-offline.md    KRONOS Offline's recipe: the work PC, the rules, the zip, the checks, the look, the version list (D86)
 app/kronos_controller.py  the KRONOS window's wizard state, tested without a display (D75)
 app/kronos_app.py         the KRONOS window: the four-step wizard in Tkinter; --smoke runs in CI (D76)
 app/kronos_dialogs.py     the window's Settings, Recipe, History and Help dialogs (D77)
@@ -153,7 +160,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/, dist/builds/<NAME>.bas (one module per BUILD)   rebuilt by vclc, git-ignored
-tests/                    576 unit tests; conformance_cases.py is shared with the docs
+tests/                    642 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/corpus-plan.md       the plan for the 150 request and spec pairs: registers, families, gates (D64)
@@ -165,7 +172,7 @@ docs/VBA_Forge_Project_Roadmap.docx  the full roadmap (phases, gates)
 harness/, batches/        Excel batch runner, deferred (PR #4)
 data/verified/            the corpus: request and proven spec pairs c001.. (D64); data/eval is the held-out set
 templates/, library/, logs/  placeholders for later phases
-.github/workflows/        CI: unit tests, validator, vclc all, dist and docs up to date
+.github/workflows/        CI: unit tests, validator, vclc all, dist and docs up to date; KRONOS.exe (build-exe.yml); KRONOS Offline (build-offline.yml)
 ```
 
 ## 5. How a spec is verified (no Excel needed)
@@ -384,7 +391,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 612 pass (6 skipped without a display or the Codex CLI) |
+| Unit tests | 642 pass (6 skipped without a display or the Codex CLI) |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -482,6 +489,7 @@ The 12 specs:
 - #76: item 5 Phase 3b, KRONOS checked against the real Codex CLI 0.166.0: it asks `codex login status` first, stops a Codex that can't reach OpenAI, stops the whole process tree on Windows, and a Windows `codex-check` job in CI (D80).
 - Item 5 Phase 3c: the practice run, practice data and a check of Excel's answers in a new, empty workbook (D81).
 - #80: a manual workflow that checks a published KRONOS.exe on Windows (checksum and self-test); 0.5 passed (D84).
+- KRONOS Offline Phase 1, the proof: KRONOS in the browser with nothing installed, version 1 (D86).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -584,7 +592,16 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    `<name>_practice.bas`, which in a new, empty workbook builds the tests' practice data and runs the macro, and the
    window's Check a practice run compares Excel's answers with the tests. Still unproven until the pilot: Codex's real
    reply to the Orchestrator prompt, and any macro running in real Excel.
-6. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
+6. **KRONOS Offline** (Boss decided on 14 Nov 2026; `docs/kronos-offline.md`, D86): KRONOS in the browser with nothing
+   installed, like the offline copy of BlueForce (another project of Boss's) that already runs on the locked-down PC.
+   Boss unzips a folder and double-clicks Start KRONOS (Windows); a tiny local server (Node.js, Python, or Windows
+   PowerShell) shows a page in BlueForce's look, which runs the repo's own toolchain through Pyodide 0.24.1 (the last
+   release that covers Chrome 109). The AI step will be copy and paste with an AI chat; no password page; KRONOS.exe
+   stays for when IT approves it. Phase 1, the proof, is done: version 1 checks, tests and builds a pasted recipe,
+   its answers equal normal Python's, and CI checks the zip, the servers and the page on Chromium 109 and Firefox 115.
+   Next: Boss tries version 1 on the work PC; then Phase 2, the wizard with the copy-paste AI step and the .bas
+   download; then Phase 3, History, the practice-run check, the corpus suggestion and Help.
+7. **March 2027:** the new PC; train our own model from zero on in-house data (D25). It writes
    VCL, never VBA (D31). Excel conformance runs.
 
 **The AI plan** (`docs/ai-plan.md`, D31, approved by Boss on 19 Oct 2026): the model's jobs are
@@ -598,6 +615,9 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 
 **Pending Boss decisions right now:**
 0. Ask IT to approve KRONOS.exe and the Codex CLI on the work PC (needed for the pilot, Phase 4).
+0b. Try KRONOS Offline version 1 on the work PC (D86): download the zip from the release `kronos-offline-v1`, extract
+   it, double-click Start KRONOS (Windows), load the practice example and check it. Say which browser and version the
+   page's bottom line shows.
 1. Paste the VCL 0.6 prompt (`vcl/orchestrator_prompt.txt`) into the Orchestrator Project's
    instructions, once.
 2. When, if ever, to run the optional Excel pilot (`docs/excel-pilot.md`).
@@ -671,6 +691,10 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
   CLAUDE.md's "Next" list and `docs/vcl-mvp-plan.md`. Its picture still shows fine-tuning, which D25 rules out.
 - **D74:** the KRONOS window comes before everything else: a four-step wizard (Ask, Questions,
   Review, Save), the recipe hidden behind a setting, screenshots for Boss in every window PR.
+- **D86:** KRONOS Offline, Boss's four decisions: in the browser with no install, the AI step by copy and paste, no
+  password page, BlueForce's look. Pyodide 0.24.1 (the last for Chrome 109), port 5181, the zip as its own release
+  `kronos-offline-v<N>`, third-party files fetched by pinned SHA-256 and never committed; the browser runs the repo's
+  exact toolchain through `compiler/kronos_web.py`, and its answers must equal normal Python's.
 - **D49, D58:** CALL and BUILD specs: one module per BUILD, CALL `into=`, MODIFIES that follows the
   arguments; FORM and xlam wait (no UserForm can be pasted, and THIS_BOOK would be the add-in).
   The prompt teaches them from VCL 0.5, with a proven sample BUILD as Example 4.
@@ -720,6 +744,8 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 | Spec | One `.vcl` file: one TASK (a procedure) or one BUILD (several procedures). |
 | Orchestrator | The claude.ai Project that writes specs from plain requests. KRONOS sends the same prompt to Codex (D68). |
 | KGC KRONOS | The desktop app (item 5, `docs/kronos-app.md`): a typed request in, a proven VBA module out. |
+| KRONOS Offline | KRONOS in the browser with nothing installed (`docs/kronos-offline.md`, D86): a zip, a double-click, a local page running the toolchain through Pyodide. |
+| Pyodide | Python compiled to WebAssembly, so Python runs inside a web page; KRONOS Offline bundles version 0.24.1. |
 | ForgeLib | `vba/ForgeLib.bas`, the VBA runtime. Every VCL meaning is a Forge* helper. |
 | Fixture | Synthetic test data that a FIXTURE line describes; built the same way every time. |
 | stale / boundary / blank / dupes | Fixture parts that let a TEST catch a wrong macro: leftover rows, exact edge values, blank cells, repeated keys. |
@@ -3105,6 +3131,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D83 | 7 Nov 2026 | **OpenAI Codex as a second assistant, with `AGENTS.md` and a context zip (Boss's decision).** Boss asked for KRONOS in a zip with the project's purpose, progress and VCL, so that Codex has the full context, and chose (AskUserQuestion, 7 Nov 2026) all three jobs for Codex (advice and second opinions, practising VCL, helping build KRONOS's code), the Codex app or CLI on his personal PC, everything plus KRONOS.exe in the zip, and one zip now. (1) `AGENTS.md` at the root is the file Codex reads first in a project (by default only its first 32 KB, which a test keeps it under). It sends Codex to `CLAUDE.md`, the one standing brief, so the rules never drift apart, and adds only Codex's own rules; a test checks that every file it names exists. (2) Helping build changes a standing rule (Claude was the only build tool and one session works on the repo), so, conservatively: Codex never commits, pushes or opens a pull request. It puts each changed file in `codex_changes/` at its project path with a `NOTE.md` (what, why, the snapshot commit, the checks it ran), Boss sends that folder to Claude Code, and Claude reviews it, runs every check, opens the PR and merges when CI is green. Claude stays the only one who commits. (3) Recipes Codex writes outside KRONOS are practice only; they become training data only through KRONOS's Suggest for the corpus and the corpus gates (D70 read conservatively), and Codex never adds to `data/` or touches `data/eval/`. D25 is unchanged: Codex is a tool, never part of our model. (4) `vclc` now expands a wildcard such as `specs\*.vcl` itself, as the validator already did, because Windows cmd and PowerShell pass it through unexpanded and `AGENTS.md` gives Codex the standard check commands for Windows. (5) The zip is a snapshot of `main` (`git archive`, so no git history and nothing untracked), plus `KRONOS.exe` from the release with its SHA-256 checked, a `START HERE.txt` for Boss and a `SNAPSHOT.txt` with the commit; it is checked by unzipping it into a clean folder and running `vclc all` from there. It goes stale as `main` moves on, so Boss asks for a fresh one after big changes. | Codex gets the whole context the safe way: one set of rules, nothing it writes reaches the repo or the training data without the same checks and review as everything else, and the repo has one committer. |
 | D84 | 14 Nov 2026 | **A published KRONOS.exe can be checked on Windows (`.github/workflows/check-release-exe.yml`).** Boss sent the KRONOS.exe he had downloaded and asked whether it works. A Windows program can't run in the cloud container, and `build-exe.yml` only tests an exe it has just built, so (1) I compared his file with the release: it is the published 0.5, byte for byte (SHA-256 `90478b1d…e64c705`, 14,495,177 bytes); (2) I ran `build-exe.yml` by hand on `main` with "release" unticked: the fresh build, its self-test and the `codex-check` job passed and nothing was published; (3) I added `check-release-exe.yml`, which on a clean Windows machine downloads KRONOS.exe from a release (default `kronos-v0.5`), compares its SHA-256 with the release's own checksum file and runs `--self-test`. It builds and publishes nothing (`contents: read`), takes the tag only as an environment variable, and runs by hand or on a pull request that changes it. Its first run, on the published 0.5, printed `smoke: OK, all four steps, the saved module, a practice run, every dialog and a corpus candidate`. What it does not prove is unchanged: Codex's real reply and a macro in real Excel wait for the pilot. `tests/test_packaging.py` checks the workflow only reads a release. | The conservative way to answer "does my exe work" is to test the exact published bytes, not a rebuild, and to keep the check as a button so the next release gets the same answer. |
 | D85 | 14 Nov 2026 | **Stage A Phase 6, batch 4: c073 to c092, 19 of the 20 stored; c074 did not pass.** (1) I wrote the 20 requests and saved them first (`data/batches/batch_04.json`; build 5, flag 5, summarise 4, reconcile 2, clean 2, files 2; registers consumables and wps_pqr five each, then bom, calibration, job_tracker and material_certs, the thin spots of D82). Six helpers, two at a time (D82), each given only `vcl/orchestrator_prompt.txt` and its own requests in a copy of the toolchain with no specs, tests or data, wrote the specs; I re-ran every pair through `corpus-add` in the repo myself. 19 are stored: 17 in `data/verified` and, held out for the benchmark, c087 (files, material_certs) and c089 (build, bom and job_tracker) in `data/eval`: the first held-out files pair and the first held-out BUILD, on registers that had none. The corpus has 91 of 150 pairs (83 verified, 8 held out; 72 TASKs and 11 BUILDs verified), and the whole corpus re-checks clean. (2) **c074 is not stored.** Its three tries failed: a text value in an `int()` fixture column, then its TESTs (`<=` compares two numbers typed as text as text, even after IS_NUMBER: the prompt problem D82 named as the first to fix), then a `values()` count slip that stopped try 3 before its real change, a comparison through a subtraction, could run. c089 met the same problem on its first try and proved that the subtraction form works. The conservative choice was no fourth try: the plan allows two repair rounds, and a pair stored after extra help would overstate what the prompt alone teaches. Its request stays in `batch_04.json`, its three tries with their outputs are kept in `data/repair/attempts/c074` as failures with no fix yet, and it returns in batch 5. (3) 9 of the 20 passed first time, 6 on the second try and 4 on the third. 11 tries failed a gate, the 4 of c074 and c089's first among them: 6 on FIXTURE rules the formatter enforces (5 a text value in an `int()`, `num()` or `dates()` column, 1 the count slip), 3 on fixture warnings (V059 twice, V055 once) and 2 on a failing TEST, both the text-number comparison. None was under the 90% floor, because (4) this batch's helpers had one command for the corpus gates that lists every surviving mutant (`gate.py`, kept outside the repo), and were told to close every survivor that could change a result even after a pass. Six tries passed every gate but were weak (c082 try 2, c083 try 2, c088 try 1, c090 tries 1 and 2, c092 try 1: a `LASTCOL($ws, 1)` argument three times, a loop start twice, a `mode=sum` once); each was closed by a better fixture and never by a weaker test. `data/repair/attempts/` keeps 13 earlier tries of 9 stored pairs (7 that failed a gate, 6 passed but weak, so Phase 7 must still read each `tryN.txt`) and the 3 of c074. (5) The 19 pairs catch 785 of 785 catchable mutants, and 31 mutants are named equivalent in 11 `meta.json` files. I read every claim against its spec: 20 are a row counter's start or step whose gap rows the following SORT moves to the bottom (c078, c080, c088, c089, c090, c091, c092); 6 the mode or value of a dictionary that is only a set (c082, c089, c091); and one each of: a stored text only ever compared with "Fail" (c092), a blank-supplier SKIP_IF whose empty key the SORT hides (c091, on a fixture row that reaches it), a `LET(expired, 0)` the prompt's Example 1 teaches (c073), a seed of 0 where a missing key reads 0 (c081, as c038 and c057) and `found > 0` against `found > 1` where found is 0 or at least 2 (c087). None hides a fixture gap. (6) The BUILDs are c088 (64 steps), c089 (44), c090 (61), c091 (51, six TASKs) and c092 (65). (7) `data/gaps.md` grew by 19 language gaps, 31 wording problems and 6 tooling notes. New in the language: no way to tell two sheet arguments apart, so an output sheet with the register's own headings can be swapped past every PRE (c081, c088, c090, c092); no numeric comparison of text numbers (c074, c089); no Dictionary argument between a BUILD's TASKs (c089); FIND in one column and the column of a hit (c087); a cell of only spaces against an empty one (c084); whether one file exists (c086); MODIFIES for one column plus its heading (c082, c083). c087 returns -1 with a message when its file is missing: the same RESULT as a failed PRE, told apart only by ERROR_COUNT. The wording fixes still wait until the end of Phase 6 so Boss updates the Orchestrator once; the first is unchanged from D82 and has now cost a pair. (8) Cost and pacing: about 919,000 helper tokens by the completion notices (about 153,000 a helper; batch 3 was about 1.1 million), in about an hour and a half, with no usage limit reached at two helpers at once. (9) The thin spots for batch 5 (`vclc corpus --report`): sheets_formulas 5 of 10, find_filter 4 of 8, rebuild 7 of 10, flag 18 of 30, summarise 14 of 25, build 12 of 20 and reconcile 13 of 20; registers grn, itp and welder_quals (7 each), then nde, ncr and dispatch (8 each). 59 pairs remain, about three batches, and 7 of the 15 held-out pairs are still to choose. | The corpus grows only through the same gates as everything else. A request the prompt cannot carry in three tries is recorded as that, not stored with extra help, and reading every survivor is now the helpers' job as well as mine. |
+| D86 | 14 Nov 2026 | **KRONOS Offline: KRONOS in the browser, with nothing installed; Phase 1, the proof, is version 1 (`docs/kronos-offline.md`, `web/`, `compiler/kronos_web.py`, `packaging/build_offline.py`, `packaging/offline/`, `packaging/offline_pins.json`, `packaging/offline_test/`, `tests/test_offline.py`, `.github/workflows/build-offline.yml`).** Boss decided, in his BlueForce session on 14-11-2026: (1) "KRONOS Offline runs in the browser, with no install. Like BlueForce's offline copy: he unzips a folder, double-clicks 'Start KRONOS (Windows)', and KRONOS opens in Chrome, Edge or Firefox ... No exe, no Python and no installs, so no IT approval is needed. KRONOS.exe stays as it is, for when IT approves it." (2) "The AI step is copy-paste with an AI chat. Offline there is no Codex, and a web page can't start a program." KRONOS gives "Copy for the AI", Boss pastes the AI's reply back, and "Copy the problems for the AI" gives up to 2 more tries, as the engine does now. (3) "No password page ... because its code is public and holds no secrets." (4) "It looks like BlueForce." His reason: "the work PC is locked down (D69) and KRONOS.exe is still waiting for IT, while BlueForce's offline copy already runs on that same PC with nothing installed, through Windows' own PowerShell and the browser. A browser page starts no new program, so it is the copy most likely to work there." In the planning session he answered that the work PC's browser is Chrome (version 109 on old Windows) and that each copy is handed over as a GitHub Release link plus the zip in the chat. My choices, each the conservative one: (a) **Pyodide 0.24.1**, the last release whose documented minimum browsers (Chrome 71, Edge 80, Firefox 70) cover Chrome/Edge 109 and Firefox 115; every release from 0.25 documents Chrome 112. It runs Python 3.11.3, as CI does. (b) **One code path.** The page's worker writes the repo's own `compiler/*.py`, `vcl/semantics.py` and the data files of `packaging/kronos.spec` into Pyodide, byte for byte, and calls `compiler/kronos_web.py`, which only reads the reply (`read_reply`), proves it (`prove`) and returns plain data (`feedback`, `plain_result`, `bas_text`) as canonical JSON; the tests call the same function in CPython. No toolchain module needed a change. Under Pyodide in Node.js its text equals CPython's for the 12 specs, the 4 examples and 5 broken or odd replies. (c) **Port 5181**, not BlueForce's 5180, so both can run and their browser storage stays apart. (d) **The zip is its own release**, `kronos-offline-v<N>`, built from main by a manual workflow run with its SHA-256, as KRONOS.exe is (D79); it is published with `--latest=false`, so GitHub's "Latest" badge stays on KRONOS.exe's release, which `docs/kronos-app-guide.md` sends people to (its download step now says the two kinds of release apart); the version is the last row of the version list in `docs/kronos-offline.md`, the date is India's. (e) **Third-party files are fetched at build time by pinned SHA-256 and never committed** (Pyodide's five core files from npm, the lark wheel with `requirements.txt`'s hash, Inter 5.3.0 from `@fontsource/inter`); their licence texts are committed (Pyodide MPL-2.0, Python PSF, lark MIT, Inter OFL). D25 is unchanged: these are tools, never training data. (f) **CRLF** for every file a person may open (the launcher, committed so with a `.gitattributes` line, the servers and the licences); the app's own files stay byte for byte, because the browser reads them and the toolchain must be the repo's. (g) BlueForce's four launcher and server files are copied with only the name, the port and the version line changed. **The tests found a deadlock, fixed in the page:** `serve.py` and `serve.ps1` answer one request at a time, and Pyodide starts downloading its two 9 MB files and then loads `pyodide.asm.js` synchronously, so the worker stops reading while the server is still sending a big file and never gets `pyodide.asm.js` (the page never left "starting Python": seen with `serve.py` here, and on Windows in CI with `serve.ps1`, where a 404 also waited four minutes behind the runner's Edge). `web/worker.js` now loads `pyodide.asm.js` itself before Pyodide starts, and Pyodide skips its own load; with BlueForce's unchanged one-at-a-time `serve.py`, Python is then ready in under 2 seconds, also after Cancel. `serve.py` stays one-at-a-time on purpose, so every page test through it on Linux also guards the PowerShell server's case; on Windows the page test drives `serve.ps1` itself with one browser, and the launcher step runs the real .bat. After the fix the launcher step's own requests are answered in under a second while Edge loads the page. The rule for later phases: never a synchronous load while a download is under way, because a one-at-a-time server waits for whoever it is sending to. (h) **The checks** (`tests/test_offline.py`): always on, the recipe's rules (CRLF, the PowerShell fixes, 5181 on localhost, the pins, the manifest, the version list, only Chrome 109 and Firefox 115 features, the look's values, the bridge); with the downloads, the zip, Pyodide in Node.js against CPython, the servers from a fresh unzip, and the page with Playwright with every request outside localhost blocked. They skip without the network, Node.js or Playwright, and fail instead in CI (`KRONOS_OFFLINE_REQUIRED=1`, as `KRONOS_LIVE_CODEX` does). CI also runs the page on Chromium 109 (Playwright 1.29) and Firefox 115 (Playwright 1.37) on Ubuntu 22.04 (if one can't be installed, a warning says it was not checked), and on Windows the launcher itself with no Node.js or Python on the PATH, so it falls back to Windows PowerShell 5.1. Playwright is pinned with hashes in `packaging/offline_test/` and installed only by CI. (i) **Not proven:** PowerShell 2 (GitHub's Windows has 5.1 and can't run 2), Windows 7 itself, and the work PC: Boss's own try of version 1 is that check. (j) Version 1 is Phase 1 only: one screen that checks, tests and builds a pasted recipe or a whole AI reply, with the practice example (the prompt's Example 1, the file KRONOS.exe's self-test uses) and Cancel. The wizard with the copy-paste AI step and the .bas download (Phase 2) and History, the practice-run check, the corpus suggestion and Help (Phase 3) follow, each its own PR and version. The planning file `docs/kronos-offline-plan.md` (Boss's whole brief) is folded into `docs/kronos-offline.md` and removed. | KRONOS reaches the locked-down PC the way BlueForce already does, with no install and no IT approval, while KRONOS.exe keeps waiting for IT; the browser runs the repo's exact toolchain, proven equal to normal Python's, and every rule BlueForce learnt on that PC is kept and tested. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4705,6 +4732,8 @@ and their proven specs, each with its VBA.
 - Ask only when truly necessary. Otherwise state your assumption and continue.
 - When I ask for "baby steps": one action per reply, written as "🍼 Next action" plus
   "Expected:", then wait for my result.
+- When Boss wants KRONOS offline, in whatever words, build the offline copy as
+  `docs/kronos-offline.md` says and give its download link first (D86).
 
 ##### Hard constraints until March 2027
 
@@ -4770,7 +4799,8 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      vcl_codegen.py (VBA compiler), vcl_fixtures.py (the one fixture
                      generator), vba_lint.py, vcl_mutate.py, gen_semantics_doc.py, gen_context.py,
                      vcl_formula.py (the SET_FORMULA check),
-                     kronos_engine.py + kronos_ai.py (the KGC KRONOS engine and `vclc ask`, D72)
+                     kronos_engine.py + kronos_ai.py (the KGC KRONOS engine and `vclc ask`, D72),
+                     kronos_web.py (the bridge KRONOS Offline's page calls under Pyodide, D86)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
                      forge_pilot.bas are committed (builds/<NAME>.bas: one module per BUILD)
@@ -4787,7 +4817,11 @@ app/                 the KGC KRONOS window: kronos_controller.py (the wizard's s
                      kronos_dialogs.py (Settings, Recipe, History, Help, D77)
 packaging/           kronos.spec: the PyInstaller spec for KRONOS.exe (D79); the build is
                      .github/workflows/build-exe.yml, its tools are in requirements-build.txt;
-                     check-release-exe.yml tests an exe that is already published (D84)
+                     check-release-exe.yml tests an exe that is already published (D84);
+                     KRONOS Offline (D86): build_offline.py builds its zip from offline/ (the launcher and the
+                     three servers, licences/), offline_pins.json (the downloads, by SHA-256) and web/; its CI is
+                     build-offline.yml, its test tools are in offline_test/
+web/                 KRONOS Offline's page: index.html, styles.css, app.js, worker.js (Pyodide), logo.svg (D86)
 (train/ and model/ arrive in March 2027)
 ```
 
@@ -4977,6 +5011,17 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    approves KRONOS.exe and the Codex CLI; corpus batch 5 may run while the pilot waits for IT (batch 4 is stored, D85),
    and the team version (Phase 5) follows the pilot. Still unproven, and what the pilot is for: Codex's
    real reply to the Orchestrator prompt, and any macro running in real Excel. The parallel session is gone; this is the only session on the repo.
+6. **KRONOS Offline** (Boss decided on 14 Nov 2026; `docs/kronos-offline.md`, D86): KRONOS in the browser with nothing
+   installed, so it can reach the locked-down PC while KRONOS.exe waits for IT. Boss unzips a folder and double-clicks
+   Start KRONOS (Windows); a tiny local server (Node.js, Python or Windows PowerShell) shows a page in BlueForce's look
+   that runs the repo's own toolchain through Pyodide 0.24.1 (the last that covers Chrome 109), through
+   `compiler/kronos_web.py`; the AI step will be copy and paste with an AI chat; no password page. Phase 1, the proof, is
+   done: version 1 checks, tests and builds a pasted recipe offline, its answers equal normal Python's, and CI checks the
+   zip, the servers (PowerShell on Windows included) and the page on today's Chromium, Chromium 109 and Firefox 115;
+   it goes out as the release `kronos-offline-v1`, built from main by `build-offline.yml`. **Next: Boss tries
+   version 1 on the work PC; then Phase 2, the wizard** (the four steps with the copy-paste AI step and the .bas
+   download), then Phase 3 (History, the practice-run check, the corpus suggestion, Help), each its own plan, PR and
+   version.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

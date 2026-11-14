@@ -36,6 +36,8 @@ and their proven specs, each with its VBA.
 - Ask only when truly necessary. Otherwise state your assumption and continue.
 - When I ask for "baby steps": one action per reply, written as "🍼 Next action" plus
   "Expected:", then wait for my result.
+- When Boss wants KRONOS offline, in whatever words, build the offline copy as
+  `docs/kronos-offline.md` says and give its download link first (D86).
 
 ## Hard constraints until March 2027
 
@@ -101,7 +103,8 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      vcl_codegen.py (VBA compiler), vcl_fixtures.py (the one fixture
                      generator), vba_lint.py, vcl_mutate.py, gen_semantics_doc.py, gen_context.py,
                      vcl_formula.py (the SET_FORMULA check),
-                     kronos_engine.py + kronos_ai.py (the KGC KRONOS engine and `vclc ask`, D72)
+                     kronos_engine.py + kronos_ai.py (the KGC KRONOS engine and `vclc ask`, D72),
+                     kronos_web.py (the bridge KRONOS Offline's page calls under Pyodide, D86)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
                      forge_pilot.bas are committed (builds/<NAME>.bas: one module per BUILD)
@@ -118,7 +121,11 @@ app/                 the KGC KRONOS window: kronos_controller.py (the wizard's s
                      kronos_dialogs.py (Settings, Recipe, History, Help, D77)
 packaging/           kronos.spec: the PyInstaller spec for KRONOS.exe (D79); the build is
                      .github/workflows/build-exe.yml, its tools are in requirements-build.txt;
-                     check-release-exe.yml tests an exe that is already published (D84)
+                     check-release-exe.yml tests an exe that is already published (D84);
+                     KRONOS Offline (D86): build_offline.py builds its zip from offline/ (the launcher and the
+                     three servers, licences/), offline_pins.json (the downloads, by SHA-256) and web/; its CI is
+                     build-offline.yml, its test tools are in offline_test/
+web/                 KRONOS Offline's page: index.html, styles.css, app.js, worker.js (Pyodide), logo.svg (D86)
 (train/ and model/ arrive in March 2027)
 ```
 
@@ -308,6 +315,17 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    approves KRONOS.exe and the Codex CLI; corpus batch 5 may run while the pilot waits for IT (batch 4 is stored, D85),
    and the team version (Phase 5) follows the pilot. Still unproven, and what the pilot is for: Codex's
    real reply to the Orchestrator prompt, and any macro running in real Excel. The parallel session is gone; this is the only session on the repo.
+6. **KRONOS Offline** (Boss decided on 14 Nov 2026; `docs/kronos-offline.md`, D86): KRONOS in the browser with nothing
+   installed, so it can reach the locked-down PC while KRONOS.exe waits for IT. Boss unzips a folder and double-clicks
+   Start KRONOS (Windows); a tiny local server (Node.js, Python or Windows PowerShell) shows a page in BlueForce's look
+   that runs the repo's own toolchain through Pyodide 0.24.1 (the last that covers Chrome 109), through
+   `compiler/kronos_web.py`; the AI step will be copy and paste with an AI chat; no password page. Phase 1, the proof, is
+   done: version 1 checks, tests and builds a pasted recipe offline, its answers equal normal Python's, and CI checks the
+   zip, the servers (PowerShell on Windows included) and the page on today's Chromium, Chromium 109 and Firefox 115;
+   it goes out as the release `kronos-offline-v1`, built from main by `build-offline.yml`. **Next: Boss tries
+   version 1 on the work PC; then Phase 2, the wizard** (the four steps with the copy-paste AI step and the .bas
+   download), then Phase 3 (History, the practice-run check, the corpus suggestion, Help), each its own plan, PR and
+   version.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
