@@ -13,7 +13,7 @@ still writes all the VBA (D31, `docs/ai-plan.md`).
 
 **Phase 0, Foundation (Oct 14 to 31, 2026): Gate 0 is met.** The work now is item 5, the KGC
 KRONOS desktop app (`docs/kronos-app.md`): its engine and `vclc ask` are built (D72), and the
-window, a four-step wizard, comes before everything else (D74); corpus batch 3 is stored (D82). All development runs in the cloud (Claude
+window, a four-step wizard, comes before everything else (D74); corpus batch 4 is stored (D85). All development runs in the cloud (Claude
 Code on the web, GitHub Codespaces, GitHub Actions); only KRONOS.exe and the Codex CLI will run on
 the work PC, once IT approves them (D69). Every check is automated; running the generated VBA in
 Excel is optional and never blocks work.
@@ -65,8 +65,8 @@ in `Documents/KGC KRONOS/runs/` (or `--data DIR`), never in the repo.
 
 ## Dataset count
 
-Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 held out in
-`data/eval/` (D66).
+Dataset count: 91 proven pairs of the planned 150: 83 in `data/verified/` and 8 held out in
+`data/eval/` (D85).
 
 ## Progress log
 
@@ -341,3 +341,8 @@ Dataset count: 52 proven pairs of the planned 150: 48 in `data/verified/` and 4 
 - **2026-11-14:** The published KRONOS.exe 0.5 checked on Windows (D84). A new manual workflow, "Check a published
   KRONOS.exe", downloads the exe from a release, compares its SHA-256 with the release's checksum file and runs its
   self-test; it passed, and so did a fresh build of `main`. Nothing was published.
+- **2026-11-14:** Stage A Phase 6, batch 4 (D85): 19 more pairs (c073 to c092 without c074), 17 in `data/verified` and 2
+  held out in `data/eval` (the first held-out files pair and the first held-out BUILD), with five BUILDs. The corpus has
+  91 of 150 pairs. The pairs catch 785 of 785 catchable mutants, and 31 equivalents are explained. c074 did not pass its
+  three tries and is not stored: `<=` compares numbers typed as text as text, the first prompt fix to make. `data/gaps.md`
+  grew by 19 language gaps, 31 wording problems and 6 tooling notes. Six helpers ran two at a time with no usage limit.
