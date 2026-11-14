@@ -1,0 +1,12 @@
+# KRONOS Offline's page test on Chromium 109, the last Chrome and Edge for Windows 7 and 8.1 (D86), in the
+# old-browsers job of .github/workflows/build-offline.yml on Ubuntu 22.04: Playwright 1.29 ships Chromium 109.
+#   python -m pip install --require-hashes -r requirements.txt -r packaging/offline_test/chromium109.txt
+# (the Linux x86_64 files of each pin, for Python 3.11)
+greenlet==2.0.1 \
+    --hash=sha256:1bf633a50cc93ed17e494015897361010fc08700d92676c87931d3ea464123ce
+playwright==1.29.1 \
+    --hash=sha256:f6388479558db9b80ec609dfcc06a4bbbecfc62e5b61e3b89142abf26aacfc61
+pyee==9.0.4 \
+    --hash=sha256:9f066570130c554e9cc12de5a9d86f57c7ee47fece163bbdaa3e9c933cfbdfa5
+typing-extensions==4.16.0 \
+    --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8

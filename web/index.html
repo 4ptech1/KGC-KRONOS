@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KGC KRONOS Offline</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <img class="logo" src="logo.svg" alt="" width="56" height="56">
+  <div class="brand">
+    <div class="title">KGC KRONOS</div>
+    <div class="small">Offline</div>
+  </div>
+  <div class="small version" id="version">Version dev</div>
+</header>
+
+<p class="old-browser" id="old-browser">This browser can't run KRONOS. Open Chrome, Edge or Firefox and type localhost:5181.</p>
+
+<main class="page">
+  <section class="card" id="check-card" aria-labelledby="check-title">
+    <h1 id="check-title">Check a recipe</h1>
+    <p class="lead">Paste a recipe: the VCL an AI wrote, or its whole reply. Or load the practice example. KRONOS
+      checks the recipe, runs its practice tests and builds the macro, all inside this browser. Nothing leaves this
+      computer.</p>
+    <label class="label" for="recipe">Paste a recipe</label>
+    <textarea id="recipe" class="box recipe" rows="18" spellcheck="false" autocomplete="off"
+      placeholder="VCL 0.6&#10;TASK&#10;..."></textarea>
+    <div class="buttons">
+      <button type="button" id="load-example">Load the practice example</button>
+      <button type="button" id="check">Check the recipe</button>
+    </div>
+    <p class="note" id="note" hidden></p>
+
+    <div class="working" id="working" hidden>
+      <div class="working-box" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="working-words">
+          <div class="working-title">Working</div>
+          <div class="working-step" id="working-step">Starting Python</div>
+        </div>
+        <button type="button" id="cancel">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="result" id="result" hidden aria-live="polite"></section>
+
+  <p class="about" id="about">This browser: <span id="browser">?</span> · Python: <span id="python">starting</span></p>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

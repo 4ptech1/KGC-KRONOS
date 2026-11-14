@@ -1,0 +1,272 @@
+name: Build KRONOS Offline
+
+# D86 (docs/kronos-offline.md). KRONOS Offline is KRONOS in the browser with nothing installed: a zip with a
+# double-click launcher, three tiny local servers (Node.js, Python, Windows PowerShell) and a page that runs the
+# repo's toolchain through Pyodide. This workflow builds the zip and checks it, with every request outside
+# localhost blocked:
+#   build         the zip, its file list and line endings, the browser engine against normal Python, the Node.js and
+#                 Python servers from a freshly unpacked zip, and the page in today's Chromium;
+#   old browsers  the same page on Chromium 109 and Firefox 115, the last versions for Windows 7 and 8.1;
+#   powershell    on Windows: the launcher itself with no Node.js or Python, so it falls back to Windows PowerShell
+#                 (5.1 here; version 2 can't be run on GitHub's machines), and the page through each server;
+#   release       a manual run from main with "release" ticked publishes the zip as kronos-offline-v<N>.
+
+on:
+  pull_request:
+    paths:
+      - "web/**"
+      - "packaging/**"
+      - "compiler/**"
+      - "vcl/**"
+      - "vba/**"
+      - "tests/test_offline.py"
+      - "tests/offline_pyodide.js"
+      - "docs/kronos-offline.md"
+      - "requirements.txt"
+      - ".gitattributes"
+      - ".github/workflows/build-offline.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "packaging/**"
+      - "compiler/**"
+      - "vcl/**"
+      - "vba/**"
+      - "tests/test_offline.py"
+      - "tests/offline_pyodide.js"
+      - "docs/kronos-offline.md"
+      - "requirements.txt"
+      - ".gitattributes"
+      - ".github/workflows/build-offline.yml"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish the zip as a GitHub Release (only from main)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.build.outputs.version }}
+      date: ${{ steps.build.outputs.date }}
+      zip: ${{ steps.build.outputs.zip }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install the pinned dependencies and the page test's tools
+        run: python -m pip install --require-hashes -r requirements.txt -r packaging/offline_test/current.txt
+      - name: Install Chromium for the page test
+        run: python -m playwright install --with-deps chromium
+      - name: Build KRONOS Offline
+        id: build
+        run: |
+          node --version
+          python packaging/build_offline.py --out build/offline
+          python -c "import json; i = json.load(open('build/offline/build-info.json')); print('version=%s' % i['version']); print('date=%s' % i['date']); print('zip=%s' % i['zip'])" >> "$GITHUB_OUTPUT"
+      - name: The zip, the browser engine, the servers and the page, offline
+        env:
+          KRONOS_OFFLINE_REQUIRED: "1"
+          KRONOS_OFFLINE_BUILD: build/offline
+          KRONOS_OFFLINE_SHOTS: build/shots
+        run: python -m unittest tests.test_offline -v
+      - name: The handover checks, as the recipe writes them
+        env:
+          ZIP: ${{ steps.build.outputs.zip }}
+        run: |
+          cd build/offline
+          unzip -Z -1 "$ZIP"
+          file "KRONOS-Offline/Start KRONOS (Windows).bat" | tee /dev/stderr | grep -q "with CRLF line terminators"
+          grep -q 'param(\[string\]$AppFolder)' KRONOS-Offline/server/serve.ps1
+          grep -q 'function Open-Browser' KRONOS-Offline/server/serve.ps1
+          grep -qF '"%CD%\app"' "KRONOS-Offline/Start KRONOS (Windows).bat"
+          cat "$ZIP.sha256.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KRONOS-Offline
+          path: |
+            build/offline/*.zip
+            build/offline/*.sha256.txt
+            build/offline/build-info.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: KRONOS-Offline-screenshots-chromium
+          path: build/shots
+          if-no-files-found: ignore
+
+  old-browsers:
+    name: old browser (${{ matrix.name }})
+    needs: build
+    runs-on: ubuntu-22.04   # the old Playwright versions list Ubuntu 22.04, not 24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Chromium 109
+            tools: packaging/offline_test/chromium109.txt
+            browser: chromium
+          - name: Firefox 115
+            tools: packaging/offline_test/firefox115.txt
+            browser: firefox
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install the pinned dependencies and the old Playwright
+        run: python -m pip install --require-hashes -r requirements.txt -r ${{ matrix.tools }}
+      - name: Install ${{ matrix.name }}
+        id: install
+        env:
+          BROWSER_KIND: ${{ matrix.browser }}
+          BROWSER_NAME: ${{ matrix.name }}
+        run: |
+          # Old Playwright versions download from hosts that may be gone; cdn.playwright.dev keeps the same builds.
+          if python -m playwright install --with-deps "$BROWSER_KIND" \
+             || PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.playwright.dev python -m playwright install --with-deps "$BROWSER_KIND"; then
+            echo "installed=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "installed=no" >> "$GITHUB_OUTPUT"
+            echo "::warning::$BROWSER_NAME could not be installed here, so the page was NOT checked on it: Boss's own PC is the check"
+          fi
+      - uses: actions/download-artifact@v4
+        if: steps.install.outputs.installed == 'yes'
+        with:
+          name: KRONOS-Offline
+          path: build/offline
+      - name: The page on ${{ matrix.name }}, offline
+        if: steps.install.outputs.installed == 'yes'
+        env:
+          KRONOS_OFFLINE_REQUIRED: "1"
+          KRONOS_OFFLINE_BUILD: build/offline
+          KRONOS_OFFLINE_BROWSER: ${{ matrix.browser }}
+          KRONOS_OFFLINE_SHOTS: build/shots
+        run: python -m unittest tests.test_offline.InTheBrowser -v
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.install.outputs.installed == 'yes'
+        with:
+          name: KRONOS-Offline-screenshots-${{ matrix.browser }}-old
+          path: build/shots
+          if-no-files-found: ignore
+
+  powershell:
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install the pinned dependencies and the page test's tools
+        run: python -m pip install --require-hashes -r requirements.txt -r packaging/offline_test/current.txt
+      - name: Install Chromium for the page test
+        run: python -m playwright install chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: KRONOS-Offline
+          path: build/offline
+      - name: The launcher itself, with no Node.js or Python, falls back to Windows PowerShell
+        shell: powershell
+        env:
+          ZIP: ${{ needs.build.outputs.zip }}
+          VERSION: ${{ needs.build.outputs.version }}
+          DATE: ${{ needs.build.outputs.date }}
+        run: |
+          "Windows PowerShell " + $PSVersionTable.PSVersion.ToString() + " (version 2 can't be run on GitHub's machines)"
+          Expand-Archive -Path "build\offline\$env:ZIP" -DestinationPath fresh
+          Set-Location fresh\KRONOS-Offline
+          $empty = Join-Path $env:RUNNER_TEMP "nothing.txt"; Set-Content -Path $empty -Value ""
+          $log = Join-Path $env:RUNNER_TEMP "launcher.txt"
+          $saved = $env:Path
+          $env:Path = "$env:SystemRoot\System32\WindowsPowerShell\v1.0;$env:SystemRoot\System32"   # no node, py or python
+          $p = Start-Process -FilePath cmd.exe -ArgumentList '/c', '"Start KRONOS (Windows).bat"' -PassThru -NoNewWindow `
+                 -RedirectStandardInput $empty -RedirectStandardOutput $log
+          $env:Path = $saved
+          $up = $false
+          foreach ($i in 1..60) {
+            try { $page = Invoke-WebRequest -Uri "http://localhost:5181/" -UseBasicParsing -TimeoutSec 5; $up = $true; break } catch { Start-Sleep -Seconds 1 }
+          }
+          try {
+            if (-not $up) { throw "the launcher's server did not start" }
+            if ($page.StatusCode -ne 200 -or $page.Content -notmatch "Version $env:VERSION ") { throw "the page is wrong" }
+            $wasm = Invoke-WebRequest -Uri "http://localhost:5181/pyodide/pyodide.asm.wasm" -UseBasicParsing
+            $want = (Get-Item app\pyodide\pyodide.asm.wasm).Length
+            "wasm: $($wasm.Headers['Content-Type']), $($wasm.RawContentLength) bytes (the file has $want)"
+            if ($wasm.Headers['Content-Type'] -ne 'application/wasm' -or $wasm.RawContentLength -ne $want) { throw "the .wasm file is wrong" }
+            $missing = $null
+            try { Invoke-WebRequest -Uri "http://localhost:5181/nothing-here.txt" -UseBasicParsing | Out-Null } catch { $missing = $_.Exception.Response.StatusCode.value__ }
+            if ($missing -ne 404) { throw "a missing file gave $missing, not 404" }
+          } finally {
+            taskkill /T /F /PID $p.Id | Out-Null
+            Start-Sleep -Seconds 2
+            "--- the black window said:"
+            Get-Content $log
+          }
+          $said = Get-Content $log -Raw
+          if ($said -notmatch "App folder:") { throw "the launcher did not use the PowerShell server" }
+          if ($said -notmatch "KRONOS Offline, version $env:VERSION, built $env:DATE") { throw "no version line" }
+          if ($said -match "Exception|error") { throw "the PowerShell server printed an error" }
+      - name: The servers and the page in Chromium on Windows, PowerShell included, offline
+        env:
+          KRONOS_OFFLINE_REQUIRED: "1"
+          KRONOS_OFFLINE_BUILD: build/offline
+          KRONOS_OFFLINE_SHOTS: build/shots
+        run: python -m unittest tests.test_offline.Serving tests.test_offline.InTheBrowser -v
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: KRONOS-Offline-screenshots-windows
+          path: build/shots
+          if-no-files-found: ignore
+
+  release:
+    if: github.event_name == 'workflow_dispatch' && inputs.release && github.ref == 'refs/heads/main'
+    needs: [build, old-browsers, powershell]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: KRONOS-Offline
+          path: out
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+          DATE: ${{ needs.build.outputs.date }}
+          ZIP: ${{ needs.build.outputs.zip }}
+        run: |
+          sha=$(cut -d' ' -f1 "out/${ZIP}.sha256.txt")
+          cat > notes.md <<NOTES
+          KGC KRONOS in the browser, with nothing installed. This is version ${VERSION}, built ${DATE}.
+
+          **Download ${ZIP} below**, then:
+          1. Close the black window if it's open.
+          2. Delete the old KRONOS-Offline folder.
+          3. Right-click the zip, choose Extract All..., then Extract.
+          4. Double-click Start KRONOS (Windows).
+          5. If the browser doesn't open by itself, open Chrome, Edge or Firefox and type localhost:5181.
+
+          Internet Explorer can't show KRONOS. The page and its Python run on this computer only: nothing is sent
+          anywhere. The recipe is [docs/kronos-offline.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/docs/kronos-offline.md).
+
+          - SHA-256: \`${sha}\`
+          - Built by GitHub Actions from commit ${GITHUB_SHA}, and checked before this release: the zip's files and
+            line endings, the browser engine against normal Python, the page offline in Chromium (and in Chromium 109
+            and Firefox 115 where they could be installed), and the launcher's PowerShell server on Windows.
+          NOTES
+          gh release create "kronos-offline-v${VERSION}" "out/${ZIP}" "out/${ZIP}.sha256.txt" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "KRONOS Offline ${VERSION}" --notes-file notes.md

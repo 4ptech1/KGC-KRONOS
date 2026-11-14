@@ -1,0 +1,3 @@
+# KRONOS Offline's launcher keeps Windows line endings (CRLF) in the repo and in every checkout, never converted:
+# Notepad before Windows 10 (1809) shows a file with Unix line endings as one jumbled line (D86).
+packaging/offline/*.bat -text
