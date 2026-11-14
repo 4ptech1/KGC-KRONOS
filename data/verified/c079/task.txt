@@ -1,0 +1,1 @@
+From the PQR List (PQR No, Process, Test Date, Result) write a PQR Summary sheet with each process, how many PQRs it has and how many of them have the Result Fail, processes A to Z, and a last row Total with the two sums. Ignore rows with no process. The sheet is rebuilt every run.

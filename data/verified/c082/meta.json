@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c082",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 34,
+  "note": "DICT_ADD(inStock, key, 1, mode=keep): the dictionary is only a set read by EXISTS, so mode=keep -> overwrite and the value 1 -> 2 change nothing that is read",
+  "total": 36
+ },
+ "op_lines": 21,
+ "ops": [
+  "DICT_ADD",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "consumables",
+  "wps_pqr"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}

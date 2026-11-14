@@ -1,0 +1,34 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c088",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 4,
+  "killed": 91,
+  "note": "LET(outRow, 2 -> 3) and LET(outRow, outRow + 1 -> + 2) in ListReorderBatches and in SummariseFillerClasses only leave blank gap rows between the written rows; the SORT that follows in each TASK puts blank rows last, beyond the used range, so both final sheets and RESULT are the same",
+  "total": 95
+ },
+ "op_lines": 64,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "consumables"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}

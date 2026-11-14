@@ -1,0 +1,34 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c090",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 4,
+  "killed": 88,
+  "note": "LET(outRow, 2 -> 3) and LET(outRow, outRow + 1 -> + 2) in WriteDueList and in WriteLocationSummary only leave blank gap rows between the written rows on a sheet that was just cleared; the SORT that follows in each TASK puts blank rows last, beyond the used range, so both final sheets are the same",
+  "total": 92
+ },
+ "op_lines": 61,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FORMAT",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "calibration"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}

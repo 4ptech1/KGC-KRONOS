@@ -1,0 +1,1 @@
+In the BOM sheet (Part No, Description, Required Qty, Unit, Remark) write Unit? in Remark for every row whose Unit is blank or is not one of NOS, KG, MTR or SET (people type them in any case and with stray spaces), and clear the Remark on the others. Tell me how many rows need a unit fixed.

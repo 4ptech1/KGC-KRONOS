@@ -1,0 +1,1 @@
+FAIL layout: the spec can't be formatted: C: +boundary value 'n/a' doesn't fit num() (use numbers)

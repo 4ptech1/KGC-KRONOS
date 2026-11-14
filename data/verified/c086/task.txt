@@ -1,0 +1,1 @@
+For every row of the Consumable Stock sheet (Batch No, Description, Cert File, Cert Status) check whether the file named in Cert File is in the Batch Certs folder (a folder path I give the macro), and write Found or Missing in Cert Status; a row with no Cert File gets No file name. Do not change, copy or delete any file. Tell me how many are Missing.

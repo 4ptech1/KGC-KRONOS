@@ -1,0 +1,1 @@
+In the Job Tracker (Job ID, Customer, Start Date, Due Date, Status) write Bad dates in a Flag column when the Due Date is before the Start Date, and No due date when a job that is not Closed has no Due Date. Clear the Flag on all the other jobs, add the Flag heading if it is missing, and tell me how many jobs I flagged.

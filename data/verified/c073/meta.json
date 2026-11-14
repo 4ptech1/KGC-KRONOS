@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c073",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 22,
+  "note": "LET(expired, 0) deleted: a Long VAR starts at 0, so the step changes nothing (the prompt's Example 1 writes the same line)",
+  "total": 23
+ },
+ "op_lines": 18,
+ "ops": [
+  "CLEAR",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE"
+ ],
+ "registers": [
+  "consumables"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}

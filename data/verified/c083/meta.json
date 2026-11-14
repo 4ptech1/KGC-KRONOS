@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c083",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 33,
+  "note": "",
+  "total": 33
+ },
+ "op_lines": 22,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "bom",
+  "material_certs"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}

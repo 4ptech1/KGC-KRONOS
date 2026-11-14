@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c081",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 38,
+  "note": "DICT_ADD(lateJobs, cust, 0, mode=sum) deleted: the line only makes sure every open customer has a key in lateJobs; without it DICT_GET of the missing key gives 0 (the interpreter, and ForgeNum(Empty) in ForgeLib), the number the line would have stored. The fixture has a customer with no late job right after one with a late job, and the count is still 0",
+  "total": 39
+ },
+ "op_lines": 21,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "job_tracker"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}

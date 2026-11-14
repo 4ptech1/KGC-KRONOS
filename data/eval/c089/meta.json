@@ -1,0 +1,34 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c089",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 4,
+  "killed": 67,
+  "note": "LET(outRow, 2 -> 3) and LET(outRow, outRow + 1 -> + 2) in WriteJobShortage only leave blank gap rows that the SORT that follows puts last, beyond the used range. DICT_ADD(shortJobs, key, 1, mode=overwrite) in FlagWaitingJobs: the dictionary is only a set read by EXISTS, so mode=overwrite -> keep and the value 1 -> 2 change nothing that is read",
+  "total": 71
+ },
+ "op_lines": 44,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "bom",
+  "job_tracker"
+ ],
+ "source": "orchestrator helper, VCL 0.6 prompt (batch 4)"
+}

@@ -1,0 +1,4 @@
+FAIL test: TEST on line 40: ASSERT: RESULT = 6 is false (left 8, right 6)
+FAIL test: TEST on line 40: ASSERT: COUNTIF(Register![Remark], "Range?") = 6 is false (left 8, right 6)
+FAIL test: TEST on line 40: ASSERT: COUNTA(Register![Remark]) = 8 is false (left 10, right 8)
+FAIL test: TEST on line 41: ASSERT: RESULT = 6 is false (left 8, right 6)

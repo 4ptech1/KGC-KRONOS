@@ -1,0 +1,1 @@
+In the Calibration Tracker (Instrument ID, Type, Last Calibrated, Next Calibration Due) highlight the Instrument ID cell red when Next Calibration Due is blank, and yellow when it is a date earlier than Last Calibrated (someone mixed the two up). Clear old highlights first so it can be run again, and tell me how many cells I coloured.

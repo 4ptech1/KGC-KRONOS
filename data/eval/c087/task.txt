@@ -1,0 +1,1 @@
+The file heat.txt in the Certs folder (a folder path I give the macro) holds one heat number. Find that Heat No on the Material Certs sheet (Heat No, MTC No, Supplier, Remark) and write Verified in its Remark. Tell me the row, or 0 when that heat is not on the sheet. If the file is not there, change nothing and say so. Never change the file.

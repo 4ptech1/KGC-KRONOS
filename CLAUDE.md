@@ -267,10 +267,13 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    Boss pastes the new prompt once) and Phase 5 (the corpus tooling: `vclc corpus`, `corpus-add`,
    `export`; the 12 committed specs are the pairs `c001` to `c012` in `data/verified/`; the plan
    for the rest is `docs/corpus-plan.md`; D64) are done; Phase 6, the corpus to 150 tasks in
-   batches of about 20, is in progress (batches 1 to 3, c013 to c072, are stored: 72 pairs of 150, six of
-   them held out; `data/gaps.md` logs what VCL could not say; D65, D66, D82). Batch 4, leaning on the thin
-   families and registers (`vclc corpus --report`: build 7 of 20, flag, summarise; consumables and wps_pqr),
-   may run while the pilot waits for IT, with at most two helpers at once (D82); no training before March 2027.
+   batches of about 20, is in progress (batches 1 to 4, c013 to c092, are stored: 91 pairs of 150, eight of
+   them held out; `data/gaps.md` logs what VCL could not say; D65, D66, D82, D85). c074 did not pass its three
+   tries and is not stored (`<=` compares numbers typed as text as text, the first prompt fix to make at the end
+   of Phase 6); it returns in batch 5. Batch 5, leaning on the thin families and registers (`vclc corpus --report`:
+   sheets_formulas 5 of 10, find_filter 4 of 8, rebuild 7 of 10; grn, itp and welder_quals), may run while the pilot
+   waits for IT, with at most two helpers at once (D82), each told to read every surviving mutant (D85); no training
+   before March 2027.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,
@@ -302,7 +305,7 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    with the tests (version 0.5, published, SHA-256 on its release page). The published 0.5 was checked again on 14 Nov 2026 (D84):
    the manual workflow `.github/workflows/check-release-exe.yml` downloads KRONOS.exe from a release, compares its SHA-256 and runs
    its `--self-test` on Windows; it passed. **Next: the pilot (Phase 4)**, once IT
-   approves KRONOS.exe and the Codex CLI; corpus batch 4 may run while the pilot waits for IT (batch 3 is stored, D82),
+   approves KRONOS.exe and the Codex CLI; corpus batch 5 may run while the pilot waits for IT (batch 4 is stored, D85),
    and the team version (Phase 5) follows the pilot. Still unproven, and what the pilot is for: Codex's
    real reply to the Orchestrator prompt, and any macro running in real Excel. The parallel session is gone; this is the only session on the repo.
 
