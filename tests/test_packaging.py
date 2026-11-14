@@ -66,6 +66,15 @@ class BuildTools(unittest.TestCase):
         for words in ("windows-latest", "--require-hashes", "packaging/kronos.spec", "--self-test", "--log"):
             self.assertIn(words, text)
 
+    def test_a_published_exe_can_be_checked_without_building_or_publishing(self):   # D84
+        text = (ROOT / ".github" / "workflows" / "check-release-exe.yml").read_text(encoding="utf-8")
+        for words in ("windows-latest", "workflow_dispatch", "gh release download", "KRONOS.exe.sha256.txt",
+                      "Get-FileHash", "--self-test", "--log", "smoke: OK", "contents: read"):
+            self.assertIn(words, text)
+        for words in ("PyInstaller", "gh release create", "contents: write"):   # it only reads a release
+            self.assertNotIn(words, text)
+        self.assertNotIn("${{ inputs", text.split("steps:", 1)[1])   # the tag reaches a step only as $env:TAG
+
     def test_the_workflow_checks_the_real_codex_before_a_release(self):   # D80
         text = (ROOT / ".github" / "workflows" / "build-exe.yml").read_text(encoding="utf-8")
         version = re.search(r"@openai/codex@(\d+\.\d+\.\d+)", text)

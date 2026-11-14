@@ -1,0 +1,56 @@
+name: Check a published KRONOS.exe
+
+# D84. build-exe.yml tests the exe it has just built. This one tests a file that is already published: on a clean
+# Windows machine it downloads KRONOS.exe from a release, compares its SHA-256 with the release's own checksum
+# file, and runs the exe's --self-test (a practice request through all four steps, every dialog and a corpus
+# candidate, with the practice AI). It builds nothing and publishes nothing. Run it by hand (Actions, "Check a
+# published KRONOS.exe", Run workflow) whenever Boss asks whether the exe he downloaded works; a pull request
+# that changes this file runs it too.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The release to check (its tag)"
+        type: string
+        default: "kronos-v0.5"
+  pull_request:
+    paths:
+      - ".github/workflows/check-release-exe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      TAG: ${{ inputs.tag || 'kronos-v0.5' }}
+    steps:
+      - name: Download KRONOS.exe and its checksum file from the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download $env:TAG --repo $env:GITHUB_REPOSITORY --dir out --pattern "KRONOS.exe" --pattern "KRONOS.exe.sha256.txt"
+          if ($LASTEXITCODE -ne 0) { Write-Error "could not download the release $env:TAG"; exit 1 }
+          "Release: $env:TAG"
+          "Size: {0:N1} MB" -f ((Get-Item out\KRONOS.exe).Length / 1MB)
+      - name: The file is the one the release says it is
+        shell: pwsh
+        run: |
+          $want = ((Get-Content out\KRONOS.exe.sha256.txt -TotalCount 1) -split "\s+")[0].ToLower()
+          $have = (Get-FileHash out\KRONOS.exe -Algorithm SHA256).Hash.ToLower()
+          "SHA-256 in the release: $want"
+          "SHA-256 of the file:    $have"
+          if ($want -notmatch "^[0-9a-f]{64}$") { Write-Error "the checksum file holds no SHA-256"; exit 1 }
+          if ($want -ne $have) { Write-Error "KRONOS.exe does not match its checksum file"; exit 1 }
+      - name: Self-test the exe (a window, so it writes its result to a log file)
+        shell: pwsh
+        run: |
+          $log = Join-Path $env:RUNNER_TEMP "kronos-self-test.txt"
+          $p = Start-Process -FilePath out\KRONOS.exe -ArgumentList "--self-test", "--log", $log -Wait -PassThru
+          if (Test-Path $log) { Get-Content $log } else { Write-Error "the self-test wrote no log" }
+          if ($p.ExitCode -ne 0) { Write-Error "KRONOS.exe --self-test exited with $($p.ExitCode)"; exit 1 }
+          if (-not (Select-String -Path $log -Pattern "smoke: OK" -Quiet)) { Write-Error "no 'smoke: OK' line"; exit 1 }
