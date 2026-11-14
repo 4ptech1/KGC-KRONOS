@@ -312,8 +312,15 @@ Boss's whole brief, word for word, with BlueForce's original four files, is in t
 | Version | Date | Built from (main) | What changed |
 | --- | --- | --- | --- |
 | 1 | 14-11-2026 | `2ed9f79` | The proof: one screen that checks, tests and builds a pasted recipe in the browser, offline, with the practice example and Cancel. |
-| 2 | 14-11-2026 | (added after the release) | The Python server (`serve.py`) gives every connection its own thread: version 1's answers nobody while a connection is open that asks for nothing, as a browser's spare one (not seen with a real browser). One sentence of the page no longer says "this first version". The PowerShell and Node.js servers are as in version 1. |
+| 2 | 14-11-2026 | `988b020` | The Python server (`serve.py`) gives every connection its own thread: version 1's answers nobody while a connection is open that asks for nothing, as a browser's spare one (not seen with a real browser). One sentence of the page no longer says "this first version". The PowerShell and Node.js servers are as in version 1. |
 
 Each copy is the release `kronos-offline-v<N>`, and its SHA-256 is on its release page and in the `.sha256.txt`
-beside the zip. Version 1's is `8bc0685b19bad6bce4c0042e628bcb589deda223133acf059a84e7a3b890b8a1`; a second build of
-the same commit, on another machine, gave the same bytes.
+beside the zip:
+
+| Version | SHA-256 of the zip |
+| --- | --- |
+| 1 | `8bc0685b19bad6bce4c0042e628bcb589deda223133acf059a84e7a3b890b8a1` |
+| 2 | `c3b484e1569e76750516432109a3ff0724fac927a2f11d5cdd3f0c65a16eaf8f` |
+
+For both, a second build of the same commit on another machine gave the same bytes, and the zip downloaded from the
+release with no sign-in passed every offline test with skipping forbidden.

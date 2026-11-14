@@ -362,4 +362,5 @@ Dataset count: 91 proven pairs of the planned 150: 83 in `data/verified/` and 8 
   `kronos-offline-v1`. Version 2 followed the same day: BlueForce's Python server reads one connection at a time
   and answers nobody while an idle one is open, so it now gives every connection its own thread; the PowerShell and
   Node.js servers never had the weakness. (The one failed Windows run that led there was the test's own fault: a full
-  4 KB pipe for the server's output. The tests now use a file.)
+  4 KB pipe for the server's output. The tests now use a file.) Version 2 is published as the release
+  `kronos-offline-v2`.
