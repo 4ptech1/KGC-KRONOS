@@ -21,6 +21,10 @@ The upload (D87, compiler/kronos_book.py) has three more calls, each answering c
     kronos_web.apply_changes(text, data, name, args_json, today=None, step=None)
                                                             # (JSON text, the changed copy's bytes or b"")
 Each answers {"ok": false, "message": ...} for a file or recipe it can't use, in words for the person.
+
+Recipes from a file (D89, compiler/kronos_recipes.py): a .vcl, .txt, .md or Word .docx file the person opens.
+
+    kronos_web.read_recipe_file(data, name)                 # {"ok", "name", "recipes": [{"title", "text"}], "message"}
 """
 import datetime
 import json
@@ -108,3 +112,11 @@ def apply_changes(text, data, name, args_json, today=None, step=None):
     except book.BookError as ex:
         return canonical({"ok": False, "message": str(ex)}), b""
     return canonical(result), out or b""
+
+
+# ---------- recipes from a file (D89) ----------
+
+def read_recipe_file(data, name):
+    """The recipes in a file the person opened (canonical JSON text)."""
+    import kronos_recipes
+    return canonical(kronos_recipes.read_recipes(_bytes(data), str(name)))
