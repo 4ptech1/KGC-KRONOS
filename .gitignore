@@ -16,6 +16,8 @@ env/
 *.xlsm
 *.xls
 *.xlsb
+# ... except the KRONOS demo's invented workbooks, made by docs/demo/make_demo.py and checked by tests/test_demo.py (D88)
+!docs/demo/NCR_Register_Demo*.xlsx
 
 # Run logs
 logs/*.log

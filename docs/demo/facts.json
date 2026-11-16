@@ -1,0 +1,530 @@
+{
+ "workbook": "NCR_Register_Demo.xlsx",
+ "sheet": "NCR Register",
+ "rows": 40,
+ "headers": [
+  "NCR No",
+  "Date Raised",
+  "Job No",
+  "Item",
+  "Description",
+  "Severity",
+  "Department",
+  "Status",
+  "Date Closed"
+ ],
+ "first_rows": [
+  [
+   "NCR No",
+   "Date Raised",
+   "Job No",
+   "Item",
+   "Description",
+   "Severity",
+   "Department",
+   "Status",
+   "Date Closed"
+  ],
+  [
+   "NCR-2026-001",
+   "01-Jul-2026",
+   "J-9001",
+   "Shell course 2",
+   "Weld undercut over 0.5 mm",
+   "Major",
+   "Welding",
+   "Open",
+   ""
+  ],
+  [
+   "NCR-2026-002",
+   "07-Aug-2026",
+   "J-9002",
+   "Saddle support",
+   "Hydrotest stamp missing",
+   "Minor",
+   "Machining",
+   "Closed",
+   "19-Aug-2026"
+  ],
+  [
+   "NCR-2026-003",
+   "13-Sep-2026",
+   "J-9003",
+   "Tube sheet",
+   "Root gap too wide",
+   "Minor",
+   "Stores",
+   "Closed",
+   "02-Oct-2026"
+  ],
+  [
+   "NCR-2026-004",
+   "02-Jul-2026",
+   "J-9004",
+   "Nameplate bracket",
+   "Ovality out of tolerance",
+   "Major",
+   "QA",
+   "On Hold",
+   ""
+  ],
+  [
+   "NCR-2026-005",
+   "08-Aug-2026",
+   "J-9005",
+   "Dished end",
+   "Arc strike on the shell",
+   "Major",
+   "Fabrication",
+   " open",
+   ""
+  ],
+  [
+   "NCR-2026-006",
+   "14-Sep-2026",
+   "J-9006",
+   "Manway cover",
+   "Porosity found by RT",
+   "Minor",
+   "Welding",
+   "Closed",
+   "04-Oct-2026"
+  ],
+  [
+   "NCR-2026-007",
+   "03-Jul-2026",
+   "J-9001",
+   "Skirt",
+   "Paint thickness below spec",
+   "Major",
+   "Machining",
+   "Open",
+   ""
+  ],
+  [
+   "NCR-2026-008",
+   "09-Aug-2026",
+   "J-9002",
+   "Nozzle N3",
+   "Visual: spatter not removed",
+   "Major",
+   "Stores",
+   "OPEN ",
+   ""
+  ]
+ ],
+ "runs": [
+  {
+   "recipe": "recipe_1_highlight.vcl",
+   "after": "NCR_Register_Demo_after_1.xlsx",
+   "result": "15",
+   "sheets": [
+    {
+     "name": "NCR Register",
+     "status": "changed",
+     "cells": 0,
+     "rows_deleted": 0,
+     "rows_added": 0,
+     "rows_moved": 0,
+     "fills": 135,
+     "hidden": 0
+    },
+    {
+     "name": "About",
+     "status": "unchanged",
+     "cells": 0,
+     "rows_deleted": 0,
+     "rows_added": 0,
+     "rows_moved": 0,
+     "fills": 0,
+     "hidden": 0
+    }
+   ],
+   "changes_total": 0,
+   "warnings": [],
+   "args": {
+    "ws": "NCR Register"
+   },
+   "highlighted": [
+    [
+     "NCR-2026-001",
+     "Major",
+     "Welding",
+     "Open"
+    ],
+    [
+     "NCR-2026-005",
+     "Major",
+     "Fabrication",
+     " open"
+    ],
+    [
+     "NCR-2026-007",
+     "Major",
+     "Machining",
+     "Open"
+    ],
+    [
+     "NCR-2026-008",
+     "Major",
+     "Stores",
+     "OPEN "
+    ],
+    [
+     "NCR-2026-013",
+     "Major",
+     "Stores",
+     "Open"
+    ],
+    [
+     "NCR-2026-007",
+     "Major",
+     "Machining",
+     "Open"
+    ],
+    [
+     "NCR-2026-017",
+     "Major",
+     "Machining",
+     " open"
+    ],
+    [
+     "NCR-2026-019",
+     "Major",
+     "QA",
+     "Open"
+    ],
+    [
+     "NCR-2026-020",
+     "Major",
+     "Fabrication",
+     "OPEN "
+    ],
+    [
+     "NCR-2026-025",
+     "Major",
+     "Fabrication",
+     "Open"
+    ],
+    [
+     "NCR-2026-029",
+     "Major",
+     "QA",
+     " open"
+    ],
+    [
+     "NCR-2026-020",
+     "Major",
+     "Fabrication",
+     "OPEN "
+    ],
+    [
+     "NCR-2026-031",
+     "Major",
+     "Welding",
+     "Open"
+    ],
+    [
+     "NCR-2026-032",
+     "Major",
+     "Machining",
+     "OPEN "
+    ],
+    [
+     "NCR-2026-037",
+     "Major",
+     "Machining",
+     "Open"
+    ]
+   ]
+  },
+  {
+   "recipe": "recipe_2_tidy.vcl",
+   "after": "NCR_Register_Demo_after_2.xlsx",
+   "result": "2",
+   "sheets": [
+    {
+     "name": "NCR Register",
+     "status": "changed",
+     "cells": 294,
+     "rows_deleted": 2,
+     "rows_added": 0,
+     "rows_moved": 37,
+     "fills": 0,
+     "hidden": 0
+    },
+    {
+     "name": "About",
+     "status": "unchanged",
+     "cells": 0,
+     "rows_deleted": 0,
+     "rows_added": 0,
+     "rows_moved": 0,
+     "fills": 0,
+     "hidden": 0
+    }
+   ],
+   "changes_total": 294,
+   "warnings": [],
+   "args": {
+    "ws": "NCR Register"
+   },
+   "first_rows_after": [
+    [
+     "NCR No",
+     "Date Raised",
+     "Job No",
+     "Item",
+     "Description",
+     "Severity",
+     "Department",
+     "Status",
+     "Date Closed"
+    ],
+    [
+     "NCR-2026-036",
+     "24-Sep-2026",
+     "J-9006",
+     "Manway cover",
+     "Dimension 3 mm off the drawing",
+     "Minor",
+     "Welding",
+     "On Hold",
+     ""
+    ],
+    [
+     "NCR-2026-033",
+     "23-Sep-2026",
+     "J-9003",
+     "Tube sheet",
+     "Bolt holes misaligned",
+     "Minor",
+     "Stores",
+     "Closed",
+     "02-Oct-2026"
+    ],
+    [
+     "NCR-2026-030",
+     "22-Sep-2026",
+     "J-9006",
+     "Lifting lug",
+     "Porosity found by RT",
+     "Minor",
+     "Fabrication",
+     "Closed",
+     "30-Sep-2026"
+    ],
+    [
+     "NCR-2026-027",
+     "21-Sep-2026",
+     "J-9003",
+     "Skirt",
+     "Root gap too wide",
+     "Minor",
+     "Machining",
+     "Closed",
+     "28-Sep-2026"
+    ],
+    [
+     "NCR-2026-024",
+     "20-Sep-2026",
+     "J-9006",
+     "Nameplate bracket",
+     "Dimension 3 mm off the drawing",
+     "Minor",
+     "QA",
+     "On Hold",
+     ""
+    ],
+    [
+     "NCR-2026-021",
+     "19-Sep-2026",
+     "J-9003",
+     "Shell course 2",
+     "Bolt holes misaligned",
+     "Minor",
+     "Welding",
+     "Closed",
+     "24-Sep-2026"
+    ],
+    [
+     "NCR-2026-018",
+     "18-Sep-2026",
+     "J-9006",
+     "Nozzle N3",
+     "Porosity found by RT",
+     "Minor",
+     "Stores",
+     "Closed",
+     "12-Oct-2026"
+    ],
+    [
+     "NCR-2026-015",
+     "17-Sep-2026",
+     "J-9003",
+     "Dished end",
+     "Root gap too wide",
+     "Minor",
+     "Fabrication",
+     "Closed",
+     "10-Oct-2026"
+    ]
+   ]
+  },
+  {
+   "recipe": "recipe_3_summary.vcl",
+   "after": "NCR_Register_Demo_after_3.xlsx",
+   "result": "40",
+   "sheets": [
+    {
+     "name": "NCR Register",
+     "status": "unchanged",
+     "cells": 0,
+     "rows_deleted": 0,
+     "rows_added": 0,
+     "rows_moved": 0,
+     "fills": 0,
+     "hidden": 0
+    },
+    {
+     "name": "About",
+     "status": "unchanged",
+     "cells": 0,
+     "rows_deleted": 0,
+     "rows_added": 0,
+     "rows_moved": 0,
+     "fills": 0,
+     "hidden": 0
+    },
+    {
+     "name": "NCR Summary",
+     "status": "new",
+     "cells": 22,
+     "rows_deleted": 0,
+     "rows_added": 0,
+     "rows_moved": 0,
+     "fills": 0,
+     "hidden": 0
+    }
+   ],
+   "changes_total": 0,
+   "warnings": [],
+   "args": {
+    "book": "",
+    "ws": "NCR Register"
+   },
+   "summary": [
+    [
+     "Status",
+     "NCRs"
+    ],
+    [
+     "Open",
+     "18"
+    ],
+    [
+     "Closed",
+     "16"
+    ],
+    [
+     "On Hold",
+     "6"
+    ],
+    [
+     "",
+     ""
+    ],
+    [
+     "Department",
+     "NCRs"
+    ],
+    [
+     "Welding",
+     "8"
+    ],
+    [
+     "Machining",
+     "9"
+    ],
+    [
+     "Stores",
+     "8"
+    ],
+    [
+     "QA",
+     "7"
+    ],
+    [
+     "Fabrication",
+     "8"
+    ],
+    [
+     "",
+     ""
+    ],
+    [
+     "Total",
+     "40"
+    ]
+   ]
+  }
+ ],
+ "chained_summary": {
+  "result": "38",
+  "summary": [
+   [
+    "Status",
+    "NCRs"
+   ],
+   [
+    "On Hold",
+    "6"
+   ],
+   [
+    "Closed",
+    "16"
+   ],
+   [
+    "Open",
+    "16"
+   ],
+   [
+    "",
+    ""
+   ],
+   [
+    "Department",
+    "NCRs"
+   ],
+   [
+    "Welding",
+    "8"
+   ],
+   [
+    "Stores",
+    "8"
+   ],
+   [
+    "Fabrication",
+    "7"
+   ],
+   [
+    "Machining",
+    "8"
+   ],
+   [
+    "QA",
+    "7"
+   ],
+   [
+    "",
+    ""
+   ],
+   [
+    "Total",
+    "38"
+   ]
+  ]
+ }
+}
