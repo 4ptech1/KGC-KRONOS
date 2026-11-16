@@ -28,6 +28,7 @@ from kronos_controller import Controller  # noqa: E402
 from resources import ROOT  # noqa: E402
 from kronos_ai import FakeAI  # noqa: E402
 import kronos_engine as engine  # noqa: E402
+from kronos_words import EXAMPLE, NEVER, TIPS  # noqa: E402,F401
 from vcl_pilot import expected_lines  # noqa: E402
 from kronos_dialogs import HelpDialog, HistoryDialog, PracticeDialog, RecipeWindow, SettingsDialog  # noqa: E402
 
@@ -35,13 +36,6 @@ VERSION = "0.5"
 SIGNED_IN_WORDS = {True: "Codex is signed in",   # the first-run checklist, from `codex login status` (D80)
                    False: "Codex isn't signed in: open a Command Prompt, type codex login and sign in",
                    None: "KRONOS couldn't tell whether Codex is signed in: Test Codex will show it"}
-EXAMPLE = ("In the Calibration sheet, list every instrument due for calibration in the next 15 days on a "
-           "sheet called Due List.")
-TIPS = ["Name the sheets and the column headers it should use.",
-        "Say what must change, and what must stay as it is.",
-        "Practice requests with invented data only, for now."]
-NEVER = ["delete or move files (it only adds copies)", "use the internet or start other programs",
-         "change Excel's security settings", "change anything outside what it lists above"]
 STEP_NAMES = {"ask": "Ask", "question": "Questions", "review": "Review", "save": "Save"}
 COLOURS = {"bg": "#f4f6f8", "panel": "#ffffff", "text": "#1d2733", "muted": "#5b6a79", "line": "#d4dbe2",
            "accent": "#1f5f99", "ok_bg": "#e5f3ea", "ok": "#1e6b3a", "warn_bg": "#fdf3df", "warn": "#8a5300",

@@ -109,7 +109,9 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      vcl_formula.py (the SET_FORMULA check),
                      kronos_engine.py + kronos_ai.py (the KGC KRONOS engine and `vclc ask`, D72),
                      kronos_web.py (the bridge KRONOS Offline's page calls under Pyodide, D86),
-                     kronos_book.py (an uploaded workbook: describe, run a proven recipe on it, write the copy, D87)
+                     kronos_book.py (an uploaded workbook: describe, run a proven recipe on it, write the copy, D87),
+                     kronos_recipes.py (recipes read from .vcl/.txt/.md/.docx files, D89), kronos_wizard.py (the browser
+                     wizard: KRONOS.exe's Run with copy and paste for the AI, D89), kronos_words.py (EXAMPLE, TIPS, NEVER)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
                      forge_pilot.bas are committed (builds/<NAME>.bas: one module per BUILD)
