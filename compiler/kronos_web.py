@@ -18,7 +18,7 @@ The upload (D87, compiler/kronos_book.py) has three more calls, each answering c
 
     kronos_web.describe_book(data, name)                    # the workbook's sheets, headings, sample rows and AI text
     kronos_web.arguments(text)                              # the recipe's ARGS with defaults, and whether it uses files
-    kronos_web.apply_changes(text, data, name, args_json, today=None)
+    kronos_web.apply_changes(text, data, name, args_json, today=None, step=None)
                                                             # (JSON text, the changed copy's bytes or b"")
 Each answers {"ok": false, "message": ...} for a file or recipe it can't use, in words for the person.
 """
@@ -75,11 +75,16 @@ def _book():
     return kronos_book
 
 
+def _bytes(data):
+    """A workbook's bytes, from bytes or from the Uint8Array the page's worker hands over."""
+    return bytes(data.to_py() if hasattr(data, "to_py") else data)
+
+
 def describe_book(data, name):
     """The uploaded workbook, described (canonical JSON text)."""
     book = _book()
     try:
-        return canonical({"ok": True, **book.describe(bytes(data), str(name))})
+        return canonical({"ok": True, **book.describe(_bytes(data), str(name))})
     except book.BookError as ex:
         return canonical({"ok": False, "message": str(ex)})
 
@@ -93,9 +98,13 @@ def arguments(text):
         return canonical({"ok": False, "message": str(ex)})
 
 
-def apply_changes(text, data, name, args_json, today=None):
-    """Make a recipe's changes on a copy of the uploaded workbook: (canonical JSON text, the copy's bytes or b"")."""
+def apply_changes(text, data, name, args_json, today=None, step=None):
+    """Make a recipe's changes on a copy of the uploaded workbook: (canonical JSON text, the copy's bytes or b"").
+    step(name) hears each stage as it starts: checking, testing, building, reading, running, writing."""
     book = _book()
     args = json.loads(args_json) if isinstance(args_json, str) else dict(args_json or {})
-    result, out = book.apply(text, bytes(data), str(name), args, today)
+    try:
+        result, out = book.apply(text, _bytes(data), str(name), args, today, step)
+    except book.BookError as ex:
+        return canonical({"ok": False, "message": str(ex)}), b""
     return canonical(result), out or b""

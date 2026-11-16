@@ -408,6 +408,12 @@ class Copy(unittest.TestCase):
         self.assertIn("The first 10 data rows:", d["text"])
         self.assertIn("Cust 1 | Cancelled", d["text"])
 
+    def test_a_big_sheet_comes_with_a_note_about_time(self):
+        d = kb.describe(save(orders(5200)), "big.xlsx")
+        self.assertEqual(d["notes"], ["The sheet Orders has 5201 rows. A recipe that deletes many rows can take a few minutes "
+                                      "on a sheet this size; Cancel stops it."])
+        self.assertEqual(kb.describe(save(orders(30)), "small.xlsx")["notes"], [])
+
     def test_the_toolchain_is_unchanged_without_an_upload(self):
         self.assertIsNone(Sheet("x").origins)
         self.assertIsNone(Sheet("x").snapshot().origins)

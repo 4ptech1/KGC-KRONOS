@@ -4,8 +4,10 @@
 //
 //   node tests/offline_pyodide.js <KRONOS-Offline/app>  < cases.json  > answers.json
 //
-// cases.json: [{"name": ..., "text": ..., "today": "YYYY-MM-DD"}]. answers.json: {"python": "3.11.3",
-// "pyodide": "0.24.1", "answers": {name: {"json": <kronos_web.check's text>, "steps": [...]}}}.
+// cases.json: [{"name": ..., "text": ..., "today": "YYYY-MM-DD"}], and for an uploaded workbook (D87) cases with a
+// "kind": "describe" ({"data": <base64>, "file": "orders.xlsx"}), "arguments", or "apply" (also "args": {...}).
+// answers.json: {"python": "3.11.3", "pyodide": "0.24.1", "answers": {name: {"json": <kronos_web's text>,
+// "steps": [...], "data": <base64 of the changed copy, for apply>}}}.
 'use strict'
 const { readFileSync } = require('fs')
 const { join } = require('path')
@@ -31,8 +33,20 @@ async function main() {
   const answers = {}
   for (const item of cases) {
     const steps = []
-    const json = kronos.check(item.text, item.today, (name) => steps.push(String(name)))
-    answers[item.name] = { json, steps }
+    const step = (name) => steps.push(String(name))
+    if (item.kind === 'describe') {
+      answers[item.name] = { json: kronos.describe_book(new Uint8Array(Buffer.from(item.data, 'base64')), item.file), steps }
+    } else if (item.kind === 'arguments') {
+      answers[item.name] = { json: kronos.arguments(item.text), steps }
+    } else if (item.kind === 'apply') {
+      const answer = kronos.apply_changes(item.text, new Uint8Array(Buffer.from(item.data, 'base64')), item.file,
+        JSON.stringify(item.args || {}), item.today, step)
+      const parts = answer.toJs()
+      answer.destroy()
+      answers[item.name] = { json: parts[0], steps, data: Buffer.from(parts[1]).toString('base64') }
+    } else {
+      answers[item.name] = { json: kronos.check(item.text, item.today, step), steps }
+    }
   }
   const python = pyodide.runPython('import sys; sys.version.split()[0]')
   process.stdout.write(JSON.stringify({ python, pyodide: pyodide.version, answers }))

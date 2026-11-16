@@ -40,12 +40,17 @@ sys.path.insert(0, str(ROOT / "compiler"))
 sys.path.insert(0, str(ROOT / "packaging"))
 import build_offline as B  # noqa: E402
 import kronos_web  # noqa: E402
+try:
+    import openpyxl  # noqa: E402
+except ImportError:   # CI installs requirements.txt
+    openpyxl = None
 from kronos_engine import bas_text, module_name, prove  # noqa: E402
 
 REQUIRED = os.environ.get("KRONOS_OFFLINE_REQUIRED") == "1"
 TODAY = "2026-11-14"
 PORT = 5181
 URL = f"http://localhost:{PORT}/"
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 OFFLINE = ROOT / "packaging" / "offline"
 LAUNCHER = OFFLINE / B.LAUNCHER
 SERVER = OFFLINE / "server"
@@ -61,6 +66,37 @@ def need(reason):
     if REQUIRED:
         raise AssertionError(f"KRONOS_OFFLINE_REQUIRED=1, but {reason}")
     raise unittest.SkipTest(reason)
+
+
+def orders_workbook(rows=24, merged=False):
+    """A synthetic orders workbook with a few styles, as bytes: what the upload tests give KRONOS."""
+    import datetime
+    import io
+    from openpyxl.styles import Font
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+    ws.append(["Order No", "Order Date", "Customer", "Status"])
+    statuses = ["Open", "Cancelled", "Closed", " cancelled "]
+    for i in range(1, rows + 1):
+        ws.append([i, datetime.date(2026, 1, 1) + datetime.timedelta(days=i * 3), f"Cust {i}", statuses[i % 4]])
+    ws["C5"].font = Font(bold=True)
+    ws.column_dimensions["C"].width = 33
+    wb.create_sheet("Notes")["A1"] = "keep me"
+    if merged:
+        ws.merge_cells("H1:I1")   # Excel would adjust it when rows go; KRONOS says so
+    out = io.BytesIO()
+    wb.save(out)
+    return out.getvalue()
+
+
+def workbook_state(data):
+    """What a workbook holds that matters to the tests: values by cell, bold cells, column widths, per sheet."""
+    import io
+    wb = openpyxl.load_workbook(io.BytesIO(data))
+    return {ws.title: ([(c.coordinate, str(c.value), bool(c.font.bold)) for row in ws.iter_rows() for c in row if c.value is not None],
+                       sorted((k, round(d.width, 2)) for k, d in ws.column_dimensions.items() if d.width))
+            for ws in wb.worksheets}
 
 
 def text_cases():
@@ -205,11 +241,22 @@ class Pins(unittest.TestCase):
         self.assertIn(f"--hash=sha256:{lark['sha256']}", requirements)
         self.assertTrue(lark["url"].endswith(f"/lark-{lark['version']}-py3-none-any.whl"))
 
+    def test_the_workbook_wheels_are_the_ones_in_requirements_txt(self):   # D87
+        requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
+        names = {item["name"]: item for item in B.load_pins()["downloads"]}
+        for name, wheel in (("openpyxl", "openpyxl-{v}-py2.py3-none-any.whl"), ("et_xmlfile", "et_xmlfile-{v}-py3-none-any.whl")):
+            item = names[name]
+            self.assertIn(f"{name.replace('_', '-')}=={item['version']} ", requirements)
+            self.assertIn(f"--hash=sha256:{item['sha256']}", requirements)
+            self.assertTrue(item["url"].endswith("/" + wheel.format(v=item["version"])))
+            self.assertEqual(item["to"], "app/wheels/" + wheel.format(v=item["version"]))
+
     def test_every_licence_is_committed_and_named(self):
         named = [name for item in B.load_pins()["downloads"] for name in item["licences"]]
         on_disk = sorted(p.name for p in B.LICENCES.glob("*.txt"))
         self.assertEqual(sorted(named), on_disk)
-        self.assertEqual(on_disk, ["inter-OFL-1.1.txt", "lark-MIT.txt", "pyodide-MPL-2.0.txt", "python-PSF.txt"])
+        self.assertEqual(on_disk, ["et_xmlfile-MIT.txt", "et_xmlfile-PSF.txt", "inter-OFL-1.1.txt", "lark-MIT.txt",
+                                   "openpyxl-MIT.txt", "pyodide-MPL-2.0.txt", "python-PSF.txt"])
 
     def test_the_test_tools_are_pinned_with_their_hashes(self):
         for path in sorted((ROOT / "packaging" / "offline_test").glob("*.txt")):
@@ -397,7 +444,8 @@ class Build(unittest.TestCase):
         fresh = unpacked()
         manifest = json.loads((fresh / "app" / "toolchain" / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["files"], B.toolchain_files())
-        self.assertEqual(manifest["wheels"], ["lark-1.3.1-py3-none-any.whl"])
+        self.assertEqual(manifest["wheels"], ["et_xmlfile-2.0.0-py3-none-any.whl", "lark-1.3.1-py3-none-any.whl",
+                                              "openpyxl-3.1.5-py2.py3-none-any.whl"])
         for name in manifest["files"]:
             self.assertEqual((fresh / "app" / "toolchain" / name).read_bytes(), (ROOT / name).read_bytes(), name)
 
@@ -433,6 +481,40 @@ class UnderPyodide(unittest.TestCase):
                 self.assertEqual(out["answers"][name]["steps"], steps)
             proven += json.loads(want)["proven"]
         self.assertGreaterEqual(proven, 16)   # the 12 specs, three examples and the whole reply
+
+
+    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+    def test_the_upload_gives_exactly_normal_pythons_answers(self):   # D87
+        import base64
+        node = shutil.which("node")
+        if not node:
+            need("Node.js is not installed")
+        fresh = unpacked()
+        data = orders_workbook()
+        b64 = base64.b64encode(data).decode()
+        cases = [{"name": "describe", "kind": "describe", "data": b64, "file": "orders.xlsx"},
+                 {"name": "not a workbook", "kind": "describe", "data": base64.b64encode(b"nope").decode(), "file": "x.xlsx"},
+                 {"name": "arguments", "kind": "arguments", "text": EXAMPLE},
+                 {"name": "apply", "kind": "apply", "text": EXAMPLE, "data": b64, "file": "orders.xlsx",
+                  "args": {"ws": "Orders"}, "today": TODAY},
+                 {"name": "no such sheet", "kind": "apply", "text": EXAMPLE, "data": b64, "file": "orders.xlsx",
+                  "args": {"ws": "Nope"}, "today": TODAY}]
+        run = subprocess.run([node, str(ROOT / "tests" / "offline_pyodide.js"), str(fresh / "app")],
+                             input=json.dumps(cases), capture_output=True, text=True, encoding="utf-8", timeout=600)
+        self.assertEqual(run.returncode, 0, run.stderr[-3000:])
+        answers = json.loads(run.stdout)["answers"]
+        self.assertEqual(answers["describe"]["json"], kronos_web.describe_book(data, "orders.xlsx"))
+        self.assertEqual(answers["not a workbook"]["json"], kronos_web.describe_book(b"nope", "x.xlsx"))
+        self.assertEqual(answers["arguments"]["json"], kronos_web.arguments(EXAMPLE))
+        steps = []
+        want, copy = kronos_web.apply_changes(EXAMPLE, data, "orders.xlsx", json.dumps({"ws": "Orders"}), TODAY, steps.append)
+        self.assertEqual(answers["apply"]["json"], want)
+        self.assertEqual(answers["apply"]["steps"], steps)
+        self.assertEqual(steps[-3:], ["reading", "running", "writing"])
+        self.assertEqual(workbook_state(base64.b64decode(answers["apply"]["data"])), workbook_state(copy))
+        refused, nothing = kronos_web.apply_changes(EXAMPLE, data, "orders.xlsx", json.dumps({"ws": "Nope"}), TODAY)
+        self.assertEqual(answers["no such sheet"]["json"], refused)
+        self.assertEqual((answers["no such sheet"]["data"], nothing), ("", b""))
 
 
 # ---------- the servers and the page ----------
@@ -743,6 +825,86 @@ class InTheBrowser(unittest.TestCase):
                 page.fill("#recipe", "  ")
                 page.click("#check")
                 self.assertIn("Paste a recipe first", page.text_content("#note"))
+                self.context.close()
+                self.assertEqual(self.blocked, [], "the page asked for something outside this computer")
+                self.assertEqual(self.errors, [])
+
+    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+    def test_a_workbook_goes_in_and_a_changed_copy_comes_out(self):   # D87
+        _, info = built()
+        data = orders_workbook()
+        args = json.dumps({"ws": "Orders"})
+        want_json, want_copy = kronos_web.apply_changes(EXAMPLE, data, "orders.xlsx", args, TODAY)
+        for name, start in page_servers():
+            with self.subTest(server=name), start():
+                page = self.open(name)
+                self.ready(page)
+                self.assertTrue(page.is_hidden("#apply-card"))
+                # an old .xls and a file that is not a workbook are turned away in words
+                page.set_input_files("#book-file", files={"name": "old.xls", "mimeType": "application/vnd.ms-excel", "buffer": b"x"})
+                self.assertIn("old .xls workbook", page.text_content("#book-note"))
+                page.set_input_files("#book-file", files={"name": "notes.xlsx", "mimeType": XLSX, "buffer": b"just text"})
+                page.wait_for_function("document.getElementById('book-note').textContent.indexOf('KRONOS could not') >= 0 "
+                                       "|| document.getElementById('book-note').textContent.indexOf('look like') >= 0", timeout=120000)
+                self.assertIn("doesn't look like an Excel workbook", page.text_content("#book-note"))
+                self.assertTrue(page.is_hidden("#book-info"))
+                # the workbook: its sheets, and the description for the AI
+                page.set_input_files("#book-file", files={"name": "orders.xlsx", "mimeType": XLSX, "buffer": data})
+                page.wait_for_selector("#book-info:not([hidden])", timeout=120000)
+                self.assertIn("orders.xlsx", page.text_content("#book-name"))
+                sheets = page.text_content("#book-sheets")
+                self.assertTrue("Orders" in sheets and "Notes" in sheets and "Order No, Order Date, Customer, Status" in sheets)
+                self.assertEqual(page.input_value("#book-text"), json.loads(kronos_web.describe_book(data, "orders.xlsx"))["text"])
+                self.shot(page, "workbook")
+                # the recipe is proven, and the changes are offered for this workbook, the sheet already chosen
+                page.click("#load-example")
+                page.wait_for_function("document.getElementById('recipe').value.length > 100")
+                self.assertEqual(self.check(page), "PROVEN It passed every check and 3 of 3 practice tests.")
+                page.wait_for_selector("#apply-card:not([hidden])", timeout=120000)
+                self.assertEqual(page.input_value("#arg-0"), "Orders")
+                page.click("#apply")
+                page.wait_for_selector("#applied-banner", timeout=120000)
+                self.assertEqual(page.text_content("#applied-banner"), "CHANGED COPY READY The changes are made on a copy; "
+                                                                      "your original file is untouched.")
+                self.assertEqual(page.evaluate("window.kronosLastApplied"), want_json)   # exactly normal Python's answer
+                self.assertTrue(page.is_hidden("#understand"))   # nothing was lost, so nothing to tick
+                self.assertTrue(page.is_enabled("#download"))
+                self.shot(page, "copy")
+                with page.expect_download() as download:
+                    page.click("#download")
+                self.assertRegex(download.value.suggested_filename, r"^orders \(KRONOS \d{4}-\d\d-\d\d \d\d-\d\d\)\.xlsx$")
+                saved = Path(download.value.path()).read_bytes()
+                self.assertEqual(workbook_state(saved), workbook_state(want_copy))
+                names = workbook_state(saved)["Orders"][0]
+                self.assertFalse(any(v.strip().lower() == "cancelled" for _, v, _ in names))
+                # remove the workbook: the changes are no longer offered
+                page.click("#remove-book")
+                self.assertTrue(page.is_hidden("#apply-card") and page.is_hidden("#book-info"))
+                self.context.close()
+                self.assertEqual(self.blocked, [], "the page asked for something outside this computer")
+                self.assertEqual(self.errors, [])
+
+    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+    def test_what_a_copy_cannot_keep_must_be_ticked_before_the_download(self):   # D87
+        _, info = built()
+        data = orders_workbook(merged=True)
+        for name, start in page_servers():
+            with self.subTest(server=name), start():
+                page = self.open(name)
+                self.ready(page)
+                page.set_input_files("#book-file", files={"name": "orders.xlsx", "mimeType": XLSX, "buffer": data})
+                page.wait_for_selector("#book-info:not([hidden])", timeout=120000)
+                page.fill("#recipe", EXAMPLE)
+                self.assertEqual(self.check(page), "PROVEN It passed every check and 3 of 3 practice tests.")
+                page.wait_for_selector("#apply-card:not([hidden])", timeout=120000)
+                page.click("#apply")
+                page.wait_for_selector("#applied-banner", timeout=120000)
+                self.assertIn("merged cells", page.text_content("#warnings"))
+                self.assertTrue(page.is_disabled("#download"))
+                page.check("#understand")
+                self.assertTrue(page.is_enabled("#download"))
+                self.shot(page, "warning")
+                # a sheet that is not there is refused in words, and nothing is offered
                 self.context.close()
                 self.assertEqual(self.blocked, [], "the page asked for something outside this computer")
                 self.assertEqual(self.errors, [])

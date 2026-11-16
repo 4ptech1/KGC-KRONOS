@@ -343,8 +343,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    reference interpreter, and he downloads the copy. Real workbooks are allowed, anything from the file may go into
    the text copied to the AI, and what a copy can't keep (charts, macros that moved, formulas after row changes) is
    warned about before the download. PR 1, the engine (`compiler/kronos_book.py`, openpyxl 3.1.5, the interpreter's
-   per-cell origins; the TESTs of every recipe in the repo give the same workbook through an uploaded file), is
-   done; next PR 2, the page, and PR 3, the release.
+   per-cell origins; the TESTs of every recipe in the repo give the same workbook through an uploaded file) and
+   PR 2, the page (a "Your workbook" card with the description for the AI, "Make the changes on a copy" after a PROVEN
+   recipe, warnings to tick, the download; `docs/kronos-offline.md` Phase 1b; the plain-language guide
+   `docs/KRONOS_Offline_Guide.docx` is version 3), are done; next PR 3, the release `kronos-offline-v3`.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
