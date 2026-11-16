@@ -100,6 +100,40 @@ class Files(unittest.TestCase):
                     self.assertIn(v, allowed)
 
 
+@unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+class AllThree(unittest.TestCase):
+    """D89: all three demo recipes, one after another, on one copy of the demo workbook."""
+
+    def test_one_copy_equals_running_them_one_after_another(self):
+        import kronos_book
+        import make_demo
+        data = (DEMO / make_demo.WORKBOOK).read_bytes()
+        texts = [(DEMO / name).read_text(encoding="utf-8") for name, _, _ in make_demo.RECIPES]
+        args = [a for _, a, _ in make_demo.RECIPES]
+        result, copy = kronos_book.apply_many(texts, data, make_demo.WORKBOOK, args, make_demo.TODAY)
+        self.assertTrue(result["ok"], result["message"])
+        one_by_one = data
+        for text, a in zip(texts, args):
+            r, one_by_one = kronos_book.apply(text, one_by_one, make_demo.WORKBOOK, a, make_demo.TODAY)
+            self.assertTrue(r["ok"], r["message"])
+        self.assertEqual(state(copy), state(one_by_one))
+        steps = result["steps"]
+        self.assertEqual([s["result"] for s in steps], ["15", "2", "38"])   # the summary counts the tidy register
+        register = [next(sh for sh in s["sheets"] if sh["name"] == make_demo.SHEET) for s in steps]
+        self.assertEqual((register[0]["fills"], register[1]["rows_deleted"], register[2]["status"]), (135, 2, "unchanged"))
+        self.assertEqual(next(sh for sh in steps[2]["sheets"] if sh["name"] == "NCR Summary")["status"], "new")
+
+    def test_a_recipe_that_stops_gives_no_copy_and_is_named(self):
+        import kronos_book
+        import make_demo
+        data = (DEMO / make_demo.WORKBOOK).read_bytes()
+        texts = [(DEMO / name).read_text(encoding="utf-8") for name, _, _ in make_demo.RECIPES]
+        result, copy = kronos_book.apply_many(texts[:2], data, make_demo.WORKBOOK, [{"ws": make_demo.SHEET}, {"ws": "About"}],
+                                              make_demo.TODAY)
+        self.assertIsNone(copy)
+        self.assertTrue(result["message"].startswith("Recipe 2 (Write every NCR status in one clean form"))
+
+
 class Guide(unittest.TestCase):
     def test_the_guide_and_its_pictures_are_there(self):
         self.assertTrue((DEMO / "KRONOS_Demo_NCR_Register.docx").read_bytes().startswith(b"PK"))

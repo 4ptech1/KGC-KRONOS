@@ -614,13 +614,4 @@ class Controller:
         self._start(lambda: self.run.recheck(text), "ask")
 
 
-def test_rows(proof):
-    """[{line, passed, checks, why}]: each TEST, what it checks (its assert= part) and why it failed."""
-    lines = proof.spec.splitlines()
-    rows = []
-    for t in proof.tests:
-        text = lines[t.line - 1] if 0 < t.line <= len(lines) else ""
-        checks = text.split("assert=", 1)[1].strip() if "assert=" in text else text
-        rows.append({"line": t.line, "passed": t.passed, "checks": checks,
-                     "why": [m for m, c in t.failed]})
-    return rows
+test_rows = engine.test_rows   # moved into the engine, so KRONOS Offline's page shows the same rows (D89)

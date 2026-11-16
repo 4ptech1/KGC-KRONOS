@@ -25,6 +25,15 @@ Each answers {"ok": false, "message": ...} for a file or recipe it can't use, in
 Recipes from a file (D89, compiler/kronos_recipes.py): a .vcl, .txt, .md or Word .docx file the person opens.
 
     kronos_web.read_recipe_file(data, name)                 # {"ok", "name", "recipes": [{"title", "text"}], "message"}
+
+The wizard (D89, compiler/kronos_wizard.py): KRONOS.exe's engine with copy and paste for the AI step.
+
+    kronos_web.wizard_reset(data_folder, today=None)        # a fresh wizard (the page's start, and after Cancel)
+    kronos_web.wizard_call(action, id, args_json, step=None)
+        # action: ask, recipe, message, paste, answer, problems, save, view, restore -> {"ok", ...}
+    kronos_web.words()                                      # EXAMPLE, TIPS, NEVER and the prompt's SHA-256
+    kronos_web.apply_changes_many(texts_json, data, name, args_list_json, today=None, step=None)
+        # several recipes, one after another, on one copy of the workbook (kronos_book.apply_many)
 """
 import datetime
 import json
@@ -120,3 +129,70 @@ def read_recipe_file(data, name):
     """The recipes in a file the person opened (canonical JSON text)."""
     import kronos_recipes
     return canonical(kronos_recipes.read_recipes(_bytes(data), str(name)))
+
+
+# ---------- the wizard (D89) ----------
+
+_WIZARD = {}
+
+
+def wizard_reset(data_folder="/kronos-data", today=None):
+    """A fresh wizard: the page's start, and its first call after Cancel stopped the browser's Python."""
+    import kronos_wizard
+    _WIZARD["wizard"] = kronos_wizard.Wizard(data_folder, today)
+    return canonical({"ok": True})
+
+
+def wizard_call(action, id, args_json, step=None):
+    """One wizard action, as canonical JSON: {"ok": true, "view" | "text" | "saved" | "views": ...} or
+    {"ok": false, "message": ...} for something the person can put right."""
+    import kronos_wizard
+    if "wizard" not in _WIZARD:
+        wizard_reset()
+    w = _WIZARD["wizard"]
+    args = json.loads(args_json) if isinstance(args_json, str) else list(args_json or [])
+    try:
+        if action == "ask":
+            return canonical({"ok": True, "view": w.ask(id, args[0], args[1] if len(args) > 1 else None, step)})
+        if action == "recipe":
+            return canonical({"ok": True, "view": w.recipe(id, args[0], args[1] if len(args) > 1 else "", step)})
+        if action == "message":
+            return canonical({"ok": True, "text": w.message(id, bool(args[0]) if args else True)})
+        if action == "paste":
+            return canonical({"ok": True, "view": w.paste(id, args[0], step)})
+        if action == "answer":
+            return canonical({"ok": True, "view": w.answer(id, args[0], step)})
+        if action == "problems":
+            return canonical({"ok": True, "view": w.send_problems(id, step)})
+        if action == "save":
+            return canonical({"ok": True, "saved": w.save(id, args[0] if args else {})})
+        if action == "view":
+            return canonical({"ok": True, "view": w.view(id)})
+        if action == "restore":
+            return canonical({"ok": True, "views": w.restore(args[0] if args else [], step)})
+    except kronos_wizard.WizardError as ex:
+        return canonical({"ok": False, "message": str(ex)})
+    raise ValueError(f"no wizard action {action!r}")
+
+
+def words():
+    """KRONOS's own words for the page (the same as KRONOS.exe's), and the Orchestrator prompt's SHA-256, by which
+    the page knows whether the prompt changed since the person last put it in their Orchestrator project."""
+    import hashlib
+    import kronos_words
+    from kronos_engine import PROMPT
+    prompt = PROMPT.read_bytes()
+    return canonical({"example": kronos_words.EXAMPLE, "tips": kronos_words.TIPS, "never": kronos_words.NEVER,
+                      "prompt_sha256": hashlib.sha256(prompt).hexdigest(), "prompt_bytes": len(prompt)})
+
+
+def apply_changes_many(texts_json, data, name, args_list_json, today=None, step=None):
+    """Several recipes, one after another, on one copy of the uploaded workbook: (canonical JSON, the copy's bytes or b"")."""
+    book = _book()
+    texts = json.loads(texts_json) if isinstance(texts_json, str) else list(texts_json)
+    args_list = json.loads(args_list_json) if isinstance(args_list_json, str) else list(args_list_json or [])
+    try:
+        result, out = book.apply_many(texts, _bytes(data), str(name), args_list, today, step)
+    except book.BookError as ex:
+        return canonical({"ok": False, "message": str(ex)}), b""
+    return canonical(result), out or b""

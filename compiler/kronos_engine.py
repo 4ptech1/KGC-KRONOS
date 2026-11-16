@@ -294,6 +294,18 @@ def fix_message(proof):
 
 # ---------- the spec in plain words (the window's Review and Save steps, D74) ----------
 
+def test_rows(proof):
+    """[{line, passed, checks, why}]: each TEST, what it checks (its assert= part) and why it failed."""
+    lines = proof.spec.splitlines()
+    rows = []
+    for t in proof.tests:
+        text = lines[t.line - 1] if 0 < t.line <= len(lines) else ""
+        checks = text.split("assert=", 1)[1].strip() if "assert=" in text else text
+        rows.append({"line": t.line, "passed": t.passed, "checks": checks,
+                     "why": [m for m, c in t.failed]})
+    return rows
+
+
 def change_words(value, hints=None):
     """One MODIFIES value in words; hints {argument: practice sheet name} add the name the TESTs used."""
     m = MODIFIES_RE.fullmatch(value.strip())
@@ -614,6 +626,16 @@ class Run:
         if self.recheck(text) == "proven":
             return self.status
         self._say("user", "fix", fix_message(self.attempts[-1].proof))
+        return self._converse()
+
+    def send_problems(self):
+        """The latest turn's closest attempt, not proven, goes to the AI with its problems (fix_message) as a new
+        turn: what "Copy the problems for the AI" does for a recipe that came from a file (D89)."""
+        best = self.best()
+        if best is None or best.proof.ok:
+            raise ValueError("there is no recipe with problems to send")
+        self._say("user", "fix", fix_message(best.proof))
+        self._new_turn()
         return self._converse()
 
     def best(self):

@@ -603,51 +603,129 @@ def apply(text, data, name, args, today=None, step=None):
     """Run the proven recipe's procedure on the uploaded workbook and write the changed copy.
     Returns (result, bytes): bytes is None when nothing is given back, and the result says why.
     step(name) hears each stage as it starts: checking, testing, building, reading, running, writing."""
+    return apply_many([text], data, name, [args], today, step)
+
+
+def apply_many(texts, data, name, args_list, today=None, step=None):
+    """Several proven recipes, one after another, on one copy of the uploaded workbook (D89): each runs on what the
+    one before it left, and the copy is written once. Each recipe is proven first; one that isn't stops it all."""
     from kronos_engine import prove   # here, so that importing this module stays light
     if isinstance(today, str):
         today = dt.date.fromisoformat(today)
-    proof = prove(text, today, step=step)
-    if not proof.ok:
-        return _refused("This recipe isn't proven, so KRONOS won't run it on your workbook."), None
-    return apply_proven(proof.spec, data, name, args, today, step)
+    specs = []
+    for i, text in enumerate(texts):
+        proof = prove(text, today, step=step)
+        if not proof.ok:
+            which = "This recipe" if len(texts) == 1 else f"Recipe {i + 1} ({title_of(text)})"
+            return _refused(f"{which} isn't proven, so KRONOS won't run it on your workbook."), None
+        specs.append(proof.spec)
+    return apply_many_proven(specs, data, name, args_list, today, step)
 
 
 def _refused(words, **more):
     return {"ok": False, "message": words, "sheets": [], "changes": [], "changes_total": 0, "warnings": [],
-            "result": None, "messages": [], **more}
+            "result": None, "messages": [], "steps": [], **more}
+
+
+def title_of(text):
+    """A recipe's name for the person: its GOAL, else its PROC or NAME."""
+    found = {}
+    for line in text.splitlines():
+        key, _, rest = line.partition(" ")
+        if key in ("GOAL", "PROC", "NAME") and key not in found:
+            found[key] = rest.strip()
+    return found.get("GOAL") or found.get("PROC") or found.get("NAME") or "the recipe"
 
 
 def apply_proven(text, data, name, args, today=None, step=None):
     """apply() for a recipe that has already been proven (the page proves it first; the tests prove every spec once)."""
+    return apply_many_proven([text], data, name, [args], today, step)
+
+
+def _positions(sh):
+    """{row it came from: the row it is in now} for an uploaded sheet's rows, by each row's first cell."""
+    found = {}
+    for (r, c) in sorted(sh.origins or {}):
+        o = sh.origins[(r, c)]
+        if o[0] == sh.name and o[1] not in found:
+            found[o[1]] = r
+    return found
+
+
+def _step_story(before, model):
+    """What one recipe did, per sheet, compared with the workbook as the recipe before it left it."""
+    sheets = []
+    for name, sh in model.sheets.items():
+        was = before.get(name)
+        entry = {"name": name, "status": "new" if was is None else ("changed" if _sheet_changed(sh, was) else "unchanged"),
+                 "cells": 0, "rows_deleted": 0, "rows_added": 0, "rows_moved": 0, "fills": 0, "hidden": len(sh.hidden)}
+        if was is None:
+            entry["cells"] = len(sh.cells)
+        elif entry["status"] == "changed":
+            entry["cells"] = sum(not (_same(was.cells.get(rc), sh.cells.get(rc))) for rc in set(sh.cells) | set(was.cells))
+            entry["fills"] = sum(sh.fills.get(rc) != was.fills.get(rc) for rc in set(sh.fills) | set(was.fills))
+            then, now = _positions(was), _positions(sh)
+            entry["rows_deleted"] = sum(1 for o in then if o not in now and any(rc[0] == then[o] for rc in was.cells))
+            entry["rows_moved"] = sum(1 for o, r in now.items() if o in then and then[o] != r)
+            with_origin_now = {r for r, _ in (sh.origins or {})}
+            with_origin_then = {r for r, _ in (was.origins or {})}
+            entry["rows_added"] = max(0, len({r for r, _ in sh.cells} - with_origin_now)
+                                      - len({r for r, _ in was.cells} - with_origin_then))
+        sheets.append(entry)
+    return sheets
+
+
+def apply_many_proven(texts, data, name, args_list, today=None, step=None):
+    """apply_many() for recipes that have already been proven."""
     step = step or (lambda stage: None)
     if isinstance(today, str):
         today = dt.date.fromisoformat(today)
+    many = len(texts) > 1
+
+    def which(i):
+        return f"Recipe {i + 1} ({title_of(texts[i])}): " if many else ""
+
+    steps, result, messages = [], None, []
     try:
-        spec, problems = parse(text)
-        if problems or not spec:
-            return _refused("The recipe doesn't parse."), None
-        entry, procs, _ = entry_of(spec)
-        if uses_files(text):
-            return _refused("This recipe works with files or folders, which KRONOS can't do on an uploaded workbook. "
-                            "Use the macro instead."), None
+        parsed = []
+        for i, text in enumerate(texts):
+            spec, problems = parse(text)
+            if problems or not spec:
+                return _refused(f"{which(i)}The recipe doesn't parse."), None
+            entry, procs, _ = entry_of(spec)
+            if uses_files(text):
+                return _refused(f"{which(i)}This recipe works with files or folders, which KRONOS can't do on an "
+                                "uploaded workbook. Use the macro instead."), None
+            parsed.append((entry, procs))
         step("reading")
         loaded = Loaded(bytes(data), name)
         model = loaded.book()
-        bound = _bind(entry, args or {}, model)
-        log = []
-        step("running")
-        machine = Machine(entry, bound, log, today or dt.date.today(), None, model, procs)
-        result = machine.run()
+        for i, (entry, procs) in enumerate(parsed):
+            before = {n: sh.snapshot() for n, sh in model.sheets.items()}
+            try:
+                bound = _bind(entry, (args_list[i] if i < len(args_list) else None) or {}, model)
+            except BookError as ex:
+                return _refused(f"{which(i)}{ex}"), None
+            log = []
+            step("running")
+            machine = Machine(entry, bound, log, today or dt.date.today(), None, model, procs)
+            try:
+                result = machine.run()
+            except VclError as ex:
+                return _refused(f"{which(i)}The recipe stopped on this workbook: {ex}"), None
+            if machine.pre_failed or result == -1:
+                return _refused(f"{which(i)}This workbook doesn't match what the recipe expects, so nothing was changed. "
+                                + "; ".join(str(m) for _, _, m in log[:3]), pre_failed=True), None
+            if log:
+                return _refused(f"{which(i)}The recipe stopped with an error on this workbook, so nothing was changed: "
+                                + "; ".join(str(m) for _, _, m in log[:3]), log=[str(m) for _, _, m in log]), None
+            messages += list(machine.messages)
+            steps.append({"recipe": title_of(texts[i]), "result": None if result is None else S.text_of(result),
+                          "messages": list(machine.messages), "sheets": _step_story(before, model)})
     except BookError as ex:
         return _refused(str(ex)), None
     except VclError as ex:
         return _refused(f"The recipe stopped on this workbook: {ex}"), None
-    if machine.pre_failed or result == -1:
-        return _refused("This workbook doesn't match what the recipe expects, so nothing was changed. "
-                        + "; ".join(str(m) for _, _, m in log[:3]), pre_failed=True), None
-    if log:
-        return _refused("The recipe stopped with an error on this workbook, so nothing was changed: "
-                        + "; ".join(str(m) for _, _, m in log[:3]), log=[str(m) for _, _, m in log]), None
     step("writing")
     try:
         out, status = _write(loaded, model)
@@ -658,5 +736,5 @@ def apply_proven(text, data, name, args, today=None, step=None):
     return {"ok": True, "message": "The changes are made on a copy; your original file is untouched.",
             "sheets": sheets, "changes": changes, "changes_total": total,
             "warnings": _warnings(loaded, model, status, out),
-            "result": None if result is None else S.text_of(result), "messages": list(machine.messages),
-            "stem": stem, "ext": ext}, out
+            "result": None if result is None else S.text_of(result), "messages": messages,
+            "steps": steps, "stem": stem, "ext": ext}, out
