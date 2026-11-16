@@ -307,7 +307,7 @@ deleted row moves the rows below it, so time grows with the square of the rows: 
 5,000 in normal Python; under Pyodide in the browser 1,000 rows take about 3 s and 5,000 about 50 s, so a sheet of
 10,000 rows with half of them deleted may take 3 to 4 minutes (the page says so above 5,000 rows, and Cancel stops it).
 
-**Phase 2, the wizard** (Boss's brief, 14-11-2026): KRONOS.exe's four-step wizard, in BlueForce's look.
+**Phase 2, the wizard (done, version 4, D89)** (Boss's brief, 14-11-2026, and his answers of 16-11-2026): KRONOS.exe's four-step wizard, in BlueForce's look.
 
 - Top bar: the logo, "KGC KRONOS", the steps (1 Ask, 2 Questions, 3 Review, 4 Save) with the current one marked,
   History and Help on the right, and the version line.
@@ -333,6 +333,32 @@ deleted row moves the rows below it, so time grows with the square of the rows: 
 - Its tests: a practice request through all four steps with a scripted "AI reply" (a proven spec pasted in), and the
   downloaded .bas byte for byte what CPython's engine writes for the same reply.
 
+How version 4 does it (D89):
+
+- **One engine with KRONOS.exe.** `compiler/kronos_wizard.py` drives KRONOS.exe's own `kronos_engine.Run`; only the AI is new:
+  `PasteAI` answers with the reply Boss pasted, and with none it stops the run where KRONOS.exe would wait for Codex. So the
+  message "with instructions" is exactly what KRONOS.exe sends Codex (`kronos_ai.render`), the repair message, the 3 tries a
+  turn, the 3 questions, the best attempt and the saved .bas and practice .bas are KRONOS.exe's, byte for byte (tested).
+  "for the Orchestrator" copies only the newest message, since that chat already holds the instructions and the conversation.
+- **Copying.** "Write the message for the AI" first asks Python for both texts, so each Copy button copies inside its own
+  click (the clipboard needs the click); where the clipboard is refused, the text is shown selected for Ctrl+C.
+- **The Orchestrator's instructions.** The page remembers, in this browser only, the SHA-256 of the prompt Boss said he put in
+  his Orchestrator project; while it differs, Ask shows one line with "Copy the Orchestrator instructions" and "I have updated
+  them".
+- **Recipe files** (`compiler/kronos_recipes.py`): "Open a recipe file…" takes a .vcl, .txt, .md or Word .docx (up to 2 MB). One
+  recipe is checked at once; several are listed by their GOAL with tick boxes and "Choose all". A recipe from a file that is
+  not proven can still go to the AI: "Send the problems to the AI" sends it with its problems (`fix_message`) as a new turn.
+- **The workbook in the message.** With a workbook chosen, its description goes below the request, under one heading, unless
+  "Include my workbook's description" is unticked.
+- **Save.** Each PROVEN recipe whose assumptions are ticked gets its real sheet names, "Download the macro (.bas)", the
+  import steps, and "Download the practice run (.bas)" with its steps. A Workbook argument needs no name: the starter macro
+  passes ThisWorkbook (KRONOS.exe gains this too). With a workbook chosen, "Make the changes on a copy" runs all the PROVEN
+  recipes in order on one copy (`kronos_book.apply_many`), shows what each one did and then all together, with the warnings
+  to tick and one download.
+- **Cancel** stops the browser's Python as before; the page then starts a fresh one and rebuilds every request from the
+  actions it kept (`Wizard.restore`), so nothing pasted is lost.
+- Still Phase 3: History, the practice-run check, the corpus suggestion and Help.
+
 **Phase 3, the rest:** History (past runs kept in this browser on this PC in IndexedDB, every read and write in
 try/catch, newest first, with "Download the run record", like the runs folder KRONOS keeps; say plainly that clearing
 the browser's data removes them); the practice run (download its module, and a box to paste Excel's result back for
@@ -354,6 +380,7 @@ Boss's whole brief, word for word, with BlueForce's original four files, is in t
 | 1 | 14-11-2026 | `2ed9f79` | The proof: one screen that checks, tests and builds a pasted recipe in the browser, offline, with the practice example and Cancel. |
 | 2 | 14-11-2026 | `988b020` | The Python server (`serve.py`) gives every connection its own thread: version 1's answers nobody while a connection is open that asks for nothing, as a browser's spare one (not seen with a real browser). One sentence of the page no longer says "this first version". The PowerShell and Node.js servers are as in version 1. |
 | 3 | 16-11-2026 | `10fbdf0` | **Upload (D87):** choose a workbook (.xlsx or .xlsm) on the page, copy a description of it for the AI, and, once a recipe is PROVEN, make its changes on a copy and download it, with a warning for whatever a copy can't keep. openpyxl 3.1.5 and et_xmlfile 2.0.0 join the zip. |
+| 4 | 16-11-2026 | (added after the release) | **The wizard (D89):** 1 Ask, 2 Questions, 3 Review, 4 Save, as KRONOS.exe has them, with the AI step done by copy and paste (the message for the claude.ai Orchestrator, or with the instructions for ChatGPT or a new chat). **Recipe files:** open a .vcl, .txt, .md or Word .docx file, choose one, some or all of its recipes, and they are checked straight away. Several recipes run one after another on one copy of the workbook. The .bas and its practice run download from Save. |
 
 Each copy is the release `kronos-offline-v<N>`, and its SHA-256 is on its release page and in the `.sha256.txt`
 beside the zip:

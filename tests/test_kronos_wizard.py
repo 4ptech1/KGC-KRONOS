@@ -97,6 +97,14 @@ class Wizard(unittest.TestCase):
         self.assertIn("GOLA", text)
         self.assertEqual(w.paste("f2", reply(EXAMPLE))["status"], "proven")
 
+    def test_a_workbook_argument_needs_no_name_the_starter_passes_this_workbook(self):
+        summary = (ROOT / "docs" / "demo" / "recipe_3_summary.vcl").read_text(encoding="utf-8")
+        view = self.wizard.recipe("f1", summary, "recipe_3_summary.vcl")
+        self.assertEqual(view["starter"], [{"name": "ws", "type": "Worksheet", "default": "NCR"}])
+        saved = self.wizard.save("f1", {"ws": "NCR Register"})
+        self.assertIn('SummariseNcrs(ThisWorkbook, ThisWorkbook.Worksheets("NCR Register"))', saved["bas"])
+        self.assertEqual(saved["macro"], "RunSummariseNcrs")
+
     def test_the_workbook_goes_below_the_request(self):
         self.assertEqual(kw.request_text(REQUEST, None), REQUEST)
         text = kw.request_text(REQUEST, "The workbook orders.xlsx has 1 sheet:\n")

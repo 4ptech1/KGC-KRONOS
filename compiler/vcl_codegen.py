@@ -707,7 +707,7 @@ def assemble(procedures, title="VBA Forge module"):
 # KGC KRONOS's starter macro (item 5, D68, D72). A TASK compiles to a procedure that takes its
 # sheets, which Alt+F8 can't start, so KRONOS asks the person for the real sheet name (or value)
 # behind each argument, and the starter passes them and shows the result and ForgeLog.
-STARTER_TYPES = ("Worksheet", "String", "Long", "Double", "Boolean")
+STARTER_TYPES = ("Worksheet", "Workbook", "String", "Long", "Double", "Boolean")   # a Workbook is ThisWorkbook (D89)
 STARTER_MAX_TEXT = 255
 
 
@@ -729,7 +729,9 @@ def starter_args(text):
     """The arguments the person gives the starter macro, [(name, type)], or None when the TASK is
     already a Sub without arguments, which Alt+F8 runs as it is."""
     proc, kind, args, ret = task_signature(text)
-    return None if kind == "Sub" and not args else args
+    if kind == "Sub" and not args:
+        return None
+    return [(name, typ) for name, typ in args if typ != "Workbook"]   # a Workbook argument is ThisWorkbook (D89)
 
 
 def vba_string(value, what):
@@ -742,6 +744,8 @@ def vba_string(value, what):
 
 def starter_value(name, typ, value):
     what = f"the value for ${name} ({typ})"
+    if typ == "Workbook":   # the workbook the person imported the module into (D89)
+        return "ThisWorkbook"
     if typ == "Worksheet":
         if not S.sheet_name_ok(value):
             raise CompileError(f"{what} must be a sheet name Excel allows: 1 to 31 characters, none of \\ / ? * [ ] :")
@@ -770,12 +774,12 @@ def starter_sub(text, values):
     for name, typ in args:
         if typ not in STARTER_TYPES:
             raise CompileError(f"the starter macro can't pass ${name} ({typ}): call {proc} from your own macro")
-        if name not in values:
+        if name not in values and typ != "Workbook":
             raise CompileError(f"the starter macro needs a value for ${name} ({typ})")
     if kind == "Function" and ret is not None and KIND_OF[ret] in OBJECT_KINDS:
         raise CompileError(f"the starter macro can't show a {ret} result: call {proc} from your own macro")
     name = "Run" + proc
-    call = ", ".join(starter_value(n, t, values[n]) for n, t in args)
+    call = ", ".join(starter_value(n, t, values.get(n, "")) for n, t in args)
     sheets = ", ".join(values[n] for n, t in args if t == "Worksheet")
     pad = " " * 6
     out = [f"'@KRONOS starter for {proc}: Alt+F8 runs {name}", f"Public Sub {name}()"]

@@ -9,8 +9,9 @@ Only the standard library: a .docx is a zip of XML, read with zipfile and xml.et
 Where the recipes are:
   - every fenced ```vcl block, when the text has any (as an AI's reply has, rule 1);
   - otherwise every run of recipe lines: from a "VCL 0.x" line, through TASK or BUILD, "# ASSUME:" lines, the line
-    keys of compiler/parser.py and a BUILD's "---" lines (each later section starts with "VCL 0.x" again), to the
-    first line that is none of these. Blank lines inside a recipe are dropped; anything else ends it.
+    keys of compiler/parser.py (and any other word in capitals at the start of a line, such as a mistyped key, so the
+    checker can name it) and a BUILD's "---" lines (each later section starts with "VCL 0.x" again), to the first line
+    that is none of these. Blank lines inside a recipe are dropped; anything else ends it.
 What a word processor typed is undone first: curly quotes become straight ones, non-breaking spaces plain ones, and
 invisible characters go.
 """
@@ -118,11 +119,15 @@ def _fenced(lines):
     return blocks
 
 
+KEY_LIKE = re.compile(r"[A-Z][A-Z0-9_]{1,15}(\s|$)")   # a key, or a mistyped one (GOLA): kept, so the checker names it
+
+
 def _is_recipe_line(line):
     words = line.split()
     if not words:
         return False
-    return words[0] in KEYS or line.startswith("# ASSUME:") or line == "---" or bool(VERSION_LINE.fullmatch(line))
+    return (words[0] in KEYS or bool(KEY_LIKE.match(line)) or line.startswith("# ASSUME:") or line == "---"
+            or bool(VERSION_LINE.fullmatch(line)))
 
 
 def _unfenced(lines):

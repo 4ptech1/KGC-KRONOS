@@ -19,64 +19,114 @@
     <div class="title">KGC KRONOS</div>
     <div class="small">Offline</div>
   </div>
+  <nav class="steps" id="steps" aria-label="Steps">
+    <span class="step" data-step="ask">1 Ask</span>
+    <span class="step" data-step="question">2 Questions</span>
+    <span class="step" data-step="review">3 Review</span>
+    <span class="step" data-step="save">4 Save</span>
+  </nav>
   <div class="small version" id="version">Version dev</div>
 </header>
 
 <p class="old-browser" id="old-browser">This browser can't run KRONOS. Open Chrome, Edge or Firefox and type localhost:5181.</p>
 
 <main class="page">
-  <section class="card" id="book-card" aria-labelledby="book-title">
-    <h1 id="book-title">Your workbook (optional)</h1>
-    <p class="lead">Choose an Excel workbook and KRONOS can make a recipe's changes on a copy of it, which you download.
-      Your file stays on this computer: KRONOS never changes it and sends it nowhere.</p>
-    <div class="buttons">
-      <button type="button" id="choose-book">Choose a workbook…</button>
-      <button type="button" id="remove-book" hidden>Remove the workbook</button>
-    </div>
-    <input type="file" id="book-file" accept=".xlsx,.xlsm" hidden>
-    <p class="note" id="book-note" hidden></p>
-    <div id="book-info" hidden>
-      <h2 id="book-name"></h2>
-      <div id="book-sheets"></div>
-      <div class="warn" id="book-warn" hidden></div>
-      <label class="label" for="book-text">For the AI: a description of the workbook</label>
-      <p class="muted small-gap">Paste it into your AI chat with what you want done, so the AI knows your sheet and column
-        names. It holds the headings and the first rows of each sheet; you can change it before you copy it.</p>
-      <textarea id="book-text" class="box description" rows="10" spellcheck="false" autocomplete="off"></textarea>
+
+  <!-- ===================== 1 Ask ===================== -->
+  <section id="step-ask" class="stepview" aria-label="Step 1, Ask">
+    <section class="card" id="book-card" aria-labelledby="book-title">
+      <h1 id="book-title">Your workbook (optional)</h1>
+      <p class="lead">Choose an Excel workbook and KRONOS can make a recipe's changes on a copy of it, which you download.
+        Your file stays on this computer: KRONOS never changes it and sends it nowhere.</p>
       <div class="buttons">
-        <button type="button" id="copy-book">Copy the description</button>
+        <button type="button" id="choose-book">Choose a workbook…</button>
+        <button type="button" id="remove-book" hidden>Remove the workbook</button>
       </div>
-    </div>
+      <input type="file" id="book-file" accept=".xlsx,.xlsm" hidden>
+      <p class="note" id="book-note" hidden></p>
+      <div id="book-info" hidden>
+        <h2 id="book-name"></h2>
+        <div id="book-sheets"></div>
+        <div class="warn" id="book-warn" hidden></div>
+        <details class="more">
+          <summary>The description KRONOS gives the AI</summary>
+          <p class="muted small-gap">It holds the sheet names, the headings and the first rows of each sheet, so the
+            AI uses your real names. You can change it.</p>
+          <textarea id="book-text" class="box description" rows="10" spellcheck="false" autocomplete="off"></textarea>
+        </details>
+      </div>
+    </section>
+
+    <section class="card" id="ask-card" aria-labelledby="ask-title">
+      <h1 id="ask-title">Ask the AI</h1>
+      <p class="lead">Say in plain words what the macro should do. KRONOS gives you a message for your AI chat; you paste
+        the AI's reply back here, and KRONOS checks it.</p>
+      <label class="label" for="request">What should the macro do?</label>
+      <textarea id="request" class="box request" rows="4" spellcheck="true"></textarea>
+      <ul class="tips" id="tips"></ul>
+      <label class="checkline" id="include-line" hidden><input type="checkbox" id="include-book" checked>
+        Include my workbook's description in the message</label>
+      <div id="ai-panel-ask"></div>
+      <p class="note" id="ask-note" hidden></p>
+    </section>
+
+    <section class="card" id="file-card" aria-labelledby="file-title">
+      <h1 id="file-title">Or open a recipe file</h1>
+      <p class="lead">Already have a recipe? Open the file it is in: a .vcl, .txt or .md file, or a Word document (.docx).
+        KRONOS finds the recipes in it and checks them straight away.</p>
+      <div class="buttons">
+        <button type="button" id="choose-recipes">Open a recipe file…</button>
+        <button type="button" id="load-example">Try the practice example</button>
+      </div>
+      <input type="file" id="recipe-file" accept=".vcl,.txt,.md,.markdown,.docx" hidden>
+      <p class="note" id="file-note" hidden></p>
+      <div id="recipe-list" hidden></div>
+    </section>
   </section>
 
-  <section class="card" id="check-card" aria-labelledby="check-title">
-    <h1 id="check-title">Check a recipe</h1>
-    <p class="lead">Paste a recipe: the VCL an AI wrote, or its whole reply. Or load the practice example. KRONOS
-      checks the recipe, runs its practice tests and builds the macro, all inside this browser. Nothing leaves this
-      computer.</p>
-    <label class="label" for="recipe">Paste a recipe</label>
-    <textarea id="recipe" class="box recipe" rows="18" spellcheck="false" autocomplete="off"
-      placeholder="VCL 0.6&#10;TASK&#10;..."></textarea>
-    <div class="buttons">
-      <button type="button" id="load-example">Load the practice example</button>
-      <button type="button" id="check">Check the recipe</button>
-    </div>
-    <p class="note" id="note" hidden></p>
+  <!-- ===================== 2 Questions ===================== -->
+  <section id="step-question" class="stepview" aria-label="Step 2, Questions" hidden>
+    <section class="card" aria-labelledby="question-title">
+      <h1 id="question-title">The AI has a question</h1>
+      <div class="question" id="question-text"></div>
+      <label class="label" for="answer">Your answer</label>
+      <textarea id="answer" class="box request" rows="3"></textarea>
+      <div id="ai-panel-question"></div>
+      <p class="note" id="question-note" hidden></p>
+      <div class="buttons"><button type="button" class="back" data-to="ask">Back to Ask</button></div>
+    </section>
   </section>
 
-  <section class="result" id="result" hidden aria-live="polite"></section>
-
-  <section class="card" id="apply-card" hidden aria-labelledby="apply-title">
-    <h1 id="apply-title">Make the changes on a copy</h1>
-    <p class="lead" id="apply-lead"></p>
-    <div class="fields" id="apply-fields"></div>
-    <div class="buttons">
-      <button type="button" id="apply">Make the changes on a copy</button>
-    </div>
-    <p class="note" id="apply-note" hidden></p>
+  <!-- ===================== 3 Review ===================== -->
+  <section id="step-review" class="stepview" aria-label="Step 3, Review" hidden>
+    <div id="review-list"></div>
+    <section class="card">
+      <p class="note" id="review-note" hidden></p>
+      <div class="buttons">
+        <button type="button" class="back" data-to="ask">Back to Ask</button>
+        <button type="button" id="go-save">Go to Save</button>
+      </div>
+    </section>
   </section>
 
-  <section class="result" id="applied" hidden aria-live="polite"></section>
+  <!-- ===================== 4 Save ===================== -->
+  <section id="step-save" class="stepview" aria-label="Step 4, Save" hidden>
+    <div id="save-list"></div>
+    <section class="card" id="apply-card" hidden aria-labelledby="apply-title">
+      <h1 id="apply-title">Make the changes on a copy of your workbook</h1>
+      <p class="lead" id="apply-lead"></p>
+      <div class="fields" id="apply-fields"></div>
+      <div class="buttons"><button type="button" id="apply">Make the changes on a copy</button></div>
+      <p class="note" id="apply-note" hidden></p>
+    </section>
+    <section class="result" id="applied" hidden aria-live="polite"></section>
+    <section class="card">
+      <div class="buttons">
+        <button type="button" class="back" data-to="review">Back to Review</button>
+        <button type="button" id="start-over">Start a new request</button>
+      </div>
+    </section>
+  </section>
 
   <p class="about" id="about">This browser: <span id="browser">?</span> · Python: <span id="python">starting</span></p>
 </main>

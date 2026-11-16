@@ -69,6 +69,10 @@ class Files(unittest.TestCase):
         text = f"Notes for Monday\n\n{EXAMPLE}\nThen the NCR review:\n{BUILD}\nThat's all.\n"
         self.assertEqual(self.texts(text.encode(), "notes.txt"), [EXAMPLE, BUILD])
 
+    def test_a_mistyped_key_stays_in_the_recipe_so_the_checker_names_it(self):
+        broken = EXAMPLE.replace("GOAL ", "GOLA ", 1)
+        self.assertEqual(self.texts(f"My notes\n{broken}\nThat's all.\n".encode(), "notes.txt"), [broken])
+
     def test_windows_files_and_typed_quotes(self):
         utf16 = ("﻿" + EXAMPLE.replace("\n", "\r\n")).encode("utf-16-le")
         self.assertEqual(self.texts(b"\xff\xfe" + utf16[2:], "recipe.txt"), [EXAMPLE])

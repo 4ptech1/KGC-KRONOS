@@ -1,7 +1,7 @@
-// KRONOS Offline's one screen (D86, D87): choose a workbook (optional), paste a recipe, check it in the browser, see
-// PROVEN or the problems, and, with a workbook chosen, make the recipe's changes on a copy and download it. The work
-// is done in worker.js; Cancel stops that worker and starts a fresh one. Plain JavaScript that Chrome 109 and
-// Firefox 115 run, with no framework and no build step.
+// KRONOS Offline's wizard (D86, D87, D89): 1 Ask, 2 Questions, 3 Review, 4 Save, as KRONOS.exe has them, with the AI
+// step done by copy and paste. The work is done by worker.js (Python in the browser), one job at a time; Cancel stops
+// that worker, starts a fresh one and rebuilds the requests from the actions this page kept. Plain JavaScript that
+// Chrome 109 and Firefox 115 run, with no framework and no build step.
 (function () {
   'use strict'
 
@@ -9,14 +9,8 @@
   if (oldBrowser) oldBrowser.parentNode.removeChild(oldBrowser)
 
   const $ = (id) => document.getElementById(id)
-  const recipe = $('recipe')
-  const checkButton = $('check')
-  const exampleButton = $('load-example')
   const working = $('working')
   const workingStep = $('working-step')
-  const note = $('note')
-  const result = $('result')
-  const applied = $('applied')
 
   const EXAMPLE = 'toolchain/vcl/examples/example1_rev3.vcl'   // the prompt's Example 1, the same file KRONOS.exe uses
   const STEP_WORDS = {
@@ -24,26 +18,27 @@
     testing: 'Running its practice tests',
     building: 'Building the macro and checking its VBA',
     reading: 'Reading your workbook',
+    opening: 'Reading the recipe file',
     running: 'Making the changes on a copy',
     writing: 'Writing the changed copy',
   }
   const MAX_BOOK = 25 * 1024 * 1024   // a bigger workbook may not fit in the browser's memory
+  const MAX_RECIPE_FILE = 2 * 1024 * 1024
   const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   const XLSM = 'application/vnd.ms-excel.sheet.macroEnabled.12'
+  const PROMPT_KEY = 'kronos.orchestratorPrompt'
   // For the tests only: ?today=YYYY-MM-DD pins the date the practice tests use, as `vclc --today` does.
   const pinned = /[?&]today=(\d{4}-\d{2}-\d{2})(&|$)/.exec(window.location.search)
   const TODAY = pinned ? pinned[1] : null
 
+  // ---------- the worker, one job at a time ----------
+
   let worker = null
   let ready = false
   let fatal = null
-  let job = null          // {id, kind, message, sent, quiet}: the one thing the worker is doing
+  let queue = []          // jobs not sent yet
+  let job = null          // the job the worker is doing
   let jobs = 0
-  let book = null         // the chosen workbook: {name, bytes (ArrayBuffer), info (kronos_book.describe)}
-  let proven = null       // the recipe last proven: {text, name, args, files}
-  let copy = null         // the changed copy ready to download: {data (ArrayBuffer), name, type}
-
-  // ---------- the worker ----------
 
   function startWorker() {
     ready = false
@@ -57,155 +52,131 @@
     }
   }
 
-  // Start one job. words is what the working panel says first; a quiet job shows no panel.
-  function begin(kind, message, words, quiet) {
-    jobs += 1
-    job = { id: jobs, kind, message, sent: false, quiet: !!quiet }
-    if (!quiet) showWorking(true, ready ? words : 'Starting Python (the first time takes a few seconds)')
+  // Ask the worker for something; words is what the working panel says (none for a quiet job). Resolves with
+  // {json, data}; rejects with {message, details, fatal} or {cancelled: true}.
+  function call(message, words) {
+    return new Promise((resolve, reject) => {
+      jobs += 1
+      queue.push({ id: jobs, message, words: words || '', resolve, reject })
+      next()
+    })
+  }
+
+  function next() {
+    if (job || !queue.length) return
     if (fatal) {
-      const problem = fatal
-      job = null
-      showWorking(false)
-      problemHere(kind, problem)
-    } else if (ready) {
-      send()
+      const failed = queue
+      queue = []
+      failed.forEach((j) => j.reject(fatal))
+      return
     }
+    job = queue.shift()
+    showWorking(!!job.words, ready ? job.words : 'Starting Python (the first time takes a few seconds)')
+    if (ready) send()
   }
 
   function send() {
     job.sent = true
     const message = Object.assign({ id: job.id }, job.message)
-    if (job.kind === 'describe' || job.kind === 'apply') message.data = book.bytes.slice(0)   // the page keeps its own
-    worker.postMessage(message)
+    const transfer = message.data ? [message.data] : []
+    worker.postMessage(message, transfer)
   }
 
   function heard(message) {
     if (message.type === 'status') {
       $('python').textContent = message.short
-      if (job && !job.quiet) workingStep.textContent = message.text
+      if (job && job.words) workingStep.textContent = message.text
     } else if (message.type === 'ready') {
       ready = true
       $('python').textContent = `${message.python} in this browser (Pyodide ${message.pyodide}), ready`
-      if (job && !job.sent) send()
+      if (job && !job.sent) {
+        if (job.words) workingStep.textContent = job.words
+        send()
+      }
     } else if (message.type === 'step') {
-      if (job && message.id === job.id && !job.quiet) workingStep.textContent = STEP_WORDS[message.name] || message.name
+      if (job && message.id === job.id && job.words) workingStep.textContent = STEP_WORDS[message.name] || message.name
     } else if (message.type === 'error') {
       if (message.fatal) {
         fatal = message
         $('python').textContent = 'could not start'
       }
-      if (!job && !message.fatal) return
-      const kind = job ? job.kind : 'check'
+      if (!job) return
+      const done = job
       job = null
       showWorking(false)
-      problemHere(kind, message)
-    } else if (job && message.id === job.id) {
-      const kind = job.kind
-      const text = job.message.text
+      done.reject(message)
+      next()
+    } else if (message.type === 'answer' && job && message.id === job.id) {
+      const done = job
       job = null
-      if (kind !== 'arguments') showWorking(false)
-      if (message.type === 'result') {
-        window.kronosLastResult = message.json   // what the tests compare with normal Python's answer
-        showChecked(JSON.parse(message.json), text)
-      } else if (message.type === 'described') {
-        window.kronosLastDescribed = message.json
-        showBook(JSON.parse(message.json))
-      } else if (message.type === 'arguments') {
-        gotArguments(JSON.parse(message.json))
-      } else if (message.type === 'applied') {
-        window.kronosLastApplied = message.json
-        showApplied(JSON.parse(message.json), message.data)
-      }
+      showWorking(false)
+      done.resolve({ json: JSON.parse(message.json), data: message.data })
+      next()
     }
   }
-
-  function problemHere(kind, message) {
-    if (kind === 'describe') {
-      book = null
-      showBook(null)
-      bookSay(`KRONOS could not read this workbook: ${message.message}`)
-    } else if (kind === 'apply') {
-      render(applied, problemParts(message, true))
-    } else if (kind === 'check') {
-      render(result, problemParts(message, false))
-    }
-  }
-
-  // ---------- the buttons ----------
 
   function showWorking(on, text) {
     working.hidden = !on
-    checkButton.disabled = on
-    exampleButton.disabled = on
-    $('apply').disabled = on
-    recipe.readOnly = on
     if (text) workingStep.textContent = text
     if (on) $('cancel').focus()
   }
 
-  function say(text) {
-    note.textContent = text
-    note.hidden = !text
-  }
-
-  function bookSay(text) {
-    $('book-note').textContent = text
-    $('book-note').hidden = !text
-  }
-
-  function applySay(text) {
-    $('apply-note').textContent = text
-    $('apply-note').hidden = !text
-  }
-
-  function check() {
-    const text = recipe.value
-    say('')
-    if (!text.trim()) {
-      say('Paste a recipe first, or click Load the practice example.')
-      recipe.focus()
-      return
-    }
-    if (fatal) {
-      render(result, problemParts(fatal, false))
-      return
-    }
-    result.hidden = true
-    applied.hidden = true
-    proven = null
-    showApplyCard()
-    begin('check', { type: 'check', text, today: TODAY }, STEP_WORDS.checking)
-  }
-
   function cancel() {
-    const kind = job ? job.kind : 'check'
     worker.terminate()
+    const stopped = [].concat(job ? [job] : [], queue)
     job = null
+    queue = []
     showWorking(false)
-    if (kind === 'describe') {
-      book = null
-      showBook(null)
-      bookSay('Cancelled. Nothing was changed.')
-    } else if (kind === 'apply') {
-      applySay('Cancelled. Nothing was changed.')
-    } else {
-      say('Cancelled. Nothing was changed.')
-    }
+    stopped.forEach((j) => j.reject({ cancelled: true }))
     startWorker()
-    checkButton.focus()
+    restore()
   }
 
-  async function loadExample() {
-    say('')
+  // ---------- the wizard's state ----------
+
+  const state = {
+    words: null,        // KRONOS's words, the Orchestrator prompt and its SHA-256 (kronos_web.words)
+    step: 'ask',
+    book: null,         // {name, bytes, info}
+    ai: null,           // the id of the request's run, and what it was asked with: {id, request, book}
+    shown: [],          // the run ids Review and Save show, in order
+    views: {},          // id -> the wizard's view of that run
+    messages: {},       // id -> {orchestrator, instructions}: the texts to copy, fetched while the click can wait
+    ticks: {},          // id -> the assumptions are ticked
+    actions: [],        // what this page asked the wizard to do, to rebuild it after Cancel
+    copy: null,         // the changed workbook ready to download
+  }
+  let runs = 0
+  window.kronosViews = state.views
+
+  function newId(kind) {
+    runs += 1
+    return `${kind}${runs}`
+  }
+
+  async function wizard(action, wid, args, words) {
+    const answer = await call({ type: 'wizard', action, wid, args }, words)
+    if (!answer.json.ok) throw { message: answer.json.message, plain: true }
+    if (answer.json.view) state.views[wid] = answer.json.view
+    if (['ask', 'recipe', 'paste', 'answer', 'problems'].indexOf(action) >= 0) state.actions.push([wid, action].concat(args))
+    return answer.json
+  }
+
+  // After Cancel: a fresh wizard, then every request rebuilt from the actions kept.
+  async function restore() {
     try {
-      const response = await fetch(EXAMPLE, { cache: 'no-cache' })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      recipe.value = await response.text()
-      result.hidden = true
-      say('The practice example is in the box. Click Check the recipe.')
-      checkButton.focus()
-    } catch (error) {
-      say(`I couldn't load the practice example (${error.message}). Start KRONOS again from its folder.`)
+      await call({ type: 'reset', today: TODAY })
+      if (!state.actions.length) return
+      const answer = await call({ type: 'wizard', action: 'restore', wid: '', args: [state.actions] },
+        'Putting your requests back as they were')
+      if (answer.json.ok) Object.assign(state.views, answer.json.views)
+      state.messages = {}
+      for (const id of Object.keys(state.views)) {
+        if (state.views[id].status === 'waiting') await fetchMessages(id)
+      }
+      render()
+    } catch (problem) {
+      if (!problem.cancelled) say('ask-note', `KRONOS could not put your requests back: ${problem.message}. Start a new request.`)
     }
   }
 
@@ -213,278 +184,660 @@
 
   function el(tag, attrs, children) {
     const node = document.createElement(tag)
-    Object.keys(attrs || {}).forEach((key) => node.setAttribute(key, attrs[key]))
+    Object.keys(attrs || {}).forEach((key) => {
+      if (attrs[key] !== null && attrs[key] !== undefined && attrs[key] !== false) node.setAttribute(key, attrs[key])
+    })
     ;[].concat(children || []).forEach((child) => {
-      node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child)
+      if (child === null || child === undefined || child === false) return
+      node.appendChild(typeof child === 'string' || typeof child === 'number' ? document.createTextNode(String(child)) : child)
     })
     return node
   }
 
+  function clear(node) {
+    while (node.firstChild) node.removeChild(node.firstChild)
+    return node
+  }
+
   function table(headings, widths, rows, numbers) {
+    const num = (i) => (numbers && numbers.indexOf(i) >= 0 ? { class: 'num' } : {})
     const cols = el('colgroup', {}, widths.map((w) => el('col', w ? { class: w } : {})))
-    const head = el('thead', {}, el('tr', {}, headings.map((h, i) => el('th', Object.assign({ scope: 'col' },
-      numbers && numbers.indexOf(i) >= 0 ? { class: 'num' } : {}), h))))
-    const body = el('tbody', {}, rows.map((row) => el('tr', {}, row.map((cell, i) => {
-      const attrs = numbers && numbers.indexOf(i) >= 0 ? { class: 'num' } : {}
-      return cell && cell.nodeType ? el('td', attrs, cell) : el('td', attrs, String(cell))
-    }))))
+    const head = el('thead', {}, el('tr', {}, headings.map((h, i) => el('th', Object.assign({ scope: 'col' }, num(i)), h))))
+    const body = el('tbody', {}, rows.map((row) => el('tr', {}, row.map((cell, i) => el('td', num(i),
+      cell && cell.nodeType ? cell : String(cell))))))
     return el('table', {}, [cols, head, body])
   }
 
   function banner(kind, label, words, id) {
-    return el('div', { class: `banner ${kind}`, id: id || 'banner' }, [el('strong', {}, label), ` ${words}`])
+    return el('div', { class: `banner ${kind}`, id }, [el('strong', {}, label), ` ${words}`])
   }
 
-  function render(into, parts) {
-    while (into.firstChild) into.removeChild(into.firstChild)
-    parts.forEach((part) => into.appendChild(part))
-    into.hidden = false
+  function say(id, text) {
+    $(id).textContent = text || ''
+    $(id).hidden = !text
   }
 
-  function capital(text) {
-    return text ? text.charAt(0).toUpperCase() + text.slice(1) : ''
-  }
-
-  function problemParts(message, applying) {
-    const parts = [banner('problem', 'KRONOS HIT A PROBLEM', message.fatal
-      ? 'Its checker could not start in this browser.' : (applying ? 'The copy stopped with an error.' : 'The check stopped with an error.'))]
-    parts.push(el('p', { class: 'details' }, message.message))
-    parts.push(el('p', { class: 'details muted' }, message.fatal
-      ? 'Close the black window, start KRONOS again from its folder, and use Chrome, Edge or Firefox.'
-      : 'Nothing was changed. Try again; if it happens again, send this message to Claude.'))
-    if (message.details && message.details !== message.message) parts.push(el('pre', { class: 'text' }, message.details))
-    return parts
+  function problemText(problem) {
+    if (problem.cancelled) return 'Cancelled. Nothing was changed.'
+    if (problem.plain) return problem.message
+    return problem.fatal ? `KRONOS's checker could not start in this browser: ${problem.message}. Close the black window, ` +
+      'start KRONOS again from its folder, and use Chrome, Edge or Firefox.'
+      : `KRONOS hit a problem: ${problem.message}. Nothing was changed; try again, and if it happens again, send this to Claude.`
   }
 
   function size(bytes) {
     return bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
   }
 
+  function download(body, name, type) {
+    const url = URL.createObjectURL(new Blob([body], { type }))
+    const link = el('a', { href: url, download: name })
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.setTimeout(() => URL.revokeObjectURL(url), 30000)
+  }
+
+  // Copy inside the click itself (the clipboard needs the click); a box with the text selected is the fallback.
+  function copyText(text, box, note) {
+    window.kronosLastCopied = text
+    const fallback = () => {
+      box.value = text
+      box.hidden = false
+      box.focus()
+      box.select()
+      say(note, 'Press Ctrl+C to copy the selected text, then paste it into your AI chat.')
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        box.hidden = true
+        say(note, 'Copied. Paste it into your AI chat, then paste the AI\'s whole reply below.')
+      }, fallback)
+    } else {
+      fallback()
+    }
+  }
+
+  // ---------- the steps ----------
+
+  const ORDER = ['ask', 'question', 'review', 'save']
+
+  function go(step) {
+    state.step = step
+    ORDER.forEach((name) => { $(`step-${name}`).hidden = name !== step })
+    ;[].forEach.call(document.querySelectorAll('.step'), (node) => {
+      const at = ORDER.indexOf(node.getAttribute('data-step'))
+      node.className = 'step' + (at === ORDER.indexOf(step) ? ' current' : at < ORDER.indexOf(step) ? ' done' : '')
+    })
+    render()
+    window.scrollTo(0, 0)
+  }
+
+  function render() {
+    if (state.step === 'ask') renderAsk()
+    else if (state.step === 'question') renderQuestion()
+    else if (state.step === 'review') renderReview()
+    else renderSave()
+  }
+
+  // ---------- the panel that sends a message to the AI and takes its reply ----------
+
+  // id: the run; where: the element to fill; label: what the copy buttons say they copy.
+  function aiPanel(where, id, label) {
+    clear(where)
+    const texts = state.messages[id]
+    if (!texts) return
+    const note = `${where.id}-note`
+    const box = el('textarea', { class: 'box copy-box', rows: '8', readonly: 'readonly', hidden: 'hidden' })
+    const reply = el('textarea', { class: 'box reply', rows: '8', spellcheck: 'false', id: `${where.id}-reply` })
+    const orchestrator = el('button', { type: 'button', class: 'copy-orchestrator' }, `Copy ${label} for the Orchestrator`)
+    const instructions = el('button', { type: 'button', class: 'copy-instructions' }, `Copy ${label} with instructions (ChatGPT or a new chat)`)
+    orchestrator.addEventListener('click', () => copyText(texts.orchestrator, box, note))
+    instructions.addEventListener('click', () => copyText(texts.instructions, box, note))
+    const check = el('button', { type: 'button', class: 'check-reply' }, 'Check the reply')
+    check.addEventListener('click', () => pasteReply(id, reply, note))
+    where.appendChild(el('div', { class: 'ai-panel' }, [
+      el('h2', {}, 'Send this to your AI chat'),
+      el('p', { class: 'muted small-gap' }, 'Copy the message, paste it into your AI chat, then copy the AI\'s whole ' +
+        'reply and paste it here. Use "for the Orchestrator" in your claude.ai Orchestrator project (it already has ' +
+        'KRONOS\'s instructions); use "with instructions" in ChatGPT or any new chat.'),
+      el('div', { class: 'buttons' }, [orchestrator, instructions]),
+      box,
+      el('p', { class: 'note', id: note, hidden: 'hidden' }),
+      el('label', { class: 'label', for: reply.id }, 'Paste the AI\'s whole reply'),
+      reply,
+      el('div', { class: 'buttons' }, check),
+    ]))
+  }
+
+  async function fetchMessages(id) {
+    const instructions = await wizard('message', id, [true])
+    const orchestrator = await wizard('message', id, [false])
+    state.messages[id] = { instructions: instructions.text, orchestrator: orchestrator.text }
+  }
+
+  async function pasteReply(id, box, note) {
+    const text = box.value
+    if (!text.trim()) {
+      say(note, 'Paste the AI\'s whole reply first.')
+      box.focus()
+      return
+    }
+    try {
+      await wizard('paste', id, [text], STEP_WORDS.checking)
+      await settle(id)
+    } catch (problem) {
+      say(note, problemText(problem))
+    }
+  }
+
+  // Where a run goes after the AI's reply: a question, more waiting (after a repair), or Review.
+  async function settle(id) {
+    const view = state.views[id]
+    delete state.messages[id]
+    if (view.status === 'waiting') await fetchMessages(id)
+    if (view.status === 'question') {
+      $('answer').value = ''
+      go('question')
+    } else {
+      if (state.shown.indexOf(id) < 0) state.shown = [id]
+      go('review')
+    }
+  }
+
+  // ---------- 1 Ask ----------
+
+  function renderAsk() {
+    const words = state.words
+    if (words) {
+      $('request').placeholder = `For example: ${words.example}`
+      const tips = clear($('tips'))
+      words.tips.forEach((tip) => tips.appendChild(el('li', {}, tip)))
+    }
+    $('include-line').hidden = !(state.book && state.book.info)
+    const panel = $('ai-panel-ask')
+    const ai = state.ai
+    if (ai && state.views[ai.id] && state.views[ai.id].status === 'waiting' && state.messages[ai.id]) {
+      aiPanel(panel, ai.id, 'the request')
+    } else {
+      clear(panel)
+      const write = el('button', { type: 'button', id: 'write-message' }, 'Write the message for the AI')
+      write.addEventListener('click', writeMessage)
+      panel.appendChild(el('div', { class: 'buttons' }, write))
+    }
+    promptNote()
+  }
+
+  function promptNote() {
+    const old = $('prompt-note')
+    if (old) old.parentNode.removeChild(old)
+    const words = state.words
+    if (!words) return
+    let known = null
+    try { known = window.localStorage.getItem(PROMPT_KEY) } catch (e) { known = null }
+    if (known === words.prompt_sha256) return
+    const box = el('textarea', { class: 'box copy-box', rows: '6', readonly: 'readonly', hidden: 'hidden' })
+    const copy = el('button', { type: 'button', id: 'copy-prompt' }, 'Copy the Orchestrator instructions')
+    copy.addEventListener('click', () => copyText(words.prompt, box, 'prompt-note-text'))
+    const done = el('button', { type: 'button', id: 'prompt-done' }, 'I have updated them')
+    done.addEventListener('click', () => {
+      try { window.localStorage.setItem(PROMPT_KEY, words.prompt_sha256) } catch (e) { /* this browser keeps nothing */ }
+      promptNote()
+    })
+    $('ask-card').insertBefore(el('div', { class: 'prompt-note', id: 'prompt-note' }, [
+      el('strong', {}, 'If you use the claude.ai Orchestrator project: '),
+      'KRONOS doesn\'t know whether its instructions are the newest. Copy them, open your Orchestrator project on ' +
+        'claude.ai, open its project instructions, replace all of the text with what you copied, and save. Then click ' +
+        '"I have updated them". (ChatGPT or a new chat needs nothing: use "with instructions".)',
+      el('div', { class: 'buttons' }, [copy, done]),
+      box,
+      el('p', { class: 'note', id: 'prompt-note-text', hidden: 'hidden' }),
+    ]), $('ai-panel-ask'))
+  }
+
+  async function writeMessage() {
+    say('ask-note', '')
+    const request = $('request').value
+    const book = state.book && state.book.info && $('include-book').checked ? $('book-text').value : null
+    const id = newId('a')
+    try {
+      await wizard('ask', id, [request, book], 'Writing the message')
+      state.ai = { id, request, book }
+      await fetchMessages(id)
+      renderAsk()
+    } catch (problem) {
+      say('ask-note', problemText(problem))
+    }
+  }
+
   // ---------- the workbook ----------
 
-  async function chooseFile(file) {
-    bookSay('')
+  async function chooseBook(file) {
+    say('book-note', '')
     if (!file) return
     const lower = file.name.toLowerCase()
     if (/\.xls$/.test(lower)) {
-      bookSay('This is an old .xls workbook. In Excel choose File, Save As, and save it as .xlsx; then choose that.')
+      say('book-note', 'This is an old .xls workbook. In Excel choose File, Save As, and save it as .xlsx; then choose that.')
       return
     }
     if (!/\.xls[xm]$/.test(lower)) {
-      bookSay('KRONOS works on Excel workbooks saved as .xlsx or .xlsm.')
+      say('book-note', 'KRONOS works on Excel workbooks saved as .xlsx or .xlsm.')
       return
     }
     if (file.size > MAX_BOOK) {
-      bookSay(`This workbook is ${size(file.size)}. KRONOS can work on files up to ${size(MAX_BOOK)}.`)
+      say('book-note', `This workbook is ${size(file.size)}. KRONOS can work on files up to ${size(MAX_BOOK)}.`)
       return
     }
     let bytes
     try {
       bytes = await file.arrayBuffer()
     } catch (error) {
-      bookSay(`KRONOS could not read the file (${error.message}).`)
+      say('book-note', `KRONOS could not read the file (${error.message}).`)
       return
     }
-    book = { name: file.name, bytes, info: null }
-    copy = null
-    applied.hidden = true
-    begin('describe', { type: 'describe', name: file.name }, STEP_WORDS.reading)
+    try {
+      const answer = await call({ type: 'describe', data: bytes.slice(0), name: file.name }, STEP_WORDS.reading)
+      window.kronosLastDescribed = JSON.stringify(answer.json)
+      if (!answer.json.ok) {
+        say('book-note', answer.json.message)
+        return
+      }
+      state.book = { name: file.name, bytes, info: answer.json }
+      state.copy = null
+      showBook()
+    } catch (problem) {
+      say('book-note', problemText(problem))
+    }
   }
 
-  function showBook(info) {
-    if (info && !info.ok) {
-      bookSay(info.message)
-      info = null
-      book = null
-    }
-    $('book-info').hidden = !info
+  function showBook() {
+    const book = state.book
+    $('book-info').hidden = !book
     $('remove-book').hidden = !book
     $('choose-book').textContent = book ? 'Choose another workbook…' : 'Choose a workbook…'
-    if (!info) {
-      showApplyCard()
+    if (!book) {
+      render()
       return
     }
-    book.info = info
+    const info = book.info
     $('book-name').textContent = `${book.name} (${size(book.bytes.byteLength)})`
-    const holder = $('book-sheets')
-    while (holder.firstChild) holder.removeChild(holder.firstChild)
-    holder.appendChild(table(['Sheet', 'Rows', 'Columns', 'Headings (row 1)'], ['col-where', 'col-short', 'col-short', ''],
+    clear($('book-sheets')).appendChild(table(['Sheet', 'Rows', 'Columns', 'Headings (row 1)'],
+      ['col-where', 'col-short', 'col-short', ''],
       info.sheets.map((s) => [s.name, s.rows, s.cols, s.headings.filter(Boolean).join(', ')]), [1, 2]))
-    const warn = $('book-warn')
-    while (warn.firstChild) warn.removeChild(warn.firstChild)
+    const warn = clear($('book-warn'))
     if (info.features.length) {
-      warn.appendChild(el('p', {}, [el('strong', {}, 'In this workbook: '), `${info.features.join(', ')}. KRONOS tells you what it cannot ` +
-        'keep before you download a copy.']))
+      warn.appendChild(el('p', {}, [el('strong', {}, 'In this workbook: '), `${info.features.join(', ')}. KRONOS tells you ` +
+        'what it cannot keep before you download a copy.']))
     }
     info.notes.forEach((text) => warn.appendChild(el('p', {}, text)))
     warn.hidden = !warn.firstChild
     $('book-text').value = info.text
-    showApplyCard()
+    render()
   }
 
   function removeBook() {
-    book = null
-    copy = null
+    state.book = null
+    state.copy = null
     $('book-file').value = ''
-    bookSay('')
-    applied.hidden = true
-    showBook(null)
+    say('book-note', '')
+    showBook()
   }
 
-  function copyDescription() {
-    const box = $('book-text')
-    const fallback = () => {
-      box.focus()
-      box.select()
-      bookSay('Press Ctrl+C to copy the selected text.')
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(box.value).then(() => bookSay('Copied. Paste it into your AI chat.'), fallback)
-    } else {
-      fallback()
-    }
-  }
+  // ---------- recipe files ----------
 
-  // ---------- the check's result ----------
-
-  const WHERE = { check: 'The recipe', test: 'The practice tests', build: 'Building the macro', lint: 'The macro' }
-
-  function where(finding) {
-    if (finding.stage === 'check' && finding.line) return `Line ${finding.line}`
-    if (finding.stage === 'lint' && finding.line) return `The macro, line ${finding.line}`
-    return WHERE[finding.stage] || finding.stage
-  }
-
-  function problemRows(data) {
-    const rows = []
-    data.findings.filter((f) => f.severity === 'error').forEach((f) => rows.push([where(f), f.message, f.code]))
-    data.tests.filter((t) => !t.passed).forEach((t) => {
-      const failed = t.failed.length ? t.failed : [{ message: `RESULT=${t.result} ERROR_COUNT=${t.errors}`, code: '' }]
-      failed.forEach((f) => rows.push([`TEST on line ${t.line}`, f.message, f.code]))
-    })
-    return rows
-  }
-
-  function showChecked(data, text) {
-    const parts = []
-    if (data.reply === 'question') {
-      parts.push(banner('not-proven', 'A QUESTION', 'The AI asked a question instead of writing a recipe.'))
-      parts.push(el('div', { class: 'question' }, data.question))
-      parts.push(el('p', { class: 'details' }, 'Answer it in the AI chat, then paste the AI\'s new reply here.'))
-    } else if (data.reply === 'none') {
-      parts.push(banner('not-proven', 'NOT A RECIPE', `${capital(data.words)}.`))
-      parts.push(el('p', { class: 'details' }, data.problems.join(' ')))
-      parts.push(el('p', { class: 'details muted' }, 'Copy the AI\'s whole reply, with its vcl code block, and paste it here.'))
-    } else if (data.proven) {
-      parts.push(banner('proven', 'PROVEN', `${capital(data.words)}.`))
-      const lines = data.bas.split('\r\n').length - 1
-      parts.push(el('p', { class: 'details' }, `${data.kind === 'BUILD' ? 'The set of macros' : 'The macro'} ${data.name} ` +
-        `is built: the module ${data.module}, ${lines} lines of VBA with KRONOS's helpers, lint-clean.`))
-      parts.push(el('h2', {}, 'Its practice tests'))
-      parts.push(table(['TEST', 'Result', 'Errors', 'Passed'], ['col-short', '', 'col-short', 'col-short'],
-        data.tests.map((t) => [`Line ${t.line}`, t.result === null ? '(none)' : t.result, t.errors,
-          el('span', { class: t.passed ? 'yes' : 'no' }, t.passed ? 'Yes' : 'No')])))
-      const warnings = data.findings.filter((f) => f.severity === 'warning')
-      if (warnings.length) {
-        parts.push(el('h2', {}, 'Warnings (the recipe still passes)'))
-        parts.push(table(['Where', 'Warning', 'Code'], ['col-where', '', 'col-code'], warnings.map((f) => [where(f), f.message, f.code])))
-      }
-      parts.push(el('p', { class: 'details muted' }, book
-        ? 'Below you can make this recipe\'s changes on a copy of your workbook.'
-        : 'To make this recipe\'s changes on a workbook of yours, choose the workbook at the top of the page. ' +
-          'Asking the AI and saving the macro come in a later version.'))
-    } else {
-      parts.push(banner('not-proven', 'NOT PROVEN', `${capital(data.words)}.`))
-      const rows = problemRows(data)
-      if (rows.length) {
-        parts.push(el('h2', {}, rows.length === 1 ? 'The problem' : `The problems (${rows.length})`))
-        parts.push(table(['Where', 'Problem', 'Code'], ['col-where', '', 'col-code'], rows))
-      }
-      parts.push(el('h2', {}, 'What the AI would be told'))
-      parts.push(el('pre', { class: 'text', id: 'problems' }, data.problems.join('\n')))
-    }
-    render(result, parts)
-    if (data.reply === 'spec' && data.proven) {
-      proven = { text, name: data.name, args: null, files: false }
-      begin('arguments', { type: 'arguments', text }, '', true)
-    } else {
-      proven = null
-      showApplyCard()
-    }
-  }
-
-  // ---------- making the changes on a copy ----------
-
-  function gotArguments(data) {
-    if (!proven) return
-    if (!data.ok) {
-      proven = null
-      showApplyCard()
+  async function openRecipes(file) {
+    say('file-note', '')
+    clear($('recipe-list')).hidden = true
+    if (!file) return
+    if (file.size > MAX_RECIPE_FILE) {
+      say('file-note', `This file is ${size(file.size)}. KRONOS reads recipe files up to ${size(MAX_RECIPE_FILE)}.`)
       return
     }
-    proven.args = data.args
-    proven.files = data.files
-    showApplyCard()
+    try {
+      const bytes = await file.arrayBuffer()
+      const answer = await call({ type: 'recipes', data: bytes, name: file.name }, STEP_WORDS.opening)
+      window.kronosLastRecipes = JSON.stringify(answer.json)
+      const found = answer.json
+      if (!found.ok) {
+        say('file-note', found.message)
+        return
+      }
+      if (found.recipes.length === 1) {
+        await checkRecipes(found.recipes, file.name)
+        return
+      }
+      showRecipeList(found, file.name)
+    } catch (problem) {
+      say('file-note', problemText(problem))
+    }
   }
 
-  function showApplyCard() {
+  function showRecipeList(found, fileName) {
+    const list = clear($('recipe-list'))
+    list.hidden = false
+    list.appendChild(el('p', { class: 'details' }, `${found.message} Choose the ones to check:`))
+    const boxes = found.recipes.map((recipe, i) => {
+      const box = el('input', { type: 'checkbox', id: `recipe-${i}` })
+      const lines = recipe.text.split('\n').length - 1
+      list.appendChild(el('label', { class: 'recipe-row', for: `recipe-${i}` }, [box,
+        el('span', { class: 'what' }, [`${i + 1}. ${recipe.title}`, el('br'), el('span', { class: 'small-muted' }, `${lines} lines`)])]))
+      return box
+    })
+    const all = el('button', { type: 'button', id: 'choose-all' }, 'Choose all')
+    all.addEventListener('click', () => boxes.forEach((b) => { b.checked = true }))
+    const check = el('button', { type: 'button', id: 'check-chosen' }, 'Check the chosen recipes')
+    check.addEventListener('click', () => {
+      const chosen = found.recipes.filter((r, i) => boxes[i].checked)
+      if (!chosen.length) {
+        say('file-note', 'Tick at least one recipe, or click Choose all.')
+        return
+      }
+      checkRecipes(chosen, fileName)
+    })
+    list.appendChild(el('div', { class: 'buttons' }, [all, check]))
+  }
+
+  async function checkRecipes(recipes, fileName) {
+    say('file-note', '')
+    const ids = []
+    try {
+      for (let i = 0; i < recipes.length; i += 1) {
+        const id = newId('f')
+        await wizard('recipe', id, [recipes[i].text, fileName],
+          recipes.length > 1 ? `Checking recipe ${i + 1} of ${recipes.length}` : STEP_WORDS.checking)
+        ids.push(id)
+      }
+    } catch (problem) {
+      say('file-note', problemText(problem))
+      if (!ids.length) return
+    }
+    state.shown = ids
+    go('review')
+  }
+
+  async function loadExample() {
+    say('file-note', '')
+    try {
+      const response = await fetch(EXAMPLE, { cache: 'no-cache' })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      await checkRecipes([{ title: 'The practice example', text: await response.text() }], 'the practice example')
+    } catch (error) {
+      say('file-note', error.message ? `I couldn't load the practice example (${error.message}). Start KRONOS again from its folder.`
+        : problemText(error))
+    }
+  }
+
+  // ---------- 2 Questions ----------
+
+  function renderQuestion() {
+    const ai = state.ai
+    const view = ai && state.views[ai.id]
+    if (!view) return
+    $('question-text').textContent = view.question || ''
+    const panel = $('ai-panel-question')
+    if (view.status === 'waiting' && state.messages[ai.id]) {
+      aiPanel(panel, ai.id, 'the answer')
+      return
+    }
+    clear(panel)
+    const write = el('button', { type: 'button', id: 'write-answer' }, 'Write the answer message for the AI')
+    write.addEventListener('click', async () => {
+      say('question-note', '')
+      try {
+        await wizard('answer', ai.id, [$('answer').value], 'Writing the message')
+        await fetchMessages(ai.id)
+        renderQuestion()
+      } catch (problem) {
+        say('question-note', problemText(problem))
+      }
+    })
+    panel.appendChild(el('div', { class: 'buttons' }, write))
+  }
+
+  // ---------- 3 Review ----------
+
+  function renderReview() {
+    const list = clear($('review-list'))
+    state.shown.forEach((id) => list.appendChild(reviewSection(id)))
+    updateGoSave()
+  }
+
+  function proven(id) {
+    const view = state.views[id]
+    return !!(view && view.best && view.best.proven && view.status !== 'waiting')
+  }
+
+  function updateGoSave() {
+    const ready = state.shown.filter(proven)
+    const unticked = ready.filter((id) => !state.ticks[id])
+    $('go-save').disabled = !ready.length || unticked.length > 0
+    say('review-note', !ready.length ? 'Save opens when a recipe is PROVEN.'
+      : unticked.length ? 'Tick "These assumptions are right" for each PROVEN recipe to go on to Save.' : '')
+  }
+
+  function reviewSection(id) {
+    const view = state.views[id]
+    const best = view.best
+    const card = el('section', { class: 'card review', id: `review-${id}` })
+    const title = best ? best.title : view.request
+    card.appendChild(el('h1', {}, title))
+    if (view.status === 'waiting') {
+      card.appendChild(banner('not-proven', 'WAITING FOR THE AI', view.newest === 'fix' || view.newest === 'repair'
+        ? 'Send the problems to the AI and paste its new reply.' : 'Paste the AI\'s reply.', `banner-${id}`))
+    } else if (best && best.proven) {
+      card.appendChild(banner('proven', 'PROVEN', `It passed every check and ${best.tests.length} of ${best.tests.length} practice tests.`, `banner-${id}`))
+    } else {
+      card.appendChild(banner('not-proven', 'NOT PROVEN', view.note || 'The recipe did not pass its checks.', `banner-${id}`))
+    }
+    if (best) {
+      const summary = best.summary
+      card.appendChild(el('h2', {}, 'What it does'))
+      card.appendChild(el('p', { class: 'details' }, summary.does || '(the recipe has no GOAL line)'))
+      if (summary.steps.length) card.appendChild(el('ul', { class: 'plain-list' }, summary.steps.map((s) => el('li', {}, s))))
+      if (summary.assumes.length) {
+        card.appendChild(el('h2', {}, 'What it assumes'))
+        card.appendChild(el('ul', { class: 'plain-list' }, summary.assumes.map((s) => el('li', {}, s))))
+      }
+      if (best.proven && view.status !== 'waiting') {
+        const tick = el('input', { type: 'checkbox', id: `tick-${id}` })
+        tick.checked = !!state.ticks[id]
+        tick.addEventListener('change', () => { state.ticks[id] = tick.checked; updateGoSave() })
+        card.appendChild(el('label', { class: 'checkline', for: `tick-${id}` }, [tick, 'These assumptions are right for my workbook']))
+      }
+      card.appendChild(el('h2', {}, 'What it changes'))
+      card.appendChild(el('ul', { class: 'plain-list' }, (summary.changes.length ? summary.changes : ['nothing in the workbook'])
+        .map((s) => el('li', {}, s))))
+      card.appendChild(el('h2', {}, 'What it never does'))
+      card.appendChild(el('ul', { class: 'plain-list' }, (state.words ? state.words.never : []).map((s) => el('li', {}, s))))
+      card.appendChild(el('h2', {}, 'How it was tested'))
+      card.appendChild(table(['TEST', 'What it checks', 'Passed'], ['col-short', '', 'col-short'],
+        best.tests.map((t) => [`Line ${t.line}`, t.checks, el('span', { class: t.passed ? 'yes' : 'no' }, t.passed ? 'Yes' : 'No')])))
+      if (view.attempts.length) {
+        card.appendChild(el('ul', { class: 'plain-list muted' }, view.attempts.map((a) => el('li', {},
+          `Try ${a.number} (${a.source === 'ai' ? 'the AI' : 'the recipe'}): ${a.words}`))))
+      }
+      if (!best.proven) {
+        const rows = best.findings.filter((f) => f.severity === 'error').map((f) => [f.stage === 'check' && f.line ? `Line ${f.line}` : f.stage, f.message, f.code])
+        best.tests.filter((t) => !t.passed).forEach((t) => (t.why.length ? t.why : ['it failed']).forEach((w) => rows.push([`TEST on line ${t.line}`, w, ''])))
+        if (rows.length) {
+          card.appendChild(el('h2', {}, rows.length === 1 ? 'The problem' : `The problems (${rows.length})`))
+          card.appendChild(table(['Where', 'Problem', 'Code'], ['col-where', '', 'col-code'], rows))
+        }
+      }
+      card.appendChild(el('details', { class: 'more' }, [el('summary', {}, 'Show the recipe (advanced)'),
+        el('pre', { class: 'recipe-text' }, best.spec)]))
+    } else if (view.note) {
+      card.appendChild(el('p', { class: 'details' }, view.note))
+    }
+    const panel = el('div', { id: `panel-${id}` })
+    card.appendChild(panel)
+    const note = el('p', { class: 'note', id: `review-note-${id}`, hidden: 'hidden' })
+    if (view.status === 'waiting' && state.messages[id]) {
+      aiPanel(panel, id, 'the problems')
+    } else if (best && !best.proven) {
+      const send = el('button', { type: 'button', class: 'send-problems' }, 'Send the problems to the AI')
+      send.addEventListener('click', async () => {
+        try {
+          await wizard('problems', id, [], 'Writing the message')
+          await fetchMessages(id)
+          if (state.ai === null || state.ai.id !== id) state.ai = { id, request: view.request, book: null }
+          renderReview()
+        } catch (problem) {
+          say(note.id, problemText(problem))
+        }
+      })
+      panel.appendChild(el('div', { class: 'buttons' }, send))
+    }
+    card.appendChild(note)
+    return card
+  }
+
+  // ---------- 4 Save ----------
+
+  function renderSave() {
+    const list = clear($('save-list'))
+    const ids = state.shown.filter(proven)
+    ids.forEach((id) => list.appendChild(saveSection(id)))
+    const skipped = state.shown.length - ids.length
+    if (skipped) list.appendChild(el('p', { class: 'details muted' }, `${skipped} recipe${skipped === 1 ? ' is' : 's are'} not ` +
+      'PROVEN and not offered here.'))
+    renderApply(ids)
+  }
+
+  function saveSection(id) {
+    const view = state.views[id]
+    const card = el('section', { class: 'card save', id: `save-${id}` })
+    card.appendChild(el('h1', {}, view.best.title))
+    const fields = el('div', { class: 'fields' })
+    const inputs = {}
+    if (view.starter && view.starter.length) {
+      card.appendChild(el('p', { class: 'details' }, 'The macro comes with a starter macro that runs it on your real ' +
+        'sheets. Type their real names:'))
+      view.starter.forEach((arg, i) => {
+        const fid = `start-${id}-${i}`
+        const input = el('input', { class: 'box', type: 'text', id: fid, value: arg.default })
+        inputs[arg.name] = input
+        fields.appendChild(el('div', { class: 'field' }, [el('label', { for: fid },
+          arg.type === 'Worksheet' ? `The sheet for ${arg.name}` : `${arg.name} (${arg.type})`), input]))
+      })
+    }
+    card.appendChild(fields)
+    const result = el('div', { id: `saved-${id}` })
+    const note = el('p', { class: 'note', id: `save-note-${id}`, hidden: 'hidden' })
+    const save = el('button', { type: 'button', class: 'download-bas' }, 'Download the macro (.bas)')
+    save.addEventListener('click', async () => {
+      say(note.id, '')
+      const values = {}
+      Object.keys(inputs).forEach((name) => { values[name] = inputs[name].value })
+      try {
+        const answer = await wizard('save', id, [values], 'Building the macro')
+        const saved = answer.saved
+        window.kronosLastSaved = saved
+        download(saved.bas, saved.bas_name, 'text/plain')
+        clear(result)
+        result.appendChild(el('p', { class: 'details' }, `Saved ${saved.bas_name} to your Downloads folder. Then, in Excel:`))
+        result.appendChild(el('ul', { class: 'steps-list' }, saved.steps.map((s) => el('li', {}, s))))
+        if (saved.practice) {
+          const practice = el('button', { type: 'button', class: 'download-practice' }, 'Download the practice run (.bas)')
+          practice.addEventListener('click', () => download(saved.practice, saved.practice_name, 'text/plain'))
+          result.appendChild(el('div', { class: 'buttons' }, practice))
+          result.appendChild(el('ul', { class: 'steps-list' }, saved.practice_steps.map((s) => el('li', {}, s))))
+        } else if (saved.practice_note) {
+          result.appendChild(el('p', { class: 'details muted' }, `No practice run: ${saved.practice_note}.`))
+        }
+      } catch (problem) {
+        say(note.id, problemText(problem))
+      }
+    })
+    card.appendChild(el('div', { class: 'buttons' }, save))
+    card.appendChild(note)
+    card.appendChild(result)
+    return card
+  }
+
+  // ---------- making the changes on a copy of the workbook ----------
+
+  let applyArgs = {}   // id -> the recipe's arguments (kronos_web.arguments)
+
+  async function renderApply(ids) {
     const card = $('apply-card')
-    if (!(proven && proven.args && book && book.info)) {
+    const book = state.book
+    if (!book || !book.info || !ids.length) {
       card.hidden = true
       return
     }
     card.hidden = false
-    applySay('')
-    $('apply-lead').textContent = `KRONOS will run ${proven.name} on a copy of ${book.name} and give you the changed copy. ` +
-      'Your original file is not touched.'
-    const fields = $('apply-fields')
-    while (fields.firstChild) fields.removeChild(fields.firstChild)
-    $('apply').hidden = proven.files
-    if (proven.files) {
-      fields.appendChild(el('p', { class: 'details' }, 'This recipe works with files or folders, which KRONOS cannot do on an ' +
-        'uploaded workbook. Use the macro it builds instead.'))
-      return
-    }
-    proven.args.forEach((arg, index) => {
-      const id = `arg-${index}`
-      let input
-      if (arg.type === 'Worksheet') {
-        input = el('select', { id, class: 'box', 'data-arg': arg.name })
-        const names = book.info.sheets.map((s) => s.name)
-        const chosen = names.filter((n) => n.toLowerCase() === arg.default.toLowerCase())[0]
-        if (!chosen) input.appendChild(el('option', { value: '' }, 'Choose a sheet…'))
-        names.forEach((n) => {
-          const option = el('option', { value: n }, n)
-          if (n === chosen) option.setAttribute('selected', 'selected')
-          input.appendChild(option)
-        })
-      } else if (arg.type === 'Workbook') {
-        input = el('div', { class: 'static', 'data-arg': arg.name }, 'the whole workbook')
-      } else {
-        input = el('input', { id, class: 'box', type: 'text', 'data-arg': arg.name, value: arg.default })
+    say('apply-note', '')
+    $('apply-lead').textContent = (ids.length === 1 ? `KRONOS will run this recipe on a copy of ${book.name}`
+      : `KRONOS will run these ${ids.length} recipes one after another, in this order, on one copy of ${book.name}`) +
+      ' and give you the changed copy. Your original file is not touched.'
+    const fields = clear($('apply-fields'))
+    for (const id of ids) {
+      if (!applyArgs[id]) {
+        try {
+          applyArgs[id] = (await call({ type: 'arguments', text: state.views[id].best.spec })).json
+        } catch (problem) {
+          say('apply-note', problemText(problem))
+          return
+        }
       }
-      const label = arg.type === 'Worksheet' ? `Sheet for ${arg.name}` : (arg.type === 'Workbook' ? arg.name : `${arg.name} (${arg.type})`)
-      fields.appendChild(el('div', { class: 'field' }, [el('label', { for: id }, label), input]))
+    }
+    let files = false
+    ids.forEach((id, n) => {
+      const args = applyArgs[id]
+      if (ids.length > 1) fields.appendChild(el('h2', {}, `${n + 1}. ${state.views[id].best.title}`))
+      if (!args.ok || args.files) {
+        files = true
+        fields.appendChild(el('p', { class: 'details' }, 'This recipe works with files or folders, which KRONOS cannot do on an ' +
+          'uploaded workbook. Use its macro instead.'))
+        return
+      }
+      args.args.forEach((arg, i) => {
+        const fid = `arg-${id}-${i}`
+        let input
+        if (arg.type === 'Worksheet') {
+          input = el('select', { id: fid, class: 'box', 'data-recipe': id, 'data-arg': arg.name })
+          const names = book.info.sheets.map((s) => s.name)
+          const chosen = names.filter((name) => name.toLowerCase() === String(arg.default).toLowerCase())[0]
+          if (!chosen) input.appendChild(el('option', { value: '' }, 'Choose a sheet…'))
+          names.forEach((name) => input.appendChild(el('option', { value: name, selected: name === chosen ? 'selected' : null }, name)))
+        } else if (arg.type === 'Workbook') {
+          input = el('div', { class: 'static', 'data-recipe': id, 'data-arg': arg.name }, 'the whole workbook')
+        } else {
+          input = el('input', { id: fid, class: 'box', type: 'text', 'data-recipe': id, 'data-arg': arg.name, value: arg.default })
+        }
+        const label = arg.type === 'Worksheet' ? `Sheet for ${arg.name}` : (arg.type === 'Workbook' ? arg.name : `${arg.name} (${arg.type})`)
+        fields.appendChild(el('div', { class: 'field' }, [el('label', { for: fid }, label), input]))
+      })
     })
+    $('apply').hidden = files
   }
 
-  function apply() {
-    applySay('')
-    if (!proven || !book || fatal) return
-    const args = {}
+  async function apply() {
+    say('apply-note', '')
+    const ids = state.shown.filter(proven)
+    const args = ids.map(() => ({}))
     let missing = null
     ;[].forEach.call($('apply-fields').querySelectorAll('[data-arg]'), (input) => {
       if (input.tagName === 'DIV') return
-      args[input.getAttribute('data-arg')] = input.value
+      const at = ids.indexOf(input.getAttribute('data-recipe'))
+      args[at][input.getAttribute('data-arg')] = input.value
       if (input.tagName === 'SELECT' && !input.value) missing = input.getAttribute('data-arg')
     })
     if (missing) {
-      applySay(`Choose a sheet for ${missing} first.`)
+      say('apply-note', `Choose a sheet for ${missing} first.`)
       return
     }
-    applied.hidden = true
-    copy = null
-    begin('apply', { type: 'apply', text: proven.text, name: book.name, args, today: TODAY }, STEP_WORDS.checking)
+    $('applied').hidden = true
+    state.copy = null
+    try {
+      const answer = await call({ type: 'apply', texts: ids.map((id) => state.views[id].best.spec), data: state.book.bytes.slice(0),
+        name: state.book.name, args, today: TODAY }, STEP_WORDS.checking)
+      window.kronosLastApplied = JSON.stringify(answer.json)
+      showApplied(answer.json, answer.data)
+    } catch (problem) {
+      say('apply-note', problemText(problem))
+    }
   }
 
   function stamp() {
@@ -494,58 +847,78 @@
   }
 
   const KINDS = { lost: 'Lost: ', 'saved again': 'Saved again: ', moved: 'Check: ', load: 'Note: ' }
+  const STATUS = { changed: 'Changed', unchanged: 'Not changed', new: 'New sheet' }
+
+  function sheetTable(sheets) {
+    return table(['Sheet', 'What happened', 'Cells changed', 'Rows deleted', 'Rows added', 'Rows moved', 'Fills changed', 'Rows hidden'],
+      ['col-where', 'col-short', '', '', '', '', '', ''],
+      sheets.map((s) => [s.name, STATUS[s.status] || s.status, s.cells, s.rows_deleted, s.rows_added, s.rows_moved, s.fills, s.hidden]),
+      [2, 3, 4, 5, 6, 7])
+  }
 
   function showApplied(data, bytes) {
-    const parts = []
+    const into = clear($('applied'))
+    into.hidden = false
     if (!data.ok) {
-      parts.push(banner('not-proven', 'NOT CHANGED', 'KRONOS made no copy.', 'applied-banner'))
-      parts.push(el('p', { class: 'details' }, data.message))
-      render(applied, parts)
+      into.appendChild(banner('not-proven', 'NOT CHANGED', 'KRONOS made no copy.', 'applied-banner'))
+      into.appendChild(el('p', { class: 'details' }, data.message))
       return
     }
-    copy = { data: bytes, name: `${data.stem} (KRONOS ${stamp()}).${data.ext}`, type: data.ext === 'xlsm' ? XLSM : XLSX }
-    parts.push(banner('proven', 'CHANGED COPY READY', data.message, 'applied-banner'))
-    if (data.result !== null) parts.push(el('p', { class: 'details' }, `The recipe returned: ${data.result}`))
-    data.messages.forEach((m) => parts.push(el('p', { class: 'details muted' }, m)))
-    const status = { changed: 'Changed', unchanged: 'Not changed', new: 'New sheet' }
-    parts.push(el('h2', {}, 'What changed'))
-    parts.push(table(['Sheet', 'What happened', 'Cells changed', 'Rows deleted', 'Rows added', 'Rows moved', 'Fills changed', 'Rows hidden'],
-      ['col-where', 'col-short', '', '', '', '', '', ''],
-      data.sheets.map((s) => [s.name, status[s.status] || s.status, s.cells, s.rows_deleted, s.rows_added, s.rows_moved, s.fills, s.hidden]),
-      [2, 3, 4, 5, 6, 7]))
+    state.copy = { data: bytes, name: `${data.stem} (KRONOS ${stamp()}).${data.ext}`, type: data.ext === 'xlsm' ? XLSM : XLSX }
+    into.appendChild(banner('proven', 'CHANGED COPY READY', data.message, 'applied-banner'))
+    if (data.steps.length > 1) {
+      data.steps.forEach((step, n) => {
+        into.appendChild(el('h2', {}, `${n + 1}. ${step.recipe}`))
+        if (step.result !== null) into.appendChild(el('p', { class: 'details' }, `It returned: ${step.result}`))
+        step.messages.forEach((m) => into.appendChild(el('p', { class: 'details muted' }, m)))
+        into.appendChild(sheetTable(step.sheets))
+      })
+      into.appendChild(el('h2', {}, 'All together'))
+    } else if (data.result !== null) {
+      into.appendChild(el('p', { class: 'details' }, `The recipe returned: ${data.result}`))
+      data.messages.forEach((m) => into.appendChild(el('p', { class: 'details muted' }, m)))
+      into.appendChild(el('h2', {}, 'What changed'))
+    }
+    into.appendChild(sheetTable(data.sheets))
     if (data.changes.length) {
       const more = data.changes_total > data.changes.length ? ` (${data.changes_total} cells changed in all)` : ''
-      parts.push(el('details', {}, [el('summary', {}, `Show the first ${data.changes.length} changes${more}`),
+      into.appendChild(el('details', {}, [el('summary', {}, `Show the first ${data.changes.length} changes${more}`),
         table(['Sheet', 'Cell', 'Before', 'After'], ['col-where', 'col-short', '', ''], data.changes)]))
     }
+    let understand = null
     if (data.warnings.length) {
       const box = el('div', { class: 'warn', id: 'warnings' }, [el('p', {}, el('strong', {}, 'Before you download, please read:'))])
       data.warnings.forEach((w) => box.appendChild(el('p', {}, [el('strong', {}, KINDS[w.kind] || ''), w.text])))
-      parts.push(box)
-      parts.push(el('label', { class: 'checkline' }, [el('input', { type: 'checkbox', id: 'understand' }),
-        'I understand, and I want the changed copy']))
+      into.appendChild(box)
+      understand = el('input', { type: 'checkbox', id: 'understand' })
+      into.appendChild(el('label', { class: 'checkline' }, [understand, 'I understand, and I want the changed copy']))
     }
-    parts.push(el('div', { class: 'buttons' }, el('button', { type: 'button', id: 'download' }, 'Download the changed copy')))
-    parts.push(el('p', { class: 'details muted' }, 'Open the copy in Excel and look it over before you use it. Your original file is untouched.'))
-    render(applied, parts)
-    const download = $('download')
-    const understand = $('understand')
-    download.disabled = !!understand
-    if (understand) understand.addEventListener('change', () => { download.disabled = !understand.checked })
-    download.addEventListener('click', saveCopy)
+    const button = el('button', { type: 'button', id: 'download' }, 'Download the changed copy')
+    button.disabled = !!understand
+    if (understand) understand.addEventListener('change', () => { button.disabled = !understand.checked })
+    button.addEventListener('click', () => { if (state.copy) download(state.copy.data, state.copy.name, state.copy.type) })
+    into.appendChild(el('div', { class: 'buttons' }, button))
+    into.appendChild(el('p', { class: 'details muted' }, 'Open the copy in Excel and look it over before you use it. Your original file is untouched.'))
   }
 
-  function saveCopy() {
-    if (!copy) return
-    const url = URL.createObjectURL(new Blob([copy.data], { type: copy.type }))
-    const link = el('a', { href: url, download: copy.name })
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.setTimeout(() => URL.revokeObjectURL(url), 30000)
+  // ---------- starting over ----------
+
+  function startOver() {
+    state.ai = null
+    state.shown = []
+    state.ticks = {}
+    state.messages = {}
+    state.copy = null
+    applyArgs = {}
+    $('request').value = ''
+    $('applied').hidden = true
+    clear($('recipe-list')).hidden = true
+    say('ask-note', '')
+    say('file-note', '')
+    go('ask')
   }
 
-  // ---------- the browser line ----------
+  // ---------- the browser line, and off we go ----------
 
   function browserName() {
     const ua = navigator.userAgent
@@ -556,17 +929,32 @@
   }
 
   $('browser').textContent = browserName()
-  checkButton.addEventListener('click', check)
-  exampleButton.addEventListener('click', loadExample)
   $('cancel').addEventListener('click', cancel)
   $('choose-book').addEventListener('click', () => $('book-file').click())
   $('book-file').addEventListener('change', (event) => {
     const file = event.target.files && event.target.files[0]
     event.target.value = ''   // so that choosing the same file again still fires
-    chooseFile(file)
+    chooseBook(file)
   })
   $('remove-book').addEventListener('click', removeBook)
-  $('copy-book').addEventListener('click', copyDescription)
+  $('choose-recipes').addEventListener('click', () => $('recipe-file').click())
+  $('recipe-file').addEventListener('change', (event) => {
+    const file = event.target.files && event.target.files[0]
+    event.target.value = ''
+    openRecipes(file)
+  })
+  $('load-example').addEventListener('click', loadExample)
+  $('go-save').addEventListener('click', () => go('save'))
   $('apply').addEventListener('click', apply)
+  $('start-over').addEventListener('click', startOver)
+  ;[].forEach.call(document.querySelectorAll('.back'), (button) => {
+    button.addEventListener('click', () => go(button.getAttribute('data-to')))
+  })
   startWorker()
+  call({ type: 'reset', today: TODAY }).catch(() => null)
+  call({ type: 'words' }).then((answer) => {
+    state.words = answer.json
+    render()
+  }, (problem) => say('ask-note', problemText(problem)))
+  go('ask')
 })()

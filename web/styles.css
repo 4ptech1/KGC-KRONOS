@@ -135,4 +135,33 @@ details { margin-top: 12px; }
 summary { cursor: pointer; font-weight: 600; }
 td.num, th.num { text-align: right; }
 
+/* the wizard (D89): the steps in the top bar, one step shown at a time */
+.steps { display: flex; gap: 22px; margin-left: 48px; font-size: 15px; color: var(--navy-small); }
+.step { padding: 6px 0; border-bottom: 3px solid transparent; }
+.step.current { color: #FFFFFF; font-weight: 700; border-bottom-color: #FFFFFF; }
+.step.done { color: #FFFFFF; }
+.stepview > .card + .card, .stepview > .card + .result, .stepview > .result + .card { margin-top: 20px; }
+#review-list > * + *, #save-list > * + * { margin-top: 20px; }
+.stepview > #review-list + .card, .stepview > #save-list + .card { margin-top: 20px; }
+.request { min-height: 84px; resize: vertical; }
+.reply { font-family: var(--mono); font-size: 12px; min-height: 140px; resize: vertical; white-space: pre; }
+.tips { margin: 8px 0 0 0; padding-left: 20px; color: var(--muted); }
+.tips li { margin: 2px 0; }
+.more { margin-top: 12px; }
+.ai-panel { margin-top: 16px; border-top: 1px solid var(--soft-edge); padding-top: 12px; }
+.ai-panel h2 { margin-top: 0; }
+.copy-box { font-family: var(--mono); font-size: 11px; min-height: 120px; white-space: pre; }
+.recipe-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--soft-edge); }
+.recipe-row input { width: 18px; height: 18px; margin-top: 2px; }
+.recipe-row .what { flex: 1; }
+.recipe-row .small-muted { color: var(--muted); font-size: 12px; }
+.plain-list { margin: 6px 0 0 0; padding-left: 20px; }
+.plain-list li { margin: 3px 0; }
+.recipe-text { font-family: var(--mono); font-size: 11px; white-space: pre; overflow-x: auto; background: #FFFFFF;
+  border-radius: var(--radius); padding: 10px 12px; }
+.steps-list { margin: 8px 0 0 0; padding-left: 0; list-style: none; }
+.steps-list li { margin: 4px 0; }
+.prompt-note { background: #FFFFFF; border-left: 6px solid var(--amber); border-radius: var(--radius); padding: 10px 14px;
+  margin: 12px 0 0 0; }
+
 .about { margin-top: 28px; font-size: 12px; color: var(--muted); }

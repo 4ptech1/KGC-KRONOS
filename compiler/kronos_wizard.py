@@ -174,7 +174,10 @@ class Wizard:
         proof = best.proof if best else None
         status = "waiting" if waiting(run) else run.status
         newest = next((m for m in reversed(run.messages) if m["role"] == "user"), None)
-        out = {"id": id, "status": status, "note": "" if status == "waiting" else run.note, "question": run.question,
+        note = "" if status == "waiting" else run.note
+        if note == "the edited spec is not proven":   # the engine's words for a recipe checked with no AI: a file's
+            note = "the recipe did not pass its checks"
+        out = {"id": id, "status": status, "note": note, "question": run.question,
                "request": run.request, "newest": newest["kind"] if newest else "",
                "tries": run.turn_tries, "max_tries": engine.MAX_TRIES,
                "attempts": [{"number": a.number, "source": a.source, "words": engine.plain_result(a),

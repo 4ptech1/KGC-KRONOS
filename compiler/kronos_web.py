@@ -183,7 +183,7 @@ def words():
     from kronos_engine import PROMPT
     prompt = PROMPT.read_bytes()
     return canonical({"example": kronos_words.EXAMPLE, "tips": kronos_words.TIPS, "never": kronos_words.NEVER,
-                      "prompt_sha256": hashlib.sha256(prompt).hexdigest(), "prompt_bytes": len(prompt)})
+                      "prompt": prompt.decode("utf-8"), "prompt_sha256": hashlib.sha256(prompt).hexdigest()})
 
 
 def apply_changes_many(texts_json, data, name, args_list_json, today=None, step=None):
