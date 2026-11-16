@@ -133,13 +133,13 @@ const children = [
   caption('KRONOS after choosing the demo workbook'),
 
   h1('3. How each job runs'),
-  p('Every job follows the same four steps in KRONOS:'),
-  step('Choose the workbook (once).', 'how'),
-  step('Paste the recipe and click Check the recipe. KRONOS checks it and runs its practice tests.', 'how'),
-  step('When it says PROVEN, pick the sheet (NCR Register) and click Make the changes on a copy.', 'how'),
-  step('Read what changed, then click Download the changed copy.', 'how'),
+  p('Every job follows the same steps in KRONOS:'),
+  step('In step 1 (Ask), choose the workbook (once).', 'how'),
+  step('Click Open a recipe file… and choose the recipe. KRONOS checks it straight away, runs its practice tests and shows step 3, Review.', 'how'),
+  step('When it says PROVEN, tick "These assumptions are right" and click Go to Save.', 'how'),
+  step('In Make the changes on a copy, pick the sheet (NCR Register), click the button, read what changed, and click Download the changed copy.', 'how'),
   image('recipe1-proven.png', 520),
-  caption('PROVEN: the recipe passed every check and all of its practice tests'),
+  caption('Review: PROVEN, with what the recipe does, assumes and changes, and how it was tested'),
   p([t('The practice tests are small made-up sheets with the awkward cases built in (extra spaces, capital letters, a wrong sheet). ' +
     'As an extra check, we planted deliberate mistakes in each recipe; its tests caught every one that would make a difference.')]),
 
@@ -200,10 +200,9 @@ const children = [
   p('Then, in KRONOS Offline:', { spacing: { before: 120, after: 60 } }),
   step('Start KRONOS (double-click Start KRONOS (Windows) in its folder).', 'try'),
   step('Click Choose a workbook… and pick NCR_Register_Demo.xlsx. You should see the sheets NCR Register (41 rows) and About.', 'try'),
-  step('Open a recipe file in Notepad, select everything (Ctrl+A), copy (Ctrl+C), and paste it into the Paste a recipe box.', 'try'),
-  step('Click Check the recipe. You should see the green PROVEN banner.', 'try'),
-  step('In Make the changes on a copy, choose NCR Register as the sheet, then click Make the changes on a copy.', 'try'),
-  step('You should see CHANGED COPY READY with the same numbers as in this guide. Click Download the changed copy and open it in Excel.', 'try'),
+  step('Click Open a recipe file… and choose a recipe file (or this Word guide itself: KRONOS finds all three recipes in it; click Choose all, then Check the chosen recipes). You should see step 3, Review, with the green PROVEN banner.', 'try'),
+  step('Tick "These assumptions are right" and click Go to Save. There you can download the macro, and, in Make the changes on a copy, choose NCR Register as the sheet and click Make the changes on a copy.', 'try'),
+  step('You should see CHANGED COPY READY with the same numbers as in this guide (all three at once give one copy, with what each did). Click Download the changed copy and open it in Excel.', 'try'),
 
   h1('8. Good to know'),
   bullet([b('Your original is never changed. '), t('KRONOS always works on a copy, inside your browser, and sends nothing anywhere.')]),

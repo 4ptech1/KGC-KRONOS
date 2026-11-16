@@ -7,13 +7,21 @@
 // cases.json: [{"name": ..., "text": ..., "today": "YYYY-MM-DD"}], and for an uploaded workbook (D87) cases with a
 // "kind": "describe" ({"data": <base64>, "file": "orders.xlsx"}), "arguments", or "apply" (also "args": {...}).
 // answers.json: {"python": "3.11.3", "pyodide": "0.24.1", "answers": {name: {"json": <kronos_web's text>,
-// "steps": [...], "data": <base64 of the changed copy, for apply>}}}.
+// "steps": [...], "data": <base64 of the changed copy, for apply>}}}. A case {"kind": "call", "fn": <a kronos_web function>,
+// "args": [...], "step": true} calls any of them, with {"$b64": ...} for bytes, in one Python session, in order (D89).
 'use strict'
 const { readFileSync } = require('fs')
 const { join } = require('path')
 
 const app = process.argv[2]
 const { loadPyodide } = require(join(app, 'pyodide', 'pyodide.js'))
+
+// All of stdin: readFileSync(0) fails with EAGAIN on a big piped input (the workbook cases, D89).
+async function readInput() {
+  const chunks = []
+  for await (const chunk of process.stdin) chunks.push(chunk)
+  return Buffer.concat(chunks).toString('utf-8')
+}
 
 async function main() {
   const pyodide = await loadPyodide({ indexURL: join(app, 'pyodide') + '/' })
@@ -29,7 +37,7 @@ async function main() {
   }
   pyodide.runPython("import sys; sys.path.insert(0, '/kronos/compiler')")
   const kronos = pyodide.pyimport('kronos_web')
-  const cases = JSON.parse(readFileSync(0, 'utf-8'))
+  const cases = JSON.parse(await readInput())
   const answers = {}
   for (const item of cases) {
     const steps = []
@@ -44,6 +52,17 @@ async function main() {
       const parts = answer.toJs()
       answer.destroy()
       answers[item.name] = { json: parts[0], steps, data: Buffer.from(parts[1]).toString('base64') }
+    } else if (item.kind === 'call') {
+      const args = item.args.map((a) => (a && typeof a === 'object' && a.$b64 !== undefined ? new Uint8Array(Buffer.from(a.$b64, 'base64')) : a))
+      if (item.step) args.push(step)
+      const result = kronos[item.fn](...args)
+      if (typeof result === 'string') {
+        answers[item.name] = { json: result, steps }
+      } else {
+        const parts = result.toJs()
+        result.destroy()
+        answers[item.name] = { json: parts[0], steps, data: Buffer.from(parts[1]).toString('base64') }
+      }
     } else {
       answers[item.name] = { json: kronos.check(item.text, item.today, step), steps }
     }

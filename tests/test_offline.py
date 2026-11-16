@@ -58,6 +58,12 @@ WEB = ROOT / "web"
 EXAMPLE = (ROOT / "vcl" / "examples" / "example1_rev3.vcl").read_text(encoding="utf-8")
 BROKEN = EXAMPLE.replace("GOAL ", "GOLA ", 1)   # an unknown key and a missing GOAL: two checker errors
 FAILING = EXAMPLE.replace("RESULT >= PRE_COUNTIF", "RESULT < PRE_COUNTIF", 1)   # a TEST that fails
+REQUEST = "Delete every cancelled order from the Orders sheet, then sort the rest by order date, newest first."
+QUESTION_REPLY = "```vcl\n# QUESTION: Which sheet holds the orders?\n```"
+
+
+def reply(spec):
+    return f"Here is the spec.\n\n```vcl\n{spec}```\n"
 CASES = {p.name: p for p in [*sorted((ROOT / "specs").glob("*.vcl")), *sorted((ROOT / "vcl" / "examples").glob("*.vcl"))]}
 
 
@@ -516,6 +522,49 @@ class UnderPyodide(unittest.TestCase):
         self.assertEqual(answers["no such sheet"]["json"], refused)
         self.assertEqual((answers["no such sheet"]["data"], nothing), ("", b""))
 
+    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+    def test_the_wizard_and_recipe_files_give_exactly_normal_pythons_answers(self):   # D89
+        import base64
+        node = shutil.which("node")
+        if not node:
+            need("Node.js is not installed")
+        fresh = unpacked()
+        demo = ROOT / "docs" / "demo"
+        guide = (demo / "KRONOS_Demo_NCR_Register.docx").read_bytes()
+        book = (demo / "NCR_Register_Demo.xlsx").read_bytes()
+        texts = json.loads(kronos_web.read_recipe_file(guide, "guide.docx"))["recipes"]
+        args = json.dumps([{"ws": "NCR Register"}, {"ws": "NCR Register"}, {"book": "", "ws": "NCR Register"}])
+        b64 = lambda data: {"$b64": base64.b64encode(data).decode()}   # noqa: E731
+        calls = [("wizard_reset", ["/kronos-data", TODAY], False),
+                 ("wizard_call", ["ask", "r1", json.dumps([REQUEST, None])], True),
+                 ("wizard_call", ["message", "r1", json.dumps([True])], False),
+                 ("wizard_call", ["paste", "r1", json.dumps([reply(BROKEN)])], True),
+                 ("wizard_call", ["message", "r1", json.dumps([False])], False),
+                 ("wizard_call", ["paste", "r1", json.dumps([reply(EXAMPLE)])], True),
+                 ("wizard_call", ["save", "r1", json.dumps([{"ws": "Orders"}])], False),
+                 ("wizard_call", ["recipe", "f1", json.dumps([texts[2]["text"], "guide.docx"])], True),
+                 ("wizard_call", ["save", "f1", json.dumps([{"ws": "NCR Register"}])], False),
+                 ("words", [], False),
+                 ("read_recipe_file", [b64(guide), "guide.docx"], False),
+                 ("apply_changes_many", [json.dumps([t["text"] for t in texts]), b64(book), "NCR_Register_Demo.xlsx", args, TODAY],
+                  True)]
+        cases = [{"name": f"{n}: {fn}", "kind": "call", "fn": fn, "args": a, "step": st} for n, (fn, a, st) in enumerate(calls)]
+        run = subprocess.run([node, str(ROOT / "tests" / "offline_pyodide.js"), str(fresh / "app")],
+                             input=json.dumps(cases), capture_output=True, text=True, encoding="utf-8", timeout=900)
+        self.assertEqual(run.returncode, 0, run.stderr[-3000:])
+        answers = json.loads(run.stdout)["answers"]
+        folder = temp("kronos python bridge ")
+        for n, (fn, a, st) in enumerate(calls):
+            a = [str(folder) if x == "/kronos-data" else (base64.b64decode(x["$b64"]) if isinstance(x, dict) else x) for x in a]
+            steps = []
+            got = getattr(kronos_web, fn)(*a, *([steps.append] if st else []))
+            text = got if isinstance(got, str) else got[0]
+            with self.subTest(call=f"{n}: {fn} {a[0] if a else ''}"):
+                self.assertEqual(answers[f"{n}: {fn}"]["json"], text)
+                self.assertEqual(answers[f"{n}: {fn}"]["steps"], steps)
+                if not isinstance(got, str):
+                    self.assertEqual(workbook_state(base64.b64decode(answers[f"{n}: {fn}"]["data"])), workbook_state(got[1]))
+
 
 # ---------- the servers and the page ----------
 
@@ -783,132 +832,193 @@ class InTheBrowser(unittest.TestCase):
     def ready(self, page):
         page.wait_for_function("document.getElementById('python').textContent.indexOf('ready') >= 0", timeout=120000)
 
-    def check(self, page):
-        page.click("#check")
-        page.wait_for_selector("#banner", timeout=120000)
-        return page.text_content("#banner")
+    def go_ready(self, server):
+        page = self.open(server)
+        self.ready(page)
+        page.wait_for_selector("#tips li", timeout=60000)   # KRONOS's words came from Python
+        return page
 
-    def test_the_page_proves_the_example_shows_problems_and_cancels(self):
-        _, info = built()
+    def review_banners(self, page):
+        page.wait_for_selector("#step-review:not([hidden]) .review .banner", timeout=180000)
+        return [b.text_content() for b in page.locator("#review-list .review .banner").all()]
+
+    def finish(self):
+        self.context.close()
+        self.assertEqual(self.blocked, [], "the page asked for something outside this computer")
+        self.assertEqual(self.errors, [])
+
+    def test_ask_paste_repair_review_and_save_as_kronos_exe_does(self):   # D89
+        import kronos_wizard
+        folder = temp("kronos python wizard ")
+        python = kronos_wizard.Wizard(folder, TODAY)
+        python.ask("x", REQUEST)
+        want_first = python.message("x")
+        python.paste("x", reply(BROKEN))
+        want_repair = python.message("x", instructions=False)
+        python.paste("x", reply(EXAMPLE))
+        want_saved = python.save("x", {"ws": "Orders"})
         for name, start in page_servers():
             with self.subTest(server=name), start():
                 page = self.open(name)
-                self.assertEqual(page.text_content("#version"), f"Version {info['version']} · {info['date']}")
-                self.assertEqual(page.locator("#old-browser").count(), 0)   # only a browser that can't run it keeps it
-                # Cancel while Python is still starting: the panel goes, and a fresh worker starts
-                page.fill("#recipe", EXAMPLE)
-                page.click("#check")
-                self.assertTrue(page.is_visible("#working"))
+                self.assertEqual(page.text_content("#version"), f"Version {built()[1]['version']} · {built()[1]['date']}")
+                self.assertEqual(page.locator("#old-browser").count(), 0)
+                # Cancel while Python is still starting: the panel goes and a fresh worker starts
+                page.click("#load-example")
+                page.wait_for_selector("#working", state="visible", timeout=30000)
                 page.click("#cancel")
                 self.assertFalse(page.is_visible("#working"))
-                self.assertIn("Cancelled", page.text_content("#note"))
+                self.assertIn("Cancelled", page.text_content("#file-note"))
                 self.ready(page)
+                page.wait_for_selector("#tips li", timeout=60000)
                 self.assertIn("3.11.3 in this browser (Pyodide 0.24.1)", page.text_content("#python"))
-                self.shot(page, "start")
-                # the practice example: PROVEN, with exactly normal Python's answer
-                page.fill("#recipe", "")
-                page.click("#load-example")
-                page.wait_for_function("document.getElementById('recipe').value.length > 100")
-                self.assertEqual(page.input_value("#recipe"), EXAMPLE)
-                self.assertEqual(self.check(page), "PROVEN It passed every check and 3 of 3 practice tests.")
-                self.assertEqual(page.evaluate("window.kronosLastResult"), kronos_web.check(EXAMPLE, TODAY))
-                self.assertEqual(page.locator("table tbody tr").count(), 3)
-                self.shot(page, "proven")
-                # a broken recipe: NOT PROVEN and its problems
-                page.fill("#recipe", BROKEN)
-                self.assertEqual(self.check(page), "NOT PROVEN The recipe broke 2 rules of the checker.")
-                self.assertIn("unknown key GOLA", page.text_content("#result table"))
-                self.assertIn("spec.vcl:6: error: unknown key GOLA [V015]", page.text_content("#problems"))
-                self.assertEqual(page.evaluate("window.kronosLastResult"), kronos_web.check(BROKEN, TODAY))
-                self.shot(page, "problems")
-                # an empty box asks for a recipe instead of checking
-                page.fill("#recipe", "  ")
-                page.click("#check")
-                self.assertIn("Paste a recipe first", page.text_content("#note"))
-                self.context.close()
-                self.assertEqual(self.blocked, [], "the page asked for something outside this computer")
-                self.assertEqual(self.errors, [])
+                self.assertIn("Name the sheets", page.text_content("#tips"))
+                # 1 Ask: the message with instructions is exactly what KRONOS.exe sends Codex
+                page.fill("#request", REQUEST)
+                page.click("#write-message")
+                page.wait_for_selector("#ai-panel-ask .copy-instructions", timeout=120000)
+                page.click("#ai-panel-ask .copy-instructions")
+                self.assertEqual(page.evaluate("window.kronosLastCopied"), want_first)
+                self.shot(page, "ask")
+                # a broken reply: KRONOS sends the toolchain's problems back, as KRONOS.exe would
+                page.fill("#ai-panel-ask-reply", reply(BROKEN))
+                page.click("#ai-panel-ask .check-reply")
+                self.assertEqual(self.review_banners(page), ["WAITING FOR THE AI Send the problems to the AI and paste its new reply."])
+                page.click("#review-list .copy-orchestrator")
+                self.assertEqual(page.evaluate("window.kronosLastCopied"), want_repair)
+                self.assertIn("unknown key GOLA", page.text_content("#review-list"))
+                page.fill("#review-list .reply", reply(EXAMPLE))
+                page.click("#review-list .check-reply")
+                page.wait_for_function("document.querySelector('#review-list .banner').textContent.indexOf('PROVEN') === 0",
+                                       timeout=180000)
+                self.assertEqual(self.review_banners(page), ["PROVEN It passed every check and 3 of 3 practice tests."])
+                self.assertTrue(page.is_disabled("#go-save"))
+                self.shot(page, "review")
+                page.check("#review-list input[type=checkbox]")
+                page.click("#go-save")
+                # 4 Save: the .bas and the practice run, byte for byte KRONOS.exe's
+                page.wait_for_selector("#step-save:not([hidden]) .download-bas")
+                self.assertEqual(page.input_value("#save-list input"), "Orders")
+                with page.expect_download() as download:
+                    page.click(".download-bas")
+                self.assertEqual(download.value.suggested_filename, want_saved["bas_name"])
+                self.assertEqual(Path(download.value.path()).read_bytes(), want_saved["bas"].encode("ascii"))
+                with page.expect_download() as practice:
+                    page.click(".download-practice")
+                self.assertEqual(Path(practice.value.path()).read_bytes(), want_saved["practice"].encode("ascii"))
+                self.assertIn("Alt+F11", page.text_content("#save-list"))
+                self.shot(page, "save")
+                self.finish()
 
-    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
-    def test_a_workbook_goes_in_and_a_changed_copy_comes_out(self):   # D87
-        _, info = built()
-        data = orders_workbook()
-        args = json.dumps({"ws": "Orders"})
-        want_json, want_copy = kronos_web.apply_changes(EXAMPLE, data, "orders.xlsx", args, TODAY)
+    def test_the_question_step(self):   # D89
         for name, start in page_servers():
             with self.subTest(server=name), start():
-                page = self.open(name)
-                self.ready(page)
-                self.assertTrue(page.is_hidden("#apply-card"))
-                # an old .xls and a file that is not a workbook are turned away in words
+                page = self.go_ready(name)
+                page.fill("#request", REQUEST)
+                page.click("#write-message")
+                page.wait_for_selector("#ai-panel-ask .check-reply", timeout=120000)
+                page.fill("#ai-panel-ask-reply", QUESTION_REPLY)
+                page.click("#ai-panel-ask .check-reply")
+                page.wait_for_selector("#step-question:not([hidden])", timeout=120000)
+                self.assertEqual(page.text_content("#question-text"), "Which sheet holds the orders?")
+                page.fill("#answer", "The sheet is Orders.")
+                page.click("#write-answer")
+                page.wait_for_selector("#ai-panel-question .copy-orchestrator", timeout=120000)
+                page.click("#ai-panel-question .copy-orchestrator")
+                self.assertEqual(page.evaluate("window.kronosLastCopied"), "The sheet is Orders.\n")
+                self.shot(page, "question")
+                page.fill("#ai-panel-question-reply", reply(EXAMPLE))
+                page.click("#ai-panel-question .check-reply")
+                self.assertEqual(self.review_banners(page), ["PROVEN It passed every check and 3 of 3 practice tests."])
+                self.finish()
+
+    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+    def test_a_recipe_file_with_three_recipes_on_one_copy_of_the_workbook(self):   # D89
+        import kronos_book
+        demo = ROOT / "docs" / "demo"
+        texts = [(demo / n).read_text(encoding="utf-8") for n in ("recipe_1_highlight.vcl", "recipe_2_tidy.vcl", "recipe_3_summary.vcl")]
+        book = (demo / "NCR_Register_Demo.xlsx").read_bytes()
+        sheet = "NCR Register"
+        want, want_copy = kronos_book.apply_many(texts, book, "NCR_Register_Demo.xlsx",
+                                                  [{"ws": sheet}, {"ws": sheet}, {"book": "", "ws": sheet}], TODAY)
+        for name, start in page_servers():
+            with self.subTest(server=name), start():
+                page = self.go_ready(name)
+                # an .xls and a file that is not a workbook are turned away in words
                 page.set_input_files("#book-file", files={"name": "old.xls", "mimeType": "application/vnd.ms-excel", "buffer": b"x"})
                 self.assertIn("old .xls workbook", page.text_content("#book-note"))
                 page.set_input_files("#book-file", files={"name": "notes.xlsx", "mimeType": XLSX, "buffer": b"just text"})
-                page.wait_for_function("document.getElementById('book-note').textContent.indexOf('KRONOS could not') >= 0 "
-                                       "|| document.getElementById('book-note').textContent.indexOf('look like') >= 0", timeout=120000)
-                self.assertIn("doesn't look like an Excel workbook", page.text_content("#book-note"))
-                self.assertTrue(page.is_hidden("#book-info"))
-                # the workbook: its sheets, and the description for the AI
-                page.set_input_files("#book-file", files={"name": "orders.xlsx", "mimeType": XLSX, "buffer": data})
+                page.wait_for_function("document.getElementById('book-note').textContent.indexOf('look like') >= 0", timeout=120000)
+                page.set_input_files("#book-file", files={"name": "NCR_Register_Demo.xlsx", "mimeType": XLSX, "buffer": book})
                 page.wait_for_selector("#book-info:not([hidden])", timeout=120000)
-                self.assertIn("orders.xlsx", page.text_content("#book-name"))
-                sheets = page.text_content("#book-sheets")
-                self.assertTrue("Orders" in sheets and "Notes" in sheets and "Order No, Order Date, Customer, Status" in sheets)
-                self.assertEqual(page.input_value("#book-text"), json.loads(kronos_web.describe_book(data, "orders.xlsx"))["text"])
-                self.shot(page, "workbook")
-                # the recipe is proven, and the changes are offered for this workbook, the sheet already chosen
-                page.click("#load-example")
-                page.wait_for_function("document.getElementById('recipe').value.length > 100")
-                self.assertEqual(self.check(page), "PROVEN It passed every check and 3 of 3 practice tests.")
-                page.wait_for_selector("#apply-card:not([hidden])", timeout=120000)
-                self.assertEqual(page.input_value("#arg-0"), "Orders")
+                self.assertTrue(page.is_visible("#include-line"))
+                # the demo's Word guide holds three recipes: all three are chosen and checked
+                page.set_input_files("#recipe-file", str(demo / "KRONOS_Demo_NCR_Register.docx"))
+                page.wait_for_selector("#choose-all", timeout=120000)
+                self.assertIn("KRONOS found 3 recipes.", page.text_content("#recipe-list"))
+                self.shot(page, "recipes")
+                page.click("#check-chosen")
+                self.assertIn("Tick at least one recipe", page.text_content("#file-note"))
+                page.click("#choose-all")
+                page.click("#check-chosen")
+                self.assertEqual(self.review_banners(page), ["PROVEN It passed every check and 3 of 3 practice tests."] * 3)
+                for box in page.locator("#review-list input[type=checkbox]").all():
+                    box.check()
+                page.click("#go-save")
+                page.wait_for_selector("#apply-card:not([hidden]) select", timeout=120000)
+                self.assertEqual(page.locator("#save-list .save").count(), 3)
+                for select in page.locator("#apply-fields select").all():
+                    select.select_option(sheet)
                 page.click("#apply")
-                page.wait_for_selector("#applied-banner", timeout=120000)
-                self.assertEqual(page.text_content("#applied-banner"), "CHANGED COPY READY The changes are made on a copy; "
-                                                                      "your original file is untouched.")
-                self.assertEqual(page.evaluate("window.kronosLastApplied"), want_json)   # exactly normal Python's answer
-                self.assertTrue(page.is_hidden("#understand"))   # nothing was lost, so nothing to tick
-                self.assertTrue(page.is_enabled("#download"))
+                page.wait_for_selector("#applied-banner", timeout=180000)
+                self.assertEqual(json.loads(page.evaluate("window.kronosLastApplied")), want)   # exactly normal Python's answer
+                self.assertEqual(page.locator("#applied h2").count(), 4)   # one part per recipe, then all together
                 self.shot(page, "copy")
                 with page.expect_download() as download:
                     page.click("#download")
-                self.assertRegex(download.value.suggested_filename, r"^orders \(KRONOS \d{4}-\d\d-\d\d \d\d-\d\d\)\.xlsx$")
-                saved = Path(download.value.path()).read_bytes()
-                self.assertEqual(workbook_state(saved), workbook_state(want_copy))
-                names = workbook_state(saved)["Orders"][0]
-                self.assertFalse(any(v.strip().lower() == "cancelled" for _, v, _ in names))
-                # remove the workbook: the changes are no longer offered
-                page.click("#remove-book")
-                self.assertTrue(page.is_hidden("#apply-card") and page.is_hidden("#book-info"))
-                self.context.close()
-                self.assertEqual(self.blocked, [], "the page asked for something outside this computer")
-                self.assertEqual(self.errors, [])
+                self.assertEqual(workbook_state(Path(download.value.path()).read_bytes()), workbook_state(want_copy))
+                self.finish()
+
+    def test_one_recipe_files_are_checked_straight_away(self):   # D89
+        for name, start in page_servers():
+            with self.subTest(server=name), start():
+                page = self.go_ready(name)
+                page.set_input_files("#recipe-file", files={"name": "reply.md", "mimeType": "text/markdown",
+                                                            "buffer": reply(EXAMPLE).encode()})
+                self.assertEqual(self.review_banners(page), ["PROVEN It passed every check and 3 of 3 practice tests."])
+                page.click("#step-review .back")
+                page.set_input_files("#recipe-file", files={"name": "broken.txt", "mimeType": "text/plain", "buffer": BROKEN.encode()})
+                page.wait_for_function("document.querySelector('#review-list .banner') && "
+                                       "document.querySelector('#review-list .banner').textContent.indexOf('NOT PROVEN') === 0",
+                                       timeout=180000)
+                self.assertTrue(page.is_visible("#review-list .send-problems"))
+                page.click("#step-review .back")
+                page.set_input_files("#recipe-file", files={"name": "notes.txt", "mimeType": "text/plain", "buffer": b"no recipe"})
+                page.wait_for_function("document.getElementById('file-note').textContent.indexOf('found no recipe') >= 0",
+                                       timeout=120000)
+                self.finish()
 
     @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
     def test_what_a_copy_cannot_keep_must_be_ticked_before_the_download(self):   # D87
-        _, info = built()
         data = orders_workbook(merged=True)
         for name, start in page_servers():
             with self.subTest(server=name), start():
-                page = self.open(name)
-                self.ready(page)
+                page = self.go_ready(name)
                 page.set_input_files("#book-file", files={"name": "orders.xlsx", "mimeType": XLSX, "buffer": data})
                 page.wait_for_selector("#book-info:not([hidden])", timeout=120000)
-                page.fill("#recipe", EXAMPLE)
-                self.assertEqual(self.check(page), "PROVEN It passed every check and 3 of 3 practice tests.")
-                page.wait_for_selector("#apply-card:not([hidden])", timeout=120000)
+                page.click("#load-example")
+                self.review_banners(page)
+                page.check("#review-list input[type=checkbox]")
+                page.click("#go-save")
+                page.wait_for_selector("#apply-card:not([hidden]) select", timeout=120000)
+                self.assertEqual(page.input_value("#apply-fields select"), "Orders")
                 page.click("#apply")
-                page.wait_for_selector("#applied-banner", timeout=120000)
+                page.wait_for_selector("#applied-banner", timeout=180000)
                 self.assertIn("merged cells", page.text_content("#warnings"))
                 self.assertTrue(page.is_disabled("#download"))
                 page.check("#understand")
                 self.assertTrue(page.is_enabled("#download"))
                 self.shot(page, "warning")
-                # a sheet that is not there is refused in words, and nothing is offered
-                self.context.close()
-                self.assertEqual(self.blocked, [], "the page asked for something outside this computer")
-                self.assertEqual(self.errors, [])
-
+                self.finish()
 
 if __name__ == "__main__":
     unittest.main()

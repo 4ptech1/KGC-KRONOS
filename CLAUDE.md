@@ -355,6 +355,11 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    PROVEN recipes (highlight open Major NCRs, tidy, summary sheet), what KRONOS gives back, and the Word guide
    `KRONOS_Demo_NCR_Register.docx` for colleagues; the scripts that make them are beside them, and `tests/test_demo.py`
    keeps every file what they make today. Only `docs/demo/NCR_Register_Demo*.xlsx` may be committed.
+   **Version 4 (D89, 16 Nov 2026): the wizard, with recipes read from files.** Boss asked that KRONOS read the .vcl, .txt,
+   .md and .docx files recipes come in; it came together with the wizard (Phase 2). Part 1 (`compiler/kronos_recipes.py`),
+   part 2 (`compiler/kronos_wizard.py`: KRONOS.exe's own `Run` with copy and paste for the AI; `kronos_book.apply_many`)
+   and part 3 (the page: 1 Ask, 2 Questions, 3 Review, 4 Save, "Open a recipe file", several recipes on one copy) are
+   done; next, the release `kronos-offline-v4`. Then Phase 3: History, the practice-run check, the corpus suggestion, Help.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
