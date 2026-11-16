@@ -75,6 +75,9 @@ class Sheet:
         self.fills = {}    # (row, col) -> "#RRGGBB"
         self.formats = {}  # (row, col) -> number format
         self.hidden = set()   # row numbers
+        self.origins = None   # KRONOS Offline's upload (D87): (row, col) -> (sheet, row, col, keep_style) of the
+        self.copy_of = None   # uploaded cell it came from, moved with the cells; None everywhere else. copy_of: the
+                              # sheet COPY_SHEET copied this one from
 
     def get(self, r, c):
         return self.cells.get((int(r), int(c)))
@@ -96,6 +99,8 @@ class Sheet:
         s = Sheet(self.name)
         s.cells, s.fills, s.formats = dict(self.cells), dict(self.fills), dict(self.formats)
         s.hidden = set(self.hidden)
+        s.origins = None if self.origins is None else dict(self.origins)
+        s.copy_of = self.copy_of
         return s
 
 
