@@ -359,7 +359,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    .md and .docx files recipes come in; it came together with the wizard (Phase 2). Part 1 (`compiler/kronos_recipes.py`),
    part 2 (`compiler/kronos_wizard.py`: KRONOS.exe's own `Run` with copy and paste for the AI; `kronos_book.apply_many`)
    and part 3 (the page: 1 Ask, 2 Questions, 3 Review, 4 Save, "Open a recipe file", several recipes on one copy) are
-   done; next, the release `kronos-offline-v4`. Then Phase 3: History, the practice-run check, the corpus suggestion, Help.
+   done, and version 4 is published as the release `kronos-offline-v4` (main `4c119eb`; SHA-256 `46f5f8a7…`), the copy Boss
+   is handed. Not proven until he tries it: the copy and paste with his real AI chats, his own recipe files, the work PC.
+   Next: Boss tries version 4; then Phase 3: History, the practice-run check, the corpus suggestion, Help.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
