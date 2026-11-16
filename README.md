@@ -68,7 +68,8 @@ in `Documents/KGC KRONOS/runs/` (or `--data DIR`), never in the repo.
 KRONOS in the browser, with nothing installed (`docs/kronos-offline.md`, D86): a zip with a double-click launcher,
 three tiny local servers (Node.js, Python, Windows PowerShell) and a page that runs this repo's toolchain through
 Pyodide. `python packaging/build_offline.py` builds it into `build/offline/`; a manual run of the "Build KRONOS
-Offline" workflow from `main`, with "release" ticked, publishes it as `kronos-offline-v<N>`.
+Offline" workflow from `main`, with "release" ticked, publishes it as `kronos-offline-v<N>`. A ready-made demo for
+colleagues, an invented NCR register with three proven recipes and a Word guide, is in `docs/demo/` (D88).
 
 ## Dataset count
 

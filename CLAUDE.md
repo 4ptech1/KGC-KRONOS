@@ -349,6 +349,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    `docs/KRONOS_Offline_Guide.docx` is version 3), are done, and version 3 is published as the release `kronos-offline-v3` (main `10fbdf0`; SHA-256 `32d694d4…`), the copy Boss
    is handed. Not proven until he tries it: a real workbook of his, on the work PC, and how long his biggest sheets take (a
    sheet of 5,000 rows with a quarter deleted takes about 50 s in the browser; the time grows with the square of the rows).
+   **The demo (D88, 16 Nov 2026):** `docs/demo/` holds an invented NCR register (`NCR_Register_Demo.xlsx`, 40 rows), three
+   PROVEN recipes (highlight open Major NCRs, tidy, summary sheet), what KRONOS gives back, and the Word guide
+   `KRONOS_Demo_NCR_Register.docx` for colleagues; the scripts that make them are beside them, and `tests/test_demo.py`
+   keeps every file what they make today. Only `docs/demo/NCR_Register_Demo*.xlsx` may be committed.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
