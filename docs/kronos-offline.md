@@ -380,7 +380,7 @@ Boss's whole brief, word for word, with BlueForce's original four files, is in t
 | 1 | 14-11-2026 | `2ed9f79` | The proof: one screen that checks, tests and builds a pasted recipe in the browser, offline, with the practice example and Cancel. |
 | 2 | 14-11-2026 | `988b020` | The Python server (`serve.py`) gives every connection its own thread: version 1's answers nobody while a connection is open that asks for nothing, as a browser's spare one (not seen with a real browser). One sentence of the page no longer says "this first version". The PowerShell and Node.js servers are as in version 1. |
 | 3 | 16-11-2026 | `10fbdf0` | **Upload (D87):** choose a workbook (.xlsx or .xlsm) on the page, copy a description of it for the AI, and, once a recipe is PROVEN, make its changes on a copy and download it, with a warning for whatever a copy can't keep. openpyxl 3.1.5 and et_xmlfile 2.0.0 join the zip. |
-| 4 | 16-11-2026 | (added after the release) | **The wizard (D89):** 1 Ask, 2 Questions, 3 Review, 4 Save, as KRONOS.exe has them, with the AI step done by copy and paste (the message for the claude.ai Orchestrator, or with the instructions for ChatGPT or a new chat). **Recipe files:** open a .vcl, .txt, .md or Word .docx file, choose one, some or all of its recipes, and they are checked straight away. Several recipes run one after another on one copy of the workbook. The .bas and its practice run download from Save. |
+| 4 | 16-11-2026 | `4c119eb` | **The wizard (D89):** 1 Ask, 2 Questions, 3 Review, 4 Save, as KRONOS.exe has them, with the AI step done by copy and paste (the message for the claude.ai Orchestrator, or with the instructions for ChatGPT or a new chat). **Recipe files:** open a .vcl, .txt, .md or Word .docx file, choose one, some or all of its recipes, and they are checked straight away. Several recipes run one after another on one copy of the workbook. The .bas and its practice run download from Save. |
 
 Each copy is the release `kronos-offline-v<N>`, and its SHA-256 is on its release page and in the `.sha256.txt`
 beside the zip:
@@ -390,6 +390,7 @@ beside the zip:
 | 1 | `8bc0685b19bad6bce4c0042e628bcb589deda223133acf059a84e7a3b890b8a1` |
 | 2 | `c3b484e1569e76750516432109a3ff0724fac927a2f11d5cdd3f0c65a16eaf8f` |
 | 3 | `32d694d4070ca3f3cc3db2edcc3eb86b972a4b84275b76b149cc53095fb04bfc` |
+| 4 | `46f5f8a77493424119973576583b45b5768571e3978fb18997aecb1669088aaf` |
 
 For each, a second build of the same commit on another machine gave the same bytes, and the zip downloaded from the
 release with no sign-in passed every offline test with skipping forbidden.
