@@ -336,7 +336,7 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    while a download is under way; the tests run the page through a stand-in that answers one request at a time as
    `serve.ps1` does; and a test keeps a server's output in a file, never a pipe (a full 4 KB pipe stopped `serve.py`
    in one Windows run). Not proven until Boss tries it: Windows PowerShell 2, Windows 7 and the work PC itself (CI has
-   PowerShell 5.1). **Next: Boss tries version 2 on the work PC; then Phase 2, the wizard** (the four steps with the
+   PowerShell 5.1). **Next: Boss tries version 3 on the work PC; then Phase 2, the wizard** (the four steps with the
    copy-paste AI step and the .bas download), then Phase 3 (History, the practice-run check, the corpus suggestion,
    Help), each its own plan, PR and version. **Boss asked on 16 Nov 2026 for an upload button (D87), and it comes first,
    as version 3 on the same one screen:** he chooses a workbook, KRONOS makes a recipe's changes on a copy with the
@@ -346,7 +346,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    per-cell origins; the TESTs of every recipe in the repo give the same workbook through an uploaded file) and
    PR 2, the page (a "Your workbook" card with the description for the AI, "Make the changes on a copy" after a PROVEN
    recipe, warnings to tick, the download; `docs/kronos-offline.md` Phase 1b; the plain-language guide
-   `docs/KRONOS_Offline_Guide.docx` is version 3), are done; next PR 3, the release `kronos-offline-v3`.
+   `docs/KRONOS_Offline_Guide.docx` is version 3), are done, and version 3 is published as the release `kronos-offline-v3` (main `10fbdf0`; SHA-256 `32d694d4…`), the copy Boss
+   is handed. Not proven until he tries it: a real workbook of his, on the work PC, and how long his biggest sheets take (a
+   sheet of 5,000 rows with a quarter deleted takes about 50 s in the browser; the time grows with the square of the rows).
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
