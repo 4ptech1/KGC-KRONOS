@@ -53,9 +53,13 @@ and their proven specs, each with its VBA.
   files. Its runs stay in its own data folder outside the repo; at first only practice requests
   with invented data. Personal ChatGPT accounts turn off "Improve the model for everyone" in
   Data Controls. Later KRONOS moves to the company's storage drive, where real data may live
-  (D69, D70).
+  (D69, D70). KRONOS Offline may also be given a real workbook to make a changed copy of it (D87,
+  Boss, 16 Nov 2026): that happens in the browser on his PC, the original is never changed, the file
+  never goes into the repo or into this Claude Code session, and what he copies from it into an AI
+  chat is his choice.
 - Synthetic fixtures only: every TEST uses a named FIXTURE file. `fixture=target` is banned
-  until March 2027, and nothing we generate ever touches real workbooks.
+  until March 2027, and nothing we generate ever touches real workbooks, except the copy KRONOS
+  Offline makes of a workbook Boss uploads (D87); no TEST ever uses one.
 - No model training or local-model work until the new PC arrives in March 2027.
 - **Original model and context data (D25, standing rule).** The VBA Forge model is designed and
   trained from zero by us: no pre-trained weights, no fine-tuning of someone else's model, no
@@ -104,7 +108,8 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      generator), vba_lint.py, vcl_mutate.py, gen_semantics_doc.py, gen_context.py,
                      vcl_formula.py (the SET_FORMULA check),
                      kronos_engine.py + kronos_ai.py (the KGC KRONOS engine and `vclc ask`, D72),
-                     kronos_web.py (the bridge KRONOS Offline's page calls under Pyodide, D86)
+                     kronos_web.py (the bridge KRONOS Offline's page calls under Pyodide, D86),
+                     kronos_book.py (an uploaded workbook: describe, run a proven recipe on it, write the copy, D87)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
                      forge_pilot.bas are committed (builds/<NAME>.bas: one module per BUILD)
@@ -333,7 +338,13 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    in one Windows run). Not proven until Boss tries it: Windows PowerShell 2, Windows 7 and the work PC itself (CI has
    PowerShell 5.1). **Next: Boss tries version 2 on the work PC; then Phase 2, the wizard** (the four steps with the
    copy-paste AI step and the .bas download), then Phase 3 (History, the practice-run check, the corpus suggestion,
-   Help), each its own plan, PR and version.
+   Help), each its own plan, PR and version. **Boss asked on 16 Nov 2026 for an upload button (D87), and it comes first,
+   as version 3 on the same one screen:** he chooses a workbook, KRONOS makes a recipe's changes on a copy with the
+   reference interpreter, and he downloads the copy. Real workbooks are allowed, anything from the file may go into
+   the text copied to the AI, and what a copy can't keep (charts, macros that moved, formulas after row changes) is
+   warned about before the download. PR 1, the engine (`compiler/kronos_book.py`, openpyxl 3.1.5, the interpreter's
+   per-cell origins; the TESTs of every recipe in the repo give the same workbook through an uploaded file), is
+   done; next PR 2, the page, and PR 3, the release.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

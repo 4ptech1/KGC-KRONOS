@@ -13,6 +13,14 @@ pasted reply, proves it and turns the proof into plain data; it holds no engine 
 The JSON: reply ("spec", "question" or "none"), question, proven, words (the result in plain words), kind, name,
 findings, tests, problems (as vclc prints them: what the AI gets back), module (the VBA module's name) and bas (the
 .bas text with Windows line endings, "" unless proven).
+
+The upload (D87, compiler/kronos_book.py) has three more calls, each answering canonical JSON text:
+
+    kronos_web.describe_book(data, name)                    # the workbook's sheets, headings, sample rows and AI text
+    kronos_web.arguments(text)                              # the recipe's ARGS with defaults, and whether it uses files
+    kronos_web.apply_changes(text, data, name, args_json, today=None)
+                                                            # (JSON text, the changed copy's bytes or b"")
+Each answers {"ok": false, "message": ...} for a file or recipe it can't use, in words for the person.
 """
 import datetime
 import json
@@ -58,3 +66,36 @@ def canonical(data):
 def check(text, today=None, step=None):
     """result() as canonical JSON text: what the page's worker hands to the page."""
     return canonical(result(text, today, step))
+
+
+# ---------------------------------------------------------------- the upload (D87)
+
+def _book():
+    import kronos_book   # here, so that checking a recipe never needs the workbook reader
+    return kronos_book
+
+
+def describe_book(data, name):
+    """The uploaded workbook, described (canonical JSON text)."""
+    book = _book()
+    try:
+        return canonical({"ok": True, **book.describe(bytes(data), str(name))})
+    except book.BookError as ex:
+        return canonical({"ok": False, "message": str(ex)})
+
+
+def arguments(text):
+    """What a recipe's procedure takes, and whether it works with files (canonical JSON text)."""
+    book = _book()
+    try:
+        return canonical({"ok": True, "args": book.arguments(text), "files": book.uses_files(text)})
+    except book.BookError as ex:
+        return canonical({"ok": False, "message": str(ex)})
+
+
+def apply_changes(text, data, name, args_json, today=None):
+    """Make a recipe's changes on a copy of the uploaded workbook: (canonical JSON text, the copy's bytes or b"")."""
+    book = _book()
+    args = json.loads(args_json) if isinstance(args_json, str) else dict(args_json or {})
+    result, out = book.apply(text, bytes(data), str(name), args, today)
+    return canonical(result), out or b""

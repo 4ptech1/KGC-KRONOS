@@ -144,6 +144,8 @@ class Book:
         new = self.add(name, after)
         new.cells, new.fills, new.formats = dict(src.cells), dict(src.fills), dict(src.formats)
         new.hidden = set(src.hidden)
+        if src.origins is not None:   # an uploaded sheet's copy (D87): its cells come from the same uploaded cells
+            new.origins, new.copy_of = dict(src.origins), src.name
         return new
 
 
@@ -313,6 +315,8 @@ def delete_row(sh, row):
     sh.fills = {(r - (r > row), c): v for (r, c), v in sh.fills.items() if r != row}
     sh.formats = {(r - (r > row), c): v for (r, c), v in sh.formats.items() if r != row}
     sh.hidden = {r - (r > row) for r in sh.hidden if r != row}
+    if sh.origins is not None:
+        sh.origins = {(r - (r > row), c): v for (r, c), v in sh.origins.items() if r != row}
 
 
 MAX_CALL_DEPTH = 20   # the validator refuses CALL cycles (D49); this only guards the interpreter
@@ -609,6 +613,9 @@ class Machine:
                 if what in ("all", "formats"):
                     rng.sheet.fills.pop((r, c), None)
                     rng.sheet.formats.pop((r, c), None)
+                    origins = rng.sheet.origins
+                    if origins is not None and (r, c) in origins:   # D87: the copy drops the cell's own style too
+                        origins[(r, c)] = origins[(r, c)][:3] + (False,)
         elif name == "FORMAT":
             rng = self.target(pos[0])
             for r, c in rng.cells():
@@ -638,6 +645,8 @@ class Machine:
             sh.fills = {(r + (r >= row), c): v for (r, c), v in sh.fills.items()}
             sh.formats = {(r + (r >= row), c): v for (r, c), v in sh.formats.items()}
             sh.hidden = {r + (r >= row) for r in sh.hidden}   # the new row is visible (ForgeInsertRow)
+            if sh.origins is not None:
+                sh.origins = {(r + (r >= row), c): v for (r, c), v in sh.origins.items()}
         elif name == "READ_ARRAY":   # always 2-D and 1-based, even for one cell (ForgeReadArray)
             rng = self.target(pos[0])
             data = {(r - rng.r1 + 1, c - rng.c1 + 1): value(rng.sheet, r, c) for r, c in rng.cells()}
@@ -774,6 +783,8 @@ class Machine:
         rows = [{c: value(sh, r, c) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
         fills = [{c: sh.fills.get((r, c)) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
         formats = [{c: sh.formats.get((r, c)) for c in range(rng.c1, rng.c2 + 1)} for r in range(first, rng.r2 + 1)]
+        origins = [{c: None if sh.origins is None else sh.origins.get((r, c)) for c in range(rng.c1, rng.c2 + 1)}
+                   for r in range(first, rng.r2 + 1)]
 
         def rank(v):  # Excel: numbers and dates < text < booleans < errors; blanks always last
             if isinstance(v, bool):
@@ -795,7 +806,9 @@ class Machine:
             r = first + offset
             for c in range(rng.c1, rng.c2 + 1):   # Range.Sort moves values and cell formats
                 sh.set(r, c, rows[i][c])
-                for store, saved in ((sh.fills, fills), (sh.formats, formats)):
+                for store, saved in ((sh.fills, fills), (sh.formats, formats), (sh.origins, origins)):
+                    if store is None:
+                        continue
                     if saved[i][c]:
                         store[(r, c)] = saved[i][c]
                     else:
@@ -1286,12 +1299,9 @@ def sandbox_length_problems(paths):
     return found
 
 
-def run_tests(text, today=None):
-    """Run every TEST of a TASK spec, or of a VCL 0.5 BUILD through its modMain.RunHeadless (D49).
-    today pins TODAY (default: the real date)."""
-    spec, problems = parse(text)
-    if problems or not spec:
-        raise VclError(coded(f"spec doesn't parse: {problems[:3]}", "R043"))
+def entry_of(spec):
+    """What runs a parsed spec's procedure: (the TASK to run, the procedures a CALL can reach, the keys that hold its
+    TESTs and FIXTUREs). A VCL 0.5 BUILD runs through its modMain.RunHeadless, which CALLs the rest (D49)."""
     procs = {}
     if spec["kind"] == "BUILD":   # D49: its TESTs run modMain.RunHeadless, which CALLs the rest
         if spec.get("version", "VCL 0.1") in ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4"):
@@ -1300,12 +1310,19 @@ def run_tests(text, today=None):
         procs = {proc_name(task): task for task in spec["tasks"] if task}
         if "modMain.RunHeadless" not in procs:
             raise VclError(coded("a BUILD's TESTs call modMain.RunHeadless, which it doesn't have", "R045"))
-        build, spec = spec, procs["modMain.RunHeadless"]
-        keys = build["keys"]
-    elif spec["kind"] != "TASK":
+        return procs["modMain.RunHeadless"], procs, spec["keys"]
+    if spec["kind"] != "TASK":
         raise VclError(coded(f"a {spec['kind']} has no TESTs to run", "R046"))
-    else:
-        keys = spec["keys"]
+    return spec, procs, spec["keys"]
+
+
+def run_tests(text, today=None):
+    """Run every TEST of a TASK spec, or of a VCL 0.5 BUILD through its modMain.RunHeadless (D49).
+    today pins TODAY (default: the real date)."""
+    spec, problems = parse(text)
+    if problems or not spec:
+        raise VclError(coded(f"spec doesn't parse: {problems[:3]}", "R043"))
+    spec, procs, keys = entry_of(spec)
     today = today or dt.date.today()
     trees = [k["tree"] for k in keys if k["key"] == "FIXTURE"]
     books = build_workbooks(trees, today)
