@@ -121,13 +121,20 @@
     if (on) $('cancel').focus()
   }
 
+  let cancels = 0   // counts Cancel clicks, so work that was waiting for a file knows it was cancelled
+
   function cancel() {
+    cancels += 1
     worker.terminate()
     const stopped = [].concat(job ? [job] : [], queue)
     job = null
     queue = []
     showWorking(false)
     stopped.forEach((j) => j.reject({ cancelled: true }))
+    if (!stopped.some((j) => j.words)) {   // nothing on the panel was working yet: say so where the person is
+      say({ ask: 'file-note', question: 'question-note', review: 'review-note', save: 'apply-note' }[state.step],
+        'Cancelled. Nothing was changed.')
+    }
     startWorker()
     restore()
   }
@@ -166,6 +173,7 @@
   async function restore() {
     try {
       await call({ type: 'reset', today: TODAY })
+      if (!state.words) loadWords()   // Cancel came before KRONOS's words did
       if (!state.actions.length) return
       const answer = await call({ type: 'wizard', action: 'restore', wid: '', args: [state.actions] },
         'Putting your requests back as they were')
@@ -557,14 +565,20 @@
 
   async function loadExample() {
     say('file-note', '')
+    const asked = cancels
+    showWorking(true, 'Opening the practice example')   // at once: the file may wait behind Python's own downloads
+    let text
     try {
       const response = await fetch(EXAMPLE, { cache: 'no-cache' })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      await checkRecipes([{ title: 'The practice example', text: await response.text() }], 'the practice example')
+      text = await response.text()
     } catch (error) {
-      say('file-note', error.message ? `I couldn't load the practice example (${error.message}). Start KRONOS again from its folder.`
-        : problemText(error))
+      if (!job) showWorking(false)
+      say('file-note', `I couldn't load the practice example (${error.message}). Start KRONOS again from its folder.`)
+      return
     }
+    if (asked !== cancels) return   // Cancel was clicked while the file was on its way
+    await checkRecipes([{ title: 'The practice example', text }], 'the practice example')
   }
 
   // ---------- 2 Questions ----------
@@ -901,6 +915,13 @@
     into.appendChild(el('p', { class: 'details muted' }, 'Open the copy in Excel and look it over before you use it. Your original file is untouched.'))
   }
 
+  function loadWords() {
+    call({ type: 'words' }).then((answer) => {
+      state.words = answer.json
+      render()
+    }, (problem) => { if (!problem.cancelled) say('ask-note', problemText(problem)) })
+  }
+
   // ---------- starting over ----------
 
   function startOver() {
@@ -952,9 +973,6 @@
   })
   startWorker()
   call({ type: 'reset', today: TODAY }).catch(() => null)
-  call({ type: 'words' }).then((answer) => {
-    state.words = answer.json
-    render()
-  }, (problem) => say('ask-note', problemText(problem)))
+  loadWords()
   go('ask')
 })()

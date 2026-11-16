@@ -82,7 +82,7 @@ const doc = new Document({
   sections: [{
     properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
     footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [
-      new TextRun({ text: 'KRONOS Offline, version 4   ·   page ', size: 18, color: '595959' }),
+      new TextRun({ text: 'KRONOS Offline, version 5   ·   page ', size: 18, color: '595959' }),
       new TextRun({ children: [PageNumber.CURRENT], size: 18, color: '595959' }),
     ] })] }) },
     children: [
@@ -163,8 +163,8 @@ const doc = new Document({
       p('Behind the scenes, KRONOS tested the recipe on an invented sheet of 40 orders. It checked that no cancelled orders are left, that the right number of rows was removed, and that the dates really are newest first. Seeing PROVEN means KRONOS works on your PC.', { spacing: { before: 120, after: 120 } }),
 
       h1('9. What it can do today, and what is coming next'),
-      p('This is version 4, dated 16 November 2026. It has the four steps, the copy-and-paste link to your AI chat, recipe files and changes on a copy of your workbook.'),
-      table(['Today (version 4)', 'Coming in later versions'], [
+      p('This is version 5, dated 16 November 2026. It has the four steps, the copy-and-paste link to your AI chat, recipe files and changes on a copy of your workbook.'),
+      table(['Today (version 5)', 'Coming in later versions'], [
         ['The four steps: Ask, Questions, Review, Save', 'A history of past runs, kept in your browser'],
         ['Messages for your AI chat, and its replies checked', 'A Help page'],
         ['Recipe files (.vcl, .txt, .md, .docx), one or many at a time', 'Checking a practice run from Excel inside the page'],
