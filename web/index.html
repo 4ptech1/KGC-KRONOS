@@ -25,6 +25,30 @@
 <p class="old-browser" id="old-browser">This browser can't run KRONOS. Open Chrome, Edge or Firefox and type localhost:5181.</p>
 
 <main class="page">
+  <section class="card" id="book-card" aria-labelledby="book-title">
+    <h1 id="book-title">Your workbook (optional)</h1>
+    <p class="lead">Choose an Excel workbook and KRONOS can make a recipe's changes on a copy of it, which you download.
+      Your file stays on this computer: KRONOS never changes it and sends it nowhere.</p>
+    <div class="buttons">
+      <button type="button" id="choose-book">Choose a workbook…</button>
+      <button type="button" id="remove-book" hidden>Remove the workbook</button>
+    </div>
+    <input type="file" id="book-file" accept=".xlsx,.xlsm" hidden>
+    <p class="note" id="book-note" hidden></p>
+    <div id="book-info" hidden>
+      <h2 id="book-name"></h2>
+      <div id="book-sheets"></div>
+      <div class="warn" id="book-warn" hidden></div>
+      <label class="label" for="book-text">For the AI: a description of the workbook</label>
+      <p class="muted small-gap">Paste it into your AI chat with what you want done, so the AI knows your sheet and column
+        names. It holds the headings and the first rows of each sheet; you can change it before you copy it.</p>
+      <textarea id="book-text" class="box description" rows="10" spellcheck="false" autocomplete="off"></textarea>
+      <div class="buttons">
+        <button type="button" id="copy-book">Copy the description</button>
+      </div>
+    </div>
+  </section>
+
   <section class="card" id="check-card" aria-labelledby="check-title">
     <h1 id="check-title">Check a recipe</h1>
     <p class="lead">Paste a recipe: the VCL an AI wrote, or its whole reply. Or load the practice example. KRONOS
@@ -38,23 +62,35 @@
       <button type="button" id="check">Check the recipe</button>
     </div>
     <p class="note" id="note" hidden></p>
-
-    <div class="working" id="working" hidden>
-      <div class="working-box" role="status" aria-live="polite">
-        <div class="spinner" aria-hidden="true"></div>
-        <div class="working-words">
-          <div class="working-title">Working</div>
-          <div class="working-step" id="working-step">Starting Python</div>
-        </div>
-        <button type="button" id="cancel">Cancel</button>
-      </div>
-    </div>
   </section>
 
   <section class="result" id="result" hidden aria-live="polite"></section>
 
+  <section class="card" id="apply-card" hidden aria-labelledby="apply-title">
+    <h1 id="apply-title">Make the changes on a copy</h1>
+    <p class="lead" id="apply-lead"></p>
+    <div class="fields" id="apply-fields"></div>
+    <div class="buttons">
+      <button type="button" id="apply">Make the changes on a copy</button>
+    </div>
+    <p class="note" id="apply-note" hidden></p>
+  </section>
+
+  <section class="result" id="applied" hidden aria-live="polite"></section>
+
   <p class="about" id="about">This browser: <span id="browser">?</span> · Python: <span id="python">starting</span></p>
 </main>
+
+<div class="working" id="working" hidden>
+  <div class="working-box" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="working-words">
+      <div class="working-title">Working</div>
+      <div class="working-step" id="working-step">Starting Python</div>
+    </div>
+    <button type="button" id="cancel">Cancel</button>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>

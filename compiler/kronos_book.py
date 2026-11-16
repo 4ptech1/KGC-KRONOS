@@ -31,6 +31,7 @@ from vcl_fixtures import Sheet  # noqa: E402
 from vcl_interp import Book, Formula, Machine, VclError, entry_of, params_of, proc_name  # noqa: E402
 from vcl_parse import Token, Tree, parse  # noqa: E402
 
+BIG_SHEET = 5000        # rows from which making the changes can take minutes (every deleted row moves the rows below it)
 SAMPLE_ROWS = 10        # rows per sheet in the text the AI gets
 SAMPLE_TEXT = 60        # characters per cell in that text
 MAX_CHANGES = 50        # cells listed in "the first 50 changes"
@@ -225,6 +226,10 @@ def describe(data, name):
         notes.append(f"{plural(book.no_result, 'formula cell')} {'has' if book.no_result == 1 else 'have'} no saved result "
                      "(the file was never calculated in Excel), so KRONOS sees them as empty: open and save the file "
                      "in Excel first if the recipe reads them.")
+    for s in sheets:
+        if s["rows"] > BIG_SHEET:
+            notes.append(f"The sheet {s['name']} has {s['rows']} rows. A recipe that deletes many rows can take a few minutes on "
+                         "a sheet this size; Cancel stops it.")
     lines = [f"The workbook {name} has {plural(len(sheets), 'sheet')}:", ""]
     for s in sheets:
         lines.append(f"Sheet \"{s['name']}\": {s['rows']} rows (row 1 is the headings), {s['cols']} columns")
@@ -594,16 +599,17 @@ def _download_name(name):
 
 # ---------------------------------------------------------------- apply
 
-def apply(text, data, name, args, today=None):
+def apply(text, data, name, args, today=None, step=None):
     """Run the proven recipe's procedure on the uploaded workbook and write the changed copy.
-    Returns (result, bytes): bytes is None when nothing is given back, and the result says why."""
+    Returns (result, bytes): bytes is None when nothing is given back, and the result says why.
+    step(name) hears each stage as it starts: checking, testing, building, reading, running, writing."""
     from kronos_engine import prove   # here, so that importing this module stays light
     if isinstance(today, str):
         today = dt.date.fromisoformat(today)
-    proof = prove(text, today)
+    proof = prove(text, today, step=step)
     if not proof.ok:
         return _refused("This recipe isn't proven, so KRONOS won't run it on your workbook."), None
-    return apply_proven(proof.spec, data, name, args, today)
+    return apply_proven(proof.spec, data, name, args, today, step)
 
 
 def _refused(words, **more):
@@ -611,8 +617,9 @@ def _refused(words, **more):
             "result": None, "messages": [], **more}
 
 
-def apply_proven(text, data, name, args, today=None):
+def apply_proven(text, data, name, args, today=None, step=None):
     """apply() for a recipe that has already been proven (the page proves it first; the tests prove every spec once)."""
+    step = step or (lambda stage: None)
     if isinstance(today, str):
         today = dt.date.fromisoformat(today)
     try:
@@ -623,10 +630,12 @@ def apply_proven(text, data, name, args, today=None):
         if uses_files(text):
             return _refused("This recipe works with files or folders, which KRONOS can't do on an uploaded workbook. "
                             "Use the macro instead."), None
+        step("reading")
         loaded = Loaded(bytes(data), name)
         model = loaded.book()
         bound = _bind(entry, args or {}, model)
         log = []
+        step("running")
         machine = Machine(entry, bound, log, today or dt.date.today(), None, model, procs)
         result = machine.run()
     except BookError as ex:
@@ -639,6 +648,7 @@ def apply_proven(text, data, name, args, today=None):
     if log:
         return _refused("The recipe stopped with an error on this workbook, so nothing was changed: "
                         + "; ".join(str(m) for _, _, m in log[:3]), log=[str(m) for _, _, m in log]), None
+    step("writing")
     try:
         out, status = _write(loaded, model)
     except BookError as ex:

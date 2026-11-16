@@ -4,8 +4,11 @@
 // toolchain/, listed in toolchain/manifest.json. The toolchain answers through compiler/kronos_web.py, the same
 // module the tests call in normal Python.
 //
-// Messages from the page: {type: 'check', id, text, today}. To the page: {type: 'status', text, short},
-// {type: 'ready', python, pyodide, files}, {type: 'step', id, name}, {type: 'result', id, json} and
+// Messages from the page: {type: 'check', id, text, today}, and for an uploaded workbook (D87, compiler/kronos_book.py)
+// {type: 'describe', id, data, name}, {type: 'arguments', id, text} and {type: 'apply', id, text, data, name, args, today}
+// (data is the workbook's ArrayBuffer). To the page: {type: 'status', text, short}, {type: 'ready', python, pyodide, files},
+// {type: 'step', id, name}, {type: 'result', id, json}, {type: 'described', id, json}, {type: 'arguments', id, json},
+// {type: 'applied', id, json, data} (data: the changed copy's ArrayBuffer, empty when there is none) and
 // {type: 'error', id, message, details, fatal}.
 
 // pyodide.asm.js is loaded here, before loadPyodide starts its big downloads (the Python library and the .wasm, 9 MB
@@ -65,7 +68,7 @@ const started = start().catch((error) => {
 
 self.onmessage = async (event) => {
   const job = event.data
-  if (!job || job.type !== 'check') return
+  if (!job || ['check', 'describe', 'arguments', 'apply'].indexOf(job.type) < 0) return
   await started
   if (failed) {
     postMessage({ type: 'error', id: job.id, fatal: true, message: failed.message, details: failed.details })
@@ -73,8 +76,22 @@ self.onmessage = async (event) => {
   }
   try {
     const step = (name) => postMessage({ type: 'step', id: job.id, name: String(name) })
-    const json = kronos.check(job.text, job.today || null, step)
-    postMessage({ type: 'result', id: job.id, json })
+    if (job.type === 'check') {
+      const json = kronos.check(job.text, job.today || null, step)
+      postMessage({ type: 'result', id: job.id, json })
+    } else if (job.type === 'describe') {
+      step('reading')   // openpyxl, the workbook reader, is imported the first time a workbook is used
+      postMessage({ type: 'described', id: job.id, json: kronos.describe_book(new Uint8Array(job.data), job.name) })
+    } else if (job.type === 'arguments') {
+      postMessage({ type: 'arguments', id: job.id, json: kronos.arguments(job.text) })
+    } else {
+      const answer = kronos.apply_changes(job.text, new Uint8Array(job.data), job.name, JSON.stringify(job.args || {}),
+        job.today || null, step)
+      const parts = answer.toJs()   // [the answer's JSON text, the copy's bytes]
+      answer.destroy()
+      const data = parts[1].buffer.slice(parts[1].byteOffset, parts[1].byteOffset + parts[1].byteLength)
+      postMessage({ type: 'applied', id: job.id, json: parts[0], data }, [data])
+    }
   } catch (error) {
     const problem = words(error)
     postMessage({ type: 'error', id: job.id, fatal: false, message: problem.message, details: problem.details })

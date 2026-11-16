@@ -20,6 +20,12 @@ says and give its download link first.
 3. No password page: KRONOS's code is public and holds no secrets.
 4. It looks like BlueForce (section 8).
 
+**Version 3 (16-11-2026, D87), Boss's upload button:** "Let kronos have an upload button where i will upload the file and
+let kronos give me the file back after making the changes it was told to." He answered: real workbooks are allowed now
+(the original is never changed; the copy is made in the browser on his PC); anything from the workbook may go into the
+text he copies to the AI chat; what a copy can't keep is warned about and he may go on; and the upload comes first, on
+today's one screen, before the wizard.
+
 He also answered: the work PC's browser is **Chrome** (on old Windows that is version 109, its last), and each copy
 is handed over as **a GitHub Release link plus the zip as a file in the chat**.
 
@@ -35,6 +41,14 @@ Start KRONOS (Windows).bat  ->  server/serve.mjs | serve.py | serve.ps1  ->  htt
                                (kronos_engine.prove), returns plain data as canonical JSON
 ```
 
+- **The upload (D87).** The page can take a workbook (.xlsx or .xlsm, up to 25 MB), describe it, and make a PROVEN
+  recipe's changes on a copy. The copy is made by the reference interpreter, the same meaning every practice TEST proves
+  and the compiler builds the macro from, not by VBA (a browser can't run it). `compiler/kronos_book.py` loads the
+  workbook with openpyxl into the interpreter's sheets, runs the procedure, and writes the copy: each loaded cell
+  carries an origin that DELETE_ROW, DEDUPE, INSERT_ROW, SORT and COPY_SHEET move with it, so a cell's font, border,
+  note, link and its row's height travel with it; a cell's own formula stays while its value is unchanged; a sheet the
+  recipe didn't change is not touched. `kronos_web.describe_book`, `arguments` and `apply_changes` are what the worker
+  calls (section 2's table).
 - **One source of truth.** The browser runs the very same `compiler/*.py`, `vcl/semantics.py` and the data files of
   `packaging/kronos.spec`, byte for byte (a test checks it). Never fork or edit the toolchain for the browser: if a
   module needs a change to run there, make it in the shared module, so KRONOS.exe and the browser keep passing the
@@ -54,6 +68,7 @@ The files in the repo:
 | --- | --- |
 | `web/` | the page: `index.html`, `styles.css`, `app.js`, `worker.js`, `logo.svg` |
 | `compiler/kronos_web.py` | the bridge the worker and the tests both call |
+| `compiler/kronos_book.py` | an uploaded workbook: `describe`, `arguments`, `apply` (D87) |
 | `packaging/offline/` | the launcher (committed with CRLF; `.gitattributes` keeps it so), `server/serve.{mjs,py,ps1}`, `licences/` |
 | `packaging/build_offline.py` | builds `KRONOS-Offline/` and the zip, standard library only |
 | `packaging/offline_pins.json` | every downloaded file, with its URL and SHA-256 |
@@ -160,6 +175,8 @@ KRONOS-Offline-v<N>-<DD-MM-YYYY>.zip          the version and the build date, In
 | --- | --- | --- | --- |
 | Pyodide (Python 3.11.3) | 0.24.1 | the npm package `pyodide`: `pyodide.js`, `pyodide.asm.js`, `pyodide.asm.wasm`, `python_stdlib.zip`, `pyodide-lock.json` | MPL-2.0 (Pyodide's repository at tag 0.24.1; its npm `package.json` says Apache-2.0); Python itself PSF |
 | lark | 1.3.1 | PyPI, the same wheel and hash as `requirements.txt` | MIT |
+| openpyxl | 3.1.5 | PyPI, the same wheel and hash as `requirements.txt`; imported only when a workbook is used | MIT |
+| et_xmlfile | 2.0.0 | PyPI, the same wheel and hash as `requirements.txt`; the one library openpyxl needs | MIT (and the PSF licence for code taken from Python) |
 | Inter | 5.3.0 | the npm package `@fontsource/inter`: Latin 400, 600 and 700, woff2 | OFL-1.1 |
 
 **Why Pyodide 0.24.1.** Pyodide's own docs (`docs/usage/index.md` at each release tag) give these minimum browsers:
@@ -211,6 +228,9 @@ skipping):
 | Under Pyodide in Node.js, `kronos_web.check` equals normal Python's text, with the same steps | needs the downloads and Node.js |
 | From a freshly unpacked zip, `serve.mjs` and `serve.py` (and on Windows `serve.ps1`, started as the .bat starts it but opening no browser) serve every file, `.wasm` as `application/wasm`, and nothing outside `app/` (404; Windows itself answers 403 to a path that climbs out); each still answers while a connection that asks for nothing is open | needs the downloads |
 | With Playwright and every request outside localhost blocked: the version line, Cancel while Python starts, Python ready, the example PROVEN with exactly normal Python's answer, a broken recipe NOT PROVEN with its problems, an empty box, no page errors | needs Playwright; through each server and the PowerShell stand-in; CI: today's Chromium, Chromium 109 and Firefox 115 on Ubuntu 22.04, and Chromium on Windows through all three servers and the stand-in |
+| The upload: the TESTs of every recipe in the repo (262), written as real .xlsx files and run through `kronos_book`, end with the interpreter's own workbook; styles, notes, links, formulas, merged cells, a chart, an .xlsm and every refusal (`tests/test_kronos_book.py`) | always (needs openpyxl, which CI installs) |
+| The upload under Pyodide in Node.js: `describe_book`, `arguments` and `apply_changes` equal normal Python's text, with the same steps, and the copy holds the same cells | needs the downloads and Node.js |
+| The upload in the page: a workbook chosen, described, a recipe proven, the changes made, the copy downloaded and read back; what a copy can't keep must be ticked first; an .xls and a non-workbook are turned away; no request leaves localhost | needs Playwright; through each server and the PowerShell stand-in; CI: all the browsers above |
 | The launcher itself on Windows with no Node.js or Python on the PATH: it falls back to PowerShell, which serves the page and the `.wasm` file and prints the version | CI, `powershell` job |
 
 What CI can't check: Windows PowerShell 2 (GitHub's Windows machines have 5.1, and version 2 can't be run there), and
@@ -268,6 +288,25 @@ one-screen page in BlueForce's look that loads Pyodide offline and checks, tests
 whole AI reply), showing PROVEN or the problems, with the practice example and Cancel; the CI checks; the release
 workflow.
 
+**Phase 1b, the upload (version 3, D87, done):** a "Your workbook (optional)" card at the top of the page: Choose a
+workbook, its sheets and headings, and "Copy the description" (the description is shown first and can be edited: sheet
+names, headings, row counts and the first 10 data rows of each sheet). When a recipe is PROVEN and a workbook is
+chosen, "Make the changes on a copy" asks for the recipe's arguments (a sheet for each Worksheet, pre-selected from the
+first TEST's call), runs it, and shows CHANGED COPY READY with what changed per sheet (cells, rows deleted, added and
+moved, fills, hidden rows), the first 50 changed cells, and warnings that must be ticked before "Download the changed
+copy": what the copy loses (pictures, sparklines, shapes, features of Excel 2010 and later that openpyxl drops), what it
+saves again (charts and pivot tables), what Excel would have adjusted and KRONOS doesn't after rows moved (formulas,
+merged cells, conditional formatting, data validation, tables, a filter), and formulas that had no saved result. The
+copy is named `<file> (KRONOS yyyy-mm-dd hh-mm).xlsx` (`.xlsm` stays `.xlsm`, with its macros). Recipes that work with
+files or folders are refused for a workbook (use the macro). No History yet: nothing is kept after the page closes.
+**Known differences, so nobody is surprised:** numbers are written with 16 digits (Excel keeps 15); formulas are not
+recalculated (Excel does it on opening) and a formula keeps its text only while its cell's value is unchanged, never
+adjusted for moved rows; a note keeps its text but not its box size; SET_FORMULA style=r1c1 becomes the A1 formula for
+its cell, and whole-row or whole-column R1C1 references are refused; theme colours are kept as they are. **Speed:** every
+deleted row moves the rows below it, so time grows with the square of the rows: about 1 s for 1,000 rows and 22 s for
+5,000 in normal Python; under Pyodide in the browser 1,000 rows take about 3 s and 5,000 about 50 s, so a sheet of
+10,000 rows with half of them deleted may take 3 to 4 minutes (the page says so above 5,000 rows, and Cancel stops it).
+
 **Phase 2, the wizard** (Boss's brief, 14-11-2026): KRONOS.exe's four-step wizard, in BlueForce's look.
 
 - Top bar: the logo, "KGC KRONOS", the steps (1 Ask, 2 Questions, 3 Review, 4 Save) with the current one marked,
@@ -300,9 +339,10 @@ the browser's data removes them); the practice run (download its module, and a b
 `vcl_pilot.check`, with the verdict); "Suggest for the corpus" (D70: downloads the candidate file for Boss to send to
 Claude Code; nothing goes into `data/` from the page); and Help.
 
-**Never**, in any phase: run VBA, open Excel, touch other files, or call the internet; the page loads only from
-localhost. No change to KRONOS.exe, the Codex adapter or KRONOS.exe's release; no password page; no real KGC data
-anywhere.
+**Never**, in any phase: run VBA, open Excel, change a file in place, or call the internet; the page loads only from
+localhost. No change to KRONOS.exe, the Codex adapter or KRONOS.exe's release; no password page; no real KGC data in the
+repo, its tests or a Claude Code session (a workbook Boss chooses stays in his browser, and the original is never
+changed: D87).
 
 Boss's whole brief, word for word, with BlueForce's original four files, is in the git history:
 `docs/kronos-offline-plan.md` at commit 3657aff (removed when Phase 1 landed).
@@ -313,6 +353,7 @@ Boss's whole brief, word for word, with BlueForce's original four files, is in t
 | --- | --- | --- | --- |
 | 1 | 14-11-2026 | `2ed9f79` | The proof: one screen that checks, tests and builds a pasted recipe in the browser, offline, with the practice example and Cancel. |
 | 2 | 14-11-2026 | `988b020` | The Python server (`serve.py`) gives every connection its own thread: version 1's answers nobody while a connection is open that asks for nothing, as a browser's spare one (not seen with a real browser). One sentence of the page no longer says "this first version". The PowerShell and Node.js servers are as in version 1. |
+| 3 | 16-11-2026 | (added after the release) | **Upload (D87):** choose a workbook (.xlsx or .xlsm) on the page, copy a description of it for the AI, and, once a recipe is PROVEN, make its changes on a copy and download it, with a warning for whatever a copy can't keep. openpyxl 3.1.5 and et_xmlfile 2.0.0 join the zip. |
 
 Each copy is the release `kronos-offline-v<N>`, and its SHA-256 is on its release page and in the `.sha256.txt`
 beside the zip:
