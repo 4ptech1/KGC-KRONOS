@@ -362,8 +362,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    done, and version 4 is published as the release `kronos-offline-v4` (main `4c119eb`; SHA-256 `46f5f8a7…`), the copy Boss
    is handed. Not proven until he tries it: the copy and paste with his real AI chats, his own recipe files, the work PC.
    Version 5 (the same day) only makes Cancel sure: the practice example's panel shows at once, and Cancel before KRONOS's
-   words arrive loads them again. Next: its release, Boss tries it; then Phase 3: History, the practice-run check, the
-   corpus suggestion, Help.
+   words arrive loads them again. It is published as the release `kronos-offline-v5` (main `62d66d4`; SHA-256 `79fdb69c…`),
+   the copy Boss is handed. Next: Boss tries it; then Phase 3: History, the practice-run check, the corpus suggestion, Help.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
