@@ -139,6 +139,9 @@ Everything is in `Documents\KGC KRONOS`:
 **History** (top right) lists past runs, shows their reports, and can bring a past recipe back to Review with
 **Use this macro again** (it is tested again first). Nothing here goes to GitHub. To erase your records, close KRONOS and delete the folder.
 
+**On the new PC (from March 2027):** KRONOS's records go in `KRONOS\work` on the 300 GB your manager reserved for it,
+the same folders as above. Its own setup and guide come with the day-one kit (`docs/kronos-storage-plan.md`, D91).
+
 ## If something goes wrong
 
 | You see | What it means | Do this |

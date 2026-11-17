@@ -36,8 +36,8 @@ Excel, when they choose.
 | Data | Real work requests may be typed (the company allows it); no file is ever sent. Personal ChatGPT Plus/Pro accounts, so "Improve the model for everyone" is turned off in Data Controls. Practice requests only at first (D69) |
 | Repo | Public on GitHub, so it stays synthetic. KRONOS's runs live in its own data folder, never in the repo (D69) |
 | Training data | A spec Codex wrote that passes every corpus gate may join the corpus, marked `codex via KRONOS`. While the repo is public: practice requests only, through a reviewed PR (D70) |
-| Later | KRONOS moves off GitHub to the company's storage drive (100 GB), where real data may live (D69, D70) |
-| Users | Boss first; then a team, each person with their own Codex CLI and login, sharing a folder on the company drive (D71) |
+| Later | KRONOS moves off GitHub onto company storage, where real data may live (D69, D70). From March 2027 that is the new PC's 300 GB, reserved for KRONOS, with its data folder in `KRONOS\work` (D91, D92, `docs/kronos-storage-plan.md`) |
+| Users | Boss first; then a team, each person with their own Codex CLI and login, sharing a folder on the company drive (D71; which drive is for the team plan after the pilot, D92) |
 | Window | Tkinter (Python's built-in), shipped as one KRONOS.exe that GitHub Actions builds (D68) |
 
 ## The parts
@@ -103,7 +103,8 @@ Excel, when they choose.
   - `report.txt` and `report.json`;
   - the `.bas`.
 
-  The data folder is `Documents\KGC KRONOS` by default (a setting) and never inside the repo.
+  The data folder is `Documents\KGC KRONOS` by default (a setting) and never inside the repo. On the new PC, from
+  March 2027, it is `KRONOS\work` on the 300 GB, so the runs land in `work\runs` (D91 S2, `docs/kronos-storage-plan.md`).
 - **Corpus candidates (D70; built in Phase 2d, D78):**
   - "Suggest for the corpus" (on Review and Save) asks "only if the request used invented data",
     runs the corpus gates (`vcl_corpus.make_candidate`, the same as `corpus-add` except the
@@ -327,8 +328,10 @@ to Codex"). Cancel stops Codex and returns to the step it came from, with [Try a
 - **Writing safely:** each run is written as a new folder (so two people never write the same
   file), and settings changes take a lock file.
 - A server program waits until a shared folder is not enough.
-- **The move off GitHub:** the data folder and the training store point at the company drive.
-  Real data may then go into the training store there, never into GitHub (D70).
+- **The move off GitHub** comes first, for Boss alone, on the new PC from March 2027 (D91): the data folder points at
+  `KRONOS\work` and the training store at `KRONOS\train\data`, on its 300 GB. Real data may then go into the training
+  store there, never into GitHub (D70), and a model trained on it never leaves that PC. Where the team's shared folder
+  goes, that drive or a shared company drive, is decided in the team plan after the pilot (D92).
 
 ## Phases (one PR each)
 

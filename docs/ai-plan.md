@@ -86,8 +86,10 @@ every check updated together. None starts before the MVP is done.
 - **Repairs:** made automatically from mutants and the errors they cause, in large numbers.
 - **Codex through KRONOS (D70):** a spec ChatGPT Codex wrote for a request typed into the KRONOS
   app, once it passes every corpus gate, marked `"source": "codex via KRONOS"`. While the repo is
-  public, only practice requests with invented data, added through a reviewed PR. When KRONOS lives
-  on the company drive, real requests may become training data there, never on GitHub.
+  public, only practice requests with invented data, added through a reviewed PR. From March 2027
+  KRONOS lives on the new PC's 300 GB (D91): real requests and their proven recipes may become
+  training data there, in `KRONOS\train\data`, never on GitHub, and a model trained on them never
+  leaves that PC.
 - **A locked benchmark:** held-out tasks never used for training; the only scoreboard.
 
 Every pair passes the whole toolchain before it goes into `data/verified/`. Synthetic data only in
@@ -108,6 +110,12 @@ proven specs; paraphrases and mutants help multiply them.
 
 Stages A and B fit today's rules (no training before March), and they make the data valuable
 even if the model takes longer than planned.
+
+**Where Stage C lives (D91, `docs/kronos-storage-plan.md`):** on the new PC's 300 GB, the datasets in
+`KRONOS\train\data`, the training runs and their checkpoints in `KRONOS\train\runs`, and the released
+models in `KRONOS\models`, each with a budget. The budgets assume a model of up to about 350 million
+parameters and are resized in March to the PC's graphics card; a run never starts if it would eat
+into the 30 GB kept free.
 
 ## What doesn't change
 

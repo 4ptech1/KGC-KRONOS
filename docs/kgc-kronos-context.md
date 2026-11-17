@@ -93,8 +93,8 @@ Boss's working policy (from `CLAUDE.md`):
 - **KRONOS and real requests (D69, D70):** people may type real work requests into KRONOS (the
   company allows sending them to ChatGPT), never files. Its runs stay in its own data folder
   outside the repo; at first only practice requests with invented data. Personal ChatGPT accounts
-  turn off "Improve the model for everyone". Later KRONOS moves to the company's storage drive,
-  where real data may live; it is never pushed to GitHub. **KRONOS Offline and uploads (D87):** it
+  turn off "Improve the model for everyone". Later KRONOS moves to company storage, where real
+  data may live: from March 2027 the new PC's 300 GB (D91, D92); it is never pushed to GitHub. **KRONOS Offline and uploads (D87):** it
   may be given a real workbook and makes a changed copy in the browser on that PC; the original is
   never changed, and the file never goes into the repo; what Boss copies from it into an AI chat
   is his choice.
@@ -169,11 +169,13 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/, dist/builds/<NAME>.bas (one module per BUILD)   rebuilt by vclc, git-ignored
-tests/                    643 unit tests; conformance_cases.py is shared with the docs
+tests/                    697 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/corpus-plan.md       the plan for the 150 request and spec pairs: registers, families, gates (D64)
 docs/kronos-app.md        the KGC KRONOS desktop app design: request box, Codex, proof, VBA (D68 to D71)
+docs/ai-vba-plan.md       our model writes the VBA from a proven recipe; the VBA simulator proves it (D90)
+docs/kronos-storage-plan.md  the new PC's 300 GB from March 2027: layout, budgets, rules, monthly report (D91)
 docs/vcl-mvp-plan.md      build sequence        docs/vep-0.2-core.md  VCL 0.2 design (done)
 docs/vep-0.3-file-ops.md  file ops and Job-Pack Router design and roadmap (approved, Phases 0 to 4 done)
 docs/vcl-semantics.md     generated conformance tables   docs/vcl-m2-findings.md  M2 research
@@ -391,7 +393,7 @@ of it. A spec outside this subset passes the validator but fails at test or buil
 cyan) or `#RRGGBB`. Each name is the colour of the VBA constant of that name (red = `#FF0000`), so
 `fill=red` and `fill=#FF0000` give the same result (D23, fixed in PR #18).
 
-## 8. Status (14 Nov 2026)
+## 8. Status (17 Nov 2026)
 
 **Roadmap Phase 0, Foundation (14 to 31 Oct 2026).** The roadmap .docx's later phases are the plan of 14 Oct;
 the order of work is section 9 (D73). Gate 0: all specs validate, type-check,
@@ -400,7 +402,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 643 pass (6 skipped without a display or the Codex CLI) |
+| Unit tests | 697: all pass, except 6 that skip without a display or the Codex CLI |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -502,6 +504,14 @@ The 12 specs:
   the release `kronos-offline-v1` (D86).
 - #84: KRONOS Offline version 2 (`kronos-offline-v2`): the Python server gives every connection its own thread, and
   the tests keep a server's output in a file (D86).
+- #85, #86: version 2's record, and the plain-language Word guide `docs/KRONOS_Offline_Guide.docx`.
+- #87 to #89: KRONOS Offline version 3, the upload (D87): the workbook-copy engine, the page, the release
+  `kronos-offline-v3`.
+- #90: the NCR demo in `docs/demo/` (D88).
+- #91 to #96: KRONOS Offline versions 4 and 5 (D89): recipes read from files, the wizard's engine and page, Cancel
+  made sure; the releases `kronos-offline-v4` and `kronos-offline-v5`.
+- #97: the AI writes the VBA, with its context in VCL: the design (D90).
+- #98: the new PC's 300 GB, KRONOS's home from March 2027: the plan (D91). Then every reference file follows it (D92).
 
 **Still open on GitHub:**
 - #4, the ForgeTest Excel pilot. Deferred, and nothing depends on it.
@@ -630,9 +640,8 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    several recipes made on one copy of a workbook. Published as the release `kronos-offline-v4` (main `4c119eb`).
    Version 5, the same day, only makes Cancel sure (the practice example's panel at once; KRONOS's words loaded again).
    Published as the release `kronos-offline-v5` (main `62d66d4`), the copy Boss is handed. Next: Boss tries it, then
-   Phase 3 (History, Help, the practice-run check, the corpus suggestion).
-   Next: Boss tries version 3 on the work PC; then Phase 2, the wizard with the copy-paste AI step and the .bas
-   download; then Phase 3, History, the practice-run check, the corpus suggestion and Help.
+   Phase 3 (History, Help, the practice-run check, the corpus suggestion); on the new PC, History also saves each run
+   and workbook change into `KRONOS\work` (D91 S2).
 7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026, D90, `docs/ai-vba-plan.md`). Phase 0, the
    design, is done. Before March: Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes (first it proves
    the compiler's own VBA for every spec and corpus pair), and Phase 2, the VCL memory. **March 2027:** the new PC; train
@@ -642,7 +651,11 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    company storage, real data allowed (only under `KRONOS\work`), only Boss for now, reserved for KRONOS and filled as
    it grows, with a monthly report for his manager. Layout: `apps`, `repo` (public only), `work` (`runs`, `books`,
    `recipes`, `practice`), `memory`, `sim`, `train`, `models`, `mirror`, `backup`, `reports`; 30 GB always free;
-   KRONOS never deletes real records; models trained on real data never leave the PC.
+   KRONOS never deletes real records; models trained on real data never leave the PC. Before March: S1
+   `vclc drive init/report/check`, S2 KRONOS saving into `work` (with KRONOS Offline Phase 3), S3 the simulator and
+   memory writing to the drive, S4 the day-one kit (a double-click setup, Boss's guide, a message for IT); from March,
+   S5 day one, S6 training, S7 KRONOS asking its own model on the PC, S8 the team later. Every reference file follows
+   the plan (D92).
 
 **The AI plan** (`docs/ai-plan.md`, D31, approved by Boss on 19 Oct 2026): the model's jobs are
 plain English to VCL, and repairing failing specs. NOTE steps shrink as VCL grows; until then
@@ -655,9 +668,11 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 
 **Pending Boss decisions right now:**
 0. Ask IT to approve KRONOS.exe and the Codex CLI on the work PC (needed for the pilot, Phase 4).
-0b. Try KRONOS Offline on the work PC (D86): download the zip from its newest release (`kronos-offline-v2`), extract
+0b. Try KRONOS Offline on the work PC (D86): download the zip from its newest release (`kronos-offline-v5`), extract
    it, double-click Start KRONOS (Windows), load the practice example and check it. Say which browser and version the
    page's bottom line shows.
+0c. In March 2027, for the new PC's 300 GB (D91): the drive letter, the graphics card and its memory, IT's answer on
+   Python 3.11, Git, PyTorch and the GPU driver, and IT's backup of `KRONOS\work`, `KRONOS\models` and `KRONOS\reports`.
 1. Paste the VCL 0.6 prompt (`vcl/orchestrator_prompt.txt`) into the Orchestrator Project's
    instructions, once.
 2. When, if ever, to run the optional Excel pilot (`docs/excel-pilot.md`).
@@ -737,6 +752,11 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
   password page, BlueForce's look. Pyodide 0.24.1 (the last for Chrome 109), port 5181, the zip as its own release
   `kronos-offline-v<N>`, third-party files fetched by pinned SHA-256 and never committed; the browser runs the repo's
   exact toolchain through `compiler/kronos_web.py`, and its answers must equal normal Python's.
+- **D91, D92:** from March 2027 KRONOS's home is the new PC's 300 GB of company storage
+  (`docs/kronos-storage-plan.md`): one `KRONOS` folder, real data only in `work`, a budget per folder with 30 GB
+  always free, and a monthly report for Boss's manager. KRONOS never deletes real records, and a model trained on
+  real data never leaves that PC. Every reference file says so (D92); where the team's shared folder goes waits for
+  the team plan after the pilot.
 - **D49, D58:** CALL and BUILD specs: one module per BUILD, CALL `into=`, MODIFIES that follows the
   arguments; FORM and xlam wait (no UserForm can be pasted, and THIS_BOOK would be the add-in).
   The prompt teaches them from VCL 0.5, with a proven sample BUILD as Example 4.
@@ -770,7 +790,8 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 - **Respect the constraints:** no Microsoft 365 functions; no Trust Center changes and no local
   installs for Boss except KRONOS.exe and the Codex CLI once IT approves them (D69); no real KGC
   data in the repo; no real files or folders touched; nothing outside the
-  sandbox.
+  sandbox. From March 2027 real records live only in `KRONOS\work` on the new PC (D91), never in
+  the repo or a Claude Code session.
 - **For a repo change,** write a short brief for Claude Code: what, why, the constraints, and
   "done when". Claude Code then makes one PR, verifies it and merges it.
 - **Any change to VCL itself** means updating spec.md and the prompt together, plus the grammar,
@@ -787,11 +808,13 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 | Orchestrator | The claude.ai Project that writes specs from plain requests. KRONOS sends the same prompt to Codex (D68). |
 | KGC KRONOS | The desktop app (item 5, `docs/kronos-app.md`): a typed request in, a proven VBA module out. |
 | KRONOS Offline | KRONOS in the browser with nothing installed (`docs/kronos-offline.md`, D86): a zip, a double-click, a local page running the toolchain through Pyodide. |
+| KRONOS drive | The new PC's 300 GB of company storage, KRONOS's home from March 2027 (`docs/kronos-storage-plan.md`, D91): one `KRONOS` folder, with real data only in `work`. |
 | Pyodide | Python compiled to WebAssembly, so Python runs inside a web page; KRONOS Offline bundles version 0.24.1. |
 | ForgeLib | `vba/ForgeLib.bas`, the VBA runtime. Every VCL meaning is a Forge* helper. |
 | Fixture | Synthetic test data that a FIXTURE line describes; built the same way every time. |
 | stale / boundary / blank / dupes | Fixture parts that let a TEST catch a wrong macro: leftover rows, exact edge values, blank cells, repeated keys. |
 | Interpreter | `compiler/vcl_interp.py`, which runs a spec's TESTs without Excel. |
+| VBA simulator | `compiler/vba_sim.py`, planned (D90 Phase 1): runs the VBA KRONOS writes, without Excel, and checks that it ends where the recipe's TESTs say. |
 | UNCHANGED | The automatic check that nothing outside MODIFIES changed. |
 | Mutant | A copy of a spec with one deliberate bug. "Caught" means a TEST notices it. |
 | Equivalent mutant | A mutant that can't change any result, so no test can ever catch it (D14). |
@@ -3179,6 +3202,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D89 | 16 Nov 2026 | **KRONOS Offline version 4: the wizard, with recipes read from files (`compiler/kronos_recipes.py` first; the wizard's engine, the page and the release follow, one PR each).** Boss asked that KRONOS read the .txt, .md, .docx and similar files a recipe comes in, after GitHub opened a demo recipe as text instead of downloading it. He answered: (1) **.vcl, .txt, .md and Word .docx** (no PDF: it would need a PDF reader in the zip, and PDFs break lines and spaces); (2) a file with several recipes lets him **choose one, some or all**; (3) a recipe read from a file is **checked straight away**; (4) this comes **together with the wizard** (Phase 2 of `docs/kronos-offline.md`), as version 4; (5) all the chosen recipes on a workbook run **one after another on one copy**, in the file's order, with one download; (6) in the wizard's Ask step a chosen workbook's description goes into the message for the AI, with a tick to leave it out, on by default. **Part 1, recipe files:** `read_recipes(data, name)` decodes a text file (UTF-8 with or without a BOM, UTF-16 with a BOM, else cp1252) or reads a .docx with the standard library (zipfile and xml.etree: one line per paragraph, w:tab a tab, w:br a line break, tables left out), undoes what a word processor typed (curly quotes, non-breaking spaces, invisible characters), then takes every ```vcl block, or, when there is none, every run of recipe lines from a `VCL 0.x` line through the line keys of `compiler/parser.py`, `# ASSUME:` and a BUILD's `---` sections to the first other line (blank lines inside are dropped). Each recipe is named by its GOAL. No new dependency. My choices: up to 2 MB; an old .doc, a PDF and other types are turned away in words; a `# QUESTION:` block is not a recipe. Checked: the demo guide `docs/demo/KRONOS_Demo_NCR_Register.docx` gives exactly the three demo recipes, byte for byte, and each is PROVEN; an AI reply saved as .md, prose around a TASK and a BUILD, UTF-16, cp1252 with curly quotes, a Word file with typed quotes, an empty paragraph, a hyperlink and a table, and every refusal. **Part 2, the wizard's engine (`compiler/kronos_wizard.py`):** instead of new state functions, the wizard drives KRONOS.exe's own `kronos_engine.Run` with a copy-and-paste AI (`PasteAI`: it answers with the reply the person pasted, and with none it raises "waiting for the AI's reply", so the run stops exactly where KRONOS.exe would wait for Codex). So the messages, `read_reply`, `prove`, the repair and fix messages, `MAX_TRIES` and `MAX_QUESTIONS`, the best attempt and `save_module` are KRONOS.exe's by construction, and a test proves it: for the same replies (a question, an answer, a failing recipe, a repair, a proven recipe) the text to copy equals `render(prompt, conversation)` of every call KRONOS.exe makes, and the saved .bas and practice .bas are byte for byte KRONOS.exe's. A recipe from a file is `Run.recheck`; when it fails, the new `Run.send_problems()` sends it to the AI with `fix_message` as a new turn. The page keeps its actions, so `restore()` rebuilds every run after Cancel stops the browser's Python. The words EXAMPLE, TIPS and NEVER move to `compiler/kronos_words.py` (the window imports tkinter) and `test_rows` into the engine; the window and controller use them unchanged. `kronos_book.apply_many` runs several recipes one after another on one loaded workbook and writes it once (chaining through saved files would lose formulas' saved results), with what each recipe did; the demo's three recipes on one copy equal running them one by one, and a recipe that stops gives no copy and is named. In the AI message the workbook's description goes below the request under one heading. Part 2 departs from the plan's wording only there: `Run` itself, not a new JSON state, which keeps KRONOS.exe and the browser one code path. **Part 3, the page (version 4):** `web/` is now the four-step wizard (steps in the top bar; Ask with the workbook card, the request with KRONOS.exe's EXAMPLE and TIPS, "Write the message for the AI" and the two Copy buttons, and "Or open a recipe file"; Questions; Review with one section per recipe and the assumptions tick; Save with the real sheet names, the .bas, the practice run and "Make the changes on a copy"). The worker serves the page one job at a time (words, reset, wizard, describe, recipes, arguments, apply). My choices: (a) **copying needs the click**, so "Write the message for the AI" first asks Python for both texts and each Copy button then copies inside its own click, with a selected box for Ctrl+C where the clipboard is refused; (b) **the Orchestrator's instructions**: the page remembers, in this browser only, the prompt's SHA-256 Boss confirmed and shows one line with "Copy the Orchestrator instructions" while it differs; (c) **after Cancel** the page restores every request from its actions (`Wizard.restore`); (d) **a Workbook argument in the starter macro** is ThisWorkbook, so a recipe such as the demo's Summary gets a starter macro (KRONOS.exe gains this too: `vcl_codegen.starter_args` no longer asks for it, `starter_value` gives ThisWorkbook); (e) **a mistyped key** (any word in capitals at the start of a line) stays inside a recipe read from a file, so the checker names it instead of the recipe being cut short (found by the page test); (f) a recipe from a file that fails reads "the recipe did not pass its checks". Checked: every new bridge call gives exactly normal Python's text under Pyodide in Node.js; the page tests (every server and the PowerShell stand-in) run Ask, a broken reply and its repair (the copied texts equal Python's), Review, Save (the .bas and practice run byte for byte Python's), the question step, the demo Word guide's three recipes chosen together and made on one copy of the demo workbook (equal to `apply_many`), one-recipe .md and .txt files, a file with no recipe, the warnings to tick, Cancel, and no request outside localhost. The plain-language guide (now made by `docs/make_offline_guide.js`) and the demo guide describe version 4. **Version 4 published** on 16 Nov 2026 as the release `kronos-offline-v4`, built by the workflow from main `4c119eb` (PRs #91, #92, #93): `KRONOS-Offline-v4-16-11-2026.zip`, 5,815,823 bytes, SHA-256 `46f5f8a77493424119973576583b45b5768571e3978fb18997aecb1669088aaf`, the same bytes as a build of that commit in the cloud container; the downloaded zip passed all 38 offline tests with skipping forbidden; the Windows PowerShell, Chromium 109 and Firefox 115 jobs passed; and "Latest" still names KGC KRONOS 0.5. Not proven until Boss tries it: the copy and paste with his real AI chats (claude.ai Orchestrator and ChatGPT), his own recipe files, and the work PC. **Version 5, the same day: Cancel made sure.** The docs-only follow-up's CI failed once in the page test: Cancel was clicked after the practice example's working panel had already gone. The cause was the page, not only the test: "Try the practice example" fetched its file before showing the panel, and behind a one-at-a-time server the file waits for Python's big downloads, so the panel appeared only at the end. Now the panel shows at once; Cancel while the file is on its way stops it and says "Cancelled" where Boss is; and Cancel before KRONOS's words arrived loads them again (in version 4 the tips, the "never does" list and the Orchestrator line then stayed empty). The re-run of that job passed; the test itself is unchanged. **Version 5 published** as the release `kronos-offline-v5`, built by the workflow from main `62d66d4` (PR #95) just after midnight in India, so its zip is `KRONOS-Offline-v5-17-11-2026.zip` (5,816,109 bytes, SHA-256 `79fdb69cb426d925fb0b8814b821f7ec5bc5855dc69664994dba6827b6beca77`); a build of that commit in the cloud container with the same date gave the same bytes; the downloaded zip passed all 38 offline tests with skipping forbidden; and "Latest" still names KGC KRONOS 0.5. Version 5 is the copy Boss is handed. |
 | D90 | 17 Nov 2026 | **The AI writes the VBA, with its context and memory in VCL (`docs/ai-vba-plan.md`); this changes D31.** Boss: "Let proof work around my idea. I want kronos to use ai written in vcl to do vba tasks." His reasons: VCL is much shorter and more exact than English, so a model whose context and memory are VCL is smaller, faster and easier to train, and his PC has room for it. I advised the middle way (AI-written VBA only for what VCL can't say) and said why: today's macros are proven because the recipe is tested and the compiler writes the VBA exactly. Boss chose the full idea. **How the proof works around it:** every job still starts from a VCL recipe that KRONOS proves as today; the model writes the VBA from it, with similar proven recipes and their VBA from the in-house library as its memory (D25: in-house only); KRONOS proves the model's VBA against the recipe's own TESTs in a new VBA simulator (`compiler/vba_sim.py`) on the same practice workbooks, plus `vba_lint`; only VBA that passes is used and labelled "PROVEN, written by AI", otherwise KRONOS gives the compiler's VBA, which stays the reference and the fallback. **Order:** Phase 0 this design; Phase 1 the simulator, which first proves the compiler's own VBA for every spec and corpus pair (useful now, no AI); Phase 2 the memory (request, VCL, VBA pairs and a similar-recipe index); Phase 3 the model, from March 2027 (no training before); Phase 4 the labels in KRONOS.exe and KRONOS Offline and the Excel practice run of the model's module. My conservative choices: the compiler's VBA is always the fallback, and nothing the model writes reaches a workbook unproven without saying so. |
 | D91 | 17 Nov 2026 | **The new PC's 300 GB is KRONOS's home from March 2027 (`docs/kronos-storage-plan.md`).** Boss: his manager gave him 300 GB to be used entirely for KRONOS. He answered: (1) it is the disk of the new PC that arrives in March 2027, the PC that trains our model; (2) it is company storage, so real data may live there: real KRONOS runs, before-and-after copies of real workbooks, and a private library of real proven recipes, never in the public repo or a Claude Code session; (3) only Boss uses it for now; (4) "entirely for KRONOS" means reserved for KRONOS and filled as KRONOS grows, with a budget per purpose and a monthly report for his manager. **Measured today:** a KRONOS run is 84 KB, KRONOS Offline 20 MB unzipped, KRONOS.exe 14 MB, the recipe library under 3 MB, the repo 24 MB: well under 0.1 GB, so the 300 GB is filled by training our model (datasets, checkpoints, released models), by the workbook records and by offline copies and backups. **The plan:** one `KRONOS` folder with `apps`, `repo` (public only), `work` (real data: `runs`, `books`, `recipes`, `practice`), `memory`, `sim`, `train` (`data`, `runs`), `models`, `mirror`, `backup` and `reports`, short names because of Windows' 260-character paths; budgets that add up to 300 GB with 30 GB always kept free (`work\books` 50 GB, `train\runs` 100 GB, `train\data` 40 GB, the rest smaller), each a ceiling, not a target; the expected fill (about 12 GB on day one, about 150 GB by the end of 2027). **My conservative choices:** KRONOS never deletes real records (runs, workbook records, the private recipes, practice results, released models, reports); only what it can make again is thinned by fixed rules (each training run keeps its best and last 3 checkpoints, older runs their final weights; the last 3 datasets; 52 weekly backups; the last 2 versions of each tool); a model trained on real data stays on that PC and in company backup, and the public repo never gets weights; training refuses to start a run that would eat into the 30 GB reserve; SHA-256 lists for the apps, the models, the tools and every workbook record, checked monthly; the same-disk backups protect against mistakes only, so IT is asked to back up `work`, `models` and `reports`. **The work:** before March, S1 `vclc drive init/report/check` (`compiler/kronos_drive.py`), S2 KRONOS saving into `work` (with KRONOS Offline Phase 3), S3 the simulator and memory writing to the drive (D90), S4 a double-click setup and Boss's guide with a message for IT; from March, S5 day one, S6 training, S7 KRONOS using its own model on the PC, S8 the team later. Needed from Boss in March: the drive letter, the graphics card, IT's answer on Python, Git, PyTorch and the GPU driver, and IT's backup. |
+| D92 | 17 Nov 2026 | **The reference files follow D91 (Boss: "let this plan reflect in all reference files"; my choices, the conservative way).** (1) Where D69 to D71 say KRONOS later moves to "the company's storage drive (100 GB)", the reference files now say that from March 2027 KRONOS's home, with its real data, is the new PC's 300 GB (D91). D69 to D71 stay as written: a decision is history. (2) Where the team's shared folder (D71) goes, on the new PC's drive or on a shared company drive, is left to the team plan after the pilot (D91 S8). (3) On the new PC, KRONOS.exe's data folder is `KRONOS\work`, so its runs land in `work\runs` (D91 S2); on the work PC it stays `Documents\KGC KRONOS`. KRONOS Offline's History (Phase 3) is kept in the browser on the work PC, and on the new PC it also saves each run into `work\runs` and each workbook change into `work\books`. (4) AGENTS.md: Codex never opens or copies anything in `KRONOS\work`, because no file is sent to an online AI (D69); its line "the compiler stays the only thing that writes VBA" now follows D90, as do README.md's opening and VEP 0.6's principles. (5) The roadmap .docx gets a dated update, like the one for D68 to D71: D90, and KRONOS's 300 GB on the new PC (D91), which the storage plan fits training into (its PC table suggested a 2 TB disk). Its phase list stays the plan of 14 Oct 2026 (D73). | Every file a person or an AI reads now tells the same story. Keeping D69 to D71 as written, and leaving the team's storage to its own plan, decides nothing Boss hasn't. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4837,6 +4861,9 @@ and their proven specs, each with its VBA.
 - `docs/VBA_Forge_Project_Roadmap.docx`: phases, gates and design decisions. Its phase list is the
   plan of 14 Oct 2026; the current order of work is "Next" below and `docs/vcl-mvp-plan.md` (D73).
 - `docs/kronos-app.md`: the KGC KRONOS desktop app (item 5, D68 to D71).
+- `docs/ai-vba-plan.md`: our model writes the VBA from a proven recipe, and the VBA simulator proves it (item 7, D90).
+- `docs/kronos-storage-plan.md`: the new PC's 300 GB, KRONOS's home from March 2027: the layout, budgets, rules
+  and monthly report (item 8, D91; the reference files follow it, D92).
 
 ##### Repo layout
 
@@ -4881,7 +4908,8 @@ packaging/           kronos.spec: the PyInstaller spec for KRONOS.exe (D79); the
                      three servers, licences/), offline_pins.json (the downloads, by SHA-256) and web/; its CI is
                      build-offline.yml, its test tools are in offline_test/
 web/                 KRONOS Offline's page: index.html, styles.css, app.js, worker.js (Pyodide), logo.svg (D86)
-(train/ and model/ arrive in March 2027)
+(train/ and model/ arrive in March 2027, as code only; the prepared datasets, the checkpoints and the weights stay
+ on the new PC's 300 GB, in KRONOS\train and KRONOS\models: weights never go into the repo, D91)
 ```
 
 ##### Rules for code in this repo
@@ -5118,9 +5146,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    similar-recipe index); the model itself from March 2027.
 8. **The new PC's 300 GB, KRONOS's home from March 2027** (Boss, 17 Nov 2026; `docs/kronos-storage-plan.md`, D91): company
    storage, real data allowed, only Boss for now, reserved and filled as KRONOS grows, with a monthly report for his
-   manager. The plan (S0) is done. Before March: S1 `vclc drive init/report/check`, S2 KRONOS saving into `work`
-   (with KRONOS Offline Phase 3), S3 the simulator and memory writing to the drive, S4 the day-one kit; from March,
-   S5 to S8. Needed from Boss in March: the drive letter, the graphics card, IT's answers and backup.
+   manager. The plan (S0) is done, and every reference file follows it (D92). Before March: S1
+   `vclc drive init/report/check`, S2 KRONOS saving into `work` (with KRONOS Offline Phase 3), S3 the simulator and
+   memory writing to the drive, S4 the day-one kit; from March, S5 to S8. Needed from Boss in March: the drive
+   letter, the graphics card, IT's answers and backup.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,
@@ -5235,7 +5264,9 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
 8. **March:** train our own model from zero on the in-house dataset (D25: no pre-trained weights,
    no outside data). It writes VCL (D31, `docs/ai-plan.md`) and, since D90 (`docs/ai-vba-plan.md`), the VBA
    from a proven recipe, used only when a VBA simulator proves it against the recipe's TESTs; otherwise the
-   compiler's VBA. Excel conformance runs whenever Boss chooses.
+   compiler's VBA. Excel conformance runs whenever Boss chooses. It trains on the new PC, with its datasets,
+   checkpoints and models on the 300 GB reserved for KRONOS there; models trained on real data never leave
+   that PC (D91, `docs/kronos-storage-plan.md`).
 9. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71):
    a window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI) for the VCL,
    proves it with this toolchain, sends problems back for up to 2 more tries, and saves the VBA
@@ -5339,8 +5370,10 @@ every check updated together. None starts before the MVP is done.
 - **Repairs:** made automatically from mutants and the errors they cause, in large numbers.
 - **Codex through KRONOS (D70):** a spec ChatGPT Codex wrote for a request typed into the KRONOS
   app, once it passes every corpus gate, marked `"source": "codex via KRONOS"`. While the repo is
-  public, only practice requests with invented data, added through a reviewed PR. When KRONOS lives
-  on the company drive, real requests may become training data there, never on GitHub.
+  public, only practice requests with invented data, added through a reviewed PR. From March 2027
+  KRONOS lives on the new PC's 300 GB (D91): real requests and their proven recipes may become
+  training data there, in `KRONOS\train\data`, never on GitHub, and a model trained on them never
+  leaves that PC.
 - **A locked benchmark:** held-out tasks never used for training; the only scoreboard.
 
 Every pair passes the whole toolchain before it goes into `data/verified/`. Synthetic data only in
@@ -5361,6 +5394,12 @@ proven specs; paraphrases and mutants help multiply them.
 
 Stages A and B fit today's rules (no training before March), and they make the data valuable
 even if the model takes longer than planned.
+
+**Where Stage C lives (D91, `docs/kronos-storage-plan.md`):** on the new PC's 300 GB, the datasets in
+`KRONOS\train\data`, the training runs and their checkpoints in `KRONOS\train\runs`, and the released
+models in `KRONOS\models`, each with a budget. The budgets assume a model of up to about 350 million
+parameters and are resized in March to the PC's graphics card; a run never starts if it would eat
+into the 30 GB kept free.
 
 ##### What doesn't change
 
@@ -5549,7 +5588,9 @@ no data to teach it, and no way to tell whether it is any good.
 ##### Principles (unchanged)
 
 - The model writes VCL, never VBA (D31). The compiler writes all VBA, so every model output is
-  proven before anything reaches Excel.
+  proven before anything reaches Excel. **Changed by D90 (17 Nov 2026, `docs/ai-vba-plan.md`):**
+  the model may also write the VBA from a proven recipe; it is used only when it passes the
+  recipe's TESTs in a VBA simulator, and the compiler's VBA is the fallback.
 - Every pair in the dataset passed the whole toolchain: validator, type checker, TESTs in the
   reference interpreter, MODIFIES and UNCHANGED, the compiler and the linter, and a mutation
   floor (below). Nothing unproven enters `data/`.
@@ -5614,7 +5655,9 @@ data/repair/                      generated "failing spec + codes -> fixed spec"
 ```
 The VBA is not stored: it is derived and goes stale. `vclc export` writes the dataset as JSON
 Lines (request, GOAL, spec, VBA freshly compiled, repairs) into `dist/`, which is git-ignored,
-and a test proves every stored pair still passes the toolchain. The `data/*/README.md` files,
+and a test proves every stored pair still passes the toolchain. On the new PC, from March 2027,
+the training datasets go into `KRONOS\train\data`, next to the private library's real pairs,
+which never come into the repo (D91). The `data/*/README.md` files,
 which describe the old Excel-based plan, are rewritten to match.
 
 ###### 5. The corpus: 150 tasks

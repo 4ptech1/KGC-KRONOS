@@ -18,7 +18,9 @@ no data to teach it, and no way to tell whether it is any good.
 ## Principles (unchanged)
 
 - The model writes VCL, never VBA (D31). The compiler writes all VBA, so every model output is
-  proven before anything reaches Excel.
+  proven before anything reaches Excel. **Changed by D90 (17 Nov 2026, `docs/ai-vba-plan.md`):**
+  the model may also write the VBA from a proven recipe; it is used only when it passes the
+  recipe's TESTs in a VBA simulator, and the compiler's VBA is the fallback.
 - Every pair in the dataset passed the whole toolchain: validator, type checker, TESTs in the
   reference interpreter, MODIFIES and UNCHANGED, the compiler and the linter, and a mutation
   floor (below). Nothing unproven enters `data/`.
@@ -83,7 +85,9 @@ data/repair/                      generated "failing spec + codes -> fixed spec"
 ```
 The VBA is not stored: it is derived and goes stale. `vclc export` writes the dataset as JSON
 Lines (request, GOAL, spec, VBA freshly compiled, repairs) into `dist/`, which is git-ignored,
-and a test proves every stored pair still passes the toolchain. The `data/*/README.md` files,
+and a test proves every stored pair still passes the toolchain. On the new PC, from March 2027,
+the training datasets go into `KRONOS\train\data`, next to the private library's real pairs,
+which never come into the repo (D91). The `data/*/README.md` files,
 which describe the old Excel-based plan, are rewritten to match.
 
 ### 5. The corpus: 150 tasks

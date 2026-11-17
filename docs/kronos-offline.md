@@ -364,6 +364,10 @@ try/catch, newest first, with "Download the run record", like the runs folder KR
 the browser's data removes them); the practice run (download its module, and a box to paste Excel's result back for
 `vcl_pilot.check`, with the verdict); "Suggest for the corpus" (D70: downloads the candidate file for Boss to send to
 Claude Code; nothing goes into `data/` from the page); and Help.
+On the new PC, from March 2027, History also saves each run into `KRONOS\work\runs` and each workbook change (the
+original, the changed copy, what changed and their SHA-256) into `KRONOS\work\books`, through a narrow save in the
+local server: localhost only, inside `work` only, never overwriting (D91 S2, `docs/kronos-storage-plan.md`). On the
+work PC the browser keeps them as above.
 
 **Never**, in any phase: run VBA, open Excel, change a file in place, or call the internet; the page loads only from
 localhost. No change to KRONOS.exe, the Codex adapter or KRONOS.exe's release; no password page; no real KGC data in the
