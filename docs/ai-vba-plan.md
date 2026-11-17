@@ -45,6 +45,10 @@ The rule that nothing unproven reaches a workbook unlabelled stays. The proof mo
 | 3 | **The model** (new PC): trained from zero on the pairs; KRONOS gets "the AI writes the VBA": prove the recipe, ask the model for the VBA, prove it in the simulator, else fall back to the compiler | from March 2027 |
 | 4 | KRONOS.exe and KRONOS Offline show the labels; the practice run checks the AI's module in Excel | with Phase 3 |
 
+## Where it lives
+
+From March 2027 the memory, the simulator's results, the training data, the training runs and the released models live on the new PC's 300 GB, in `memory\`, `sim\`, `train\` and `models\` (`docs/kronos-storage-plan.md`, D91). Models trained on real data never leave that PC.
+
 ## What doesn't change
 
 - D25: the model and everything it learns from are ours; no pre-trained weights, outside data or outside retrieval.
