@@ -9,6 +9,8 @@ new PC arrives in March 2027.
 
 **Our own model writes VCL, never VBA. The compiler stays the only thing that writes VBA.**
 
+> **Changed by D90 (Boss, 17 Nov 2026):** the model may also write the VBA from a proven VCL recipe, with its context and memory in VCL. Its VBA is used only when it passes the recipe's own TESTs in a VBA simulator; otherwise KRONOS gives the compiler's VBA. See `docs/ai-vba-plan.md`. The reasons below still explain why the recipe and the compiler stay the proof and the fallback.
+
 The model is still ours (D25): designed and trained from zero, on in-house data only. Since D70,
 in-house also covers a spec that ChatGPT Codex wrote through the KGC KRONOS app and the toolchain
 proved; Codex writes data, never part of the model.

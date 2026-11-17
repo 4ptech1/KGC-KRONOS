@@ -11,8 +11,8 @@ registers). An AI writes task specs in VCL (VBA Command Language): Claude today,
 Codex through the KGC KRONOS desktop app (item 5, D68). VBA Forge turns each spec into VBA and
 proves the macro works with tests. Only the request-to-VCL step may go online; the toolchain and
 the VBA stay offline (D69). From March 2027 our own model, trained from zero on our data (D25,
-D70), will write VCL specs from plain English; the compiler stays the only thing that writes VBA
-(D31, `docs/ai-plan.md`). Until then, the goal is the KRONOS app and a verified dataset of tasks
+D70), will write VCL specs from plain English, and the VBA for them with its context and memory in VCL (D90,
+`docs/ai-vba-plan.md`): its VBA is used only when it passes the recipe's own TESTs, else the compiler's (D31). Until then, the goal is the KRONOS app and a verified dataset of tasks
 and their proven specs, each with its VBA.
 
 ## Working policy
@@ -69,7 +69,9 @@ and their proven specs, each with its VBA.
   PyTorch) are allowed, and Claude stays the design and build tool (Orchestrator, Claude Code) and the only
   one who commits. OpenAI Codex on Boss's own PC may advise, practise VCL and propose code, which comes back
   through `codex_changes/` for Claude to review, verify and merge; its rules are in `AGENTS.md` (D83).
-  Compiler first, own model second: the model writes VCL, never VBA (D31).
+  Compiler first, own model second (D31). Since D90 (Boss, 17 Nov 2026) the model may also write the VBA from a
+  proven VCL recipe, its context and memory in VCL; that VBA is used only when it passes the recipe's TESTs in the
+  VBA simulator, and the compiler's VBA is the fallback (`docs/ai-vba-plan.md`).
 
 ## Sources of truth
 
@@ -268,8 +270,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    Orchestrator prompt teach VCL 0.5 (hard rules 7, 9 and 14 changed, new hard rule 23 for BUILD
    and CALL), and Boss pastes the new prompt into the Orchestrator Project once. **Item 3 is
    complete.** FORM and xlam stay refused until after March 2027 (D49).
-4. The AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the model writes VCL,
-   never VBA. Boss said "go item 4" on 21 Oct 2026 for its Stage A, designed in
+4. The AI plan, `docs/ai-plan.md` (D31, approved by Boss on 19 Oct 2026): the model writes VCL; since D90
+   (17 Nov 2026, `docs/ai-vba-plan.md`) it may also write the VBA, proven in a VBA simulator against the recipe's TESTs. Boss said "go item 4" on 21 Oct 2026 for its Stage A, designed in
    `docs/vep-0.6-stage-a.md` (D59): Phase 1 error codes, 2 the `GOAL` line (VCL 0.6), 3 the
    formatter `vclc fmt`, 4 the switch of spec.md and the prompt to 0.6 (Boss updates the
    Orchestrator once), 5 corpus tooling and the first pairs, 6 the corpus to 150 tasks, 7 the
@@ -364,6 +366,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    Version 5 (the same day) only makes Cancel sure: the practice example's panel shows at once, and Cancel before KRONOS's
    words arrive loads them again. It is published as the release `kronos-offline-v5` (main `62d66d4`; SHA-256 `79fdb69c…`),
    the copy Boss is handed. Next: Boss tries it; then Phase 3: History, the practice-run check, the corpus suggestion, Help.
+7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026; `docs/ai-vba-plan.md`, D90). Phase 0, the design,
+   is done. Next: Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes, which first proves the
+   compiler's own VBA for every spec and corpus pair; Phase 2, the VCL memory (request, VCL, VBA pairs and a
+   similar-recipe index); the model itself from March 2027.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

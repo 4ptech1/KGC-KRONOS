@@ -71,6 +71,10 @@ Pyodide. `python packaging/build_offline.py` builds it into `build/offline/`; a 
 Offline" workflow from `main`, with "release" ticked, publishes it as `kronos-offline-v<N>`. A ready-made demo for
 colleagues, an invented NCR register with three proven recipes and a Word guide, is in `docs/demo/` (D88).
 
+## The AI and the VBA (D90)
+
+From March 2027 our own model writes the VCL recipe from plain English and, by Boss's decision of 17 Nov 2026, the VBA from that proven recipe, with its context and memory in VCL (`docs/ai-vba-plan.md`). Its VBA is used only when it passes the recipe's own TESTs in a VBA simulator; otherwise KRONOS gives the compiler's VBA.
+
 ## Dataset count
 
 Dataset count: 91 proven pairs of the planned 150: 83 in `data/verified/` and 8 held out in

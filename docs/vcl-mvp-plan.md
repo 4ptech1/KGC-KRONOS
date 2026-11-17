@@ -103,8 +103,9 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
    carefully" training data the Phase 2 plan wanted. See `docs/ai-plan.md`, Stages A and B.
 8. **March:** train our own model from zero on the in-house dataset (D25: no pre-trained weights,
-   no outside data). It writes VCL, never VBA; the compiler writes all the VBA (D31,
-   `docs/ai-plan.md`). Excel conformance runs whenever Boss chooses.
+   no outside data). It writes VCL (D31, `docs/ai-plan.md`) and, since D90 (`docs/ai-vba-plan.md`), the VBA
+   from a proven recipe, used only when a VBA simulator proves it against the recipe's TESTs; otherwise the
+   compiler's VBA. Excel conformance runs whenever Boss chooses.
 9. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71):
    a window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI) for the VCL,
    proves it with this toolchain, sends problems back for up to 2 more tries, and saves the VBA

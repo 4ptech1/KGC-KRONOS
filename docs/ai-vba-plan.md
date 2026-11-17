@@ -1,0 +1,54 @@
+# The AI writes the VBA, with its context in VCL (D90)
+
+Status: **decided by Boss on 17 Nov 2026.** This is the design; each phase below gets its own PR. No training starts
+before the new PC arrives in March 2027 (CLAUDE.md), so Phases 1 and 2 come first and need no AI at all.
+
+## Boss's decision
+
+Asked whether KRONOS should keep the compiler as the only writer of VBA (D31), Boss answered: "Let proof work around
+my idea. I want kronos to use ai written in vcl to do vba tasks." His reasons: VCL is far shorter and more exact than
+English, so an AI whose context and memory are VCL is smaller, faster and easier to train, and his own PC has room for
+it (300 GB).
+
+So **our own model (D25) writes the VBA for a task, and its context and memory are written in VCL.** This changes D31
+("the model writes VCL, never VBA"): the model may now write VBA too, from a VCL recipe. Everything else in D25 stays:
+the model is designed and trained from zero, on in-house data only.
+
+## How the proof works around it
+
+The rule that nothing unproven reaches a workbook unlabelled stays. The proof moves to where the AI works:
+
+1. **The recipe comes first, and is proven as today.** Every job starts from a VCL recipe (written by a person, an AI
+   chat, or later our model), which KRONOS checks and tests on practice data (`kronos_engine.prove`). The recipe is
+   the AI's context and its contract: it says exactly what the VBA must do, and its TESTs say how to tell.
+2. **The AI writes the VBA from the recipe.** Its context: the recipe. Its memory: the library of proven recipes, each
+   with the VBA it became (`data/verified/`, today 84 pairs in 1.6 MB, so even 10,000 recipes fit easily on the PC).
+   Similar recipes are found in that library, in-house only (D25), and shown to the model as examples.
+3. **KRONOS proves the AI's VBA against the recipe's own TESTs, without Excel.** A new VBA simulator
+   (`compiler/vba_sim.py`, Phase 1) runs the kind of VBA KRONOS allows, with ForgeLib, on the same practice workbooks the
+   TESTs use. The AI's macro must end with exactly the workbook, RESULT and ERROR_COUNT the recipe's TESTs expect (the
+   interpreter's answers, `vclc build`'s `expected/`), and pass `vba_lint` (no Kill, Shell, internet, Select, ...).
+4. **The labels Boss sees.**
+   - **PROVEN, written by AI:** the AI's VBA passed every TEST in the simulator and the lint.
+   - **Not proven:** KRONOS says what failed and gives the compiler's VBA for the same recipe instead, which is always
+     proven. So Boss always gets a working macro; the AI's version is used only when it is proven.
+5. **The last check, in Excel (optional, as now):** the practice run (D81) with the AI's module, on a new empty workbook,
+   compared with the TESTs.
+
+## Phases
+
+| Phase | What | When |
+| --- | --- | --- |
+| 0 | This design, D90, CLAUDE.md and `docs/ai-plan.md` changed to match | now |
+| 1 | **`compiler/vba_sim.py`, the VBA simulator.** It runs the subset of VBA that KRONOS writes and allows, with ForgeLib, on the TESTs' practice workbooks. First proof: the compiler's own VBA for every spec, example and corpus pair ends exactly where the interpreter says (this already makes today's macros better proven, with no AI) | before March 2027 |
+| 2 | **The memory.** The training pairs grow from request → VCL to request → VCL → VBA (`vclc export` already compiles the VBA); a small index finds similar proven recipes for a new one | before March 2027 |
+| 3 | **The model** (new PC): trained from zero on the pairs; KRONOS gets "the AI writes the VBA": prove the recipe, ask the model for the VBA, prove it in the simulator, else fall back to the compiler | from March 2027 |
+| 4 | KRONOS.exe and KRONOS Offline show the labels; the practice run checks the AI's module in Excel | with Phase 3 |
+
+## What doesn't change
+
+- D25: the model and everything it learns from are ours; no pre-trained weights, outside data or outside retrieval.
+- Synthetic data only in the repo; no training before March 2027.
+- The compiler and ForgeLib stay: they are the reference for what VBA a recipe means, and the fallback whenever the AI's
+  VBA is not proven.
+- Running anything in Excel stays optional and never blocks work.
