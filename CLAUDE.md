@@ -57,6 +57,9 @@ and their proven specs, each with its VBA.
   Boss, 16 Nov 2026): that happens in the browser on his PC, the original is never changed, the file
   never goes into the repo or into this Claude Code session, and what he copies from it into an AI
   chat is his choice.
+  From March 2027 the company storage is the new PC's 300 GB, reserved for KRONOS (D91,
+  `docs/kronos-storage-plan.md`): real data only under `KRONOS\work` (and what is trained on it), models trained
+  on real data never leave that PC, and KRONOS never deletes real records.
 - Synthetic fixtures only: every TEST uses a named FIXTURE file. `fixture=target` is banned
   until March 2027, and nothing we generate ever touches real workbooks, except the copy KRONOS
   Offline makes of a workbook Boss uploads (D87); no TEST ever uses one.
@@ -370,6 +373,11 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    is done. Next: Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes, which first proves the
    compiler's own VBA for every spec and corpus pair; Phase 2, the VCL memory (request, VCL, VBA pairs and a
    similar-recipe index); the model itself from March 2027.
+8. **The new PC's 300 GB, KRONOS's home from March 2027** (Boss, 17 Nov 2026; `docs/kronos-storage-plan.md`, D91): company
+   storage, real data allowed, only Boss for now, reserved and filled as KRONOS grows, with a monthly report for his
+   manager. The plan (S0) is done. Before March: S1 `vclc drive init/report/check`, S2 KRONOS saving into `work`
+   (with KRONOS Offline Phase 3), S3 the simulator and memory writing to the drive, S4 the day-one kit; from March,
+   S5 to S8. Needed from Boss in March: the drive letter, the graphics card, IT's answers and backup.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

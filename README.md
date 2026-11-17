@@ -11,12 +11,12 @@ still writes all the VBA (D31, `docs/ai-plan.md`).
 
 ## Current phase
 
-**Phase 0, Foundation (Oct 14 to 31, 2026): Gate 0 is met.** The work now is item 5, the KGC
-KRONOS desktop app (`docs/kronos-app.md`): its engine and `vclc ask` are built (D72), and the
-window, a four-step wizard, comes before everything else (D74); corpus batch 4 is stored (D85). All development runs in the cloud (Claude
-Code on the web, GitHub Codespaces, GitHub Actions); only KRONOS.exe and the Codex CLI will run on
-the work PC, once IT approves them (D69). Every check is automated; running the generated VBA in
-Excel is optional and never blocks work.
+**Phase 0, Foundation (Oct 14 to 31, 2026): Gate 0 is met.** KRONOS.exe is built and waits for IT (D69); KRONOS
+Offline runs in a browser with nothing installed and is at version 5: the four-step wizard, recipe files, and
+changes made on a copy of a workbook (D86 to D89). An invented NCR demo is in `docs/demo/` (D88). Next: the AI that
+writes the VBA with its context in VCL (D90; Phase 1, the VBA simulator), and from March 2027 the new PC's 300 GB
+as KRONOS's home (D91). All development runs in the cloud (Claude Code on the web, GitHub Codespaces, GitHub
+Actions). Every check is automated; running the generated VBA in Excel is optional and never blocks work.
 
 See `CLAUDE.md` for the working rules, `docs/vcl-mvp-plan.md` for the build sequence,
 `DECISIONS.md` for the decisions so far and `docs/VBA_Forge_Project_Roadmap.docx` for the full
@@ -369,3 +369,14 @@ Dataset count: 91 proven pairs of the planned 150: 83 in `data/verified/` and 8 
   Node.js servers never had the weakness. (The one failed Windows run that led there was the test's own fault: a full
   4 KB pipe for the server's output. The tests now use a file.) Version 2 is published as the release
   `kronos-offline-v2`.
+- **2026-11-16:** KRONOS Offline version 3, the upload (D87): choose a real workbook, make a proven recipe's changes on a copy
+  with the reference interpreter (openpyxl reads and writes it; fonts, borders, notes and formulas follow their cells), and
+  download it, with warnings to tick for whatever a copy can't keep. The TESTs of every recipe in the repo (262) give the
+  same workbook through an uploaded file. The NCR demo (D88): an invented register, three proven recipes, what KRONOS
+  gives back and a Word guide for colleagues. Version 4 (D89): the four-step wizard (Ask, Questions, Review, Save) on
+  KRONOS.exe's own engine with copy and paste for the AI, and recipes read from .vcl, .txt, .md and Word files, one or
+  several at a time, made on one copy of a workbook.
+- **2026-11-17:** KRONOS Offline version 5 (D89): Cancel made sure; published as `kronos-offline-v5`. The AI will write
+  the VBA with its context in VCL (D90, `docs/ai-vba-plan.md`): its VBA is used only when a VBA simulator proves it
+  against the recipe's own TESTs, else the compiler's. The new PC's 300 GB becomes KRONOS's home from March 2027
+  (D91, `docs/kronos-storage-plan.md`): a folder layout, budgets, rules and a monthly report.
