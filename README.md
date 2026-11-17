@@ -6,8 +6,10 @@ VCL (VBA Command Language): Claude today, and ChatGPT Codex through the KGC KRON
 (`docs/kronos-app.md`, D68). VBA Forge turns the spec into VBA and proves the macro works with
 tests. Only the request-to-VCL step may go online; the toolchain and the VBA stay offline (D69). Each verified spec, with its task in plain English and its proven VBA,
 becomes training data for our own model, designed and trained from zero on in-house data only
-(`DECISIONS.md` D25; a spec Codex writes counts once the toolchain proves it, D70). From March 2027 that model writes VCL from plain English, and the compiler
-still writes all the VBA (D31, `docs/ai-plan.md`).
+(`DECISIONS.md` D25; a spec Codex writes counts once the toolchain proves it, D70). From March 2027 that model writes VCL from plain English (D31,
+`docs/ai-plan.md`) and the VBA for it, which is used only when a VBA simulator proves it against the recipe's own TESTs;
+otherwise the compiler's VBA is used (D90, `docs/ai-vba-plan.md`). It is trained and kept on the new PC's 300 GB
+(D91, `docs/kronos-storage-plan.md`).
 
 ## Current phase
 
@@ -379,4 +381,5 @@ Dataset count: 91 proven pairs of the planned 150: 83 in `data/verified/` and 8 
 - **2026-11-17:** KRONOS Offline version 5 (D89): Cancel made sure; published as `kronos-offline-v5`. The AI will write
   the VBA with its context in VCL (D90, `docs/ai-vba-plan.md`): its VBA is used only when a VBA simulator proves it
   against the recipe's own TESTs, else the compiler's. The new PC's 300 GB becomes KRONOS's home from March 2027
-  (D91, `docs/kronos-storage-plan.md`): a folder layout, budgets, rules and a monthly report.
+  (D91, `docs/kronos-storage-plan.md`): a folder layout, budgets, rules and a monthly report. Every reference file now
+  says the same, and the roadmap .docx has a dated update for D90 and D91 (D92).

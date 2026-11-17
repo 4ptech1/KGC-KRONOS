@@ -94,6 +94,9 @@ and their proven specs, each with its VBA.
 - `docs/VBA_Forge_Project_Roadmap.docx`: phases, gates and design decisions. Its phase list is the
   plan of 14 Oct 2026; the current order of work is "Next" below and `docs/vcl-mvp-plan.md` (D73).
 - `docs/kronos-app.md`: the KGC KRONOS desktop app (item 5, D68 to D71).
+- `docs/ai-vba-plan.md`: our model writes the VBA from a proven recipe, and the VBA simulator proves it (item 7, D90).
+- `docs/kronos-storage-plan.md`: the new PC's 300 GB, KRONOS's home from March 2027: the layout, budgets, rules
+  and monthly report (item 8, D91; the reference files follow it, D92).
 
 ## Repo layout
 
@@ -138,7 +141,8 @@ packaging/           kronos.spec: the PyInstaller spec for KRONOS.exe (D79); the
                      three servers, licences/), offline_pins.json (the downloads, by SHA-256) and web/; its CI is
                      build-offline.yml, its test tools are in offline_test/
 web/                 KRONOS Offline's page: index.html, styles.css, app.js, worker.js (Pyodide), logo.svg (D86)
-(train/ and model/ arrive in March 2027)
+(train/ and model/ arrive in March 2027, as code only; the prepared datasets, the checkpoints and the weights stay
+ on the new PC's 300 GB, in KRONOS\train and KRONOS\models: weights never go into the repo, D91)
 ```
 
 ## Rules for code in this repo
@@ -375,9 +379,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    similar-recipe index); the model itself from March 2027.
 8. **The new PC's 300 GB, KRONOS's home from March 2027** (Boss, 17 Nov 2026; `docs/kronos-storage-plan.md`, D91): company
    storage, real data allowed, only Boss for now, reserved and filled as KRONOS grows, with a monthly report for his
-   manager. The plan (S0) is done. Before March: S1 `vclc drive init/report/check`, S2 KRONOS saving into `work`
-   (with KRONOS Offline Phase 3), S3 the simulator and memory writing to the drive, S4 the day-one kit; from March,
-   S5 to S8. Needed from Boss in March: the drive letter, the graphics card, IT's answers and backup.
+   manager. The plan (S0) is done, and every reference file follows it (D92). Before March: S1
+   `vclc drive init/report/check`, S2 KRONOS saving into `work` (with KRONOS Offline Phase 3), S3 the simulator and
+   memory writing to the drive, S4 the day-one kit; from March, S5 to S8. Needed from Boss in March: the drive
+   letter, the graphics card, IT's answers and backup.
 
 Update this section at the end of every session, and keep `docs/kgc-kronos-context.md` (the
 context file Boss gives to other Claude chats) in step with it: edit its sections 1 to 12 by hand,

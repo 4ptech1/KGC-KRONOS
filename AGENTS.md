@@ -17,8 +17,9 @@ If this folder came from a zip, `SNAPSHOT.txt` says which commit and date it is.
   calibration and similar.
 - **Boss** owns the project. He is learning and does no testing: plain words, brief, call him Boss.
 - **Claude Code** (in the cloud) builds, verifies and merges everything.
-- From March 2027 our own model, trained from zero on our proven pairs, will write VCL. The compiler stays the only
-  thing that writes VBA.
+- From March 2027 our own model, trained from zero on our proven pairs, will write VCL, and VBA that is used only when
+  it passes the recipe's TESTs in a VBA simulator; otherwise the compiler's VBA is used (D90). It lives on the new
+  PC's 300 GB, KRONOS's home, where the real records are kept in `KRONOS\work` (D91).
 
 ## Your three jobs (Boss chose all three, D83)
 
@@ -45,6 +46,8 @@ If this folder came from a zip, `SNAPSHOT.txt` says which commit and date it is.
 
 - **No real KGC data**, anywhere: no real names, drawing numbers, figures, customers or files. The repo is public, so
   everything is synthetic.
+- **Never open, read or copy anything in `KRONOS\work`** on the new PC: it holds real company records from March
+  2027 (D91), and no file is ever sent to an online AI (D69).
 - **Never weaken** a test, a check or a threshold to get to green.
 - **Never edit a spec just to make a check pass.** Specs are inputs: report the problem instead.
 - **Never write VBA by hand for a macro.** The compiler (`compiler/vcl_codegen.py`) writes all generated VBA; the
@@ -67,9 +70,10 @@ If this folder came from a zip, `SNAPSHOT.txt` says which commit and date it is.
 4. `vcl/orchestrator_prompt.txt`: what KRONOS sends Codex for every request.
 5. `DECISIONS.md`: every decision and its reason, D1 onwards.
 6. `docs/kronos-app.md` (the app's design) and `docs/kronos-app-guide.md` (Boss's setup guide).
-7. `docs/ai-plan.md`, `docs/corpus-plan.md` and `data/gaps.md`: the AI plan, the corpus plan, and what VCL or its
-   prompt could not say.
-8. `README.md`: the progress log.
+7. `docs/ai-plan.md`, `docs/ai-vba-plan.md`, `docs/corpus-plan.md` and `data/gaps.md`: the AI plan, how our model
+   will write the VBA (D90), the corpus plan, and what VCL or its prompt could not say.
+8. `docs/kronos-storage-plan.md`: the new PC's 300 GB, KRONOS's home from March 2027 (D91).
+9. `README.md`: the progress log.
 
 ## Where things are
 
