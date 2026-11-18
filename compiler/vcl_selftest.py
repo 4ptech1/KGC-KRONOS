@@ -40,6 +40,7 @@ CALLS = {
     "same_row_key": "ForgeSameRowKey({0}, {1})", "find": "SelfTestFind({0}, {1}, {2})",
     "sheet_name_ok": "ForgeSheetNameOk({0})",
     "text_ok": "ForgeIsTextOk({0})", "file_text": "SelfTestFileText({0})",
+    "order": "ForgeCompare({0}, {1})",
 }
 XL_ERRORS = {"#N/A": "xlErrNA", "#DIV/0!": "xlErrDiv0", "#VALUE!": "xlErrValue", "#REF!": "xlErrRef",
              "#NAME?": "xlErrName", "#NUM!": "xlErrNum", "#NULL!": "xlErrNull"}

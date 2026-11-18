@@ -198,9 +198,9 @@ class Gen:
                 ac, _ = self.as_num(a_t, prefer) if ak == "raw" else (ac, ak)
                 bc, _ = self.as_num(b_t, prefer) if bk == "raw" else (bc, bk)
             return f"({ac} {op} {bc})", "bool"
+        if ak in ("raw", "word", "text") and bk in ("raw", "word", "text"):   # S26 (D94)
+            return f"(ForgeCompare({ac}, {bc}) {op} 0)", "bool"
         prefer = "date" if "date" in (ak, bk) else None
-        if ak == bk == "text":
-            return f"({ac} {op} {bc})", "bool"
         ac, _ = self.as_num(a_t, prefer)
         bc, _ = self.as_num(b_t, prefer)
         return f"({ac} {op} {bc})", "bool"

@@ -34,6 +34,7 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S24 (VEP 0.4, D44) | `list_files` | LIST_FILES gives the names of the files directly in the folder that match the pattern, sorted by LOWER(name) and then by the name as written, so the order is the same on every PC. Hidden and system files are left out (D51; FIXTURE folders hold none). Here: from the names of the files in the folder. |
 | S25 (VEP 0.4, D45) | `text_ok` | text that READ_TEXT and WRITE_TEXT handle: printable ASCII (codes 32 to 126), tabs and line breaks, at most 32,767 characters. Any other character would read or write differently with each PC's code page. |
 | S25 (VEP 0.4, D45) | `file_text` | what READ_TEXT gives for a file's contents: the text with one final line break (CR LF, or LF) dropped, as editors add one; None when it isn't text (S25), which READ_TEXT reports as Not text. |
+| S26 (D94) | `order` | what <, >, <= and >= mean on two values from the workbook (cells, array elements, dictionary values, text from TRIM, UPPER, & and the like): -1, 0 or 1. Two values IS_NUMBER accepts compare as numbers, numbers typed as text too, so "9" is below "10"; two dates compare as dates; anything else compares as text (S6), character by character, case counting (capitals first), so "W-10" is below "W-9". The compiler calls ForgeCompare for exactly these comparisons. |
 
 ## Conformance cases
 
@@ -411,3 +412,18 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | "done: J-101" | True | printable ASCII |
 | "a\x0d\nb" | True | line breaks |
 | "€ 5" | False | the euro sign is not ASCII |
+
+### < > <= >= on workbook values (D94)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| "9", "10" | -1 | numbers typed as text compare as numbers |
+| " 10 ", 9 | 1 | a text number against a number |
+| "2.5", 2.5 | 0 | the same number, however typed |
+| -3, "-2" | -1 | negative numbers |
+| date 2026-10-15, date 2026-10-16 | -1 | two dates compare as dates |
+| "W-10", "W-9" | -1 | other text compares character by character |
+| "abc", "ABC" | 1 | case counts: capitals come first |
+| "", "a" | -1 | empty text comes first |
+| (empty), "0" | -1 | a blank cell is not 0: it compares as empty text |
+| "10 kg", "9 kg" | -1 | text that is not a plain number compares as text |

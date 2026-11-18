@@ -1090,6 +1090,10 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   = and <>    with text on either side they compare that text exactly (case and spaces
               count), so a cell holding 25 equals "25"; compare numbers or dates only after
               IS_NUMBER or IS_DATE
+  < > <= >=   two values IS_NUMBER accepts compare as numbers, numbers typed as text too
+              ("9" < "10" is TRUE); two dates compare as dates; anything else compares as
+              text, character by character, case counting ("W-10" < "W-9" is TRUE); so
+              guard with IS_NUMBER or IS_DATE first, as for any calculation
   SAME        compares TRIM(a) and TRIM(b) as text, ignoring case: SAME(" ready ", "READY")
               and SAME(25, "25") are TRUE, SAME(25, "25.0") is FALSE; an error is SAME as its
               text, so check IS_ERROR first when that matters
@@ -3209,6 +3213,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D91 | 17 Nov 2026 | **The new PC's 300 GB is KRONOS's home from March 2027 (`docs/kronos-storage-plan.md`).** Boss: his manager gave him 300 GB to be used entirely for KRONOS. He answered: (1) it is the disk of the new PC that arrives in March 2027, the PC that trains our model; (2) it is company storage, so real data may live there: real KRONOS runs, before-and-after copies of real workbooks, and a private library of real proven recipes, never in the public repo or a Claude Code session; (3) only Boss uses it for now; (4) "entirely for KRONOS" means reserved for KRONOS and filled as KRONOS grows, with a budget per purpose and a monthly report for his manager. **Measured today:** a KRONOS run is 84 KB, KRONOS Offline 20 MB unzipped, KRONOS.exe 14 MB, the recipe library under 3 MB, the repo 24 MB: well under 0.1 GB, so the 300 GB is filled by training our model (datasets, checkpoints, released models), by the workbook records and by offline copies and backups. **The plan:** one `KRONOS` folder with `apps`, `repo` (public only), `work` (real data: `runs`, `books`, `recipes`, `practice`), `memory`, `sim`, `train` (`data`, `runs`), `models`, `mirror`, `backup` and `reports`, short names because of Windows' 260-character paths; budgets that add up to 300 GB with 30 GB always kept free (`work\books` 50 GB, `train\runs` 100 GB, `train\data` 40 GB, the rest smaller), each a ceiling, not a target; the expected fill (about 12 GB on day one, about 150 GB by the end of 2027). **My conservative choices:** KRONOS never deletes real records (runs, workbook records, the private recipes, practice results, released models, reports); only what it can make again is thinned by fixed rules (each training run keeps its best and last 3 checkpoints, older runs their final weights; the last 3 datasets; 52 weekly backups; the last 2 versions of each tool); a model trained on real data stays on that PC and in company backup, and the public repo never gets weights; training refuses to start a run that would eat into the 30 GB reserve; SHA-256 lists for the apps, the models, the tools and every workbook record, checked monthly; the same-disk backups protect against mistakes only, so IT is asked to back up `work`, `models` and `reports`. **The work:** before March, S1 `vclc drive init/report/check` (`compiler/kronos_drive.py`), S2 KRONOS saving into `work` (with KRONOS Offline Phase 3), S3 the simulator and memory writing to the drive (D90), S4 a double-click setup and Boss's guide with a message for IT; from March, S5 day one, S6 training, S7 KRONOS using its own model on the PC, S8 the team later. Needed from Boss in March: the drive letter, the graphics card, IT's answer on Python, Git, PyTorch and the GPU driver, and IT's backup. |
 | D92 | 17 Nov 2026 | **The reference files follow D91 (Boss: "let this plan reflect in all reference files"; my choices, the conservative way).** (1) Where D69 to D71 say KRONOS later moves to "the company's storage drive (100 GB)", the reference files now say that from March 2027 KRONOS's home, with its real data, is the new PC's 300 GB (D91). D69 to D71 stay as written: a decision is history. (2) Where the team's shared folder (D71) goes, on the new PC's drive or on a shared company drive, is left to the team plan after the pilot (D91 S8). (3) On the new PC, KRONOS.exe's data folder is `KRONOS\work`, so its runs land in `work\runs` (D91 S2); on the work PC it stays `Documents\KGC KRONOS`. KRONOS Offline's History (Phase 3) is kept in the browser on the work PC, and on the new PC it also saves each run into `work\runs` and each workbook change into `work\books`. (4) AGENTS.md: Codex never opens or copies anything in `KRONOS\work`, because no file is sent to an online AI (D69); its line "the compiler stays the only thing that writes VBA" now follows D90, as do README.md's opening and VEP 0.6's principles. (5) The roadmap .docx gets a dated update, like the one for D68 to D71: D90, and KRONOS's 300 GB on the new PC (D91), which the storage plan fits training into (its PC table suggested a 2 TB disk). Its phase list stays the plan of 14 Oct 2026 (D73). | Every file a person or an AI reads now tells the same story. Keeping D69 to D71 as written, and leaving the team's storage to its own plan, decides nothing Boss hasn't. |
 | D93 | 18 Nov 2026 | **Stage A Phase 6, batch 5: c093 to c111 and c074 again, 15 of the 20 stored.** (1) I wrote the 20 requests and saved them first (`data/batches/batch_05.json`; flag 4 with c074, sheets_formulas 3, summarise 3, find_filter 2, rebuild 2, build 2, reconcile 2, clean 1, files 1; registers grn, welder_quals, itp, nde, ncr and dispatch first, the thin spots of D85). Six helpers, two at a time (D82), each given only `vcl/orchestrator_prompt.txt` and its own requests in a fresh copy of the toolchain, wrote the specs; for the first time they ran on Sonnet, as Boss's model advice allowed. I re-ran every pair through `corpus-add` myself. 15 are stored: 13 in `data/verified` and, held out, c093 (the first held-out sheets_formulas pair) and c109 (reconcile, itp and nde). The corpus has 106 of 150 pairs (96 verified, 10 held out). (2) **Not stored, five:** c074 again (three tries lost to FIXTURE layout, as in D85: its TESTs never ran); c098 (two layout tries, then V055 from a wrong-sheet TEST that swapped the source and output sheets); c106 (a BUILD at 83.9% after try 2, its fixes in try 3 stopped by a quoted date on `dates()`); c094 (a formula that must name the sheet 'Welder Quals', which no FIXTURE can have: a language gap, so the request returns changed); and c107, which passed every gate as one TASK of 39 OP lines while its family is build, which needs a BUILD: my request was too small for a BUILD, rule 9 was right, and I did not relabel it after seeing the answer. Their tries are kept in `data/repair/attempts/` as failures with no fix yet (c107's as tries that passed). c074 and c098 return with the new prompt wording; a larger build request and a sheets_formulas request replace c107 and c094. (3) 6 of the 20 passed first time, 7 on the second try and 2 on the third. 8 failed tries were FIXTURE layout only (`+boundary` against `values()`, `int()`, `seq()` and `dates()`): the prompt never says those rules, and this batch shows it plainly, so it heads the wording fixes. (4) The 15 pairs catch 348 of 352 catchable mutants, and 17 are named equivalent in 7 `meta.json` files. I read every claim against its spec and did not accept four: c101's loop start, c110's loop start and two in c109 (`LASTCOL($itp, 1)` to row 2, and SKIP_IF to EXIT_LOOP_IF, which only misses an NDE row on no ITP point) are real fixture gaps, recorded as such in the notes, and each pair still clears the 90% floor without them. The equivalents: row counters whose gap rows a SORT moves to the bottom, DICT_ADD seeds of 0 where a missing key reads 0, a `LET` before a DICT_GET that always sets it (c108), an exit test right after `LET(found, r)` with r at least 2 (c096), a blank-key SKIP_IF whose key no row looks up (c109) and a blank-status SKIP_IF that SAME already handles (c110). (5) **Found while preparing step 4:** the reference interpreter and the compiled VBA compared two numbers typed as text differently (D94, its own PR). (6) `data/gaps.md` grew by 7 language gaps, 8 wording problems and 3 tooling notes. (7) Cost: about 740,000 helper tokens (about 123,000 a helper), about 15 minutes of helper time, no usage limit reached. (8) The thin spots for batch 6 (`vclc corpus --report`): flag 21 of 30, summarise 17 of 25, build 12 of 20, reconcile 14 of 20; registers itp (8), nde, welder_quals, calibration, material_certs, wps_pqr and job_tracker (9 each). 44 pairs remain and 5 of the 15 held-out pairs are still to choose. | The corpus grows only through the same gates, a request that turns out to be the wrong size or impossible is recorded as that instead of being bent to fit, and a second reader checks every equivalence claim. |
+| D94 | 18 Nov 2026 | **`<`, `>`, `<=` and `>=` on two workbook values mean the same in the interpreter and in the VBA (S26, `ForgeCompare`).** Step 4 of Boss's list was "the first prompt fix: `<=` on numbers typed as text" (c074, c089, D82, D85). Looking for the right sentence, I found the cause was not only the wording: the reference interpreter compared two text values as text ("10" > "9" FALSE), but the compiler put two cell values through ForgeNum and compared numbers (TRUE). So a TEST could pass on an answer the macro would not give in Excel, whenever a spec compared two cells that both held numbers typed as text; for other text the two disagreed the other way (the VBA read "abc" and "abd" both as 0). **My choice, the conservative one:** one rule, written in `vcl/semantics.py` as `order` (S26) and in ForgeLib as `ForgeCompare`: two values IS_NUMBER accepts compare as numbers, numbers typed as text too; two dates as dates; anything else as text, character by character, case counting, as `=` already compares text. This is what a person means by "bigger" and what the VBA already did for text numbers, so no macro already saved gives a different answer for numbers. The compiler calls ForgeCompare whenever neither side is known to be a number or a date; the interpreter applies S26 when both values are text, and as before converts both sides when either is a number or a date (so an unguarded comparison of a number with "abc" still stops the TEST with R013 instead of guessing). 10 conformance cases, run in Excel by the self-test (`dist/forge_selftest.bas`), and `tests/test_order.py`, which fails on the old interpreter. spec.md and the prompt say it in SEMANTICS (no new syntax; the version line stays `VCL 0.6`; Boss pastes the prompt into the Orchestrator once, at the end of Phase 6). Every spec, example and corpus pair re-checks with the same results and the same mutation score. Remaining gap, written down: a FIXTURE column still can't hold numbers and text together (D66). | The TESTs are only worth what the macro does in Excel; a fix in the words alone would have kept a TEST that can pass on a wrong macro. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -3248,6 +3253,7 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S24 (VEP 0.4, D44) | `list_files` | LIST_FILES gives the names of the files directly in the folder that match the pattern, sorted by LOWER(name) and then by the name as written, so the order is the same on every PC. Hidden and system files are left out (D51; FIXTURE folders hold none). Here: from the names of the files in the folder. |
 | S25 (VEP 0.4, D45) | `text_ok` | text that READ_TEXT and WRITE_TEXT handle: printable ASCII (codes 32 to 126), tabs and line breaks, at most 32,767 characters. Any other character would read or write differently with each PC's code page. |
 | S25 (VEP 0.4, D45) | `file_text` | what READ_TEXT gives for a file's contents: the text with one final line break (CR LF, or LF) dropped, as editors add one; None when it isn't text (S25), which READ_TEXT reports as Not text. |
+| S26 (D94) | `order` | what <, >, <= and >= mean on two values from the workbook (cells, array elements, dictionary values, text from TRIM, UPPER, & and the like): -1, 0 or 1. Two values IS_NUMBER accepts compare as numbers, numbers typed as text too, so "9" is below "10"; two dates compare as dates; anything else compares as text (S6), character by character, case counting (capitals first), so "W-10" is below "W-9". The compiler calls ForgeCompare for exactly these comparisons. |
 
 #### Conformance cases
 
@@ -3626,6 +3632,21 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | "a\x0d\nb" | True | line breaks |
 | "€ 5" | False | the euro sign is not ASCII |
 
+##### < > <= >= on workbook values (D94)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| "9", "10" | -1 | numbers typed as text compare as numbers |
+| " 10 ", 9 | 1 | a text number against a number |
+| "2.5", 2.5 | 0 | the same number, however typed |
+| -3, "-2" | -1 | negative numbers |
+| date 2026-10-15, date 2026-10-16 | -1 | two dates compare as dates |
+| "W-10", "W-9" | -1 | other text compares character by character |
+| "abc", "ABC" | 1 | case counts: capitals come first |
+| "", "a" | -1 | empty text comes first |
+| (empty), "0" | -1 | a blank cell is not 0: it compares as empty text |
+| "10 kg", "9 kg" | -1 | text that is not a plain number compares as text |
+
 ## Appendix F: ForgeLib, the VBA runtime (`vba/ForgeLib.bas`)
 
 ```vba
@@ -3855,6 +3876,25 @@ Public Function ForgeEq(ByVal a As Variant, ByVal b As Variant) As Boolean
         ForgeEq = (ForgeText(a) = ForgeText(b))
     Else
         ForgeEq = (a = b)
+    End If
+End Function
+
+Public Function ForgeCompare(ByVal a As Variant, ByVal b As Variant) As Long
+    ' S26 (D94): <, >, <= and >= on two workbook values. Numbers (text numbers too) as numbers,
+    ' dates as dates, anything else as text, binary (case counts), the same on every PC.
+    Dim x As Double, y As Double
+    If ForgeIsNumber(a) And ForgeIsNumber(b) Then
+        x = ForgeNum(a): y = ForgeNum(b)
+    ElseIf ForgeIsDate(a) And ForgeIsDate(b) Then
+        x = CDbl(CDate(a)): y = CDbl(CDate(b))
+    Else
+        ForgeCompare = StrComp(ForgeText(a), ForgeText(b), vbBinaryCompare)
+        Exit Function
+    End If
+    If x < y Then
+        ForgeCompare = -1
+    ElseIf x > y Then
+        ForgeCompare = 1
     End If
 End Function
 
@@ -5496,7 +5536,7 @@ Run this only when you choose; nothing waits for it. It takes about 15 minutes.
 
 **What it proves:**
 1. ForgeLib, the VBA runtime every generated macro calls, behaves in Excel 2016 the way our
-   Python reference says (229 cases).
+   Python reference says (239 cases).
 2. The router spec (task_12, RouteJobPacks) does in Excel what its TESTs say.
 
 **Why it's safe:**
@@ -5546,11 +5586,11 @@ here.
 **5. Run the self-test.** Go back to Excel (click its window), press **Alt+F8**, click
 **ForgeSelfTest**, then **Run**.
 *Expected:*
-- A message says `ForgeLib self-test: 229 of 229 cases pass.`
+- A message says `ForgeLib self-test: 239 of 239 cases pass.`
 - A new sheet, ForgeSelfTest, has one row per case.
 
 Click cell **H4** on that sheet, press **Ctrl+C**, and paste it to Claude. It looks like
-`SELFTEST 229/229 FAILED: none`.
+`SELFTEST 239/239 FAILED: none`.
 
 **6. Run the router pilot.** Press **Alt+F8**, click **ForgePilotRun**, then **Run**.
 (If a message says it runs only in a new, empty workbook, this workbook has something else in it: go back to step 1

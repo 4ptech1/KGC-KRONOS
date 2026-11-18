@@ -274,6 +274,10 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
   = and <>    with text on either side they compare that text exactly (case and spaces
               count), so a cell holding 25 equals "25"; compare numbers or dates only after
               IS_NUMBER or IS_DATE
+  < > <= >=   two values IS_NUMBER accepts compare as numbers, numbers typed as text too
+              ("9" < "10" is TRUE); two dates compare as dates; anything else compares as
+              text, character by character, case counting ("W-10" < "W-9" is TRUE); so
+              guard with IS_NUMBER or IS_DATE first, as for any calculation
   SAME        compares TRIM(a) and TRIM(b) as text, ignoring case: SAME(" ready ", "READY")
               and SAME(25, "25") are TRUE, SAME(25, "25.0") is FALSE; an error is SAME as its
               text, so check IS_ERROR first when that matters
@@ -540,6 +544,16 @@ VCL 0.3 folder FIXTUREs: a file without `:<bytes>` gets 100 + below(900) bytes, 
 PRNG seeded with "<file>|<folder>|<path as written>|size", for example
 "router_01.xlsx|Dump|r3.pdf|size". Such a file holds that many "x" characters. A VCL 0.4
 file written `:"<text>"` holds exactly that text, with no PRNG draws.
+
+## Changes after VCL 0.6 (18 Nov 2026)
+
+No new syntax, and the version line stays `VCL 0.6`. Details and reasons: `DECISIONS.md` D94.
+
+- `<`, `>`, `<=` and `>=` on two values from the workbook have one meaning, in the interpreter and
+  in the VBA: numbers (numbers typed as text too) as numbers, dates as dates, anything else as
+  text (SEMANTICS, S26). Before, the interpreter compared two text values as text ("10" > "9" was
+  FALSE) while the compiled VBA compared numbers, so a TEST could pass on an answer Excel would not
+  give. ForgeLib gains ForgeCompare, and the self-test checks it in Excel.
 
 ## Changes in VCL 0.6 (21 Oct 2026)
 
