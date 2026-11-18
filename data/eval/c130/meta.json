@@ -1,0 +1,34 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c130",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 5,
+  "killed": 77,
+  "note": "Third try (tries 1 and 2 under the floor). 77 of 82; 5 equivalent: a blank-Job-ID SKIP_IF whose key \"\" no tracker row looks up, the On Hold row counter's start and step (the SORT closes the gaps), and mode and value of a dictionary only EXISTS reads.",
+  "total": 82
+ },
+ "op_lines": 53,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "COPY_ROW",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT"
+ ],
+ "registers": [
+  "job_tracker",
+  "ncr"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

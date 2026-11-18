@@ -64,4 +64,5 @@ say goes to `data/gaps.md`.
 | 3 | c053 to c072 | stored (D82): 18 verified, 2 held out; the corpus has 72 of 150 pairs |
 | 4 | c073 to c092 | stored (D85): 17 verified, 2 held out; c074 did not pass its three tries and returns in batch 5; the corpus has 91 of 150 pairs |
 | 5 | c093 to c111, and c074 again | stored (D93): 13 verified, 2 held out; c074, c094, c098, c106 and c107 not stored; the corpus has 106 of 150 pairs |
-| 6 | c112 on, and c074 and c098 again | next, with the D94 wording: flag, summarise, build, reconcile; registers itp, nde, welder_quals, calibration, material_certs, wps_pqr and job_tracker; a sheets_formulas request in place of c094 and a larger build in place of c107 |
+| 6 | c112 to c130, and c074, c098 and c106 again | stored (D95): 14 verified, 3 held out; c074, c098 and c106 retired, c119 and c120 not stored; the corpus has 123 of 150 pairs |
+| 7 | c131 on, and c119 and c120 again | next: 27 pairs to finish the 150, 7 of them BUILDs whose steps can also run on their own, and 2 held out |
