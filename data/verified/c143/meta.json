@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "rebuild",
+ "id": "c143",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 27,
+  "note": "Third try. 27 of 29; 2 equivalent: the guard before the SORT, > to >= and 2 to 3, changes only whether 0 or 1 written rows are sorted.",
+  "total": 29
+ },
+ "op_lines": 15,
+ "ops": [
+  "CLEAR",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "consumables"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

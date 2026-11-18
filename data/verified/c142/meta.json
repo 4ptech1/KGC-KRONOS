@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "clean",
+ "id": "c142",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 24,
+  "note": "Third try. 24 of 26. The two survivors, the IS_ERROR skip deleted and turned into EXIT_LOOP_IF, are a real gap no FIXTURE can close (a cell can't hold an error value), not equivalent.",
+  "total": 26
+ },
+ "op_lines": 16,
+ "ops": [
+  "CASE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SELECT_CASE",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "bom"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

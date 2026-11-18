@@ -1,0 +1,5 @@
+FAIL test: TEST on line 40: ASSERT: COUNTIF(WeldLog![Weld Seam No], "w-2") = 0 is false (left 1, right 0)
+FAIL test: TEST on line 40: ASSERT: VALUE(WeldLog![Weld Seam No]3) = "W-3" is false (left "W-2", right "W-3")
+FAIL test: TEST on line 40: ASSERT: VALUE(WeldLog![Weld Seam No]4) = "W 4" is false (left "W-3", right "W 4")
+FAIL test: TEST on line 40: ASSERT: VALUE(WeldLog![Weld Seam No]8) = "W - 8" is false (left "  ", right "W - 8")
+FAIL test: TEST on line 41: ASSERT: RESULT = 10 is false (left 8, right 10)
