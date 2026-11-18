@@ -1,0 +1,1 @@
+Check the Weld Log (Weld Seam No, Welder ID, Process, Qual Check) against Welder Quals (Welder ID, Process, Expiry Date). In the Weld Log write No qual in Qual Check when the welder has no qualification for that process, and clear it on the others. Welder IDs and processes differ in case and stray spaces. Add the heading if it's missing, and tell me how many welds have no qual.

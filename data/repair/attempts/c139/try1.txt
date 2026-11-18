@@ -1,0 +1,2 @@
+layout: rewritten in the canonical layout
+FAIL check: line 49: warning SKIP_IF skips blank "Weld Seam No" cells, but FIXTURE sheet Log has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]

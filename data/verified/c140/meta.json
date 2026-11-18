@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c140",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 3,
+  "killed": 24,
+  "note": "Second try. 24 of 27; 3 equivalent: the blank-ITP SKIP_IF deleted only adds the key \"\", which no tracker row looks up (blank ones are skipped), and mode and value of a dictionary only EXISTS reads.",
+  "total": 27
+ },
+ "op_lines": 17,
+ "ops": [
+  "DICT_ADD",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "itp",
+  "ncr"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}
