@@ -38,6 +38,21 @@ def is_empty(v):
     return False
 
 
+def order(a, b):
+    """S26 (D94): what <, >, <= and >= mean on two values from the workbook (cells, array elements,
+    dictionary values, text from TRIM, UPPER, & and the like): -1, 0 or 1. Two values IS_NUMBER accepts
+    compare as numbers, numbers typed as text too, so "9" is below "10"; two dates compare as dates;
+    anything else compares as text (S6), character by character, case counting (capitals first), so
+    "W-10" is below "W-9". The compiler calls ForgeCompare for exactly these comparisons."""
+    if is_number(a) and is_number(b):
+        x, y = to_number(a), to_number(b)
+    elif is_date(a) and is_date(b):
+        x, y = a, b
+    else:
+        x, y = text_of(a), text_of(b)
+    return (x > y) - (x < y)
+
+
 def trim(v):
     """S2: text of v with whitespace (incl. non-breaking spaces) removed at both ends. VBA Trim only removes spaces."""
     return text_of(v).strip(WHITESPACE)

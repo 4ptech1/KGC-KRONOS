@@ -456,8 +456,8 @@ class Machine:
         if op in ("=", "<>"):
             eq = S.equals(a, b) if not (isinstance(a, str) or isinstance(b, str)) or True else None
             return eq if op == "=" else not eq
-        if isinstance(a, str) and isinstance(b, str):
-            x, y = a, b
+        if isinstance(a, str) and isinstance(b, str):   # S26 (D94): text numbers as numbers, else text
+            x, y = S.order(a, b), 0
         else:
             x, y = self.num(a), self.num(b)
         return {"<": x < y, ">": x > y, "<=": x <= y, ">=": x >= y}[op]

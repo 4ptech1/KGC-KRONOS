@@ -267,4 +267,15 @@ CASES = [
     ("text_ok", ["done: J-101"], True, "printable ASCII"),
     ("text_ok", ["a\r\nb"], True, "line breaks"),
     ("text_ok", ["\u20ac 5"], False, "the euro sign is not ASCII"),
+    # < > <= >= on workbook values (S26, D94)
+    ("order", ["9", "10"], -1, "numbers typed as text compare as numbers"),
+    ("order", [" 10 ", 9], 1, "a text number against a number"),
+    ("order", ["2.5", 2.50], 0, "the same number, however typed"),
+    ("order", [-3, "-2"], -1, "negative numbers"),
+    ("order", [D, dt.date(2026, 10, 16)], -1, "two dates compare as dates"),
+    ("order", ["W-10", "W-9"], -1, "other text compares character by character"),
+    ("order", ["abc", "ABC"], 1, "case counts: capitals come first"),
+    ("order", ["", "a"], -1, "empty text comes first"),
+    ("order", [None, "0"], -1, "a blank cell is not 0: it compares as empty text"),
+    ("order", ["10 kg", "9 kg"], -1, "text that is not a plain number compares as text"),
 ]

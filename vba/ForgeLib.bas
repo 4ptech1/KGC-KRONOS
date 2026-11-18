@@ -227,6 +227,25 @@ Public Function ForgeEq(ByVal a As Variant, ByVal b As Variant) As Boolean
     End If
 End Function
 
+Public Function ForgeCompare(ByVal a As Variant, ByVal b As Variant) As Long
+    ' S26 (D94): <, >, <= and >= on two workbook values. Numbers (text numbers too) as numbers,
+    ' dates as dates, anything else as text, binary (case counts), the same on every PC.
+    Dim x As Double, y As Double
+    If ForgeIsNumber(a) And ForgeIsNumber(b) Then
+        x = ForgeNum(a): y = ForgeNum(b)
+    ElseIf ForgeIsDate(a) And ForgeIsDate(b) Then
+        x = CDbl(CDate(a)): y = CDbl(CDate(b))
+    Else
+        ForgeCompare = StrComp(ForgeText(a), ForgeText(b), vbBinaryCompare)
+        Exit Function
+    End If
+    If x < y Then
+        ForgeCompare = -1
+    ElseIf x > y Then
+        ForgeCompare = 1
+    End If
+End Function
+
 ' ---- VCL 0.2 value functions: S5 and S12 to S16 ----
 
 Public Function ForgeIsError(ByVal v As Variant) As Boolean

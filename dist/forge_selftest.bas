@@ -24,7 +24,7 @@ Public Sub ForgeSelfTest()
     SelfTestPart5
     SelfTestPart6
     SelfTestFlush
-    total = 229
+    total = 239
     For r = 2 To total + 1
         If gWs.Cells(r, 6).Value = "PASS" Then
             passed = passed + 1
@@ -665,5 +665,25 @@ Private Sub SelfTestPart6()
     SelfTestCheck ForgeIsTextOk("a" & ChrW(13) & ChrW(10) & "b"), True
     SelfTestCase 229, "text_ok", "the euro sign is not ASCII"
     SelfTestCheck ForgeIsTextOk(ChrW(8364) & " 5"), False
+    SelfTestCase 230, "order", "numbers typed as text compare as numbers"
+    SelfTestCheck ForgeCompare("9", "10"), -1#
+    SelfTestCase 231, "order", "a text number against a number"
+    SelfTestCheck ForgeCompare(" 10 ", 9#), 1#
+    SelfTestCase 232, "order", "the same number, however typed"
+    SelfTestCheck ForgeCompare("2.5", 2.5), 0#
+    SelfTestCase 233, "order", "negative numbers"
+    SelfTestCheck ForgeCompare(-3#, "-2"), -1#
+    SelfTestCase 234, "order", "two dates compare as dates"
+    SelfTestCheck ForgeCompare(DateSerial(2026, 10, 15), DateSerial(2026, 10, 16)), -1#
+    SelfTestCase 235, "order", "other text compares character by character"
+    SelfTestCheck ForgeCompare("W-10", "W-9"), -1#
+    SelfTestCase 236, "order", "case counts: capitals come first"
+    SelfTestCheck ForgeCompare("abc", "ABC"), 1#
+    SelfTestCase 237, "order", "empty text comes first"
+    SelfTestCheck ForgeCompare("", "a"), -1#
+    SelfTestCase 238, "order", "a blank cell is not 0: it compares as empty text"
+    SelfTestCheck ForgeCompare(Empty, "0"), -1#
+    SelfTestCase 239, "order", "text that is not a plain number compares as text"
+    SelfTestCheck ForgeCompare("10 kg", "9 kg"), -1#
     SelfTestFlush
 End Sub
