@@ -1,0 +1,3 @@
+mutation: 16 of 17 caught (94.1%); the floor is 90% of the mutants that can be caught
+  survives: line 26: 2 -> 3
+PASS: 4 TESTs, lint-clean VBA, 16 of 17 mutants

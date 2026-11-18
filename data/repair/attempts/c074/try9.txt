@@ -1,0 +1,5 @@
+FAIL test: TEST on line 43: ASSERT: RESULT = 5 is false (left 4, right 5)
+FAIL test: TEST on line 43: ASSERT: COUNTIF(Wps![Remark], "Range?") = 5 is false (left 4, right 5)
+FAIL test: TEST on line 44: ASSERT: VALUE(Wps![Remark]7) = "Range?" is false (left blank, right "Range?")
+FAIL test: TEST on line 44: ASSERT: VALUE(Wps![Remark]8) = "" is false (left "Range?", right blank)
+FAIL test: TEST on line 44: ASSERT: VALUE(Wps![Remark]9) = "Range?" is false (left blank, right "Range?")

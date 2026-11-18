@@ -1,0 +1,1 @@
+In the Material Certs sheet (Heat No, MTC No, Grade, Received Date) highlight the whole row yellow when MTC No is blank and the Received Date is more than 14 days ago. Clear old row highlights first so it can be run again, and tell me how many rows I highlighted.

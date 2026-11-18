@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c115",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 17,
+  "note": "Second try (try 1: a +boundary count against values()); 17 of 17.",
+  "total": 17
+ },
+ "op_lines": 14,
+ "ops": [
+  "CLEAR",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE"
+ ],
+ "registers": [
+  "itp"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}
