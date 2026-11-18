@@ -1,0 +1,4 @@
+mutation: 28 of 30 caught (93.3%); the floor is 90% of the mutants that can be caught
+  survives: line 25: 1 -> 2
+  survives: line 28: step deleted
+PASS: 4 TESTs, lint-clean VBA, 28 of 30 mutants

@@ -1,0 +1,1 @@
+FAIL check: line 46: warning FIXTURE sheet Certs has no stale=<n> rows, so no TEST proves old rows are cleared (rule 19) [V055]

@@ -1,0 +1,1 @@
+For every job in the Job Tracker (Job ID, Status, Folder) that is not Closed, make a folder named after the Job ID inside the Jobs folder (a folder path I give the macro), with a Drawings folder inside it. Write Made, Already there or Bad name in Folder; leave Folder empty for Closed jobs. Never delete or overwrite anything.

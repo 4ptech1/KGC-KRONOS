@@ -1,0 +1,24 @@
+{
+ "accepted_warnings": [],
+ "family": "sheets_formulas",
+ "id": "c128",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 12,
+  "note": "First try; 12 of 12. Replaces c094: the formula names the sheet NCR, which has no space.",
+  "total": 12
+ },
+ "op_lines": 5,
+ "ops": [
+  "ADD_SHEET",
+  "EXIT_IF",
+  "RETURN",
+  "SET_FORMULA",
+  "SET_VALUE"
+ ],
+ "registers": [
+  "ncr"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

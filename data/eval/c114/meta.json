@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c114",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 41,
+  "note": "Third try. 41 of 42; 1 equivalent: LET(flagged, 0) at the start deleted, a Long starts at 0.",
+  "total": 42
+ },
+ "op_lines": 24,
+ "ops": [
+  "CLEAR",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "job_tracker"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

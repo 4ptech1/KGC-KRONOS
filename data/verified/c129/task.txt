@@ -1,0 +1,1 @@
+On the Material Certs sheet (Heat No, MTC No, Supplier) find the heat number I give the macro and write its MTC No in cell F1, or Not found when the heat isn't there. Tell me the row it is on, or 0.

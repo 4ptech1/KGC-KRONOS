@@ -79,8 +79,8 @@ From March 2027 our own model writes the VCL recipe from plain English and, by B
 
 ## Dataset count
 
-Dataset count: 106 proven pairs of the planned 150: 96 in `data/verified/` and 10 held out in
-`data/eval/` (D93).
+Dataset count: 123 proven pairs of the planned 150: 110 in `data/verified/` and 13 held out in
+`data/eval/` (D95).
 
 ## Progress log
 
@@ -384,4 +384,5 @@ Dataset count: 106 proven pairs of the planned 150: 96 in `data/verified/` and 1
   (D91, `docs/kronos-storage-plan.md`): a folder layout, budgets, rules and a monthly report. Every reference file now
   says the same, and the roadmap .docx has a dated update for D90 and D91 (D92).
 - **2026-11-18:** Corpus batch 5 (D93): 15 of 20 stored, 106 of 150 pairs; five did not pass or could not be said in
-  VCL and return or are replaced. Batch 5's helpers ran on Sonnet.
+  VCL and return or are replaced. Batch 5's helpers ran on Sonnet. `<`, `>`, `<=` and `>=` now mean the same in the
+  interpreter and the VBA (D94). Corpus batch 6 (D95): 17 of 22 stored, 123 of 150; c074, c098 and c106 retired.

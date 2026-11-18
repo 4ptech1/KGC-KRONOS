@@ -72,6 +72,13 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c105, c074 | a FIXTURE column that holds numbers and a text such as "n/a" (same as c034, c039, c051, c074) | a blank cell stands for "not a number"; c108 used text(3)+boundary("4", ...) for text numbers |
 | c095 | a number format for the column the spec writes without declaring the whole sheet in MODIFIES | ASSUMEs the cells are already formatted |
 | c107 | a request that says "tool, started with one macro" but fits one TASK of 39 OP lines: the family build needs a BUILD | not stored: the request was too small for a BUILD (rule 9 is right); a larger build request replaces it |
+| c074, c124 | a FIXTURE column with real numbers beside non-numeric text, or real dates beside text dates (same as c034, c105) | numbers typed as text are testable since D94; c124 uses a second fixture file for real dates |
+| c119 | one output row per pair of keys (supplier and grade): no composite key that can be split again | not stored; two dictionaries keyed on the joined text, rows written on first sight, two SORTs |
+| c126 | a TEST that sees an empty folder (FILE_EXISTS and FILE_COUNT see files only) | the folder's creation is proven only through the statuses the macro writes |
+| c127 | a TEST that checks what a formula shows (only its text can be checked, D43) | the formula's text is asserted; its IF logic is untested |
+| c128 | a FIXTURE sheet whose name has a space, so "if it isn't there yet" can't be shown with the sheet already there | runs=2 with ERROR_COUNT = 0 proves the second run adds nothing |
+| c129 | FIND in one column found by its heading (same as c087) | a loop over the column instead of FIND |
+| c106, c107 | a build request that one TASK of under 40 steps can do is answered with a TASK, which the corpus refuses for the family build | not stored; batch 7's build requests ask for steps that can also be run on their own |
 
 ## Wording of the prompt to fix
 
@@ -190,6 +197,16 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c101 | rule 19: "stale=<n>" | still does not say which rows get the stale fill (same as c075, c090) |
 | c108 | DICT_GET into= | does not say what the VAR holds when the key is missing (0 in the interpreter) |
 | c107 | SORT | does not say whether ties keep their order |
+| c074, c115, c117, c120, c124 | FIXTURE `+boundary` (same as D93's first row) | still the first fix: c074 lost its last tries to it, c120 did not pass because of it |
+| c098, c119 | rule 5: the wrong-sheet TEST | a swapped source and output sheet still triggers V055 (c098, a sixth try lost) and, when the output sheet has the input's headings, passes PRE (c119): say to pass a third sheet that lacks the headings |
+| c118, c119 | "Option names are reserved words: ... key ..." | easy to miss when naming a VAR; c119 lost a try to `key` |
+| c113 | FORMAT fill=none | nothing says it is how old highlights are cleared |
+| c114 | rule 14 | silent on a heading that may or may not be there (the COL = 0 branch) |
+| c116 | DICT_GET into= | still does not say what a missing key gives (same as c108) |
+| c126 | MAKE_FOLDER statuses | the request's three words cover only some of the statuses; nothing says how to map the rest |
+| c127 | SET_FORMULA style=r1c1 | does not say one CELL is a valid range (it is) or that RANGE needs a literal (same as c093) |
+| c124 | TEST assertions | nothing says how to check a date value (`VALUE(...) = "2026-03-15"` works) |
+| c130 | rule 23 | does not say that a callee whose count nobody reads should be a Sub; the unused count cost a try |
 
 ## Tooling notes (not the language)
 
@@ -209,3 +226,5 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c074, c098, c104, c105, c106, c110 | a FIXTURE layout problem still costs a whole try and shows one problem at a time (same as c060, c074): 8 of the batch's failed tries were layout only; a fixture check that lists every problem without using a try would help |
 | c101 | the survivor's line number is the line after `--fix` rewrote the layout |
 | c098 | V055 names the source sheet without saying the swapped wrong-sheet TEST caused it (same as c081) |
+| c074, c098, c106, c120 | layout problems one at a time, each costing a try (same as D93): four pairs lost tries to it again; V059 and V055 are given per fixture file, so a second file brings new warnings after a fix |
+| c106, c130 | survivor lines are those of the file `--fix` rewrote, and two same-line `2 -> 3` entries don't say which constant |

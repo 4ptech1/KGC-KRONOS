@@ -1,0 +1,5 @@
+FAIL test: TEST on line 37: ASSERT: COUNTIF(Cal![Next Calibration Due], ">0") = 3 is false (left 0, right 3)
+FAIL test: TEST on line 38: ASSERT: COUNTIF(Cal![Next Calibration Due], ">0") = PRE_COUNTIF(Cal![Next Calibration Due], ">0") + 3 is false (left 0, right 3)
+FAIL test: TEST on line 38: ASSERT: VALUE(Cal![Next Calibration Due]2) = 46096 is false (left 2026-03-15, right 46096)
+FAIL test: TEST on line 38: ASSERT: VALUE(Cal![Next Calibration Due]5) = 46113 is false (left 2026-04-01, right 46113)
+FAIL test: TEST on line 38: ASSERT: VALUE(Cal![Next Calibration Due]9) = 46812 is false (left 2028-02-29, right 46812)

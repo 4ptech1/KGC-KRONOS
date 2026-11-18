@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "find_filter",
+ "id": "c129",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 21,
+  "note": "First try. 21 of 23; 2 equivalent: LET(found, 0) at the start (a Long starts at 0), and EXIT_LOOP_IF found > 0 to > 1 right after LET(found, r) with r at least 2.",
+  "total": 23
+ },
+ "op_lines": 11,
+ "ops": [
+  "EXIT_LOOP_IF",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "material_certs"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

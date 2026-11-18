@@ -488,7 +488,7 @@ class Practice(unittest.TestCase):   # the practice run beside the saved module 
                 built += 1
                 self.assertEqual(why, "")
                 self.assertEqual(lint(module, public_helpers(FORGELIB)), [], path)
-        self.assertEqual(sorted(declined), ["c028", "c048"])   # ADD_SHEET and COPY_SHEET take a Workbook argument
+        self.assertEqual(sorted(declined), ["c028", "c048", "c128"])   # ADD_SHEET and COPY_SHEET take a Workbook argument
         for why in declined.values():
             self.assertTrue(why.startswith("its practice tests give the macro a whole workbook"), why)
         self.assertGreaterEqual(built, 55)

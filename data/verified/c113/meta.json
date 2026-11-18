@@ -1,0 +1,24 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c113",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 16,
+  "note": "First try; 16 of 17. The survivor, LASTCOL($ws, 1) to row 2, is a real fixture gap, not equivalent: row 2 can't be both highlighted and narrower than the header in this fixture (try 2 closed it and opened the loop start instead).",
+  "total": 17
+ },
+ "op_lines": 12,
+ "ops": [
+  "FORMAT",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN"
+ ],
+ "registers": [
+  "material_certs"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

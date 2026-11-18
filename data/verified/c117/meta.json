@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c117",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 37,
+  "note": "Second try. 37 of 38; 1 equivalent: the guard before the SORT, > to >=, which differs only for one written row.",
+  "total": 38
+ },
+ "op_lines": 20,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "consumables"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

@@ -1,0 +1,25 @@
+{
+ "accepted_warnings": [],
+ "family": "clean",
+ "id": "c123",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 11,
+  "note": "Second try; 11 of 11.",
+  "total": 11
+ },
+ "op_lines": 8,
+ "ops": [
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "job_tracker"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

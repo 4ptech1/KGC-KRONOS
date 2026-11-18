@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "clean",
+ "id": "c124",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 16,
+  "note": "Third try. 16 of 17. The survivor, SKIP_IF IS_DATE to EXIT_LOOP_IF, is a real gap no FIXTURE can close: a column can't hold a real date above a text date, so the two kinds are in two fixture files.",
+  "total": 17
+ },
+ "op_lines": 12,
+ "ops": [
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "calibration"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

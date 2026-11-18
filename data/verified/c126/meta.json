@@ -1,0 +1,28 @@
+{
+ "accepted_warnings": [],
+ "family": "files",
+ "id": "c126",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 36,
+  "note": "First try. 36 of 38; 1 equivalent: st = \"Created\" changed, since a job folder just created always gets its Drawings folder created too, so st2 = \"Created\" decides the same. The other, the SET_VALUE of a blocked Drawings status deleted, is a real fixture gap (no file named Drawings in a job folder).",
+  "total": 38
+ },
+ "op_lines": 22,
+ "ops": [
+  "CLEAR",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MAKE_FOLDER",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "job_tracker"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

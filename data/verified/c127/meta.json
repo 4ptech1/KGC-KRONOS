@@ -1,0 +1,23 @@
+{
+ "accepted_warnings": [],
+ "family": "sheets_formulas",
+ "id": "c127",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 8,
+  "note": "Third try; 8 of 8.",
+  "total": 8
+ },
+ "op_lines": 4,
+ "ops": [
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_FORMULA"
+ ],
+ "registers": [
+  "consumables"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

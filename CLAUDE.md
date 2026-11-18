@@ -290,13 +290,14 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    Boss pastes the new prompt once) and Phase 5 (the corpus tooling: `vclc corpus`, `corpus-add`,
    `export`; the 12 committed specs are the pairs `c001` to `c012` in `data/verified/`; the plan
    for the rest is `docs/corpus-plan.md`; D64) are done; Phase 6, the corpus to 150 tasks in
-   batches of about 20, is in progress (batches 1 to 5, c013 to c111, are stored: 106 pairs of 150, ten of
-   them held out; `data/gaps.md` logs what VCL could not say; D65, D66, D82, D85, D93). Batch 5 (Boss: "Complete
+   batches of about 20, is in progress (batches 1 to 6, c013 to c130, are stored: 123 pairs of 150, 13 of
+   them held out; `data/gaps.md` logs what VCL could not say; D65, D66, D82, D85, D93, D95). Batch 5 (Boss: "Complete
    3 and 4", 18 Nov 2026) stored 15 of 20; c074 and c098 failed on FIXTURE layout and return in batch 6, c106 (a
    BUILD under the floor) too, c094 needs a formula naming a sheet with a space (a language gap) and c107 was one
    TASK for a build request; replacements follow. Preparing step 4, the first prompt fix, showed that the
    interpreter and the compiled VBA compared numbers typed as text differently: D94 gives `<`, `>`, `<=` and `>=`
-   one meaning (S26, ForgeCompare) and says it in spec.md and the prompt. Batches 6 and 7 finish the 150, at most
+   one meaning (S26, ForgeCompare) and says it in spec.md and the prompt. Batch 6 stored 17 of 22 and retired c074,
+   c098 and c106 after three batches each (D95). Batch 7 finishes the 150, at most
    two helpers at once (D82), each reading every surviving mutant (D85); the other wording fixes in
    `data/gaps.md` (first the FIXTURE `+boundary` rules) come at the end of Phase 6, and Boss pastes the prompt
    once. No training before March 2027.
