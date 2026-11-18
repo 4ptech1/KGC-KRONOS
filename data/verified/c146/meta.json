@@ -1,0 +1,24 @@
+{
+ "accepted_warnings": [],
+ "family": "find_filter",
+ "id": "c146",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 7,
+  "note": "Second try; 7 of 7.",
+  "total": 7
+ },
+ "op_lines": 6,
+ "ops": [
+  "FILTER",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN"
+ ],
+ "registers": [
+  "weld_log"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}
