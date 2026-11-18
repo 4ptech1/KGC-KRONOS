@@ -1,0 +1,1 @@
+FAIL check: line 51: warning SKIP_IF skips blank "Job ID" cells, but FIXTURE sheet Tracker has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]

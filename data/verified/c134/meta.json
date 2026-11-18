@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c134",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 21,
+  "note": "Passed first time; 21 of 21.",
+  "total": 21
+ },
+ "op_lines": 12,
+ "ops": [
+  "CLEAR",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE"
+ ],
+ "registers": [
+  "weld_log"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

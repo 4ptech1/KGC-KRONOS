@@ -1,0 +1,1 @@
+From the Weld Log (Weld Seam No, Welder ID, Visual) make a Welder Visual sheet with each Welder ID, how many welds they made and how many were not Accepted, the most welds first. Welder IDs are typed with stray spaces; rows with no Welder ID are ignored. The sheet is rebuilt every run.
