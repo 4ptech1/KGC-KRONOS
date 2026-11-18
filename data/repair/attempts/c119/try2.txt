@@ -1,1 +1,1 @@
-FAIL check: line 46: warning FIXTURE sheet Certs has no stale=<n> rows, so no TEST proves old rows are cleared (rule 19) [V055]
+FAIL layout: the spec can't be formatted: B: +boundary uses " acme" 1 times, but values(...) has it 0 times

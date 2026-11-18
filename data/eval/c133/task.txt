@@ -1,0 +1,1 @@
+In the WPS Register (WPS No, Process, Thickness Min, Thickness Max, Remark) write Check range in Remark when Thickness Max is more than ten times Thickness Min, and clear it on the others. Rows where either thickness is blank, zero or not a number are left alone. The thicknesses are sometimes typed as text. Tell me how many I marked.

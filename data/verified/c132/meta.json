@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c132",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 25,
+  "note": "Third try (try 2 passed at 92%; try 3 closed its two survivors with a blank Welder ID mid-data). 25 of 25.",
+  "total": 25
+ },
+ "op_lines": 17,
+ "ops": [
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "welder_quals"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

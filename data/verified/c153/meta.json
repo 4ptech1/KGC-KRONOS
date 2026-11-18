@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c153",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 19,
+  "note": "Second try; 19 of 19.",
+  "total": 19
+ },
+ "op_lines": 11,
+ "ops": [
+  "CLEAR",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "wps_pqr"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

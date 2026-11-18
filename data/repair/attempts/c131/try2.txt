@@ -1,0 +1,5 @@
+FAIL test: TEST on line 38: ASSERT: RESULT = 3 is false (left 4, right 3)
+FAIL test: TEST on line 38: ASSERT: FILL_COUNT(Nde![Weld Seam No], #FF0000) = 3 is false (left 4, right 3)
+FAIL test: TEST on line 38: ASSERT: FILL_COUNT(Nde![Method], #FF0000) = 3 is false (left 4, right 3)
+FAIL test: TEST on line 40: ASSERT: FILL_COUNT(Nde![Weld Seam No]2, #FFFF00) = 0 is false (left 1, right 0)
+FAIL test: TEST on line 40: ASSERT: FILL_COUNT(Nde![Weld Seam No]4, #FFFF00) = 1 is false (left 0, right 1)
