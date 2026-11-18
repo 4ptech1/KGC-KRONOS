@@ -1,0 +1,1 @@
+Compare the Material Certs sheet (Heat No, MTC No, GRN Check) with the GRN sheet (GRN No, Part No, Heat No). In Material Certs write Not received in GRN Check for every heat that is on no GRN line, and the number of GRN lines for the others. Heat numbers differ in case and stray spaces. Add the heading if it's missing, and tell me how many heats were not received.

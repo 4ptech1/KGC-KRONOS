@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c122",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 28,
+  "note": "Second try. 28 of 30; 1 equivalent: the SKIP_IF for a blank GRN heat deleted only adds the key \"\", which no cert row looks up. The other, LASTCOL($certs, 1) to row 2, is a real fixture gap (both rows are as wide), not equivalent.",
+  "total": 30
+ },
+ "op_lines": 18,
+ "ops": [
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "material_certs",
+  "grn"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

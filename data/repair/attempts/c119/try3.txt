@@ -1,0 +1,2 @@
+FAIL test: TEST on line 50: ASSERT: RESULT = -1 is false (left 1, right -1)
+FAIL test: TEST on line 50: ASSERT: ERROR_COUNT = 1 is false (left 0, right 1)

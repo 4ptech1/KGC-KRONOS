@@ -1,0 +1,31 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c118",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 34,
+  "note": "Second try. 34 of 35; 1 equivalent: LET(total, 0) at the start deleted, a number starts at 0.",
+  "total": 35
+ },
+ "op_lines": 20,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "job_tracker"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}

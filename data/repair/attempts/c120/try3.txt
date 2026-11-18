@@ -1,0 +1,2 @@
+FAIL check: line 55: warning SKIP_IF skips blank "Dispatch No" cells, but FIXTURE sheet Dispatch has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]
+FAIL check: line 56: warning SKIP_IF skips blank "Job ID" cells, but FIXTURE sheet Tracker has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]
