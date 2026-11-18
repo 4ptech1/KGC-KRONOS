@@ -1,0 +1,1 @@
+In the Job Tracker (Job ID, Customer, Status, Percent Complete, Flag) write Check status in Flag when Percent Complete is 100 but the Status is not Complete, or the Status is Complete but Percent Complete is below 100. Clear the Flag on the others, add the Flag heading if it is missing, and tell me how many jobs I flagged.

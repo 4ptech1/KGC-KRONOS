@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c116",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 36,
+  "note": "Third try. 36 of 38; 2 equivalent: a DICT_ADD seed of 0 where a missing key reads 0, and the guard before the SORT, > to >=, which differs only for one written row.",
+  "total": 38
+ },
+ "op_lines": 21,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "calibration"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}
