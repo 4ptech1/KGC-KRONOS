@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "files",
+ "id": "c125",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 18,
+  "note": "First try. 18 of 20; 2 equivalent: the file-name dictionary is only read with EXISTS, and names in one folder are unique, so mode=keep to overwrite and its value 1 to 2 change nothing.",
+  "total": 20
+ },
+ "op_lines": 13,
+ "ops": [
+  "DICT_ADD",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LIST_FILES",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "calibration"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 6)"
+}
