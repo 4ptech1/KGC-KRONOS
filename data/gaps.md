@@ -65,6 +65,13 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c091 | rewrite a cell's text and keep its type (SET_VALUE of `UPPER(TRIM(cell))` turns a number into text) | compares first, `cell <> UPPER(TRIM(cell))`, and writes only when the text changes |
 | c090 | a TEST cannot read a number format (c061, c064: nor can a spec copy one) | relies on Excel showing a written date as a date on the rebuilt sheet |
 | c073, c088, c089, c090, c091, c092 | a TEST cannot see a MSG, and no TEST calls modMain.Run | "tell me how many" is proven only as the Function's RESULT; c075 and c077 left the MSG out |
+| c094 | a SET_FORMULA that names another sheet whose real name has a space ('Welder Quals'): the formula may only name a sheet every TEST workbook has, and FIXTURE sheet names cannot have spaces (same as c065's request side, D65) | not stored: three tries; a short sheet name would pass but give the real workbook a wrong formula |
+| c093 | SET_FORMULA over a range of variable length: RANGE takes only a quoted A1 text | a LOOP_ROWS with SET_FORMULA on each CELL, style=r1c1 |
+| c096 | return a value from inside a loop (whether RETURN leaves at once is not said; same as c087) | LET(found, r) then EXIT_LOOP_IF found > 0, which leaves two equivalent mutants |
+| c097 | a TEST that re-runs the macro with a different argument (runs=2 repeats the same call), and a Function that reads VISIBLE_COUNT | counts the visible rows again with SAME; the second-customer re-run is not proven |
+| c105, c074 | a FIXTURE column that holds numbers and a text such as "n/a" (same as c034, c039, c051, c074) | a blank cell stands for "not a number"; c108 used text(3)+boundary("4", ...) for text numbers |
+| c095 | a number format for the column the spec writes without declaring the whole sheet in MODIFIES | ASSUMEs the cells are already formatted |
+| c107 | a request that says "tool, started with one macro" but fits one TASK of 39 OP lines: the family build needs a BUILD | not stored: the request was too small for a BUILD (rule 9 is right); a larger build request replaces it |
 
 ## Wording of the prompt to fix
 
@@ -175,6 +182,14 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c085 | SAME | trims the ends only; that spaces inside a value need CLEAN_TEXT is nowhere in one place |
 | c083 | DICT_GET `into=<var>` | the Types text does not say what type the VAR needs for a value copied from a cell; the helper used Variant |
 | c077, c086 | LASTROW | nothing says which column to use when the tested column may be blank in the last rows; both used the key column on an ASSUME |
+| c074, c098, c105, c106, c110 | FIXTURE: "+boundary(v1,v2,...) the first data rows hold exactly these values" and "For values(...) the values move up, so the counts stay the same" | does not say that every boundary value must be in values(...) with the same count, that int() and num() boundaries take numbers only, that seq() takes numbers, or how a date boundary is written on dates() (bare yyyy-mm-dd; a quoted date is refused): eight tries were lost to it in this batch, and c106 and c098 did not pass because of it |
+| c098, c099 | rule 5: "add a wrong-sheet TEST that passes it" | swapping the source and output sheets makes the checker treat the source as a rebuilt sheet and ask for stale=<n> (V055); say to pass a third sheet |
+| c094 | SET_FORMULA: "it may name another sheet only when every TEST workbook has a sheet of that name" with "FIXTURE sheets have no spaces" | together they make a formula naming a real sheet with a space impossible, and nothing says to ask or NOTE instead |
+| c093 | RANGE(<ws>, "<A1 ref>") and "style=r1c1 writes the same text to every cell of the range" | suggest a range can be built with &; it must be a literal |
+| c099 | Dates: "TODAY + n and TODAY - n ... are dates" | does not say that date minus date gives whole days (it does) |
+| c101 | rule 19: "stale=<n>" | still does not say which rows get the stale fill (same as c075, c090) |
+| c108 | DICT_GET into= | does not say what the VAR holds when the key is missing (0 in the interpreter) |
+| c107 | SORT | does not say whether ties keep their order |
 
 ## Tooling notes (not the language)
 
@@ -191,3 +206,6 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c074, c076, c078, c080, c082 | a FIXTURE data mistake stops at the formatter (`vclc fmt`), reads like a layout problem, gives the column but no line, one problem at a time, and comes before any check or TEST: c074 lost two of its three tries this way (see c060) |
 | c081 | V055 names the FIXTURE line but not the TEST that made the sheet count as rebuilt |
 | c088, c090, c092 | modMain.Run's OP lines are not mutated; nothing says so |
+| c074, c098, c104, c105, c106, c110 | a FIXTURE layout problem still costs a whole try and shows one problem at a time (same as c060, c074): 8 of the batch's failed tries were layout only; a fixture check that lists every problem without using a try would help |
+| c101 | the survivor's line number is the line after `--fix` rewrote the layout |
+| c098 | V055 names the source sheet without saying the swapped wrong-sheet TEST caused it (same as c081) |

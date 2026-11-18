@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c104",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 4,
+  "killed": 43,
+  "note": "Second try. 43 of 47; 4 equivalent: two DICT_ADD seeds of 0 where a missing key reads 0, and the row counter's start and step, whose gap rows the SORT moves to the bottom.",
+  "total": 47
+ },
+ "op_lines": 24,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "itp"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 5)"
+}

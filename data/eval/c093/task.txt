@@ -1,0 +1,1 @@
+In the GRN sheet (GRN No, Part No, Ordered Qty, Received Qty, Receipt Status) put a formula in the Receipt Status column for every data row that shows Complete when Received Qty is at least Ordered Qty and Open otherwise. Excel 2016 only.

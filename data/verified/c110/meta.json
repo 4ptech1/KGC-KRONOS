@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "clean",
+ "id": "c110",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 22,
+  "note": "Second try. 22 of 24; 1 equivalent (the SKIP_IF for a blank Status: SAME of a blank with Open or Closed is FALSE anyway). The other survivor, the loop's from=2 to 3, is a real fixture gap: data row 1 already reads exactly Open.",
+  "total": 24
+ },
+ "op_lines": 14,
+ "ops": [
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "ncr"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 5)"
+}

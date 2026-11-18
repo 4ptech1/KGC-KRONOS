@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "rebuild",
+ "id": "c099",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 27,
+  "note": "Second try (try 1: V055, a wrong-sheet TEST that swapped the two sheets); 27 of 27.",
+  "total": 27
+ },
+ "op_lines": 13,
+ "ops": [
+  "CLEAR",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "welder_quals"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 5)"
+}

@@ -1,0 +1,9 @@
+mutation: 66 of 73 caught (90.4%); the floor is 90% of the mutants that can be caught
+  survives: line 44: step deleted
+  survives: line 44: 'SKIP_IF' -> 'EXIT_LOOP_IF'
+  survives: line 49: 2 -> 3
+  survives: line 54: 1 -> 2
+  survives: line 58: 1 -> 2
+  survives: line 62: 0 -> 1
+  survives: line 68: 1 -> 2
+PASS: 5 TESTs, lint-clean VBA, 66 of 73 mutants

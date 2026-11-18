@@ -1,0 +1,1 @@
+In the NCR Register (NCR No, Issue Date, Close Date, Days Open) put a formula in Days Open for every data row: Close Date minus Issue Date when there is a Close Date, otherwise today minus Issue Date. Excel 2016 only.

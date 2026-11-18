@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "find_filter",
+ "id": "c096",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 13,
+  "note": "Second try. 13 of 15; the 2 survivors are equivalent: EXIT_LOOP_IF found > 0 runs right after LET(found, r) with r at least 2, so '>' to '>=' and 0 to 1 exit the same way.",
+  "total": 15
+ },
+ "op_lines": 9,
+ "ops": [
+  "EXIT_IF",
+  "EXIT_LOOP_IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "welder_quals"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 5)"
+}

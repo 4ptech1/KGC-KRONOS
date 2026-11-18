@@ -1,0 +1,1 @@
+In the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date, Remark) write Late in Remark when the Actual Date is after the Planned Date, Overdue when there is no Actual Date and the Planned Date is before today, and clear the Remark on the others. Tell me how many are Late or Overdue together.

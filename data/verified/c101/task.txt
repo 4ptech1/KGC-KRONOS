@@ -1,0 +1,1 @@
+In the NCR Register (NCR No, Severity, Status, Disposition) colour the NCR No cell orange for every NCR that is Closed but has no Disposition. Take the old colour off the NCR No cells first so it can be run again, and tell me how many I coloured.

@@ -1,0 +1,1 @@
+In the GRN sheet (GRN No, Part No, Received Date, Received Qty, Inspection, Remark) write Inspection pending in Remark for every line received more than 7 days ago whose Inspection is blank, and clear the Remark on the others. Tell me how many lines are pending.

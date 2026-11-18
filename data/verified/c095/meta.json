@@ -1,0 +1,23 @@
+{
+ "accepted_warnings": [],
+ "family": "sheets_formulas",
+ "id": "c095",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 10,
+  "note": "Passed first time; 10 of 10.",
+  "total": 10
+ },
+ "op_lines": 6,
+ "ops": [
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_FORMULA"
+ ],
+ "registers": [
+  "ncr"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 5)"
+}

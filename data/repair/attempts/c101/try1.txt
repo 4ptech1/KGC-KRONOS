@@ -1,0 +1,4 @@
+FAIL test: TEST on line 33: ASSERT: RESULT = 5 is false (left 3, right 5)
+FAIL test: TEST on line 33: ASSERT: FILL_COUNT(Ncr![NCR No], #FFA500) = 5 is false (left 3, right 5)
+FAIL test: TEST on line 34: ASSERT: FILL_COUNT(Ncr![NCR No]1, #FFA500) = 1 is false (left 0, right 1)
+FAIL test: TEST on line 34: ASSERT: FILL_COUNT(Ncr![NCR No]10, #FFA500) = 1 is false (left 0, right 1)

@@ -1,0 +1,1 @@
+FAIL layout: the spec can't be formatted: FIXTURE data: values() takes "<text>"x<n>, ... , got '6x1,12x1,13x1,""x1,6x1,"n/a"x1,6x1,9x1,10x1,3x1'

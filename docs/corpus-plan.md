@@ -63,4 +63,5 @@ say goes to `data/gaps.md`.
 | 2 | c033 to c052 | stored (D66): 18 verified, 2 held out |
 | 3 | c053 to c072 | stored (D82): 18 verified, 2 held out; the corpus has 72 of 150 pairs |
 | 4 | c073 to c092 | stored (D85): 17 verified, 2 held out; c074 did not pass its three tries and returns in batch 5; the corpus has 91 of 150 pairs |
-| 5 | c093 on, and c074 again | next: sheets_formulas (5 of 10), find_filter (4 of 8), rebuild (7 of 10), then flag, summarise, build and reconcile; registers grn, itp and welder_quals, then nde, ncr and dispatch; at most two helpers at once (D82); KRONOS practice runs may add candidates |
+| 5 | c093 to c111, and c074 again | stored (D93): 13 verified, 2 held out; c074, c094, c098, c106 and c107 not stored; the corpus has 106 of 150 pairs |
+| 6 | c112 on, and c074 and c098 again | next, with the D94 wording: flag, summarise, build, reconcile; registers itp, nde, welder_quals, calibration, material_certs, wps_pqr and job_tracker; a sheets_formulas request in place of c094 and a larger build in place of c107 |

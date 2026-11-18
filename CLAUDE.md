@@ -290,13 +290,16 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    Boss pastes the new prompt once) and Phase 5 (the corpus tooling: `vclc corpus`, `corpus-add`,
    `export`; the 12 committed specs are the pairs `c001` to `c012` in `data/verified/`; the plan
    for the rest is `docs/corpus-plan.md`; D64) are done; Phase 6, the corpus to 150 tasks in
-   batches of about 20, is in progress (batches 1 to 4, c013 to c092, are stored: 91 pairs of 150, eight of
-   them held out; `data/gaps.md` logs what VCL could not say; D65, D66, D82, D85). c074 did not pass its three
-   tries and is not stored (`<=` compares numbers typed as text as text, the first prompt fix to make at the end
-   of Phase 6); it returns in batch 5. Batch 5, leaning on the thin families and registers (`vclc corpus --report`:
-   sheets_formulas 5 of 10, find_filter 4 of 8, rebuild 7 of 10; grn, itp and welder_quals), may run while the pilot
-   waits for IT, with at most two helpers at once (D82), each told to read every surviving mutant (D85); no training
-   before March 2027.
+   batches of about 20, is in progress (batches 1 to 5, c013 to c111, are stored: 106 pairs of 150, ten of
+   them held out; `data/gaps.md` logs what VCL could not say; D65, D66, D82, D85, D93). Batch 5 (Boss: "Complete
+   3 and 4", 18 Nov 2026) stored 15 of 20; c074 and c098 failed on FIXTURE layout and return in batch 6, c106 (a
+   BUILD under the floor) too, c094 needs a formula naming a sheet with a space (a language gap) and c107 was one
+   TASK for a build request; replacements follow. Preparing step 4, the first prompt fix, showed that the
+   interpreter and the compiled VBA compared numbers typed as text differently: D94 gives `<`, `>`, `<=` and `>=`
+   one meaning (S26, ForgeCompare) and says it in spec.md and the prompt. Batches 6 and 7 finish the 150, at most
+   two helpers at once (D82), each reading every surviving mutant (D85); the other wording fixes in
+   `data/gaps.md` (first the FIXTURE `+boundary` rules) come at the end of Phase 6, and Boss pastes the prompt
+   once. No training before March 2027.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,
