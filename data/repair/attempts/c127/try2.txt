@@ -1,0 +1,3 @@
+mutation: 7 of 8 caught (87.5%); the floor is 90% of the mutants that can be caught
+  survives: line 16: 1 -> 2
+FAIL mutation: under the floor unless the survivors above are truly equivalent (say why for each)
