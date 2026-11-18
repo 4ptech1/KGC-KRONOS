@@ -1,0 +1,1 @@
+In the NCR Register (NCR No, Department, Status) the Status cells are typed every which way. Make every status that reads open (any case, stray spaces) read exactly Open, and every one that reads closed or close read exactly Closed. Leave other statuses and blank cells alone, change no other column, and tell me how many cells I changed.

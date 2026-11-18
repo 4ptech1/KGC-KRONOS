@@ -1,0 +1,23 @@
+{
+ "accepted_warnings": [],
+ "family": "sheets_formulas",
+ "id": "c093",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 11,
+  "note": "Second try (try 1 built a RANGE from text, which VCL refuses); 11 of 11.",
+  "total": 11
+ },
+ "op_lines": 7,
+ "ops": [
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_FORMULA"
+ ],
+ "registers": [
+  "grn"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 5)"
+}

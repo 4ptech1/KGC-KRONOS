@@ -1,0 +1,2 @@
+FAIL test: TEST on line 84: ASSERT: VALUE(WelderQuals![Remark]5) = "Review" is false (left blank, right "Review")
+FAIL test: TEST on line 84: ASSERT: VALUE(WelderQuals![Remark]8) = "" is false (left "keep", right blank)

@@ -1,0 +1,25 @@
+{
+ "accepted_warnings": [],
+ "family": "find_filter",
+ "id": "c097",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 6,
+  "note": "Second try (try 1: the helper's own count); 6 of 6.",
+  "total": 6
+ },
+ "op_lines": 6,
+ "ops": [
+  "EXIT_IF",
+  "FILTER",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN"
+ ],
+ "registers": [
+  "dispatch"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 5)"
+}

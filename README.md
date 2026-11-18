@@ -79,8 +79,8 @@ From March 2027 our own model writes the VCL recipe from plain English and, by B
 
 ## Dataset count
 
-Dataset count: 91 proven pairs of the planned 150: 83 in `data/verified/` and 8 held out in
-`data/eval/` (D85).
+Dataset count: 106 proven pairs of the planned 150: 96 in `data/verified/` and 10 held out in
+`data/eval/` (D93).
 
 ## Progress log
 
@@ -383,3 +383,5 @@ Dataset count: 91 proven pairs of the planned 150: 83 in `data/verified/` and 8 
   against the recipe's own TESTs, else the compiler's. The new PC's 300 GB becomes KRONOS's home from March 2027
   (D91, `docs/kronos-storage-plan.md`): a folder layout, budgets, rules and a monthly report. Every reference file now
   says the same, and the roadmap .docx has a dated update for D90 and D91 (D92).
+- **2026-11-18:** Corpus batch 5 (D93): 15 of 20 stored, 106 of 150 pairs; five did not pass or could not be said in
+  VCL and return or are replaced. Batch 5's helpers ran on Sonnet.

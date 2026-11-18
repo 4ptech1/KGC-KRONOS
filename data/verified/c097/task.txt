@@ -1,0 +1,1 @@
+On the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date) hide every row whose Customer is not the customer name I give the macro, so only that customer's dispatches show. Names are typed in any case and with stray spaces. Tell me how many rows are visible below the headings; running it again for another customer must show that customer's rows.

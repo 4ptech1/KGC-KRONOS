@@ -1,0 +1,24 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c101",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 14,
+  "note": "Third try; 14 of 15. The survivor (line 22, the fill-clearing loop from=2 to 3) is a real fixture gap, not equivalent: data row 1 is coloured anyway, so skipping it can't show.",
+  "total": 15
+ },
+ "op_lines": 11,
+ "ops": [
+  "FORMAT",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN"
+ ],
+ "registers": [
+  "ncr"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 5)"
+}

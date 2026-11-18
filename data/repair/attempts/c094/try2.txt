@@ -1,0 +1,1 @@
+FAIL layout: the spec can't be formatted: SET_FORMULA names the sheet Welder Quals, which the TEST workbook quals_01.xlsx doesn't have: in Excel the formula would ask for a file (D51)
