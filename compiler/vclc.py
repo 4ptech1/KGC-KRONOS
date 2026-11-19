@@ -10,6 +10,8 @@
   python compiler/vclc.py corpus [--mutation] [--report]    check every request and spec pair in data/ (vcl_corpus.py)
   python compiler/vclc.py corpus-add --id ID --request FILE --spec FILE --registers a,b --family F   prove and store a pair
   python compiler/vclc.py export [-o FILE]                  the pairs as JSON Lines, with their VBA compiled fresh
+  python compiler/vclc.py datagen [-o DIR] [--today D] [--only ids]  repairs and contrast examples made from the pairs
+                                                   (vcl_datagen.py, D103)
   python compiler/vclc.py ask "<request>" [--ai codex|fake] ...  KGC KRONOS: a request to a proven module (kronos_engine.py)
   python compiler/vclc.py sim FILES... [--today D]   run each spec's compiled VBA in the VBA simulator on every TEST and
                                                    compare it with the interpreter (vba_check.py, D99)
@@ -168,7 +170,7 @@ def cmd_mutate(files, snapshot, today):
 
 def main(argv):
     if len(argv) < 2 or argv[1] not in ("check", "test", "build", "mutate", "all", "pilot-check", "fmt", "corpus",
-                                        "corpus-add", "export", "ask", "sim"):
+                                        "corpus-add", "export", "ask", "sim", "datagen"):
         print(__doc__)
         return 1
     cmd = argv[1]
@@ -178,6 +180,9 @@ def main(argv):
     if cmd in ("corpus", "corpus-add", "export"):
         import vcl_corpus
         return vcl_corpus.main(argv[1:])
+    if cmd == "datagen":   # Stage A Phase 7: the data generator (D103)
+        import vcl_datagen
+        return vcl_datagen.main(argv[2:])
     if cmd == "sim":   # D90 Phase 1: the compiled VBA in the VBA simulator against the interpreter (D99, D100)
         import vba_check
         return vba_check.main(argv[2:])
