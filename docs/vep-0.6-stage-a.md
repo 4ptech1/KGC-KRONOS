@@ -160,7 +160,9 @@ tokenizer, any training. Stage A only prepares the data and the scoreboard.
    the first batch of new requests is Phase 6's first PR.
 6. **Corpus to 150 (done: D65, D66, D82, D85, D93, D95, D96):** batches of about 20, each its own PR; the gap report
    grows. The 150 pairs, 15 held out, were complete on 19 Nov 2026.
-7. **The data generator (next, D101):** repairs, contrast pairs, paraphrases, the JSON Lines export.
+7. **The data generator (D101, D103):** part 1, `vclc datagen` (`compiler/vcl_datagen.py`): repairs from mutants
+   and from the helpers' failed tries, and contrast pairs, as JSON Lines in `dist/datagen/` (done, D103); part 2, the
+   paraphrases and their check (next).
 8. **The benchmark:** the 15 held-out items, contracts, `vclc bench`, the baseline. Boss's permitted KGC samples may
    shape realistic held-out tasks, with invented values (D101).
 
