@@ -18,6 +18,8 @@ import datetime as dt
 import math
 import re
 
+from vba_lint import VBA_RESERVED
+
 __all__ = ["Simulator", "VbaError", "VbaUnsupported", "EMPTY", "NULL", "NOTHING", "VDate", "VError", "VArray",
            "Workbook", "Worksheet", "Range"]
 
@@ -687,6 +689,8 @@ class Module:
                 if j == len(lines):
                     raise VbaUnsupported(f"{m[3]} has no End {m[2]}")
                 proc = Proc(m[3], m[2].lower(), _params(m[4]), m[5], (m[1] or "").lower() == "private")
+                for name in [proc.name] + [prm["name"] for prm in proc.params]:
+                    _not_reserved(name, n)
                 _Compiler(proc).build(lines[i + 1:j])
                 self.procs[proc.name.lower()] = proc
                 i = j + 1
@@ -698,10 +702,17 @@ class Module:
                 continue
             m = re.match(r"^(Public|Private|Dim|Global)\s+(.+)$", s, re.I)
             if m:
-                self.vars.extend(_dim_list(m[2]))
+                for decl in _dim_list(m[2]):
+                    _not_reserved(decl[0], n)
+                    self.vars.append(decl)
                 i += 1
                 continue
             raise VbaUnsupported(f"line {n}: module-level {s[:60]!r}")
+
+
+def _not_reserved(name, line):
+    if name.lower() in VBA_RESERVED:
+        raise VbaUnsupported(f"line {line}: {name} is a name VBA reserves, so Excel would not compile the module")
 
 
 def _params(text):
@@ -1041,6 +1052,8 @@ class _Compiler:
             return
         if low in ("dim", "static"):
             for name, typ, bounds, is_new in _dim_list(_tokens_text(toks[1:])):
+                if name.lower() in VBA_RESERVED:
+                    raise VbaUnsupported(f"{name} is a name VBA reserves, so Excel would not compile the module")
                 self.emit("dim", name, typ, bounds, is_new)
             return
         if low == "redim":
@@ -1471,6 +1484,29 @@ class Worksheet(VbaObject):
             raise VbaError(13, "Type mismatch")
         self.cells[(r, c)] = v
 
+    def shift_rows(self, row, step):
+        """Delete (step -1) or insert (step 1) the sheet row `row`: the rows below move. An inserted row takes
+        the formats of the row above it, as Excel's Insert does; ForgeInsertRow then clears them."""
+        def moved(d):
+            out = {}
+            for (r, c), v in d.items():
+                if step < 0 and r == row:
+                    continue
+                out[(r + step if r >= row + (1 if step < 0 else 0) else r, c)] = v
+            return out
+        above = {c: f for (r, c), f in self.formats.items() if r == row - 1} if step > 0 else {}
+        fills_above = {c: f for (r, c), f in self.fills.items() if r == row - 1} if step > 0 else {}
+        self.cells, self.formulas = moved(self.cells), moved(self.formulas)
+        self.fills, self.formats = moved(self.fills), moved(self.formats)
+        if step < 0:
+            self.hidden = {r - 1 if r > row else r for r in self.hidden if r != row}
+        else:
+            self.hidden = {r + 1 if r >= row else r for r in self.hidden}
+            for c, f in above.items():
+                self.formats[(row, c)] = f
+            for c, f in fills_above.items():
+                self.fills[(row, c)] = f
+
     def used_box(self):
         keys = set(self.cells) | set(self.formulas) | set(self.fills) | set(self.formats)
         if not keys:
@@ -1757,7 +1793,65 @@ class Range(VbaObject):
             return EMPTY
         if n == "autofit":
             return EMPTY
+        if n == "sort":
+            self.sort(named, args)
+            return EMPTY
+        if n == "delete":
+            if self.c1 != 1 or self.c2 != COLS:
+                raise VbaUnsupported("Delete of part of a row")
+            for _ in range(self.nrows()):
+                ws.shift_rows(self.r1, -1)
+            return EMPTY
+        if n == "insert":
+            if self.c1 != 1 or self.c2 != COLS:
+                raise VbaUnsupported("Insert of part of a row")
+            for _ in range(self.nrows()):
+                ws.shift_rows(self.r1, 1)
+            return EMPTY
         return super().get(sim, name, args, named)
+
+    def sort(self, named, args):
+        """Range.Sort as ForgeSort calls it: one key, MatchCase False, top to bottom. Excel's order: numbers and
+        dates, then text (case ignored), then FALSE and TRUE, then errors; blanks always last; a stable sort."""
+        ws = self.ws
+        key = named.get("key1", args[0] if args else MISSING)
+        if not isinstance(key, Range):
+            raise VbaUnsupported("Range.Sort without a Key1 cell")
+        order = to_long(named.get("order1", 1))
+        header = to_long(named.get("header", 2)) == 1
+        if to_long(named.get("orientation", 1)) != 1 or to_bool(named.get("matchcase", False)):
+            raise VbaUnsupported("Range.Sort other than top to bottom, case ignored")
+        first = self.r1 + (1 if header else 0)
+        cols = range(self.c1, self.c2 + 1)
+        rows = []
+        for r in range(first, self.r2 + 1):
+            rows.append({c: (ws.cells.get((r, c)), ws.formulas.get((r, c)), ws.fills.get((r, c)), ws.formats.get((r, c)))
+                         for c in cols})
+
+        def rank(v):
+            if isinstance(v, bool):
+                return (2, v)
+            if isinstance(v, VError):
+                return (3, 0)
+            if isinstance(v, VDate):
+                return (0, v.serial)
+            if is_num(v):
+                return (0, v)
+            return (1, str(v).casefold())
+
+        kc = key.c1
+        filled = [i for i in range(len(rows)) if rows[i][kc][0] is not None]
+        empty = [i for i in range(len(rows)) if rows[i][kc][0] is None]
+        filled.sort(key=lambda i: rank(rows[i][kc][0]), reverse=(order == 2))
+        for offset, i in enumerate(filled + empty):
+            r = first + offset
+            for c in cols:
+                v, f, fill, fmt = rows[i][c]
+                for store, x in ((ws.cells, v), (ws.formulas, f), (ws.fills, fill), (ws.formats, fmt)):
+                    if x is None:
+                        store.pop((r, c), None)
+                    else:
+                        store[(r, c)] = x
 
     def _used_cells(self):
         keys = set(self.ws.cells) | set(self.ws.formulas) | set(self.ws.fills) | set(self.ws.formats)
@@ -2696,6 +2790,8 @@ class Simulator:
             return _date_parts(a[0]).second
         if low == "dateserial":
             return _dateserial(a)
+        if low == "rgb":
+            return to_long(a[0]) + to_long(a[1]) * 256 + to_long(a[2]) * 65536
         if low == "timeserial":
             return VDate((to_long(a[0]) * 3600 + to_long(a[1]) * 60 + to_long(a[2])) / 86400.0)
         if low == "date":

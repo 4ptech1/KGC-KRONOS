@@ -120,7 +120,8 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      kronos_book.py (an uploaded workbook: describe, run a proven recipe on it, write the copy, D87),
                      kronos_recipes.py (recipes read from .vcl/.txt/.md/.docx files, D89), kronos_wizard.py (the browser
                      wizard: KRONOS.exe's Run with copy and paste for the AI, D89), kronos_words.py (EXAMPLE, TIPS, NEVER),
-                     vba_sim.py (the VBA simulator: runs generated VBA without Excel, D90, D98)
+                     vba_sim.py (the VBA simulator: runs generated VBA without Excel, D90, D98), vba_check.py (the
+                     compiled VBA of every TEST in the simulator against the interpreter, D99)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
                      forge_pilot.bas are committed (builds/<NAME>.bas: one module per BUILD)
@@ -381,8 +382,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
 7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026; `docs/ai-vba-plan.md`, D90). Phase 0, the design,
    is done. Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes (Boss: "Complete 5", 19 Nov 2026), is
    in three parts: part 1, the language core, is done (D98: the ForgeLib self-test's 241 cases pass in it, and planted
-   bugs are caught); next, part 2 runs every compiled TASK on its TESTs' practice workbooks against the interpreter,
-   and part 3 adds files, BUILDs and `vclc sim` in CI; Phase 2, the VCL memory (request, VCL, VBA pairs and a
+   bugs are caught); part 2 is done (D99: every compiled TASK without folders, 130 in all, ends where the interpreter
+   does on every TEST, and it found and fixed two compiler bugs in task_09: a reserved name, `cDate`, and a date
+   where a number of days belongs); part 3 adds files, BUILDs and `vclc sim` in CI; Phase 2, the VCL memory (request, VCL, VBA pairs and a
    similar-recipe index); the model itself from March 2027.
 8. **The new PC's 300 GB, KRONOS's home from March 2027** (Boss, 17 Nov 2026; `docs/kronos-storage-plan.md`, D91): company
    storage, real data allowed, only Boss for now, reserved and filled as KRONOS grows, with a monthly report for his

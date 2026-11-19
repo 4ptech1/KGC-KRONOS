@@ -1672,7 +1672,7 @@ End Function
 '@VCL PROC=BuildOpenNcrSummary  source: task_09.vcl
 Public Function BuildOpenNcrSummary(ByVal ncr As Worksheet, ByVal out As Worksheet) As Long
           Dim cNcr As Long
-          Dim cDate As Long
+          Dim cDate_v As Long
           Dim cStatus As Long
           Dim lastCol As Long
           Dim outRow As Long
@@ -1690,7 +1690,7 @@ Public Function BuildOpenNcrSummary(ByVal ncr As Worksheet, ByVal out As Workshe
           Application.ScreenUpdating = False
           Application.Calculation = xlCalculationManual
 190       cNcr = ForgeCol(ncr, "NCR No")
-200       cDate = ForgeCol(ncr, "Issue Date")
+200       cDate_v = ForgeCol(ncr, "Issue Date")
 210       cStatus = ForgeCol(ncr, "Status")
 220       lastCol = ForgeLastCol(ncr, 1)
 230       ForgeUsedRange(out).Clear
@@ -1700,12 +1700,12 @@ Public Function BuildOpenNcrSummary(ByVal ncr As Worksheet, ByVal out As Workshe
 270       For r = 2 To ForgeLastRow(ncr, cNcr)
 280           If ForgeSame(ncr.Cells(r, cStatus).Value, "OPEN") Then
 290               ForgeCopyRow ncr, r, out, outRow, lastCol
-300               If ForgeIsDate(ncr.Cells(r, cDate).Value) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), (Date - ForgeNum(ncr.Cells(r, cDate).Value))
-310               If (Not ForgeIsDate(ncr.Cells(r, cDate).Value)) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), "Issue date missing"
+300               If ForgeIsDate(ncr.Cells(r, cDate_v).Value) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), (Date - CDate(ncr.Cells(r, cDate_v).Value))
+310               If (Not ForgeIsDate(ncr.Cells(r, cDate_v).Value)) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), "Issue date missing"
 320               outRow = (outRow + 1)
               End If
           Next r
-330       ForgeSort ForgeUsedRange(out), cDate, True, True
+330       ForgeSort ForgeUsedRange(out), cDate_v, True, True
 340       BuildOpenNcrSummary = (outRow - 2)
 341       GoTo CleanExit
 CleanExit:
@@ -1748,8 +1748,8 @@ Public Function BuildCalibrationDueList(ByVal cal As Worksheet, ByVal out As Wor
 280           status = ""
 290           If (Not ForgeIsDate(cal.Cells(r, cDue).Value)) Then status = "Due date missing"
 300           If ForgeIsDate(cal.Cells(r, cDue).Value) Then
-310               If (ForgeNum(cal.Cells(r, cDue).Value) < Date) Then status = "Overdue"
-320               If ((ForgeNum(cal.Cells(r, cDue).Value) >= Date) And (ForgeNum(cal.Cells(r, cDue).Value) <= (Date + 15))) Then status = "Due within 15 days"
+310               If (CDate(cal.Cells(r, cDue).Value) < Date) Then status = "Overdue"
+320               If ((CDate(cal.Cells(r, cDue).Value) >= Date) And (CDate(cal.Cells(r, cDue).Value) <= (Date + 15))) Then status = "Due within 15 days"
               End If
 330           If (Not ForgeIsEmpty(status)) Then
 340               ForgeCopyRow cal, r, out, outRow, lastCol
