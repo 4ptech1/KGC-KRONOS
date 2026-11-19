@@ -171,7 +171,7 @@ dist/forge_selftest.bas   committed: the ForgeLib self-test, every conformance c
 dist/forge_pilot.bas      committed: the Excel pilot of task_12; results checked by `vclc pilot-check` (D35)
 docs/excel-pilot.md       Boss's steps for the optional Excel pilot
 dist/forge_fixtures.bas, dist/procedures/, dist/expected/, dist/builds/<NAME>.bas (one module per BUILD)   rebuilt by vclc, git-ignored
-tests/                    697 unit tests; conformance_cases.py is shared with the docs
+tests/                    733 unit tests; conformance_cases.py is shared with the docs
 tests/data/specs_v01/     the 10 specs and Example 1 frozen as VCL 0.1 (migration proof)
 tests/data/task_01_pilot.vcl  task_01 as the Excel pilot ran it (pinned seed tests)
 docs/corpus-plan.md       the plan for the 150 request and spec pairs: registers, families, gates (D64)
@@ -395,7 +395,7 @@ of it. A spec outside this subset passes the validator but fails at test or buil
 cyan) or `#RRGGBB`. Each name is the colour of the VBA constant of that name (red = `#FF0000`), so
 `fill=red` and `fill=#FF0000` give the same result (D23, fixed in PR #18).
 
-## 8. Status (17 Nov 2026)
+## 8. Status (19 Nov 2026)
 
 **Roadmap Phase 0, Foundation (14 to 31 Oct 2026).** The roadmap .docx's later phases are the plan of 14 Oct;
 the order of work is section 9 (D73). Gate 0: all specs validate, type-check,
@@ -404,7 +404,7 @@ pass their TESTs in the interpreter, and compile to lint-clean VBA, in CI. **Thi
 | Measure | Now |
 | --- | --- |
 | Specs | 12 (task_01 to task_12): 11 in VCL 0.2, and task_12 (the router) in VCL 0.3 |
-| Unit tests | 697: all pass, except 6 that skip without a display or the Codex CLI |
+| Unit tests | 733: all pass, except 6 that skip without a display or the Codex CLI |
 | Validator | 0 errors; 1 known warning (task_04 has 48 OP lines, over the validator's 40, and 107 lines of VBA, over rule 9's ~60; accepted until March) |
 | Mutation score (snapshot) | 95.4% (418 of 438); task_12 catches 29 of 29; 19 of the 20 survivors are equivalent mutants (D14, D24) that no test can ever catch; 1 is a small fixture gap in task_11 (D24) |
 | VBA lint | 0 problems |
@@ -646,7 +646,8 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    (KRONOS.exe's own engine underneath), recipes read from .vcl, .txt, .md and Word .docx files (one, some or all), and
    several recipes made on one copy of a workbook. Published as the release `kronos-offline-v4` (main `4c119eb`).
    Version 5, the same day, only makes Cancel sure (the practice example's panel at once; KRONOS's words loaded again).
-   Published as the release `kronos-offline-v5` (main `62d66d4`), the copy Boss is handed. Next: Boss tries it, then
+   Published as the release `kronos-offline-v5` (main `62d66d4`), the copy Boss is handed; it works on his work PC
+   (18 Nov 2026, D101). Next, as version 6 (Boss's step 8), then
    Phase 3 (History, Help, the practice-run check, the corpus suggestion); on the new PC, History also saves each run
    and workbook change into `KRONOS\work` (D91 S2).
 7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026, D90, `docs/ai-vba-plan.md`). Phase 0, the
@@ -673,6 +674,10 @@ B before March (corpus, data generator, benchmark, growing VCL), C in March (tra
 from zero, grammar-constrained), D (repair; used once it passes enough of the benchmark), E
 (Boss's daily use).
 
+**Boss's ten steps (18 Nov 2026, D101):** 1 and 2 done by Boss; 3 to 5 done (the corpus, the prompt fixes, the VBA
+simulator); next 6 the data generator, then 7 the benchmark, 8 KRONOS Offline version 6, 9 storage S1, 10 the VCL
+memory and the day-one kit.
+
 **Pending Boss decisions right now:**
 0. Done on 18 Nov 2026 (Boss): KRONOS Offline version 5 works on the work PC, and the IT request and the prompt
    paste were done.
@@ -680,6 +685,8 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
    Python 3.11, Git, PyTorch and the GPU driver, and IT's backup of `KRONOS\work`, `KRONOS\models` and `KRONOS\reports`.
 1. Paste the updated VCL 0.6 prompt (`vcl/orchestrator_prompt.txt`, with D94's and D97's wording) into the
    Orchestrator Project's instructions, once, replacing the old text.
+1b. Share the permitted KGC samples after the data generator (step 6); they shape the benchmark and later batches,
+   and never go into the repo (D101).
 2. When, if ever, to run the optional Excel pilot (`docs/excel-pilot.md`).
 3. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
    skipped column A, no TEST would notice. Closing it needs a FIXTURE whose last row has a value
@@ -773,6 +780,8 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
   and fixed (`cDate`, a VBA reserved name, and a date written where a number of days belongs).
 - **D98:** the VBA simulator's core: the ForgeLib self-test passes in it, planted bugs are caught, and what it can't run is
   refused, never guessed; it found a conformance gap (no number below 1).
+- **D101:** Boss's report (KRONOS Offline v5 works on the work PC; the IT request is done), his ten steps (next: the
+  data generator), and KGC samples he has permission for: read to learn the registers' shape, never put in the repo.
 - **D91, D92:** from March 2027 KRONOS's home is the new PC's 300 GB of company storage
   (`docs/kronos-storage-plan.md`): one `KRONOS` folder, real data only in `work`, a budget per folder with 30 GB
   always free, and a monthly report for Boss's manager. KRONOS never deletes real records, and a model trained on
@@ -3256,6 +3265,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D98 | 19 Nov 2026 | **The VBA simulator, part 1: the language core, proven by the ForgeLib self-test (`compiler/vba_sim.py`, `tests/test_vba_sim.py`; D90 Phase 1, step 5 of Boss's list, "Complete 5").** The simulator runs, without Excel, the VBA that the compiler, ForgeLib and the self-test emit: a module is read into procedures, each a flat list of steps with jumps, so GoTo, line labels, Erl, On Error GoTo, On Error Resume Next and Resume work as VBA's do; values follow VBA's rules, not Python's (Variant subtypes, banker's rounding in CLng, `\` and Mod rounding first, Str leaving out the 0 before the point, Val skipping spaces, ByRef arguments by default, a Function's name as its return variable, Empty, Null and Nothing); Collection, Scripting.Dictionary (CompareMode), Err, Application and Debug are modelled; and a small Excel model keeps numbers as Doubles, text after an apostrophe as text, fills, number formats, hidden rows, End(xlUp), UsedRange and sheets. **The proof:** `dist/forge_selftest.bas`, the module Boss can paste into Excel, runs in the simulator with ForgeLib and every one of the 241 conformance cases passes, in half a second; eight bugs planted in ForgeLib (a non-breaking space no longer a space, a reversed ForgeCompare, a missing 0 before the point, 31/02 accepted, VBA's Mod for Excel's MOD, a sheet name of 32 characters, a lone CR dropped as a line break) each make cases fail, so it is not simply agreeing; and 19 tests pin VBA's documented rules one by one. **Found on the way:** one of those bugs survived at first, because no conformance case had a number below 1, so ForgeLib's own fix for VBA's Str (" .5") was never checked, not even by the Excel self-test. Two cases (0.5 and -0.25) close it; the self-test has 241 cases. **My choices:** (1) What the simulator does not run is refused with VbaUnsupported (With blocks, Kill, Shell and the other statements the linter bans, functions it doesn't know), never guessed; an Excel feature outside the model raises VBA error 438, so a macro that needs one fails loudly. (2) It reads text as an English Excel does ("." as the decimal point), the PC ForgeLib is written to be independent of. (3) File statements are read now and run by the file model in part 3. **Next:** part 2 runs every compiled TASK on its TESTs' practice workbooks and compares the final state with the interpreter's; part 3 adds files, BUILDs and `vclc sim` in CI. | Proof before use: the simulator is itself checked against VBA's rules and against bugs it must catch, before it is trusted to judge any macro. |
 | D99 | 19 Nov 2026 | **The VBA simulator, part 2: every compiled TASK runs on its TESTs' practice workbooks and ends where the interpreter does (`compiler/vba_check.py`, `tests/test_vba_check.py`); it found two compiler bugs, both fixed.** For every TEST of a spec: build the practice workbook from its FIXTURE lines (the one fixture generator), run the compiled procedure in the simulator with the TEST's arguments and runs=n, and compare with the interpreter's run of the same TEST: RESULT, ERROR_COUNT, the MSG and LOG texts, and every sheet's cells (as canonical text), fills, number formats and hidden rows. The simulator gained Excel's Range.Sort (numbers and dates, then text with case ignored, then booleans, then errors, blanks last, stable), row Delete and Insert, and RGB. **Result: 130 proven, 0 differences** (the 11 specs that have no folder, Example 1, and all 118 corpus TASKs without folders); the 36 with folder FIXTUREs or a BUILD wait for part 3 and are listed as skipped, never as proven. Four bugs planted in compiled VBA (a reversed SORT, a wrong RESULT, a wrong PRE result, a date where a number belongs) are each caught. **The two compiler bugs, both in task_09 and its corpus copy c009, which no one had run in Excel:** (1) the spec's variable `cDate` compiled to `Dim cDate As Long`, but CDate is a name VBA reserves, so Excel would have refused to compile the whole module: the compiler's list of reserved names lacked MS-VBAL's reserved names and special forms (CDate, CStr, Int, Len, Fix, LBound, UBound, Debug, Open, Print and the rest). The complete list now lives in `vba_lint.py`; the compiler imports it and renames such a variable (`cDate_v`), and the linter and the simulator both refuse a reserved name, so it can't come back unnoticed. (2) `TODAY - CELL(...)` on a cell guarded by IS_DATE compiled to `Date - ForgeNum(cell)`, which in VBA is a Date, so Excel would have shown 06/10/1900 where the recipe means 280 days. The compiler stored the guard's fact as `date` but looked for `Date`, so no IS_DATE guard ever reached the arithmetic; with the one word fixed it writes `Date - CDate(cell)`, a number of days, as the interpreter says. `dist/forge_module.bas` changes in 7 lines. No spec, TEST or mutation score changes: mutation works on VCL. | The proof found real bugs before anything ran in Excel, which is what it is for; the fixes are in the compiler, so every macro KRONOS writes gets them. |
 | D100 | 19 Nov 2026 | **The VBA simulator, part 3: files and BUILDs too, and `vclc sim` in CI; D90 Phase 1 is complete (step 5 of Boss's list).** The simulator gained Scripting.FileSystemObject (FolderExists, FileExists, GetAbsolutePathName, CreateFolder, CopyFile, GetFile, GetFolder().Files, CreateTextFile) and the Open, Get and Close statements ForgeReadRaw uses, all on the interpreter's own mock file system (`vcl_fixtures.MockFS`), with Windows' errors (53 file not found, 58 already exists, 70 a locked file, 76 path not found). It models Windows, not the interpreter: a copy keeps its source's text, a relative path is read from the PC's own folder. The checker runs a BUILD through its modMain.RunHeadless and compares the folders, files and texts as well as the sheets. **Result: 165 proven, 0 differences**: every committed spec, every example that runs TESTs and all 150 corpus pairs, the 17 BUILDs and 13 file pairs among them; only `build_example.vcl`, which doesn't parse on purpose, is skipped. Bugs planted in file and BUILD code (a wrong copy status, a copy that never happens, a wrong text file, a wrong read, a BUILD step that writes nothing) are each caught. `python compiler/vclc.py sim FILES...` runs it, and CI runs it on every spec, example and pair. **What is still not proven, and why it matters:** the simulator is a model, checked against VBA's documented rules, the ForgeLib self-test and planted bugs, not against Excel itself. The practice run in real Excel (D81) and the pilot remain the final word, and any difference they show is fixed in the simulator first. **Next for D90:** Phase 2, the VCL memory; from March 2027 the simulator is how our model's VBA is proven (`docs/ai-vba-plan.md`). | Every macro the compiler writes is now run, not only checked, before it reaches Excel. |
+| D101 | 19 Nov 2026 | **What Boss reported on 18 and 19 Nov 2026, his ten steps, and KGC samples.** (1) **Boss's report (18 Nov):** KRONOS Offline version 5 works on the work PC ("Tried and successful"), and step 2, asking IT for KRONOS.exe and the Codex CLI and pasting the prompt, was "Successful". Whether KRONOS.exe and the Codex CLI are now installed is not confirmed, so the pilot (KRONOS app Phase 4) still waits for that. (2) **Boss's ten steps (18 Nov), the order of work:** 1 try KRONOS Offline v5 and 2 the IT request and prompt paste (Boss, done); 3 and 4 the corpus to 150 and the prompt fixes (done: D93 to D97); 5 the VBA simulator (done: D98 to D100); next 6 the data generator (Stage A Phase 7), then 7 the benchmark (Phase 8), 8 KRONOS Offline version 6 (its Phase 3), 9 storage S1 (`vclc drive`), 10 the VCL memory (D90 Phase 2) and the day-one kit (storage S4). For model and effort Boss accepted my advice: Opus for design and review, Sonnet helpers for corpus specs (D93). Still for Boss: paste the updated prompt (D94, D97) into the Orchestrator Project; KRONOS.exe and KRONOS Offline carry the earlier prompt until new versions are published. (3) **KGC samples (19 Nov):** Boss offered KGC company document samples, "safe samples that I have taken permission for". This changes the standing rule that no real KGC file goes into Claude's prompts, for these permitted samples only, so I chose the careful reading: they may be read in a Claude Code session to learn the shape of KGC's registers and requests (sheet layouts, headings, how values are typed, what people ask); nothing from them goes into the public repo, its tests, specs, corpus or docs; recipes and FIXTUREs modelled on them use invented values in the same shape; and what was learnt is written down only in general words ("dates are often typed as text"). Timing: after step 6, because the data generator works only from the 150 proven pairs; they serve step 7 (held-out benchmark tasks that look like real registers) and the next corpus batches. Boss can widen or narrow this. | Boss's words are the record; the repo stays public and synthetic whatever is learnt from the samples. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4913,7 +4923,9 @@ and their proven specs, each with its VBA.
   (D69, D70). KRONOS Offline may also be given a real workbook to make a changed copy of it (D87,
   Boss, 16 Nov 2026): that happens in the browser on his PC, the original is never changed, the file
   never goes into the repo or into this Claude Code session, and what he copies from it into an AI
-  chat is his choice.
+  chat is his choice. Permitted KGC samples (D101, Boss, 19 Nov 2026) may be read in a Claude Code session to learn
+  the shape of the registers; nothing from them goes into the repo, its tests, specs, corpus or docs, and recipes
+  modelled on them use invented values.
   From March 2027 the company storage is the new PC's 300 GB, reserved for KRONOS (D91,
   `docs/kronos-storage-plan.md`): real data only under `KRONOS\work` (and what is trained on it), models trained
   on real data never leave that PC, and KRONOS never deletes real records.
@@ -5087,6 +5099,12 @@ label.
 Known: task_04 is bigger than a TASK should be: 48 OP lines (the validator warns above 40) and 107
 lines of VBA (rule 9: about 60); accepted for now, revisit in March.
 
+**Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
+paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98
+to D100); **next 6, the data generator** (Stage A Phase 7), then 7 the benchmark (Phase 8, with Boss's permitted KGC
+samples shaping realistic held-out tasks, D101), 8 KRONOS Offline version 6, 9 storage S1, 10 the VCL memory and the
+day-one kit. For Boss: paste the updated prompt (D94, D97) into the Orchestrator Project.
+
 Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
 1. The Job-Pack Router MVP, `docs/vep-0.3-file-ops.md` (approved by Boss): sandbox only, COPY_FILE
    first (no MOVE), VCL 0.3. Phase 0 (blank key rows) and Phase 1 (the language surface: the VCL
@@ -5156,10 +5174,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    TASK for a build request; replacements follow. Preparing step 4, the first prompt fix, showed that the
    interpreter and the compiled VBA compared numbers typed as text differently: D94 gives `<`, `>`, `<=` and `>=`
    one meaning (S26, ForgeCompare) and says it in spec.md and the prompt. Batch 6 stored 17 of 22 and retired c074,
-   c098 and c106 after three batches each (D95). Batch 7 and a top-up finished the 150 on 19 Nov 2026 (D96). Next:
-   the wording fixes are done too (D97: the FIXTURE `+boundary` rules, the wrong-sheet TEST, entry macros, and five
+   c098 and c106 after three batches each (D95). Batch 7 and a top-up finished the 150 on 19 Nov 2026 (D96). The
+   wording fixes are done too (D97: the FIXTURE `+boundary` rules, the wrong-sheet TEST, entry macros, and five
    smaller facts, in spec.md and the prompt together; Boss pastes the prompt once, with D94's line in it). Next:
-   Phase 7, the data generator. No training before March 2027.
+   Phase 7, the data generator (Boss's step 6), then Phase 8, the benchmark (step 7). No training before March 2027.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,
@@ -5191,8 +5209,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    with the tests (version 0.5, published, SHA-256 on its release page). The published 0.5 was checked again on 14 Nov 2026 (D84):
    the manual workflow `.github/workflows/check-release-exe.yml` downloads KRONOS.exe from a release, compares its SHA-256 and runs
    its `--self-test` on Windows; it passed. **Next: the pilot (Phase 4)**, once IT
-   approves KRONOS.exe and the Codex CLI; corpus batch 5 may run while the pilot waits for IT (batch 4 is stored, D85),
-   and the team version (Phase 5) follows the pilot. Still unproven, and what the pilot is for: Codex's
+   approves KRONOS.exe and the Codex CLI: Boss reported the IT request done on 18 Nov 2026 (D101), and the pilot starts
+   when both are installed on his PC (not yet confirmed); the team version (Phase 5) follows the pilot. Still unproven, and what the pilot is for: Codex's
    real reply to the Orchestrator prompt, and any macro running in real Excel. The parallel session is gone; this is the only session on the repo.
 6. **KRONOS Offline** (Boss decided on 14 Nov 2026; `docs/kronos-offline.md`, D86): KRONOS in the browser with nothing
    installed, so it can reach the locked-down PC while KRONOS.exe waits for IT. Boss unzips a folder and double-clicks
@@ -5235,7 +5253,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    is handed. Not proven until he tries it: the copy and paste with his real AI chats, his own recipe files, the work PC.
    Version 5 (the same day) only makes Cancel sure: the practice example's panel shows at once, and Cancel before KRONOS's
    words arrive loads them again. It is published as the release `kronos-offline-v5` (main `62d66d4`; SHA-256 `79fdb69c…`),
-   the copy Boss is handed. Next: Boss tries it; then Phase 3: History, the practice-run check, the corpus suggestion, Help.
+   the copy Boss is handed. Boss tried it on the work PC on 18 Nov 2026: it works (D101). Next (Boss's step 8): Phase 3,
+   History, the practice-run check, the corpus suggestion and Help, as version 6, with the prompt of D94 and D97.
 7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026; `docs/ai-vba-plan.md`, D90). Phase 0, the design,
    is done. Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes (Boss: "Complete 5", 19 Nov 2026), is
    in three parts: part 1, the language core, is done (D98: the ForgeLib self-test's 241 cases pass in it, and planted
@@ -5359,7 +5378,7 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    D64), and the corpus is complete: 150 of 150 pairs, 15 of them held out (D65, D66, D82, D85, D93, D95,
    D96); D94 made `<`, `>`, `<=` and `>=` mean the same in the interpreter and
    the VBA.
-7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
+7. **Dataset generator (next, Boss's step 6, D101):** tasks in plain English with their proven specs (and the compiler's
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
    carefully" training data the Phase 2 plan wanted. See `docs/ai-plan.md`, Stages A and B.
@@ -5380,7 +5399,8 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    hooks and the controller, 2b the window, 2c Settings, History, Help and the Recipe window, and 2d
    Suggest for the corpus are done; D75 to D78: the window is complete). Phase 3, KRONOS.exe built on
    Windows with its self-test, a release workflow and the guide, is done (D79). Next is the pilot
-   (Phase 4), once IT approves KRONOS.exe and the Codex CLI.
+   (Phase 4), once IT approves KRONOS.exe and the Codex CLI (the request is done, D101). Since D98 to D100
+   every compiled macro also runs in the VBA simulator against its TESTs (`vclc sim`).
 
 ### `docs/ai-plan.md`
 
@@ -5488,7 +5508,7 @@ proven specs; paraphrases and mutants help multiply them.
 
 | Stage | When | What |
 | --- | --- | --- |
-| A | Before March (cloud) | The `GOAL` line, the formatter and error codes; the 150-task corpus; the data generator; the benchmark |
+| A | Before March (cloud) | The `GOAL` line, the formatter and error codes; the 150-task corpus (done, D96); the data generator (next); the benchmark |
 | B | Before March (cloud) | Grow VCL from the NOTE count; grow the data to thousands of proven specs |
 | C | March 2027 (new PC) | A tokenizer and a small model trained from zero: English -> VCL, with grammar-constrained output |
 | D | After C | Add repair. The model is used only when it passes enough benchmark tasks; Claude stays the Orchestrator until then |
@@ -5837,9 +5857,11 @@ tokenizer, any training. Stage A only prepares the data and the scoreboard.
 5. **Corpus tooling and the first pairs (done: D64):** the layout, `vclc corpus`, `corpus-add`,
    `vclc export`, the 12 existing specs as pairs, and the plan for the 150 (`docs/corpus-plan.md`);
    the first batch of new requests is Phase 6's first PR.
-6. **Corpus to 150:** batches of about 20, each its own PR; the gap report grows.
-7. **The data generator:** repairs, contrast pairs, paraphrases, the JSON Lines export.
-8. **The benchmark:** the 15 held-out items, contracts, `vclc bench`, the baseline.
+6. **Corpus to 150 (done: D65, D66, D82, D85, D93, D95, D96):** batches of about 20, each its own PR; the gap report
+   grows. The 150 pairs, 15 held out, were complete on 19 Nov 2026.
+7. **The data generator (next, D101):** repairs, contrast pairs, paraphrases, the JSON Lines export.
+8. **The benchmark:** the 15 held-out items, contracts, `vclc bench`, the baseline. Boss's permitted KGC samples may
+   shape realistic held-out tasks, with invented values (D101).
 
 ##### Verification (every phase)
 

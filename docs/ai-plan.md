@@ -102,7 +102,7 @@ proven specs; paraphrases and mutants help multiply them.
 
 | Stage | When | What |
 | --- | --- | --- |
-| A | Before March (cloud) | The `GOAL` line, the formatter and error codes; the 150-task corpus; the data generator; the benchmark |
+| A | Before March (cloud) | The `GOAL` line, the formatter and error codes; the 150-task corpus (done, D96); the data generator (next); the benchmark |
 | B | Before March (cloud) | Grow VCL from the NOTE count; grow the data to thousands of proven specs |
 | C | March 2027 (new PC) | A tokenizer and a small model trained from zero: English -> VCL, with grammar-constrained output |
 | D | After C | Add repair. The model is used only when it passes enough benchmark tasks; Claude stays the Orchestrator until then |

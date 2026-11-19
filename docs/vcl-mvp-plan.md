@@ -99,7 +99,7 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    D64), and the corpus is complete: 150 of 150 pairs, 15 of them held out (D65, D66, D82, D85, D93, D95,
    D96); D94 made `<`, `>`, `<=` and `>=` mean the same in the interpreter and
    the VBA.
-7. **Dataset generator:** tasks in plain English with their proven specs (and the compiler's
+7. **Dataset generator (next, Boss's step 6, D101):** tasks in plain English with their proven specs (and the compiler's
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
    carefully" training data the Phase 2 plan wanted. See `docs/ai-plan.md`, Stages A and B.
@@ -120,4 +120,5 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    hooks and the controller, 2b the window, 2c Settings, History, Help and the Recipe window, and 2d
    Suggest for the corpus are done; D75 to D78: the window is complete). Phase 3, KRONOS.exe built on
    Windows with its self-test, a release workflow and the guide, is done (D79). Next is the pilot
-   (Phase 4), once IT approves KRONOS.exe and the Codex CLI.
+   (Phase 4), once IT approves KRONOS.exe and the Codex CLI (the request is done, D101). Since D98 to D100
+   every compiled macro also runs in the VBA simulator against its TESTs (`vclc sim`).

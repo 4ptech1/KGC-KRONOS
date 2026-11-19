@@ -158,9 +158,11 @@ tokenizer, any training. Stage A only prepares the data and the scoreboard.
 5. **Corpus tooling and the first pairs (done: D64):** the layout, `vclc corpus`, `corpus-add`,
    `vclc export`, the 12 existing specs as pairs, and the plan for the 150 (`docs/corpus-plan.md`);
    the first batch of new requests is Phase 6's first PR.
-6. **Corpus to 150:** batches of about 20, each its own PR; the gap report grows.
-7. **The data generator:** repairs, contrast pairs, paraphrases, the JSON Lines export.
-8. **The benchmark:** the 15 held-out items, contracts, `vclc bench`, the baseline.
+6. **Corpus to 150 (done: D65, D66, D82, D85, D93, D95, D96):** batches of about 20, each its own PR; the gap report
+   grows. The 150 pairs, 15 held out, were complete on 19 Nov 2026.
+7. **The data generator (next, D101):** repairs, contrast pairs, paraphrases, the JSON Lines export.
+8. **The benchmark:** the 15 held-out items, contracts, `vclc bench`, the baseline. Boss's permitted KGC samples may
+   shape realistic held-out tasks, with invented values (D101).
 
 ## Verification (every phase)
 
