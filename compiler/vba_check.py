@@ -1,15 +1,16 @@
-"""The compiler's VBA, run in the VBA simulator, against the reference interpreter (D90 Phase 1, part 2).
+"""The compiler's VBA, run in the VBA simulator, against the reference interpreter (D90 Phase 1, D99, D100).
 
 For every TEST of a spec: build the TEST's practice workbook from its FIXTURE lines (the one fixture
 generator, `vcl_fixtures.py`), run the compiled procedure on it in `vba_sim.py` as Excel would (the same
 arguments, runs=n times), and compare what VBA leaves with what the interpreter's run of the same TEST
 leaves (`vcl_interp.run_tests`): RESULT, ERROR_COUNT, the messages shown, and every sheet's cells (as
-canonical text), fills, number formats and hidden rows.
+canonical text), fills, number formats and hidden rows, and the mock file system's folders, files and
+texts. A BUILD runs through its modMain.RunHeadless, as the interpreter runs it.
 
-    python compiler/vba_check.py FILES... [--today YYYY-MM-DD]
+    python compiler/vclc.py sim FILES... [--today YYYY-MM-DD]     (or python compiler/vba_check.py ...)
 
-One line per difference, exit 1 when there is one. A spec the simulator can't run yet (folder FIXTUREs
-and BUILDs come in part 3) is listed as skipped, never counted as proven.
+One line per difference, exit 1 when there is one. A spec that runs no TESTs (one that doesn't parse, or a
+BUILD before VCL 0.5) is listed as skipped, never counted as proven.
 """
 import datetime as dt
 import sys
@@ -24,9 +25,9 @@ from lark import Token, Tree  # noqa: E402
 import semantics as S  # noqa: E402
 import vba_sim as V  # noqa: E402
 from errcodes import coded  # noqa: E402
-from vcl_codegen import assemble, compile_text  # noqa: E402
-from vcl_fixtures import build_workbooks  # noqa: E402
-from vcl_interp import entry_of, run_tests  # noqa: E402
+from vcl_codegen import assemble, compile_build, compile_text  # noqa: E402
+from vcl_fixtures import SANDBOX, build_folders, build_workbooks  # noqa: E402
+from vcl_interp import entry_of, files_of, run_tests, texts_of  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 
 __all__ = ["check_text", "Outcome"]
@@ -140,16 +141,14 @@ def check_text(text, name="spec", today=None, module=None):
     if problems or not spec:
         out.skipped = "it doesn't parse"
         return out
-    if spec["kind"] == "BUILD":
-        out.skipped = "a BUILD (part 3)"
+    if spec["kind"] == "BUILD" and spec.get("version") in ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4"):
+        out.skipped = "a BUILD before VCL 0.5 runs no TESTs (R044)"
         return out
     trees = [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]
-    if any("folder=" in k["text"] for k in spec["keys"] if k["key"] == "FIXTURE"):
-        out.skipped = "folder FIXTUREs (part 3)"
-        return out
     task, _, keys = entry_of(spec)
     proc = next(k["tree"] for k in task["keys"] if k["key"] == "PROC").children[0]
-    module = module if module is not None else assemble([compile_text(text, name)])
+    if module is None:
+        module = compile_build(text, name)[1] if spec["kind"] == "BUILD" else assemble([compile_text(text, name)])
     try:
         parsed = V.Module(module)
     except V.VbaUnsupported as e:
@@ -163,13 +162,17 @@ def check_text(text, name="spec", today=None, module=None):
         fixture, call_vals, runs = _test_parts(k["tree"])
         books = build_workbooks(trees, today)
         book = sim_book(fixture, {n: sh.snapshot() for n, sh in books.get(fixture, {}).items()})
-        sim = V.Simulator([parsed], today=today, book=book)
+        fs = build_folders(trees)[fixture].snapshot()
+        sim = V.Simulator([parsed], today=today, book=book, fs=fs)
         args = []
         for pname, v in zip(params, call_vals):
             if isinstance(v, Token) and v.type == "FILENAME":
                 args.append(book)
             elif isinstance(v, Token) and v.type == "NAME":
-                args.append(book.sheet(str(v)))
+                if any(ws.name == str(v) for ws in book.sheets):
+                    args.append(book.sheet(str(v)))
+                else:   # a FIXTURE folder (F6)
+                    args.append(SANDBOX + "\\" + str(v))
             elif isinstance(v, Token) and v.type == "STRING":
                 args.append(str(v)[1:-1].replace('""', '"'))
             else:
@@ -202,6 +205,12 @@ def check_text(text, name="spec", today=None, module=None):
             out.differences.append(coded(f"{where}: MSG shows {sim.messages!r} in VBA, {want_msgs!r} in the interpreter"))
         if want_logs != got_logs:
             out.differences.append(coded(f"{where}: LOG writes {got_logs!r} in VBA, {want_logs!r} in the interpreter"))
+        got_files, got_texts = files_of(fs), texts_of(fs)
+        if [tuple(f) for f in want.files] != got_files:
+            out.differences.append(coded(f"{where}: the files differ: {_first_difference_list(want.files, got_files)}"))
+        if [tuple(f) for f in want.texts] != got_texts:
+            out.differences.append(coded(f"{where}: the file texts differ: VBA has {got_texts!r}, "
+                                         f"the interpreter {[tuple(f) for f in want.texts]!r}"))
         got = state_of(book)
         for sheet in sorted(set(want.state) | set(got)):
             if sheet not in got or sheet not in want.state:
@@ -226,6 +235,13 @@ def _first_difference(want, got):
             if w.get(key) != g.get(key):
                 return f"at {key}: VBA has {g.get(key)!r}, the interpreter {w.get(key)!r}"
     return f"VBA has {list(got)[:6]!r}, the interpreter {list(want)[:6]!r}"
+
+
+def _first_difference_list(want, got):
+    want = [tuple(f) for f in want]
+    for w in sorted(set(want) ^ set(got)):
+        return f"{w!r} is only in {'the interpreter' if w in want else 'VBA'}"
+    return "the order differs"
 
 
 def main(argv):

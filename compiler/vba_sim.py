@@ -790,10 +790,12 @@ class _Compiler:
     def build(self, lines):
         for n, text in lines:
             stripped = text.strip()
-            m = re.match(r"^(\d+)\s+(.*)$", stripped)
+            m = re.match(r"^(\d+)(?:\s+(.*))?$", stripped)
             if m:   # a line number: Erl reports it
                 self.emit("line", int(m[1]))
-                stripped = m[2]
+                stripped = m[2] or ""
+                if not stripped:
+                    continue
             m = re.match(r"^([A-Za-z_]\w*):(?!=)\s*(.*)$", stripped)
             if m and m[1].lower() not in ("else",):
                 self.p.labels[m[1].lower()] = self.here()
@@ -1915,6 +1917,146 @@ class RangeCols(RangeRows):
         return super().get(sim, name, args, named)
 
 
+# ----------------------------------------------------------------------- files: Scripting.FileSystemObject
+
+class FileSystem(VbaObject):
+    """Scripting.FileSystemObject on a mock file system: any object with get, is_folder, is_file, add_folder,
+    add_file, text_of and files_in, as the interpreter's MockFS (vcl_fixtures.py). It behaves as Windows does:
+    errors 53 (file not found), 58 (already exists), 70 (permission denied, a locked file) and 76 (path not found)."""
+    vba_type = "FileSystemObject"
+
+    def __init__(self, fs):
+        self.fs = fs
+
+    @staticmethod
+    def absolute(path):
+        p = path.replace("/", "\\")
+        if not re.match(r"^[A-Za-z]:\\", p):
+            p = "C:\\Users\\Forge\\" + p   # a relative path: the PC's current folder, never the one written
+        drive, rest = p[:2], p[3:]
+        parts = []
+        for part in rest.split("\\"):
+            if part in ("", "."):
+                continue
+            if part == "..":
+                if parts:
+                    parts.pop()
+                continue
+            parts.append(part.rstrip(" ."))
+        return drive + "\\" + "\\".join(parts)
+
+    @staticmethod
+    def parent(path):
+        return path.rsplit("\\", 1)[0] if "\\" in path else ""
+
+    def get(self, sim, name, args, named):
+        n = name.lower()
+        fs = self.fs
+        if n == "folderexists":
+            return fs.is_folder(to_str(args[0]))
+        if n == "fileexists":
+            return fs.is_file(to_str(args[0]))
+        if n == "getabsolutepathname":
+            return self.absolute(to_str(args[0]))
+        if n == "createfolder":
+            path = to_str(args[0])
+            if fs.get(path) is not None:
+                raise VbaError(58, "File already exists")
+            if not fs.is_folder(self.parent(path)):
+                raise VbaError(76, "Path not found")
+            fs.add_folder(path)
+            return FileItem(self, path)
+        if n == "copyfile":
+            src, dst = to_str(args[0]), to_str(args[1])
+            overwrite = to_bool(args[2]) if len(args) > 2 and args[2] is not MISSING else True
+            source = fs.get(src)
+            if source is None or source["kind"] != "file":
+                raise VbaError(53, "File not found")
+            if not fs.is_folder(self.parent(dst)):
+                raise VbaError(76, "Path not found")
+            if fs.get(dst) is not None and not overwrite:
+                raise VbaError(58, "File already exists")
+            if source["locked"]:
+                raise VbaError(70, "Permission denied")
+            fs.add_file(dst, source["size"], text=source.get("text"))
+            return EMPTY
+        if n == "getfile":
+            path = to_str(args[0])
+            if not fs.is_file(path):
+                raise VbaError(53, "File not found")
+            return FileItem(self, path)
+        if n == "getfolder":
+            path = to_str(args[0])
+            if not fs.is_folder(path):
+                raise VbaError(76, "Path not found")
+            return FolderItem(self, path)
+        if n == "createtextfile":
+            path = to_str(args[0])
+            overwrite = to_bool(args[1]) if len(args) > 1 and args[1] is not MISSING else True
+            if to_bool(args[2]) if len(args) > 2 and args[2] is not MISSING else False:
+                raise VbaUnsupported("a Unicode text file")
+            if fs.get(path) is not None and (not overwrite or fs.is_folder(path)):
+                raise VbaError(58, "File already exists")
+            if not fs.is_folder(self.parent(path)):
+                raise VbaError(76, "Path not found")
+            if fs.is_file(path) and fs.get(path)["locked"]:
+                raise VbaError(70, "Permission denied")
+            fs.add_file(path, 0, text="")
+            return TextStream(self, path)
+        return super().get(sim, name, args, named)
+
+
+class FileItem(VbaObject):
+    vba_type = "File"
+
+    def __init__(self, fso, path):
+        self.fso, self.path = fso, path
+
+    def get(self, sim, name, args, named):
+        n = name.lower()
+        entry = self.fso.fs.get(self.path)
+        if n == "size":
+            return float(entry["size"] or 0)
+        if n == "name":
+            return entry["path"].rsplit("\\", 1)[-1]
+        if n == "path":
+            return entry["path"]
+        if n == "attributes":
+            return 0
+        return super().get(sim, name, args, named)
+
+
+class FolderItem(FileItem):
+    vba_type = "Folder"
+
+    def get(self, sim, name, args, named):
+        if name.lower() == "files":
+            files = Collection()
+            for nm in sorted(self.fso.fs.files_in(self.path), key=str.casefold):
+                files.items.append(FileItem(self.fso, self.path + "\\" + nm))
+                files.keys.append(None)
+            return files
+        return super().get(sim, name, args, named)
+
+
+class TextStream(VbaObject):
+    vba_type = "TextStream"
+
+    def __init__(self, fso, path):
+        self.fso, self.path, self.text, self.closed = fso, path, "", False
+
+    def get(self, sim, name, args, named):
+        n = name.lower()
+        if n == "write":
+            self.text += to_str(args[0])
+            self.fso.fs.add_file(self.path, len(self.text), text=self.text)
+            return EMPTY
+        if n == "close":
+            self.closed = True
+            return EMPTY
+        return super().get(sim, name, args, named)
+
+
 # ======================================================================= built-in functions
 
 CONSTANTS = {
@@ -2128,14 +2270,16 @@ class Frame:
 class Simulator:
     """Runs procedures of one or more modules, as one VBA project in one workbook."""
 
-    def __init__(self, modules, today=None, book=None, max_steps=20_000_000):
+    def __init__(self, modules, today=None, book=None, max_steps=20_000_000, fs=None):
         if isinstance(modules, str):
             modules = [modules]
         self.modules = [m if isinstance(m, Module) else Module(m, f"Module{i + 1}") for i, m in enumerate(modules)]
         self.today = today or dt.date.today()
         self.this_workbook = book or Workbook("Book1.xlsm")
-        if not self.this_workbook.sheets:
+        if book is None:
             self.this_workbook.add_sheet("Sheet1")
+        self.fso = FileSystem(fs) if fs is not None else None
+        self.open_files = {}
         self.err = ErrObject()
         self.app = Application()
         self.debug, self.messages = [], []
@@ -2350,7 +2494,53 @@ class Simulator:
         return None
 
     def file_statement(self, f, low, toks):
-        raise VbaUnsupported(f"file statement {low.title()} needs the file model")
+        """Open path For Binary Access Read Shared As #n, Get #n, , var, Close #n: the only file statements
+        ForgeLib uses (ForgeReadRaw), on the same mock file system as the FileSystemObject."""
+        words = [t.low if t.kind == "id" else t.val for t in toks]
+        if low == "open":
+            k = words.index("for")
+            path = to_str(self.eval(Parser(toks[1:k]).expr(), f))
+            if words[k + 1:k + 6] != ["binary", "access", "read", "shared", "as"]:
+                raise VbaUnsupported("Open other than For Binary Access Read Shared")
+            rest = toks[k + 6:]
+            if rest and rest[0].val == "#":
+                rest = rest[1:]
+            handle = to_long(self.eval(Parser(rest).expr(), f))
+            fs = self._fso().fs
+            if not fs.is_file(path):
+                raise VbaError(53, "File not found")
+            if fs.get(path)["locked"]:
+                raise VbaError(70, "Permission denied")
+            self.open_files[handle] = fs.text_of(path)
+            return
+        if low == "get":
+            parts = Parser(toks[1:])
+            if parts.at("#"):
+                parts.take()
+            handle = to_long(self.eval(parts.expr(), f))
+            parts.expect(",")
+            parts.expect(",")
+            target = parts._postfix()
+            if handle not in self.open_files:
+                raise VbaError(52, "Bad file name or number")
+            current = self.eval(target, f)
+            self.assign(target, self.open_files[handle][:len(to_str(current))], f, is_set=False)
+            return
+        if low == "close":
+            parts = Parser(toks[1:])
+            if parts.at("#"):
+                parts.take()
+            if parts.done():
+                self.open_files.clear()
+            else:
+                self.open_files.pop(to_long(self.eval(parts.expr(), f)), None)
+            return
+        raise VbaUnsupported(f"file statement {low.title()}")
+
+    def _fso(self):
+        if self.fso is None:
+            raise VbaUnsupported("a file operation, but the simulator has no mock file system")
+        return self.fso
 
     def _cond(self, node, f):
         v = self.eval(node, f)
@@ -2559,9 +2749,7 @@ class Simulator:
         if p == "scripting.dictionary":
             return Dictionary()
         if p == "scripting.filesystemobject":
-            if getattr(self, "fso", None) is None:
-                raise VbaUnsupported("Scripting.FileSystemObject needs a mock file system")
-            return self.fso
+            return self._fso()
         raise VbaUnsupported(f"CreateObject({progid!r})")
 
     # ---------------------------------------------------------------- operators
@@ -2790,6 +2978,13 @@ class Simulator:
             return _date_parts(a[0]).second
         if low == "dateserial":
             return _dateserial(a)
+        if low == "freefile":
+            return max(self.open_files, default=0) + 1
+        if low == "lof":
+            n = to_long(a[0])
+            if n not in self.open_files:
+                raise VbaError(52, "Bad file name or number")
+            return len(self.open_files[n])
         if low == "rgb":
             return to_long(a[0]) + to_long(a[1]) * 256 + to_long(a[2]) * 65536
         if low == "timeserial":

@@ -23,6 +23,8 @@ jobs:
         run: python compiler/validator.py specs/*.vcl
       - name: Check, test and build every spec
         run: python compiler/vclc.py all specs/*.vcl -o dist
+      - name: The compiled VBA runs in the VBA simulator and ends where the interpreter does (D99, D100)
+        run: python compiler/vclc.py sim specs/*.vcl vcl/examples/*.vcl data/verified/*/spec.vcl data/eval/*/spec.vcl
       - name: The committed dist/ modules are up to date
         run: |
           for f in dist/forge_module.bas dist/forge_selftest.bas dist/forge_pilot.bas; do

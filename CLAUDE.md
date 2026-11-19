@@ -384,8 +384,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    in three parts: part 1, the language core, is done (D98: the ForgeLib self-test's 241 cases pass in it, and planted
    bugs are caught); part 2 is done (D99: every compiled TASK without folders, 130 in all, ends where the interpreter
    does on every TEST, and it found and fixed two compiler bugs in task_09: a reserved name, `cDate`, and a date
-   where a number of days belongs); part 3 adds files, BUILDs and `vclc sim` in CI; Phase 2, the VCL memory (request, VCL, VBA pairs and a
-   similar-recipe index); the model itself from March 2027.
+   where a number of days belongs); part 3 is done (D100: files and BUILDs too, so all 165 specs, examples and
+   corpus pairs with TESTs end where the interpreter does, and `vclc sim` runs in CI). **Phase 1 is complete.**
+   Next: Phase 2, the VCL memory (request, VCL, VBA pairs and a similar-recipe index); the model itself from
+   March 2027.
 8. **The new PC's 300 GB, KRONOS's home from March 2027** (Boss, 17 Nov 2026; `docs/kronos-storage-plan.md`, D91): company
    storage, real data allowed, only Boss for now, reserved and filled as KRONOS grows, with a monthly report for his
    manager. The plan (S0) is done, and every reference file follows it (D92). Before March: S1

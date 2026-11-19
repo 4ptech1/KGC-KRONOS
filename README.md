@@ -392,3 +392,5 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   The VBA simulator, part 1 (D98): `compiler/vba_sim.py` runs generated VBA without Excel; the ForgeLib self-test's
   241 cases pass in it, and bugs planted in ForgeLib are caught. Part 2 (D99): every compiled TASK without folders
   (130) runs on its TESTs and ends where the interpreter does; it found two compiler bugs in task_09, now fixed.
+  Part 3 (D100): files and BUILDs too, all 165 specs, examples and pairs; `python compiler/vclc.py sim` in CI.
+  D90 Phase 1 is complete.

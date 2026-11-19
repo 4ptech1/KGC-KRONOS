@@ -11,6 +11,8 @@
   python compiler/vclc.py corpus-add --id ID --request FILE --spec FILE --registers a,b --family F   prove and store a pair
   python compiler/vclc.py export [-o FILE]                  the pairs as JSON Lines, with their VBA compiled fresh
   python compiler/vclc.py ask "<request>" [--ai codex|fake] ...  KGC KRONOS: a request to a proven module (kronos_engine.py)
+  python compiler/vclc.py sim FILES... [--today D]   run each spec's compiled VBA in the VBA simulator on every TEST and
+                                                   compare it with the interpreter (vba_check.py, D99)
 
 Options: -o DIR (default dist) and --today YYYY-MM-DD, which pins TODAY for test, build and
 mutate runs (default: the real date).
@@ -166,7 +168,7 @@ def cmd_mutate(files, snapshot, today):
 
 def main(argv):
     if len(argv) < 2 or argv[1] not in ("check", "test", "build", "mutate", "all", "pilot-check", "fmt", "corpus",
-                                        "corpus-add", "export", "ask"):
+                                        "corpus-add", "export", "ask", "sim"):
         print(__doc__)
         return 1
     cmd = argv[1]
@@ -176,6 +178,9 @@ def main(argv):
     if cmd in ("corpus", "corpus-add", "export"):
         import vcl_corpus
         return vcl_corpus.main(argv[1:])
+    if cmd == "sim":   # D90 Phase 1: the compiled VBA in the VBA simulator against the interpreter (D99, D100)
+        import vba_check
+        return vba_check.main(argv[2:])
     if cmd == "fmt":
         import vcl_fmt
         return vcl_fmt.main(argv[2:])
