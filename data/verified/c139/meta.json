@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c139",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 2,
+  "killed": 37,
+  "note": "Third try. 37 of 41; 2 equivalent: mode and value of a dictionary only EXISTS reads. Two are real fixture gaps, not equivalent: LASTCOL($log, 1) to row 2 (both rows are as wide) and the blank-seam SKIP_IF to EXIT_LOOP_IF (the next row's answer equals its prefill).",
+  "total": 41
+ },
+ "op_lines": 21,
+ "ops": [
+  "DICT_ADD",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "welder_quals",
+  "weld_log"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

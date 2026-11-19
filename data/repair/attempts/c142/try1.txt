@@ -1,0 +1,2 @@
+FAIL test: TEST on line 38: ASSERT: COUNTIF(Bom![Unit], "MTR") = 4 is false (left 5, right 4)
+FAIL test: TEST on line 39: ASSERT: RESULT = 12 is false (left 11, right 12)

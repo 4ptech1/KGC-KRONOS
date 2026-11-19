@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c119",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 36,
+  "note": "Third try (returned from batch 6). 36 of 37. The survivor, the \"|\" separator in the pair key changed, is a real fixture gap: no two supplier and grade pairs collide when joined.",
+  "total": 37
+ },
+ "op_lines": 21,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "material_certs"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c135",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 33,
+  "note": "Passed first time; 33 of 33.",
+  "total": 33
+ },
+ "op_lines": 17,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "weld_log"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

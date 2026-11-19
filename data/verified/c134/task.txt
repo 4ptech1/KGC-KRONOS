@@ -1,0 +1,1 @@
+In the Weld Log (Weld Seam No, Visual, NDE Required, NDE Result, Remark) write NDE pending in Remark for every weld whose Visual is Accepted, NDE Required is Yes and NDE Result is blank, and clear the Remark on the others. Yes and Accepted are typed in any case. Tell me how many are pending.

@@ -1,0 +1,3 @@
+FAIL test: TEST on line 40: ASSERT: COUNTIF(Quals![Status], "Expired") = 3 is false (left 2, right 3)
+FAIL test: TEST on line 40: ASSERT: COUNTIF(Quals![Status], "old") = 0 is false (left 1, right 0)
+FAIL test: TEST on line 41: ASSERT: RESULT = 7 is false (left 6, right 7)

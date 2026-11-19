@@ -79,8 +79,8 @@ From March 2027 our own model writes the VCL recipe from plain English and, by B
 
 ## Dataset count
 
-Dataset count: 123 proven pairs of the planned 150: 110 in `data/verified/` and 13 held out in
-`data/eval/` (D95).
+Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 15 held out in
+`data/eval/` (D96). Stage A Phase 6 is complete.
 
 ## Progress log
 
@@ -386,3 +386,5 @@ Dataset count: 123 proven pairs of the planned 150: 110 in `data/verified/` and 
 - **2026-11-18:** Corpus batch 5 (D93): 15 of 20 stored, 106 of 150 pairs; five did not pass or could not be said in
   VCL and return or are replaced. Batch 5's helpers ran on Sonnet. `<`, `>`, `<=` and `>=` now mean the same in the
   interpreter and the VBA (D94). Corpus batch 6 (D95): 17 of 22 stored, 123 of 150; c074, c098 and c106 retired.
+- **2026-11-19:** Corpus batch 7 and a top-up (D96): 27 more pairs, **150 of 150**, every family full. Two build
+  requests failed on my own wording (a macro per step, which VCL refuses), and the lesson is in the corpus plan.

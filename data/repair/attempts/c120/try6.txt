@@ -1,0 +1,2 @@
+FAIL test: TEST on line 54: ASSERT: VALUE(Dispatch![Job Check]3) = "Job closed" is false (left "Unknown job", right "Job closed")
+FAIL test: TEST on line 54: ASSERT: VALUE(Dispatch![Job Check]4) = "Unknown job" is false (left blank, right "Unknown job")

@@ -1,0 +1,36 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c147",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 3,
+  "killed": 93,
+  "note": "Third try. 93 of 96; 3 equivalent: the Batch Usage row counter's start and step, whose gaps the following SORT closes, and the guard before that SORT, > to >=, which differs only for one written row. Each step runs on its own through RunHeadless's step argument (only modMain.Run is a no-argument macro).",
+  "total": 96
+ },
+ "op_lines": 60,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "COPY_ROW",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "weld_log",
+  "consumables"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

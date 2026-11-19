@@ -1,0 +1,14 @@
+mutation: 97 of 109 caught (89.0%); the floor is 90% of the mutants that can be caught
+  survives: line 126: 'mode=keep' -> 'mode=overwrite'
+  survives: line 126: 1 -> 2
+  survives: line 127: 'mode=keep' -> 'mode=overwrite'
+  survives: line 127: 1 -> 2
+  survives: line 162: 2 -> 3
+  survives: line 166: 1 -> 2
+  survives: line 167: '>' -> '>='
+  survives: line 167: 2 -> 3
+  survives: line 189: 2 -> 3
+  survives: line 193: 1 -> 2
+  survives: line 194: '>' -> '>='
+  survives: line 194: 2 -> 3
+FAIL mutation: under the floor unless the survivors above are truly equivalent (say why for each)

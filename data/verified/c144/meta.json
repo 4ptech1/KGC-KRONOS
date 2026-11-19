@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "files",
+ "id": "c144",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 16,
+  "note": "Passed first time; 16 of 16.",
+  "total": 16
+ },
+ "op_lines": 13,
+ "ops": [
+  "CASE",
+  "CASE_ELSE",
+  "LET",
+  "LOOP_ROWS",
+  "MAKE_FOLDER",
+  "RETURN",
+  "SELECT_CASE",
+  "SET_VALUE"
+ ],
+ "registers": [
+  "welder_quals"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

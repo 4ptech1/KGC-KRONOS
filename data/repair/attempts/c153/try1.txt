@@ -1,0 +1,4 @@
+FAIL test: TEST on line 35: ASSERT: RESULT = 5 is false (left 3, right 5)
+FAIL test: TEST on line 35: ASSERT: COUNTIF(Pqr![Remark], "Retest due") = 5 is false (left 3, right 5)
+FAIL test: TEST on line 36: ASSERT: VALUE(Pqr![Remark]2) = "" is false (left "Retest due", right blank)
+FAIL test: TEST on line 36: ASSERT: VALUE(Pqr![Remark]4) = "Retest due" is false (left blank, right "Retest due")

@@ -1,0 +1,1 @@
+From the NDE Report (Weld Seam No, Inspector, Result) make an Inspector Summary sheet with each Inspector, how many reports they signed, and how many of those are Reject, inspectors A to Z. Rows with no Inspector are ignored. The sheet is rebuilt every run.

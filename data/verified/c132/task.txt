@@ -1,0 +1,1 @@
+In Welder Quals (Welder ID, Process, Expiry Date, Status) write Expired in Status when the Expiry Date is before today, Expires soon when it is in the next 30 days, Valid otherwise, and No date when there is no Expiry Date. Tell me how many are Expired or Expires soon.

@@ -1,0 +1,25 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c131",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 19,
+  "note": "Third try (try 1: a VAR named red, which is also a fill name, stopped the run with RESULT -2 and no message). 19 of 20. The survivor, LASTCOL($ws, 1) to row 2, is a real fixture gap (every row is as wide as the header).",
+  "total": 20
+ },
+ "op_lines": 14,
+ "ops": [
+  "ELSE",
+  "FORMAT",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN"
+ ],
+ "registers": [
+  "nde"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

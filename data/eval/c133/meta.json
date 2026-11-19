@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [],
+ "family": "flag",
+ "id": "c133",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 25,
+  "note": "Third try. 25 of 26. The survivor, SKIP_IF max <= 0 to <= 1, is a real fixture gap: no row has a Thickness Max between 0 and 1.",
+  "total": 26
+ },
+ "op_lines": 14,
+ "ops": [
+  "CLEAR",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "wps_pqr"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

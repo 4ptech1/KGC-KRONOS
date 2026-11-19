@@ -1,0 +1,1 @@
+In the BOM (Part No, Description, Unit) make the Unit cells consistent: kg, Kg and kgs become KG; nos, no and pcs become NOS; mtr, m and meter become MTR (any case, stray spaces). Leave other units and blank cells alone, and tell me how many cells I changed.

@@ -1,0 +1,1 @@
+Check the ITP Tracker (ITP No, Point, Inspection Status, NCR Hold) against the NCR Register (NCR No, ITP No, Status). In the ITP Tracker write Hold in NCR Hold for every point whose ITP No has at least one NCR that is not Closed, and clear it on the others. ITP numbers differ in case and stray spaces. Tell me how many points are on hold.
