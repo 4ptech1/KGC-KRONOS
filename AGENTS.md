@@ -45,7 +45,7 @@ If this folder came from a zip, `SNAPSHOT.txt` says which commit and date it is.
 ## Never
 
 - **No real KGC data**, anywhere: no real names, drawing numbers, figures, customers or files. The repo is public, so
-  everything is synthetic.
+  everything is synthetic. KGC samples Boss shares stay out of the project too (D101).
 - **Never open, read or copy anything in `KRONOS\work`** on the new PC: it holds real company records from March
   2027 (D91), and no file is ever sent to an online AI (D69).
 - **Never weaken** a test, a check or a threshold to get to green.
@@ -81,7 +81,7 @@ If this folder came from a zip, `SNAPSHOT.txt` says which commit and date it is.
 | --- | --- |
 | `vcl/` | the language: `spec.md`, `orchestrator_prompt.txt`, `grammar.lark`, `semantics.py`, and `vcl/examples/` (proven example specs) |
 | `specs/` | the 12 committed specs |
-| `compiler/` | the toolchain: `vclc.py` (the entry point), validator, interpreter, compiler, linter, mutation, the KRONOS engine (`kronos_engine.py`, `kronos_ai.py`) |
+| `compiler/` | the toolchain: `vclc.py` (the entry point), validator, interpreter, compiler, linter, mutation, the VBA simulator (`vba_sim.py`, `vba_check.py`), the KRONOS engine (`kronos_engine.py`, `kronos_ai.py`) |
 | `app/` | the KRONOS window (Tkinter): controller, window, dialogs |
 | `vba/ForgeLib.bas` | the VBA runtime every generated macro uses |
 | `data/verified/`, `data/eval/` | the proven request and spec pairs; the held-out set |
@@ -109,7 +109,8 @@ py -3.11 compiler/gen_semantics_doc.py --check
 py -3.11 compiler/gen_context.py --check
 ```
 
-To check one spec: `py -3.11 compiler/vclc.py all my_spec.vcl -o out`, then
+To check one spec: `py -3.11 compiler/vclc.py all my_spec.vcl -o out`, `py -3.11 compiler/vclc.py sim my_spec.vcl`
+(its compiled VBA run in the VBA simulator against its TESTs), then
 `py -3.11 compiler/vclc.py mutate my_spec.vcl --snapshot` (the share of planted bugs its TESTs catch).
 
 Some window tests need a display and are skipped without one. **Never claim a check passed unless you ran it**, and

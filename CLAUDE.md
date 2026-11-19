@@ -56,7 +56,9 @@ and their proven specs, each with its VBA.
   (D69, D70). KRONOS Offline may also be given a real workbook to make a changed copy of it (D87,
   Boss, 16 Nov 2026): that happens in the browser on his PC, the original is never changed, the file
   never goes into the repo or into this Claude Code session, and what he copies from it into an AI
-  chat is his choice.
+  chat is his choice. Permitted KGC samples (D101, Boss, 19 Nov 2026) may be read in a Claude Code session to learn
+  the shape of the registers; nothing from them goes into the repo, its tests, specs, corpus or docs, and recipes
+  modelled on them use invented values.
   From March 2027 the company storage is the new PC's 300 GB, reserved for KRONOS (D91,
   `docs/kronos-storage-plan.md`): real data only under `KRONOS\work` (and what is trained on it), models trained
   on real data never leave that PC, and KRONOS never deletes real records.
@@ -230,6 +232,12 @@ label.
 Known: task_04 is bigger than a TASK should be: 48 OP lines (the validator warns above 40) and 107
 lines of VBA (rule 9: about 60); accepted for now, revisit in March.
 
+**Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
+paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98
+to D100); **next 6, the data generator** (Stage A Phase 7), then 7 the benchmark (Phase 8, with Boss's permitted KGC
+samples shaping realistic held-out tasks, D101), 8 KRONOS Offline version 6, 9 storage S1, 10 the VCL memory and the
+day-one kit. For Boss: paste the updated prompt (D94, D97) into the Orchestrator Project.
+
 Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
 1. The Job-Pack Router MVP, `docs/vep-0.3-file-ops.md` (approved by Boss): sandbox only, COPY_FILE
    first (no MOVE), VCL 0.3. Phase 0 (blank key rows) and Phase 1 (the language surface: the VCL
@@ -299,10 +307,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    TASK for a build request; replacements follow. Preparing step 4, the first prompt fix, showed that the
    interpreter and the compiled VBA compared numbers typed as text differently: D94 gives `<`, `>`, `<=` and `>=`
    one meaning (S26, ForgeCompare) and says it in spec.md and the prompt. Batch 6 stored 17 of 22 and retired c074,
-   c098 and c106 after three batches each (D95). Batch 7 and a top-up finished the 150 on 19 Nov 2026 (D96). Next:
-   the wording fixes are done too (D97: the FIXTURE `+boundary` rules, the wrong-sheet TEST, entry macros, and five
+   c098 and c106 after three batches each (D95). Batch 7 and a top-up finished the 150 on 19 Nov 2026 (D96). The
+   wording fixes are done too (D97: the FIXTURE `+boundary` rules, the wrong-sheet TEST, entry macros, and five
    smaller facts, in spec.md and the prompt together; Boss pastes the prompt once, with D94's line in it). Next:
-   Phase 7, the data generator. No training before March 2027.
+   Phase 7, the data generator (Boss's step 6), then Phase 8, the benchmark (step 7). No training before March 2027.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,
@@ -334,8 +342,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    with the tests (version 0.5, published, SHA-256 on its release page). The published 0.5 was checked again on 14 Nov 2026 (D84):
    the manual workflow `.github/workflows/check-release-exe.yml` downloads KRONOS.exe from a release, compares its SHA-256 and runs
    its `--self-test` on Windows; it passed. **Next: the pilot (Phase 4)**, once IT
-   approves KRONOS.exe and the Codex CLI; corpus batch 5 may run while the pilot waits for IT (batch 4 is stored, D85),
-   and the team version (Phase 5) follows the pilot. Still unproven, and what the pilot is for: Codex's
+   approves KRONOS.exe and the Codex CLI: Boss reported the IT request done on 18 Nov 2026 (D101), and the pilot starts
+   when both are installed on his PC (not yet confirmed); the team version (Phase 5) follows the pilot. Still unproven, and what the pilot is for: Codex's
    real reply to the Orchestrator prompt, and any macro running in real Excel. The parallel session is gone; this is the only session on the repo.
 6. **KRONOS Offline** (Boss decided on 14 Nov 2026; `docs/kronos-offline.md`, D86): KRONOS in the browser with nothing
    installed, so it can reach the locked-down PC while KRONOS.exe waits for IT. Boss unzips a folder and double-clicks
@@ -378,7 +386,8 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    is handed. Not proven until he tries it: the copy and paste with his real AI chats, his own recipe files, the work PC.
    Version 5 (the same day) only makes Cancel sure: the practice example's panel shows at once, and Cancel before KRONOS's
    words arrive loads them again. It is published as the release `kronos-offline-v5` (main `62d66d4`; SHA-256 `79fdb69c…`),
-   the copy Boss is handed. Next: Boss tries it; then Phase 3: History, the practice-run check, the corpus suggestion, Help.
+   the copy Boss is handed. Boss tried it on the work PC on 18 Nov 2026: it works (D101). Next (Boss's step 8): Phase 3,
+   History, the practice-run check, the corpus suggestion and Help, as version 6, with the prompt of D94 and D97.
 7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026; `docs/ai-vba-plan.md`, D90). Phase 0, the design,
    is done. Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes (Boss: "Complete 5", 19 Nov 2026), is
    in three parts: part 1, the language core, is done (D98: the ForgeLib self-test's 241 cases pass in it, and planted

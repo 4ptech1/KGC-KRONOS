@@ -14,11 +14,12 @@ otherwise the compiler's VBA is used (D90, `docs/ai-vba-plan.md`). It is trained
 ## Current phase
 
 **Phase 0, Foundation (Oct 14 to 31, 2026): Gate 0 is met.** KRONOS.exe is built and waits for IT (D69); KRONOS
-Offline runs in a browser with nothing installed and is at version 5: the four-step wizard, recipe files, and
-changes made on a copy of a workbook (D86 to D89). An invented NCR demo is in `docs/demo/` (D88). Next: the AI that
-writes the VBA with its context in VCL (D90; Phase 1, the VBA simulator), and from March 2027 the new PC's 300 GB
-as KRONOS's home (D91). All development runs in the cloud (Claude Code on the web, GitHub Codespaces, GitHub
-Actions). Every check is automated; running the generated VBA in Excel is optional and never blocks work.
+Offline (version 5) runs in a browser with nothing installed, and Boss has it working on his work PC (D86 to D89,
+D101). The corpus is complete: 150 proven request and recipe pairs, 15 held out (D96). The VBA simulator runs every
+compiled macro without Excel and checks it against its TESTs, all 165 specs, examples and pairs (D98 to D100).
+Next, in Boss's order (D101): the data generator, the benchmark, KRONOS Offline version 6, storage S1, the VCL
+memory and the day-one kit; from March 2027 the new PC's 300 GB as KRONOS's home (D91). All development runs in the
+cloud. Every check is automated; running the generated VBA in Excel is optional and never blocks work.
 
 See `CLAUDE.md` for the working rules, `docs/vcl-mvp-plan.md` for the build sequence,
 `DECISIONS.md` for the decisions so far and `docs/VBA_Forge_Project_Roadmap.docx` for the full
@@ -394,3 +395,5 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   (130) runs on its TESTs and ends where the interpreter does; it found two compiler bugs in task_09, now fixed.
   Part 3 (D100): files and BUILDs too, all 165 specs, examples and pairs; `python compiler/vclc.py sim` in CI.
   D90 Phase 1 is complete.
+  Boss's report: KRONOS Offline version 5 works on his work PC, and the IT request is done. KGC samples he has
+  permission for may be read to learn the shape of real registers, never stored in the repo (D101).

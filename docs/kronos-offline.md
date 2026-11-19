@@ -358,6 +358,8 @@ How version 4 does it (D89):
 - **Cancel** stops the browser's Python as before; the page then starts a fresh one and rebuilds every request from the
   actions it kept (`Wizard.restore`), so nothing pasted is lost.
 - Still Phase 3: History, the practice-run check, the corpus suggestion and Help.
+- Boss tried version 5 on the work PC on 18 Nov 2026: it works (D101). Phase 3 comes as version 6 (Boss's step 8), with
+  the prompt of D94 and D97.
 
 **Phase 3, the rest:** History (past runs kept in this browser on this PC in IndexedDB, every read and write in
 try/catch, newest first, with "Download the run record", like the runs folder KRONOS keeps; say plainly that clearing
