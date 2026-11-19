@@ -109,6 +109,8 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | --- | --- | --- |
 | 25.0 | "25" | whole number without .0 |
 | 2.5 | "2.5" | decimal point is always '.' |
+| 0.5 | "0.5" | a number below 1 keeps its 0 (VBA's Str leaves it out) |
+| -0.25 | "-0.25" | a negative one too |
 | date 2026-10-15 | "2026-10-15" | dates are yyyy-mm-dd on every PC |
 | True | "TRUE" | boolean |
 | #N/A | "#N/A" | error text, not VBA's 'Error 2042' |
