@@ -599,7 +599,7 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    spec.md and the prompt teach VCL 0.6, hard rule 24, D63; Boss updates the Orchestrator once) are done.
    Phase 5 (the corpus tooling and the first twelve pairs, `vclc corpus`, D64) is done; Phase 6, the corpus to
    150 tasks in batches of about 20, is complete: 150 of 150 pairs, 15 held out (D65, D66, D82, D85, D93, D95, D96). Next:
-   the prompt wording fixes from `data/gaps.md`, then Phase 7, the data generator. D94: `<`, `>`, `<=` and `>=` now
+   the prompt wording fixes from `data/gaps.md` are done (D97; Boss pastes the prompt once), then Phase 7, the data generator. D94: `<`, `>`, `<=` and `>=` now
    mean the same in the interpreter and the VBA.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    Tkinter window, shipped as one KRONOS.exe built by GitHub Actions. A person types a request;
@@ -672,14 +672,12 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 (Boss's daily use).
 
 **Pending Boss decisions right now:**
-0. Ask IT to approve KRONOS.exe and the Codex CLI on the work PC (needed for the pilot, Phase 4).
-0b. Try KRONOS Offline on the work PC (D86): download the zip from its newest release (`kronos-offline-v5`), extract
-   it, double-click Start KRONOS (Windows), load the practice example and check it. Say which browser and version the
-   page's bottom line shows.
+0. Done on 18 Nov 2026 (Boss): KRONOS Offline version 5 works on the work PC, and the IT request and the prompt
+   paste were done.
 0c. In March 2027, for the new PC's 300 GB (D91): the drive letter, the graphics card and its memory, IT's answer on
    Python 3.11, Git, PyTorch and the GPU driver, and IT's backup of `KRONOS\work`, `KRONOS\models` and `KRONOS\reports`.
-1. Paste the VCL 0.6 prompt (`vcl/orchestrator_prompt.txt`) into the Orchestrator Project's
-   instructions, once.
+1. Paste the updated VCL 0.6 prompt (`vcl/orchestrator_prompt.txt`, with D94's and D97's wording) into the
+   Orchestrator Project's instructions, once, replacing the old text.
 2. When, if ever, to run the optional Excel pilot (`docs/excel-pilot.md`).
 3. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
    skipped column A, no TEST would notice. Closing it needs a FIXTURE whose last row has a value
@@ -765,6 +763,8 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
 - **D95:** corpus batch 6: 17 of 22 stored (123 of 150); a request that fails three batches running is retired.
 - **D96:** the corpus reached 150 (Phase 6 complete); two build requests failed on my own "a macro per step" wording,
   which VCL refuses: a request may be hard, never impossible by its own wording.
+- **D97:** the end-of-Phase-6 wording fixes: the FIXTURE `+boundary` rules, the wrong-sheet TEST, only Run as an
+  entry macro, fill names reserved, RANGE literal, date minus date, DICT_GET of a missing key, RETURN; no meaning changes.
 - **D91, D92:** from March 2027 KRONOS's home is the new PC's 300 GB of company storage
   (`docs/kronos-storage-plan.md`): one `KRONOS` folder, real data only in `work`, a budget per folder with 30 GB
   always free, and a monthly report for Boss's manager. KRONOS never deletes real records, and a model trained on
@@ -856,7 +856,10 @@ exact fixture algorithm and the changelogs.
     COUNTA(Orders![Status]) = PRE_COUNTA(Orders![Status]) (for read-only work: proves the
     source data is unchanged). At least one TEST includes ERROR_COUNT = 0. When the test
     workbook has another sheet, add a wrong-sheet TEST that passes it and expects
-    RESULT = -1 AND ERROR_COUNT = 1.
+    RESULT = -1 AND ERROR_COUNT = 1. Pass a sheet whose headings fail PRE (add a small
+    Notes sheet to the FIXTURE if needed); never swap the source and output sheets: an
+    output sheet with the source's headings passes PRE, and a source sheet passed as the
+    output counts as rebuilt and needs stale=<n>.
 6.  Put every assumption at the top of the spec as a line starting with # ASSUME:
     Prefer a sensible assumption over a question.
 7.  Ask only when a wrong guess could destroy or overwrite data, when the request cannot be
@@ -929,7 +932,8 @@ exact fixture algorithm and the changelogs.
     VCL 0.6 and each with its own GOAL, PRE, MODIFIES and ERR. CALL(<module>.<Proc>, <args>)
     runs another procedure of the same BUILD, never itself, directly or through others.
     Pass a Worksheet, Workbook or Range only as one of the caller's own $arguments, and
-    keep a Function's result with into=<VAR>: a callee that stops at its PRE gives -1 and
+    keep a Function's result with into=<VAR> (make a callee whose count nobody reads a Sub):
+    a callee that stops at its PRE gives -1 and
     one that fails gives -2, and the caller goes on. Check that VAR (IF n < 0) only when the
     callee has a PRE the caller doesn't; then a TEST needs a fixture where that PRE fails
     and one where the callee gives 0. Every TASK that writes declares MODIFIES, and a
@@ -1000,7 +1004,10 @@ BUILD rules: procedure names are unique in the whole BUILD, whatever their modul
 modMain has RunHeadless (runs the whole tool on the sheets it is given; every TEST calls
 it) and Run (a Sub with no ARGS that starts the tool on the real workbook, rule 23). FIXTURE
 and TEST lines go in the BUILD part only; the TESTs check the whole tool, with the same
-PRE_ measures and wrong-sheet TEST as a TASK (rule 5; swap two of the sheets RunHeadless takes).
+PRE_ measures and wrong-sheet TEST as a TASK (rule 5: pass a sheet whose headings fail a PRE
+in place of one RunHeadless takes). Run is the only procedure with no ARGS and the only one
+that may pass SHEET(THIS_BOOK, ...), so a step can't also be a macro of its own: it runs
+through Run, or through an argument of RunHeadless that picks the step.
 
 OP SYNTAX
 Structural ops begin an OP line:
@@ -1056,6 +1063,8 @@ Value functions:
   LASTROW(<ws>, <col>)  LASTCOL(<ws>, <row>)  USED_RANGE(<ws>)
   COL(<ws>, "<header>")   column number of a row-1 header, or 0 if it is missing
   CELL(<ws>, <row>, <col>)  ROW_RANGE(<ws>, <row>, <fromCol>, <toCol>)  RANGE(<ws>, "<A1 ref>")
+  (the A1 ref of RANGE is quoted text as written, never built with &: for a column whose
+  last row is known only at run time, loop over its CELLs)
   SHEET(<book>, "<name>")  SHEET_EXISTS(<book>, <name>)  THIS_BOOK
   FIND(<range>, <expr>, match=whole|part)   the first matching cell, or NOTHING
   ROW_OF(<range>)   the sheet row of the range's first cell, such as a FIND result
@@ -1079,7 +1088,8 @@ Precedence, tightest first: - (negation), * /, + -, &, comparisons, NOT, AND, OR
 Comparisons don't chain: write a < b AND b < c, never a < b < c.
 Option names are reserved words: dir from to var in mode into key order header what fill
 numfmt bold width style cols col crit readonly format save after name match. Write an
-option as name=value with no space before "="; never use these words as names.
+option as name=value with no space before "="; never use these words, or a fill colour
+name (red, yellow, ...), as names.
 Columns are numbers (1 = A) everywhere except inside "A1 ref" strings.
 An array element can be a SET_VALUE target: SET_VALUE(ARR(data, r, 3), 0).
 
@@ -1091,7 +1101,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               " -3.5 "); false for blanks, TRUE/FALSE, dates, errors, "1,250", "1e3", "25%"
   IS_DATE     true only for real Excel date values; text that looks like a date is false
   Dates       TODAY + n and TODAY - n (a date plus or minus whole days) are dates n days
-              away; compare a date from the workbook only after IS_DATE
+              away, and a date minus a date is the whole number of days between them;
+              compare a date from the workbook only after IS_DATE
   Text        a value becomes text the same way everywhere (TRIM, UPPER, LOWER, LEN, LEFT,
               RIGHT, &, keys): whole numbers without ".0", "." as the decimal point, dates
               as yyyy-mm-dd, TRUE/FALSE, errors as their Excel text (#N/A)
@@ -1127,11 +1138,13 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               is empty. LASTCOL works the same along a row
   Dictionary  keys are compared as text ignoring case, not trimmed (TRIM them first), so
               1001 and "1001" are one key; KEYS walks them in the order they were first
-              added; Dictionary and Collection VARs start empty
+              added; Dictionary and Collection VARs start empty; DICT_GET of a key that
+              isn't there gives 0 to a number VAR and "" to a String VAR
   PRE         if a condition is false: one ForgeLog entry, nothing changes, and a Function
               returns -1
   EXIT_IF     leaves the procedure; a Function then returns 0, "" or FALSE (use IF ... THEN
               RETURN(<value>) to return something else)
+  RETURN      leaves the procedure at once, from inside a loop too
   AND / OR    both sides are always evaluated, so a guard on the left does not protect the
               right: guard risky comparisons with a nested IF on the check itself
   SAFE_NAME   "" when the CLEAN_TEXT result is empty, over 100 characters, holds any of
@@ -1296,15 +1309,22 @@ FIXTURE SPEC
   reldates(lo, hi) gives dates from TODAY + lo to TODAY + hi days, worked out when the
   file is built, so TESTs that use TODAY give the same results on every day.
   Modifiers, after the rule, in this order, each at most once:
-    +boundary(v1,v2,...)  the first data rows hold exactly these values ("" is a blank
-                          cell; numbers of days for reldates). For values(...) the values
-                          move up, so the counts stay the same.
+    +boundary(v1,v2,...)  the first data rows hold exactly these values. "" is a blank
+                          cell in any rule; every other value fits the rule: quoted text
+                          for values() and text(), numbers for seq(), int() and num(),
+                          bare yyyy-mm-dd dates for dates(), whole numbers of days for
+                          reldates(). For values(...) each boundary value must be one of
+                          its values, used no more times than values() lists it: the
+                          values move up, so the counts stay the same.
     +blank(<n>)           leave n random cells below the boundary rows blank.
     +dupes(<n>)           give n random rows the value of another row (repeated keys).
   stale=<n> marks n rows as leftovers of an earlier run, with a red fill across the whole row: on a rows=0
   sheet, n rows of the text "stale"; on a sheet with data, n random data rows, whose
   values stay.
   values(...) counts add up to rows. rows=0 creates the sheet with its header row only.
+  values() always holds text, so "10" is a number typed as text. One column can't hold
+  real numbers and text together: test "not a number" with a blank cell, or with values()
+  of text numbers beside text such as "n/a".
   Repeat FIXTURE lines with the same file name to add more sheets.
   FIXTURE <name>.xlsx folder=<Name> [files=<path>[:<bytes>|:"<text>"],...] [locked=<path>,...]
   adds a synthetic folder to the same test file: each file below it (\ between folders,
@@ -3224,6 +3244,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D94 | 18 Nov 2026 | **`<`, `>`, `<=` and `>=` on two workbook values mean the same in the interpreter and in the VBA (S26, `ForgeCompare`).** Step 4 of Boss's list was "the first prompt fix: `<=` on numbers typed as text" (c074, c089, D82, D85). Looking for the right sentence, I found the cause was not only the wording: the reference interpreter compared two text values as text ("10" > "9" FALSE), but the compiler put two cell values through ForgeNum and compared numbers (TRUE). So a TEST could pass on an answer the macro would not give in Excel, whenever a spec compared two cells that both held numbers typed as text; for other text the two disagreed the other way (the VBA read "abc" and "abd" both as 0). **My choice, the conservative one:** one rule, written in `vcl/semantics.py` as `order` (S26) and in ForgeLib as `ForgeCompare`: two values IS_NUMBER accepts compare as numbers, numbers typed as text too; two dates as dates; anything else as text, character by character, case counting, as `=` already compares text. This is what a person means by "bigger" and what the VBA already did for text numbers, so no macro already saved gives a different answer for numbers. The compiler calls ForgeCompare whenever neither side is known to be a number or a date; the interpreter applies S26 when both values are text, and as before converts both sides when either is a number or a date (so an unguarded comparison of a number with "abc" still stops the TEST with R013 instead of guessing). 10 conformance cases, run in Excel by the self-test (`dist/forge_selftest.bas`), and `tests/test_order.py`, which fails on the old interpreter. spec.md and the prompt say it in SEMANTICS (no new syntax; the version line stays `VCL 0.6`; Boss pastes the prompt into the Orchestrator once, at the end of Phase 6). Every spec, example and corpus pair re-checks with the same results and the same mutation score. Remaining gap, written down: a FIXTURE column still can't hold numbers and text together (D66). | The TESTs are only worth what the macro does in Excel; a fix in the words alone would have kept a TEST that can pass on a wrong macro. |
 | D95 | 18 Nov 2026 | **Stage A Phase 6, batch 6: c112 to c130 and three returns, 17 of the 22 stored.** (1) The 22 requests were saved first (`data/batches/batch_06.json`: c074, c098 and c106 again, and c112 to c130, c128 in place of c094; flag 5, summarise 4, reconcile 3, build 2, clean 2, files 2, sheets_formulas 2, rebuild 1, find_filter 1). The helpers' kit came from main after D94, so their prompt says how `<`, `>`, `<=` and `>=` treat numbers typed as text. Six Sonnet helpers, two at a time (D82); I re-ran every pair through `corpus-add`. 17 are stored: 14 in `data/verified` and, held out, c114 (flag, job_tracker), c121 (reconcile, itp and calibration) and c130 (build, job_tracker and ncr). The corpus has 123 of 150 pairs (110 verified, 13 held out). c112, the first pair to compare numbers typed as text, passed first time. (2) **Not stored, five.** c074, c098 and c106 are retired: nine, six and six tries over three batches (c074: FIXTURE layout, then its own miscount once its TESTs ran; c098: the wrong-sheet TEST that swaps the source and output sheets, V055, twice; c106: a single TASK for a build request, as c107 in D93). The conservative choice is not to keep retrying one request until it passes, which would overstate what the prompt teaches; their tries stay in `data/repair/attempts/` and new requests take their places. c119 (a reserved word, V055 and a wrong-sheet TEST that passed PRE) and c120 (FIXTURE layout, then V059) get one more round in batch 7, as c074 did. (3) 6 passed first time, 6 on the second try and 5 on the third. (4) The 17 pairs catch 456 of 460 catchable mutants; 17 are named equivalent in 10 `meta.json` files, and I read every claim against its spec. I did not accept four: c113's and c122's `LASTCOL(..., 1)` to row 2, c124's SKIP_IF to EXIT_LOOP_IF (a real date above a text date can't be in one FIXTURE column) and c126's blocked-Drawings branch are real gaps, recorded in the notes; each pair clears the floor without them. The equivalents are the known kinds (a Long that starts at 0, a seed of 0 where a missing key reads 0, row counters a SORT closes up, a guard before a SORT that differs for one row, dictionaries only EXISTS reads, a blank key no row looks up, an exit right after `LET(found, r)`) and one new one: c126's first folder status, since a folder just created always gets its subfolder created too. (5) `data/gaps.md` grew by 7 language gaps, 10 wording problems and 2 tooling notes; the FIXTURE `+boundary` rules and the wrong-sheet TEST still head the wording fixes. (6) Cost: about 787,000 helper tokens (about 131,000 a helper), about 20 minutes of helper time. (7) What is left: 27 pairs (flag 5, summarise 5, build 7, reconcile 3, clean 2, rebuild 2, files, sheets_formulas and find_filter 1 each) and 2 held-out pairs; registers welder_quals and wps_pqr (9 each) are the thinnest. Batch 7's build requests ask for steps that can also be run on their own, so a single TASK is no longer the natural answer (rule 9). | Same gates; a request that fails three batches running is replaced instead of being tried until it passes, and every equivalence claim is checked by a second reader. |
 | D96 | 19 Nov 2026 | **Stage A Phase 6 is complete: the corpus has 150 pairs (batch 7 and a top-up, batch 8).** (1) Batch 7's 27 requests were saved first (`data/batches/batch_07.json`: c119 and c120 again, c131 to c155, c153 to c155 in place of the retired c074, c098 and c106); the top-up's four (`batch_08.json`: c156 to c159) were saved, each before its helper saw it. Ten Sonnet helpers, two at a time (D82); the account's 5-hour limit stopped two of them once, and they were resumed with their saved work. 27 pairs are stored: 23 of batch 7 (21 verified and, held out, c133 and c149, which fill the 15 held-out pairs) and all 4 of the top-up. Every family is full and every register has 10 or more pairs: 150 of 150 (135 verified, 15 held out; 118 TASKs and 17 BUILDs verified), and the whole corpus re-checks clean, mutation included (4943 of 4972 catchable mutants). (2) **Not stored:** c120 (layout, then its own fixture order; retired after two batches because the 150 was reached), c137 (numbers and text in one FIXTURE column, a language gap) and **c148 and c152, which failed because of my own wording**: I added "Each numbered step should also be a macro I can run on its own" to every build request to make a BUILD the natural answer (D95), but VCL lets only modMain.Run pass SHEET(THIS_BOOK, ...), so the request asked for something the language refuses. The other five builds met it by an ASSUME (the steps run through Run or RunHeadless's step argument). The top-up's builds left the sentence out. Lesson, written into the corpus plan: a request may be hard, never impossible by its own wording unless that is the point of the pair. (3) The 27 pairs catch 1149 of 1165 catchable mutants; 55 are named equivalent. I read every claim and refused 16, recorded as real gaps in the notes: `LASTCOL` to row 2 (c131, c139), loop starts and EXIT_LOOP_IF on unlucky fixture rows (c139, c157), `mode=keep` to overwrite where only an ASSUME or the fixture makes keys unique (c151, c159), an IS_ERROR guard no FIXTURE can reach (c142), a heading one column off that TESTs find by name (c157), an extra copied column (c158), seeds for a case the fixture lacks (c156), and three single survivors (c119, c133, c149's loop start). Each pair still clears the 90% floor without them. (4) `data/gaps.md` grew by 8 language gaps, 8 wording problems and 1 tooling note. (5) Cost: about 1.37 million helper tokens for batch 7 and the top-up (about 137,000 a helper). (6) Next, as Boss's step 4 asks: the wording fixes the gap log has been collecting since D65, in spec.md and the prompt together, so Boss pastes the prompt once. | The corpus reached its plan through the same gates as every pair before it, and a request that could not be met is recorded as that, my own wording included. |
+| D97 | 19 Nov 2026 | **The end-of-Phase-6 wording fixes: spec.md and the prompt say what the tools already do, where the 150-pair corpus showed writers misled.** Step 4 of Boss's list, its second part (the first was D94). Since D65 the wording problems waited for the end of Phase 6 so Boss updates the Orchestrator once; D94's SEMANTICS line is in the same paste. I chose the sentences by the cost they caused, and checked each against the interpreter, the compiler or the checker before writing it: (1) FIXTURE `+boundary`: `""` is a blank in any rule, otherwise quoted text for `values()` and `text()`, numbers for `seq()`, `int()` and `num()`, bare dates for `dates()`, days for `reldates()` (V262, X001 to X004), and a `values()` boundary uses only its own values, no more often than listed (V264, X008): the most often named problem of batches 5 to 7, about twenty lost tries and five pairs. (2) `values()` always holds text, and one column can't hold real numbers and text together: say how to test "not a number". (3) Rule 5's wrong-sheet TEST: pass a sheet whose headings fail PRE, never the swapped source and output (V055, and a PRE that passes): c098, c119, c143. (4) Rule 23 and the BUILD rules: Run is the only procedure with no ARGS that may pass SHEET(THIS_BOOK, ...), so a step can't be a macro of its own (c148, c152); a callee whose count nobody reads is a Sub (c130, c150). (5) Fill colour names are reserved like option names (c131's VAR `red` hijacked `fill=red`). (6) RANGE's A1 ref is written as it is (c093, c127, c145). (7) A date minus a date is days (c099). (8) DICT_GET of a missing key gives 0 to a number VAR and "" to a String VAR (c108, c116, c138). (9) RETURN leaves at once, from inside a loop too (c087, c096; it compiles to `GoTo CleanExit`). No syntax or meaning changes, so no stored spec, test or mutation score moves; the version line stays `VCL 0.6`. **Left for later, on purpose:** the language gaps in `data/gaps.md` (a column of numbers and text, FIND in one column, several entry macros, a second SORT key, a folder TEST) are Stage B's input, not wording; and wording rows I could not confirm against the tools stay in the log. | One paste for Boss, and every new sentence is a fact the tools already enforce. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -5121,8 +5142,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    interpreter and the compiled VBA compared numbers typed as text differently: D94 gives `<`, `>`, `<=` and `>=`
    one meaning (S26, ForgeCompare) and says it in spec.md and the prompt. Batch 6 stored 17 of 22 and retired c074,
    c098 and c106 after three batches each (D95). Batch 7 and a top-up finished the 150 on 19 Nov 2026 (D96). Next:
-   the wording fixes in `data/gaps.md` (first the FIXTURE `+boundary` rules), spec.md and the prompt together, and
-   Boss pastes the prompt once; then Phase 7, the data generator. No training before March 2027.
+   the wording fixes are done too (D97: the FIXTURE `+boundary` rules, the wrong-sheet TEST, entry macros, and five
+   smaller facts, in spec.md and the prompt together; Boss pastes the prompt once, with D94's line in it). Next:
+   Phase 7, the data generator. No training before March 2027.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,

@@ -388,3 +388,4 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   interpreter and the VBA (D94). Corpus batch 6 (D95): 17 of 22 stored, 123 of 150; c074, c098 and c106 retired.
 - **2026-11-19:** Corpus batch 7 and a top-up (D96): 27 more pairs, **150 of 150**, every family full. Two build
   requests failed on my own wording (a macro per step, which VCL refuses), and the lesson is in the corpus plan.
+  The prompt wording fixes from the gap log are in spec.md and the prompt (D97); Boss pastes the prompt once.
