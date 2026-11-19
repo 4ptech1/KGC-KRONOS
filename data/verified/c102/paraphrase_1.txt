@@ -1,0 +1,1 @@
+Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date, Remark): Remark = Late if Actual Date is after Planned Date, Overdue if no Actual Date and Planned Date is before today, else cleared. Report Late and Overdue together.

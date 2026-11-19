@@ -1,0 +1,1 @@
+Could you highlight rows red in the material traceability register? I want the whole row red whenever the heat number or the MTC number is missing, but skip any row with no part number. And let me know how many rows you flagged.

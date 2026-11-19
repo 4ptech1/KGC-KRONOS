@@ -1,0 +1,1 @@
+Weld Log (Weld Seam No, Welder ID, Process, Qual Check) against Welder Quals (Welder ID, Process, Expiry Date), matching Welder ID and Process ignoring case and stray spaces: (1) no qualification for the weld's process: write No qual in Qual Check, (2) clear it on the others, (3) add the Qual Check heading if it's missing, (4) tell me how many welds have no qual.

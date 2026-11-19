@@ -1,0 +1,1 @@
+GRN sheet (GRN No, Part No, Received Date, Received Qty, Inspection, Remark): put Inspection pending in Remark for every line received more than 7 days ago with Inspection blank, clear Remark on the others. Report lines pending.

@@ -1,0 +1,1 @@
+Could you make an Expired Batches sheet listing every batch of the Consumable Stock sheet (Batch No, Filler Class, Qty On Hand, Expiry Date) whose Expiry Date is before today? Use the same headings, oldest first, skip batches with no Expiry Date, and rebuild the sheet every run.

@@ -1,0 +1,1 @@
+Could you put a formula in the Days Late column of the Dispatch sheet (Dispatch No, Planned Date, Actual Date, Days Late) for every data row? It should give Actual Date minus Planned Date, or blank when there's no Actual Date. Excel 2016 only, please.

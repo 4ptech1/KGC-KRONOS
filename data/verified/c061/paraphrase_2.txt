@@ -1,0 +1,1 @@
+Could you compare the Welder Quals sheet (Welder ID, Process, Expiry Date) with the WPS Register (WPS No, Process)? I need a No WPS sheet, with the same headings as Welder Quals, listing every qualification whose Process has no WPS in the register. Upper and lower case don't matter, so 'gtaw' and 'GTAW' match. Tell me how many you listed.

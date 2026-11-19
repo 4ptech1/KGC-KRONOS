@@ -1,0 +1,1 @@
+Could you build a Shortages sheet for me? I have a BOM sheet with Part No and Required Qty and a GRN sheet with Part No and Received Qty, and one part can appear on several GRN lines. List each part where the Received total is less than the Required amount, and show how much is short. If a Required Qty is blank, still list the part and say so.

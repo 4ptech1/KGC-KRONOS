@@ -1,0 +1,1 @@
+(1) Compare each weld log row's welder with the welder qualification list; (2) highlight the row red if the welder isn't on the list, the expiry date isn't valid, or the qualification has expired; (3) make sure rows that are fine don't keep an old red; (4) report how many rows are red.

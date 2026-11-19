@@ -1,0 +1,1 @@
+Could you put a formula in the Short Qty column of the BOM (Part No, Required Qty, Issued Qty, Short Qty) for every data row? It should be Required Qty minus Issued Qty when that is more than zero, and otherwise 0. Excel 2016 only, please.

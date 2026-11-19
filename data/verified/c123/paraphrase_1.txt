@@ -1,0 +1,1 @@
+Job Tracker (Job ID, Customer, Status): make every Job ID trimmed and upper case, with each run of spaces inside collapsed to one space ('job  101 ' becomes 'JOB 101'). Change nothing else, report cells changed.

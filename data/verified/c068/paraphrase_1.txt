@@ -1,0 +1,1 @@
+Dispatch sheet (Dispatch No, Planned Date, Actual Date, Days Late): Days Late formula on every data row = Actual Date minus Planned Date, blank if no Actual Date. Excel 2016 only.

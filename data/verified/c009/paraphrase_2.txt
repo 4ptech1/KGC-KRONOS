@@ -1,0 +1,1 @@
+Could you make a Summary sheet of all the open NCRs for me? Put the oldest first and show how many days each has been open. If an NCR has no issue date, still list it, but at the bottom, marked 'Issue date missing'.

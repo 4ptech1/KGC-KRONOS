@@ -1,0 +1,1 @@
+Could you tidy the Heat No column on the Material Certs sheet? Some cells have stray spaces and some are in lowercase. I want every Heat No trimmed and in upper case, nothing else changed, and a count of the cells you changed.

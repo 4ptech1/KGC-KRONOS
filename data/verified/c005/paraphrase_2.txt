@@ -1,0 +1,1 @@
+Could you copy some weld log rows over to a Weld Log Exceptions sheet? I want every row where the fit-up or the visual isn't Accepted, or is blank. Please don't delete anything from the weld log, and tell me how many rows you copied.

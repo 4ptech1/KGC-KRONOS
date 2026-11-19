@@ -1,0 +1,1 @@
+(1) In the WPS Register (WPS No, Process, PQR Ref, Review Date, Remark) look at each PQR Ref. (2) If it is blank or doesn't start with PQR-, write Check in Remark. (3) Otherwise clear the Remark. (4) Tell me how many were marked.

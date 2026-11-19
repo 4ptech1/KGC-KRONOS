@@ -1,0 +1,1 @@
+NDE Report (Weld Seam No, Method, Result, Report Date), steps in this order: clear old row colours first so it can be run again, then colour the whole row red where Result is Reject, then colour the whole row yellow where Result is Pending and Report Date is more than 3 days ago, then tell me how many rows are red.

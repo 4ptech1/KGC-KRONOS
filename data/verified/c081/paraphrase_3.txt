@@ -1,0 +1,1 @@
+Customer Load sheet, rebuilt every run, from the Job Tracker (Job ID, Customer, Due Date, Status): (1) one row per customer, (2) count of jobs that are not Closed, (3) count of those past their Due Date, (4) most open jobs first, (5) a customer whose jobs are all Closed does not appear.

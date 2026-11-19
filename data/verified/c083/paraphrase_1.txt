@@ -1,0 +1,1 @@
+BOM (Part No, Description, Heat No) vs Material Certs sheet (Heat No, MTC No, Grade): fill an MTC No column in the BOM with the certificate number for each line's heat, or Missing if the heat has no certificate. No Heat No on the line means empty MTC No. Add heading if absent. Heat numbers differ in case and spaces. Report how many are Missing.

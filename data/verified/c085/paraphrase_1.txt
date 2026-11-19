@@ -1,0 +1,1 @@
+Calibration Tracker (Instrument ID, Type, Location, Status): any status reading ok, in cal or calibrated (any case, stray spaces) becomes exactly Calibrated; oos or out of service becomes exactly Out of Service. Other statuses and blanks untouched. Report cells changed.

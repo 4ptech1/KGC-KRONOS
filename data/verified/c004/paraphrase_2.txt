@@ -1,0 +1,1 @@
+Could you make a Summary sheet for me? I have four NDE sheets named RT, UT, MPT and DPT, and each has a Weld Seam No and a Result. I'd like one row per seam showing its Result in every method, sorted by seam number. When a seam was shot twice in the same sheet, the top row is the latest one, so use that.

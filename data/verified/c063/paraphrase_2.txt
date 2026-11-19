@@ -1,0 +1,1 @@
+Could you fix the dates on the Dispatch sheet (Dispatch No, Planned Date, Actual Date)? Some were typed as text like 2026-03-05. Please turn those text dates in Planned Date and Actual Date into real dates, leave real dates and blank cells alone, and tell me how many cells you converted.

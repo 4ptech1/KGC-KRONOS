@@ -1,0 +1,1 @@
+For every data row of the NCR Register (NCR No, Issue Date, Close Date, Days Open): when Close Date is filled in, Days Open is Close Date minus Issue Date; when it is not, Days Open is today minus Issue Date. Do it with a formula, Excel 2016 only.

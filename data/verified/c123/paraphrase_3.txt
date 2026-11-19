@@ -1,0 +1,1 @@
+Job Tracker (Job ID, Customer, Status), Job ID column only: (1) trim each Job ID, (2) make it upper case, (3) make any run of spaces inside it one space ('job  101 ' becomes 'JOB 101'), (4) change nothing else, (5) tell me how many cells I changed.

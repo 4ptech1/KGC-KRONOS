@@ -1,0 +1,1 @@
+Compare Material Certs (Heat No, MTC No, GRN Check) with GRN (GRN No, Part No, Heat No), matching heats ignoring case and stray spaces: (1) write Not received in GRN Check for each heat that is on no GRN line, (2) for the others write the number of GRN lines, (3) add the GRN Check heading if it's missing, (4) tell me how many heats were not received.

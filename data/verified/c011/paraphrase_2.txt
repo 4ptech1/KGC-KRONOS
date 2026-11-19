@@ -1,0 +1,1 @@
+In the weld log, could you highlight in red every row where Visual isn't Accepted? Leave rows with no seam number alone, clear the old highlights first, and let me know how many rows are red.

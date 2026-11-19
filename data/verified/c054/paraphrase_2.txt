@@ -1,0 +1,1 @@
+Could you colour the rows on the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date)? I want the whole row green when there's an Actual Date, and red when there's none and the Planned Date is before today. Other rows stay without colour. Clear old highlights first so I can run it again, and tell me how many rows are red.

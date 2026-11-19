@@ -1,0 +1,1 @@
+Could you remove the duplicate NCR No rows from the NCR Register, keeping the first one? NCR numbers can differ in upper and lower case. Tell me how many you removed.

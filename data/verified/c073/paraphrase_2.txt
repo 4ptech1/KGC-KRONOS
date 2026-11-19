@@ -1,0 +1,1 @@
+Could you mark the batches in the Consumable Stock sheet (Batch No, Description, Expiry Date, Qty On Hand, Remark)? Write Expired in Remark for every batch whose Expiry Date is before today and Expiring soon for the ones that expire in the next 30 days, and clear the Remark on the others. A batch with no Expiry Date gets no remark. Tell me how many are expired.

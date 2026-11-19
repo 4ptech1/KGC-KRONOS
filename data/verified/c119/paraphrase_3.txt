@@ -1,0 +1,1 @@
+Supplier Grades sheet, rebuilt every run, from the Material Certs sheet (Heat No, Supplier, Grade): (1) one row for each Supplier and Grade that appear together, suppliers A to Z, (2) add the number of certificates, (3) match ignoring case and stray spaces, (4) ignore rows with no supplier or no grade.

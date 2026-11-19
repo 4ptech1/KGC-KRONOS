@@ -1,0 +1,1 @@
+Could you add a sheet called BOM Copy to the workbook, holding a copy of the BOM sheet? Only do it if there's no sheet called BOM Copy yet, so running it twice doesn't add a second one.

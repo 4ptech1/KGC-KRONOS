@@ -1,0 +1,1 @@
+Could you write a Process Summary sheet from the WPS Register (WPS No, Process, PQR Ref, Review Date)? For each process I need the number of WPS and how many of those have no PQR Ref. Processes A to Z, and ignore rows with no process.

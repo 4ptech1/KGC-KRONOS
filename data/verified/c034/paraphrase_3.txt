@@ -1,0 +1,1 @@
+(1) Add the Flag heading to the BOM sheet (Part No, Description, Required Qty, Unit) if it's missing. (2) Rows where Required Qty is blank, not a number, zero or negative: write Check in Flag. (3) Other rows: clear Flag. (4) Tell me how many rows were flagged.

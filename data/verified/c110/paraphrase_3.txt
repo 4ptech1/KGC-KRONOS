@@ -1,0 +1,1 @@
+NCR Register (NCR No, Department, Status), Status column only: (1) make every status that reads open (any case, stray spaces) read exactly Open, (2) make every status that reads closed or close read exactly Closed, (3) leave other statuses and blank cells alone, (4) tell me how many cells were changed.

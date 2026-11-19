@@ -1,0 +1,1 @@
+On the Calibration Tracker (Instrument ID, Type, Last Calibrated, Next Calibration Due): (1) clear any old highlights so it can be run again, (2) make the Instrument ID cell red where Next Calibration Due is blank, (3) make it yellow where Next Calibration Due is a date earlier than Last Calibrated (someone mixed the two up), (4) tell me the number of cells coloured.

@@ -1,0 +1,1 @@
+Expired Batches sheet, rebuilt every run: (1) source is the Consumable Stock sheet (Batch No, Filler Class, Qty On Hand, Expiry Date), (2) take the batches whose Expiry Date is before today, (3) same headings, oldest first, (4) batches with no Expiry Date are skipped.

@@ -1,0 +1,1 @@
+Weld log: red on every row where Visual isn't Accepted. Leave rows without a seam number alone. Clear old highlights first. Report the number of red rows.

@@ -1,0 +1,1 @@
+Consumable Issue log (Issue No, Issue Date, Filler Class, Qty Issued): make a Recent Usage sheet with each Filler Class and its total Qty Issued over the last 30 days, biggest first. Classes are in mixed case. Skip rows with no class, no real Issue Date or non-numeric Qty Issued. Rebuild every run.

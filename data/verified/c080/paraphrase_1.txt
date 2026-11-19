@@ -1,0 +1,1 @@
+BOM sheet (Part No, Description, Required Qty, Unit): build a Unit Totals sheet with total Required Qty per Unit, units A to Z. KG and kg are one unit. Leave out rows with no unit or a non-numeric Required Qty and report how many were left out.

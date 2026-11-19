@@ -1,0 +1,1 @@
+Weld Log (Weld Seam No, Welder ID, Process, Qual Check) vs Welder Quals (Welder ID, Process, Expiry Date): write No qual in Qual Check when the welder has no qualification for that process, else clear it. IDs and processes differ in case and stray spaces. Add heading if missing. Report welds with no qual.

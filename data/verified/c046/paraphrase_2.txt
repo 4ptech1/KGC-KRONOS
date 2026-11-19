@@ -1,0 +1,1 @@
+Could you make a macro to Read the text of status.txt in the Job Folder (a folder path I give it) and write it in cell B1 of the Jobs sheet? If the file isn't there, put the word Missing in B1 instead.

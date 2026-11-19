@@ -1,0 +1,1 @@
+Could you build a Location Due sheet from the Calibration Tracker (Instrument ID, Location, Next Calibration Due)? For each Location I need how many instruments it has and how many of them are overdue, locations A to Z. Instruments with no Location are ignored; one with no due date is counted but is not overdue. The sheet is rebuilt every run.

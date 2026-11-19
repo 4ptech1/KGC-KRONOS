@@ -1,0 +1,1 @@
+Could you add a sheet called Calibration Totals to the workbook, but only if it isn't there already? Cell A1 should have a formula that counts the instruments in the Instrument ID column of the Calibration Tracker. Running it twice mustn't add a second sheet.

@@ -1,0 +1,1 @@
+Welder Quals sheet (Welder ID, Process, Expiry Date, Remark): find the welder ID given to the macro and write Renewal requested in Remark of the first row with it. Return the row, or 0 if the welder isn't there.

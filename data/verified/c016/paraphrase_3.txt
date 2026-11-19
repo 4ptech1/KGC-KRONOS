@@ -1,0 +1,1 @@
+Consumable Stock sheet (Batch No, Description, Qty On Hand, Reorder Level, Remark): (1) Qty On Hand at or below Reorder Level: put Reorder in Remark; (2) above it: clear Remark; (3) report how many batches need reordering.

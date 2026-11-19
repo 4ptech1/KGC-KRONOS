@@ -1,0 +1,1 @@
+For every data row of the BOM (Part No, Required Qty, Issued Qty, Short Qty), Short Qty gets a formula: if Required Qty minus Issued Qty is more than zero, show that difference, otherwise show 0. It has to work in Excel 2016 only.

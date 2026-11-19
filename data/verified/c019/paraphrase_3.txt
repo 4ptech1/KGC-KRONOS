@@ -1,0 +1,1 @@
+Calibration Summary sheet, three labelled numbers: (1) overdue instruments; (2) due in the next 30 days; (3) fine. Count them from the Calibration Tracker (Instrument ID, Type, Next Calibration Due). An instrument with no valid date is in none of the three.

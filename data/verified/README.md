@@ -8,7 +8,7 @@ toolchain proved (D64, `compiler/vcl_corpus.py`).
 | `task.txt` | the request, in the words Boss would type |
 | `spec.vcl` | the proven spec: VCL 0.6, canonical (`vclc fmt`), with its GOAL lines |
 | `meta.json` | id, kind (TASK or BUILD), registers, family, ops used, steps, source, the mutation score it was stored with |
-| `paraphrase_N.txt` | the same request worded differently (optional) |
+| `paraphrase_N.txt` | the same request worded differently: three per pair (D104); it must keep every heading, sheet name, text and number the request names, exactly, and add no number (`vclc corpus` checks it) |
 
 The VBA is not stored: it is derived and goes stale. `python compiler/vclc.py export` compiles it fresh
 into `dist/dataset.jsonl`.

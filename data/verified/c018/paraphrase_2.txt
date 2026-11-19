@@ -1,0 +1,1 @@
+Could you make a Method Summary sheet from the NDE Report (Weld Seam No, Method, Result)? For each method I need a count of how many seams are Accepted, how many are Repair, and how many have no result yet.

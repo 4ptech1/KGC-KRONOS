@@ -1,0 +1,1 @@
+Could you make a WPS by Process sheet from the WPS Register (WPS No, Process, PQR Ref)? Each Process should have its number of WPS and how many of them have no PQR Ref, processes A to Z, and a last row Total with the two sums. Processes are typed in mixed case. The sheet is rebuilt every run.

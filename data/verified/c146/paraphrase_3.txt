@@ -1,0 +1,1 @@
+Weld Log (Weld Seam No, Welder ID, Visual): (1) take the Welder ID I give the macro, matching any case and stray spaces, (2) show its rows and hide all the others, (3) tell me how many rows are visible below the headings.

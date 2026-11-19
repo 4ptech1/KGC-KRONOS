@@ -1,0 +1,1 @@
+Material Certs sheet: Heat No cells have stray spaces and some lowercase. Trim and upper-case every Heat No, change nothing else, report how many cells changed.

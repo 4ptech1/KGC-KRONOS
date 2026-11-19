@@ -1,0 +1,1 @@
+ITP tracker: put Hold and Witness points with inspection status Ready on a Call Notice sheet, same headings as the tracker. Review points need no call notice.

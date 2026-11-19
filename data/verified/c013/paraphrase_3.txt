@@ -1,0 +1,1 @@
+WPS register (WPS No, Process, PQR Ref, Review Date), step by step: (1) clear the old highlights, so it can be run again; (2) find each WPS whose PQR Ref is blank or whose Review Date is more than 12 months before today; (3) highlight its WPS No cell yellow; (4) tell me how many were highlighted.

@@ -1,0 +1,1 @@
+Stock sheet, Excel 2016 only: for every data row, set Value to a formula that multiplies Qty On Hand by Unit Cost. Columns are Batch No, Qty On Hand, Unit Cost, Value.

@@ -1,0 +1,1 @@
+WPS Register (WPS No, Process, Filler Class) vs Consumable Stock sheet (Batch No, Filler Class, Qty On Hand): write No stock in a Stock Remark column when no batch of that Filler Class has Qty On Hand above zero, else clear it. Add heading if missing. Ignore case and stray spaces in filler classes. Report WPS with no stock.

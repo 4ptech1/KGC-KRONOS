@@ -1,0 +1,1 @@
+Could you build a Qual Summary sheet from the Welder Quals sheet (Welder ID, Name, Process, Expiry Date)? One row per process, with three counts: how many qualifications are valid for more than 60 days, how many expire within the next 60 days, and how many have already expired. Processes in alphabetical order, please, and ignore rows with no process or no valid Expiry Date.

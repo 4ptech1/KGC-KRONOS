@@ -1,0 +1,1 @@
+Could you highlight rows on the Material Certs sheet (Heat No, MTC No, Grade, Received Date)? I want the whole row yellow when the MTC No is blank and the Received Date is more than 14 days ago. Clear the old row highlights first so I can run it again, and tell me how many rows you highlighted.

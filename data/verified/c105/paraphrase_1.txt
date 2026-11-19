@@ -1,0 +1,1 @@
+GRN sheet (GRN No, Supplier, Received Qty): make a Supplier Receipts sheet with each supplier, number of GRN lines and total Received Qty, biggest total first. 'Acme Steel' and 'ACME STEEL ' are one supplier. Skip lines with no supplier; a non-numeric Received Qty is left out of the total but the line still counts. Rebuild every run.

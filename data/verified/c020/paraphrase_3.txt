@@ -1,0 +1,1 @@
+(1) Add an NCR Flag column to the ITP Tracker (ITP No, Point, Inspection Status) if it isn't there. (2) Look in the NCR Register (NCR No, ITP No, Status) for NCRs that are Open. (3) For each ITP point with an Open NCR against it, put Open NCR in NCR Flag. (4) Tell me how many points are flagged.

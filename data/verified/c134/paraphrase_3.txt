@@ -1,0 +1,1 @@
+Weld Log (Weld Seam No, Visual, NDE Required, NDE Result, Remark): (1) Yes and Accepted can be in any case, (2) where Visual is Accepted, NDE Required is Yes and NDE Result is blank, write NDE pending in Remark, (3) clear Remark on the others, (4) tell me how many are pending.

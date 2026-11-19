@@ -1,0 +1,1 @@
+Could you tidy the Job ID column in the Job Tracker (Job ID, Customer, Status)? Every Job ID should be trimmed and upper case, with any run of spaces inside it made one space, so 'job  101 ' becomes 'JOB 101'. Please change nothing else and tell me how many cells you changed.

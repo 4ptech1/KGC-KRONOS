@@ -1,0 +1,1 @@
+ITP Tracker (ITP No, Point, Inspection Status, Inspector, Remark): write No inspector in Remark for every Closed point with a blank Inspector, clear Remark on the others. Closed is in any case, stray spaces. Report points with no inspector.

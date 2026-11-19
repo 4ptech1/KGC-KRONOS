@@ -1,0 +1,1 @@
+Inspector Summary sheet, rebuilt every run, from the NDE Report (Weld Seam No, Inspector, Result): (1) one row per Inspector, A to Z, (2) how many reports they signed, (3) how many of those are Reject, (4) skip rows with no Inspector.

@@ -1,0 +1,1 @@
+(1) On the Dispatch sheet (Dispatch No, Planned Date, Actual Date) find the dates typed as text, like 2026-03-05, in Planned Date and Actual Date. (2) Turn them into real dates. (3) Leave real dates and blank cells alone. (4) Tell me how many cells were converted.

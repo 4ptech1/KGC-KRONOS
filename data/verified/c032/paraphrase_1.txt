@@ -1,0 +1,1 @@
+Weld follow-up tool, one macro. (1) Weld log (Weld Seam No, Welder ID, Visual): red on rows where Visual isn't Accepted. (2) Copy those rows, same headings, to a Weld Exceptions sheet. (3) Welder Exceptions sheet: exceptions per welder, most first. Both output sheets rebuilt every run.

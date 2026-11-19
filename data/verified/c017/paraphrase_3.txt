@@ -1,0 +1,1 @@
+Welds Per Welder sheet, built from the weld log (Weld Seam No, Welder ID, Joint Type, Weld Date, Visual): (1) count each welder's welds; (2) count how many of those were Rejected; (3) sort so the welder with most welds is first.

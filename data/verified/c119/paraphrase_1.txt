@@ -1,0 +1,1 @@
+Material Certs sheet (Heat No, Supplier, Grade): make a Supplier Grades sheet, one row per Supplier and Grade pair that occurs, with the number of certificates, suppliers A to Z. Match ignoring case and stray spaces. Skip rows with no supplier or no grade. Rebuild every run.

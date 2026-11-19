@@ -1,0 +1,1 @@
+Tracker has a Job ID and a test report name per row. Reports are in a dump folder. Copy each into a folder named after its job inside the jobs folder. Status gets what happened. Never move or overwrite a file.

@@ -1,0 +1,1 @@
+Could you check the GRN sheet (GRN No, Part No, Heat No) against the Material Certs sheet (Heat No, MTC No)? I want a Missing Certs sheet listing every GRN line whose heat number has no row in Material Certs. The heat numbers have stray spaces and mixed case, so please compare them tidily.

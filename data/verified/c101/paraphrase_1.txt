@@ -1,0 +1,1 @@
+NCR Register (NCR No, Severity, Status, Disposition): colour NCR No orange for each NCR that is Closed with no Disposition. Remove old colour from NCR No cells first, rerunnable. Report how many coloured.

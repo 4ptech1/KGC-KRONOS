@@ -1,0 +1,1 @@
+Method Summary sheet, rebuilt every run, from the NDE Report (Weld Seam No, Method, Result): (1) one row per Method, A to Z, (2) number of welds tested, (3) number with the Result Reject, (4) RT and rt are the same method, (5) rows with no method are ignored.

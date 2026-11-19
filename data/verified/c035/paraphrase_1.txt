@@ -1,0 +1,1 @@
+GRN sheet (GRN No, Part No, Received Qty, Received Date, Inspector): yellow GRN No cell when Inspector is blank; Remark = Future date when Received Date is after today. Clear old highlights and remarks first. Report rows with a yellow GRN No.

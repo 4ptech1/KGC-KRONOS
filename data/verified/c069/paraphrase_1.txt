@@ -1,0 +1,1 @@
+NDE Report (Weld Seam No, Method, Result): hide all rows except the Reject ones, so only rejected welds show. Report how many rows are visible below the headings. Same answer on a rerun.

@@ -1,0 +1,1 @@
+ITP Tracker (ITP No, Point, Inspection Status, NCR Hold) vs NCR Register (NCR No, ITP No, Status): write Hold in NCR Hold for each point whose ITP No has at least one NCR not Closed, else clear it. ITP numbers differ in case and stray spaces. Report points on hold.

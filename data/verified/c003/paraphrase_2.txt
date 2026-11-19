@@ -1,0 +1,1 @@
+I need a Welder Performance sheet built from the NDE report. For each welder please show how many seams were inspected, how many needed repair, and the repair rate, with the highest rate at the top. Seams that have no result yet haven't been inspected, so leave those out.

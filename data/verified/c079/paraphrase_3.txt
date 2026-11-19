@@ -1,0 +1,1 @@
+Build the PQR Summary sheet from the PQR List (PQR No, Process, Test Date, Result), rebuilt every run: (1) one row per process, A to Z, (2) columns: number of PQRs, number with the Result Fail, (3) last row Total with the two sums, (4) rows with no process are ignored.

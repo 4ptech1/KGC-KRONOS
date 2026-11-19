@@ -1,0 +1,1 @@
+NCR Register (NCR No, Department, Status): any status reading open (any case, stray spaces) becomes exactly Open; closed or close becomes exactly Closed. Leave other statuses and blanks alone, change no other column, report cells changed.

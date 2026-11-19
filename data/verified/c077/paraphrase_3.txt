@@ -1,0 +1,1 @@
+On the BOM sheet (Part No, Description, Required Qty, Unit, Remark): (1) ignore case and stray spaces in Unit, (2) where Unit is blank or is not one of NOS, KG, MTR or SET, write Unit? in Remark, (3) clear Remark on all other rows, (4) tell me how many rows need a unit fixed.

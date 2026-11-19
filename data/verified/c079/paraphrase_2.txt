@@ -1,0 +1,1 @@
+I'd like a PQR Summary sheet built from the PQR List (PQR No, Process, Test Date, Result). Could it show each process, how many PQRs it has and how many of those have the Result Fail, with processes A to Z and a last row Total holding the two sums? Please ignore rows with no process and rebuild the sheet every run.

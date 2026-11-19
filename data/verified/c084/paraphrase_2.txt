@@ -1,0 +1,1 @@
+I have a mess in the WPS Register (WPS No, Process, PQR Ref): the Process cells look like 'smaw', ' SMAW' or 'Gtaw '. Could you make each one trimmed and upper case, and empty any PQR Ref cell that holds only spaces? Please change nothing else, and tell me how many cells you changed.

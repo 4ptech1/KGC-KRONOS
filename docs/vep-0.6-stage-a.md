@@ -162,8 +162,8 @@ tokenizer, any training. Stage A only prepares the data and the scoreboard.
    grows. The 150 pairs, 15 held out, were complete on 19 Nov 2026.
 7. **The data generator (D101, D103):** part 1, `vclc datagen` (`compiler/vcl_datagen.py`): repairs from mutants
    and from the helpers' failed tries, and contrast pairs, as JSON Lines in `dist/datagen/` (done, D103); part 2, the
-   paraphrases and their check (next).
-8. **The benchmark:** the 15 held-out items, contracts, `vclc bench`, the baseline. Boss's permitted KGC samples may
+   paraphrases and their check (done, D104: 405 paraphrases, checked by `vclc corpus`). **Phase 7 is complete.**
+8. **The benchmark (next):** the 15 held-out items, contracts, `vclc bench`, the baseline. Boss's permitted KGC samples may
    shape realistic held-out tasks, with invented values (D101).
 
 ## Verification (every phase)

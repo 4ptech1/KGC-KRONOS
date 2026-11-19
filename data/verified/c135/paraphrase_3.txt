@@ -1,0 +1,1 @@
+Welder Visual sheet, rebuilt every run, from the Weld Log (Weld Seam No, Welder ID, Visual): (1) one row per Welder ID, ignoring stray spaces, (2) number of welds made, (3) how many were not Accepted, (4) most welds first, (5) rows with no Welder ID are ignored.

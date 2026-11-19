@@ -1,0 +1,1 @@
+NCR register (NCR No, Raised By, Issue Date, Category, Status): yellow on the NCR No cell where the NCR is still Open and Issue Date is over 30 days ago. Report the count. On a rerun, closed NCRs must not keep old highlights.

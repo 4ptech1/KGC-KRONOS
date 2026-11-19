@@ -1,0 +1,1 @@
+(1) Add a Flag heading to the ITP Tracker (ITP No, Point, Inspection Status, Planned Date) if it isn't there. (2) Not Closed and Planned Date before today: Flag = Overdue. (3) All other points: clear Flag. (4) Report how many points are overdue.

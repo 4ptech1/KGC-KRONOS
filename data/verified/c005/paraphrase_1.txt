@@ -1,0 +1,1 @@
+Weld log: copy rows where fit-up or visual is not Accepted (or is blank) to a Weld Log Exceptions sheet. Delete nothing from the weld log. Report the number copied.

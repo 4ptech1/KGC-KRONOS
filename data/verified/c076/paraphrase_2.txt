@@ -1,0 +1,1 @@
+I need some help with the Job Tracker (Job ID, Customer, Start Date, Due Date, Status). Could you write Bad dates in a Flag column when the Due Date is before the Start Date, and No due date for a job that is not Closed and has no Due Date? Clear the Flag on the rest, add the Flag heading if it's missing, and tell me how many jobs got flagged.

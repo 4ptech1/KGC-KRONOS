@@ -1,0 +1,1 @@
+Weekly quality tool, one macro. (1) Overdue NCRs sheet: every Open NCR older than 30 days from the NCR Register (NCR No, Issue Date, Status). (2) Calibration Due sheet: instruments in the Calibration Tracker (Instrument ID, Next Calibration Due) due within 15 days or already overdue. (3) Weekly Summary sheet: both counts with labels. All three output sheets rebuilt every run.

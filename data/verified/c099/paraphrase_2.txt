@@ -1,0 +1,1 @@
+Could you build an Expiring Quals sheet from Welder Quals (Welder ID, Process, Expiry Date)? I want every qualification that has expired or expires in the next 60 days, with the same headings plus a Days Left column that is negative when already expired, soonest first. Rows with no Expiry Date get skipped, and the sheet is rebuilt every run.

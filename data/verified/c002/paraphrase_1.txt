@@ -1,0 +1,1 @@
+Material traceability register: whole row red if the heat number or the MTC number is missing. Ignore rows without a part number. Report how many rows flagged.

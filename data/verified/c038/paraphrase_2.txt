@@ -1,0 +1,1 @@
+Could you make a Customer Summary sheet from the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date)? For each customer I need the number of dispatches and how many of them were late, meaning Actual Date after Planned Date. List the customers A to Z.

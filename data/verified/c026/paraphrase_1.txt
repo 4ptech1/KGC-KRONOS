@@ -1,0 +1,1 @@
+Job Tracker sheet: make a folder per Job ID inside the Jobs folder. In the Folder Status column write what happened per row: made, already there, or a problem. Never delete or overwrite anything.

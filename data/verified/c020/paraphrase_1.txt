@@ -1,0 +1,1 @@
+Compare ITP Tracker (ITP No, Point, Inspection Status) with NCR Register (NCR No, ITP No, Status). Add an NCR Flag column to the tracker if missing. Put Open NCR there for each ITP point that has an Open NCR against it. Report how many points are flagged.

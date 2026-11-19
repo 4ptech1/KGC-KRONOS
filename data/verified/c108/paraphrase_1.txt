@@ -1,0 +1,1 @@
+GRN sheet (GRN No, Part No, Received Qty) vs BOM (Part No, Required Qty, Received Total, Remark): fill Received Total in the BOM with the total received per part (0 if none), write Short in Remark when it is less than Required Qty, else clear Remark. Part numbers differ in case and stray spaces. Non-numeric quantities left out. Report parts Short.

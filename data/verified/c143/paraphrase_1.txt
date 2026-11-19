@@ -1,0 +1,1 @@
+Expired Batches sheet: list each batch of the Consumable Stock sheet (Batch No, Filler Class, Qty On Hand, Expiry Date) with Expiry Date before today, same headings, oldest first. Batches with no Expiry Date skipped. Rebuild every run.

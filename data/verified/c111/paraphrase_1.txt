@@ -1,0 +1,1 @@
+GRN sheet (GRN No, Delivery Note File, Copy Status): for each line copy the Delivery Note File from the Inbox folder into a folder named after the GRN No inside the GRN Archive folder (both paths given to the macro), making it if missing. Copy Status = Copied, Already there, Missing or Bad name. Never overwrite, move or delete a file.

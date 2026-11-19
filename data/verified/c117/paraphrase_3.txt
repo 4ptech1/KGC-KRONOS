@@ -1,0 +1,1 @@
+Recent Usage sheet, rebuilt every run, from the Consumable Issue log (Issue No, Issue Date, Filler Class, Qty Issued): (1) one row per Filler Class, mixed case treated as the same, (2) total Qty Issued over the last 30 days, biggest first, (3) ignore rows with no class, no real Issue Date or a Qty Issued that is not a number.

@@ -1,0 +1,1 @@
+ITP Tracker (ITP No, Point, Inspection Status, NCR Hold) and NCR Register (NCR No, ITP No, Status): (1) match ITP numbers ignoring case and stray spaces, (2) a point whose ITP No has at least one NCR that is not Closed gets Hold in NCR Hold, (3) clear NCR Hold on the others, (4) tell me how many points are on hold.

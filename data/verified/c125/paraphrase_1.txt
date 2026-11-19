@@ -1,0 +1,1 @@
+Cal Certs folder (path given to the macro) holds one PDF per instrument, like PG-104.pdf. For each Calibration Tracker row (Instrument ID, Cert Status) write Found in Cert Status if that instrument has a PDF there, else Missing; no Instrument ID gets nothing. Never change a file. Report how many Missing.

@@ -1,0 +1,1 @@
+Consumable Stock sheet (Batch No, Description, Expiry Date, Qty On Hand, Remark): (1) a batch with no Expiry Date gets no remark; (2) Expiry Date before today: Remark = Expired; (3) expires in the next 30 days: Remark = Expiring soon; (4) clear Remark on the others; (5) report how many are expired.

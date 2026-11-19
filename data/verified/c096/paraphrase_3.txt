@@ -1,0 +1,1 @@
+Given a welder ID, find its first row on the Welder Quals sheet (Welder ID, Process, Expiry Date, Remark), write Renewal requested in that row's Remark, and tell me the row number, or 0 when the welder isn't on the sheet.

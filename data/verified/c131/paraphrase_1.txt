@@ -1,0 +1,1 @@
+NDE Report (Weld Seam No, Method, Result, Report Date): whole row red if Result is Reject, yellow if Result is Pending and Report Date is more than 3 days ago. Clear old row colours first, rerunnable. Report how many rows are red.

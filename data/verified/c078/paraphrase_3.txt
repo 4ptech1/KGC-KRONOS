@@ -1,0 +1,1 @@
+Source: Consumable Issue log (Issue No, Batch No, Qty Issued, Job ID). Output: a Job Issue Summary sheet rebuilt every run. One row per Job ID, with the number of issues and the total Qty Issued, sorted with the biggest total first. Rows with no Job ID are ignored, and a Qty Issued that is not a number is left out of the total.

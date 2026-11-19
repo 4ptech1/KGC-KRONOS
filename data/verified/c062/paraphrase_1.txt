@@ -1,0 +1,1 @@
+ITP Tracker, Inspection Status column is messy ('open', 'OPEN ', ' closed'). Normalise anything that is Open or Closed (ignoring case and stray spaces) to exactly Open or Closed, leave other statuses, report how many cells changed.

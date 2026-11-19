@@ -1,0 +1,1 @@
+On the Weld Log (Weld Seam No, Welder ID, Visual), could you show only the rows of the Welder ID I give the macro, in any case and with stray spaces, and hide the others? Then tell me how many rows are visible below the headings.

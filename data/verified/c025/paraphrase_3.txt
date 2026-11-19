@@ -1,0 +1,1 @@
+Late Jobs sheet with the same headings as the Job Tracker (Job ID, Customer, Due Date, Status): (1) take the jobs that are not Closed; (2) keep those past their Due Date; (3) sort with the oldest due date first.

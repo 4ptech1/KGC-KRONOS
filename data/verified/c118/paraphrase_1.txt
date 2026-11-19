@@ -1,0 +1,1 @@
+Job Tracker (Job ID, Customer, Status): make a Status Count sheet with each Status and its number of jobs, most first, and a last row Total with all jobs. 'closed' and 'Closed ' are one status; no Status counts as Blank. Rebuild every run.

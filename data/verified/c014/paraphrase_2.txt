@@ -1,0 +1,1 @@
+On the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date, Status) could you write Late in Status for each row that has no Actual Date and a Planned Date before today? Where the Actual Date isn't later than the Planned Date, write On time. Leave the other rows alone and tell me how many are Late.

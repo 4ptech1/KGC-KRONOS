@@ -1,0 +1,1 @@
+ITP Tracker (ITP No, Point, Inspection Status, Inspector, Remark): (1) a point counts as Closed in any case and with stray spaces, (2) Closed and Inspector blank: write No inspector in Remark, (3) clear Remark on all other points, (4) tell me how many points have no inspector.

@@ -1,0 +1,1 @@
+Welder Quals (Welder ID, Process, Expiry Date, Status): (1) Expiry Date before today: write Expired in Status, (2) Expiry Date in the next 30 days: Expires soon, (3) anything else with a date: Valid, (4) no Expiry Date: No date, (5) tell me how many are Expired or Expires soon.

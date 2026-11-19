@@ -1,0 +1,1 @@
+Could you make an Inspector Summary sheet from the NDE Report (Weld Seam No, Inspector, Result)? I want each Inspector with how many reports they signed and how many of those are Reject, inspectors A to Z. Rows with no Inspector are ignored, and the sheet should be rebuilt every run.
