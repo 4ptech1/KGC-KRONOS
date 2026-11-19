@@ -1,7 +1,6 @@
-"""The compiler's VBA, run in the VBA simulator, ends where the reference interpreter does (D90 Phase 1, part 2, D99).
+"""The compiler's VBA, run in the VBA simulator, ends where the reference interpreter does (D90 Phase 1, D99, D100).
 
-Every committed spec, example and corpus pair that the simulator runs (TASKs without folder FIXTUREs; files and
-BUILDs come in part 3) is checked TEST by TEST: RESULT, ERROR_COUNT, MSG and LOG, and every sheet's cells, fills,
+Every committed spec, example and corpus pair, BUILDs and folder FIXTUREs included, is checked TEST by TEST: RESULT, ERROR_COUNT, MSG and LOG, and every sheet's cells, fills,
 number formats and hidden rows. A bug planted in compiled VBA must be caught, so the check is not just agreeing.
 """
 import datetime as dt
@@ -15,7 +14,7 @@ sys.path.insert(0, str(ROOT / "compiler"))
 import vba_check  # noqa: E402
 import vba_sim as V  # noqa: E402
 from vba_lint import lint  # noqa: E402
-from vcl_codegen import assemble, compile_text  # noqa: E402
+from vcl_codegen import assemble, compile_build, compile_text  # noqa: E402
 
 TODAY = dt.date(2026, 11, 19)
 SPECS = (sorted((ROOT / "specs").glob("*.vcl")) + sorted((ROOT / "vcl" / "examples").glob("*.vcl"))
@@ -35,7 +34,8 @@ class EverySpec(unittest.TestCase):
                 self.assertEqual(out.differences, [])
                 proven += out.proven
                 skipped += out.skipped is not None
-        self.assertGreaterEqual(proven, 130)   # 11 specs, Example 1 and 118 corpus TASKs on 19 Nov 2026
+        self.assertGreaterEqual(proven, 165)   # every spec, example and corpus pair with TESTs on 19 Nov 2026
+        self.assertEqual(skipped, 1)            # vcl/examples/build_example.vcl, which doesn't parse on purpose
 
 
 class PlantedBugs(unittest.TestCase):
@@ -69,6 +69,37 @@ class PlantedBugs(unittest.TestCase):
         out = self.check(ROOT / "specs" / "task_09.vcl", "(Date - CDate(ncr.Cells(r, cDate_v).Value))",
                          "(Date - ForgeNum(ncr.Cells(r, cDate_v).Value))")
         self.assertTrue(any("'1900-10-06'" in d for d in out.differences), out.differences)
+
+
+class FilesAndBuilds(unittest.TestCase):
+    """Part 3 (D100): the file ops on the interpreter's mock file system, and a BUILD through RunHeadless."""
+
+    def check(self, path, old, new, build=False):
+        text = path.read_text(encoding="utf-8")
+        module = compile_build(text, path.name)[1] if build else assemble([compile_text(text, path.name)])
+        self.assertIn(old, module)
+        return vba_check.check_text(text, path.name, TODAY, module=module.replace(old, new, 1)).differences
+
+    def test_a_wrong_copy_status_is_caught(self):
+        found = self.check(ROOT / "specs" / "task_12.vcl", 'ForgeCopyFile = "Copied"', 'ForgeCopyFile = "Already there"')
+        self.assertTrue(any("cells differ" in d for d in found), found)
+
+    def test_a_copy_that_never_happens_is_caught(self):
+        found = self.check(ROOT / "specs" / "task_12.vcl", "fso.CopyFile src, dst, False", "")
+        self.assertTrue(found)
+
+    def test_a_wrong_text_file_is_caught(self):
+        found = self.check(ROOT / "data" / "verified" / "c067" / "spec.vcl", "ts.Write text", 'ts.Write text & "x"')
+        self.assertTrue(any("files differ" in d for d in found), found)
+
+    def test_a_wrong_read_is_caught(self):
+        found = self.check(ROOT / "data" / "verified" / "c046" / "spec.vcl", 'ForgeReadText = "Read"', 'ForgeReadText = "Missing"')
+        self.assertTrue(found)
+
+    def test_a_build_step_that_writes_nothing_is_caught(self):
+        found = self.check(ROOT / "vcl" / "examples" / "example4_build.vcl",
+                           'ForgeSetValue ncr.Cells(r, cStatus), "Overdue"', "' (removed)", build=True)
+        self.assertTrue(found)
 
 
 class ReservedNames(unittest.TestCase):
