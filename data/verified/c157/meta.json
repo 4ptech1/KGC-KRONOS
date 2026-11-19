@@ -1,0 +1,29 @@
+{
+ "accepted_warnings": [],
+ "family": "reconcile",
+ "id": "c157",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 3,
+  "killed": 28,
+  "note": "Third try. 28 of 33; 3 equivalent: the blank-Job-ID SKIP_IF deleted only adds the key \"\", which no dispatch row looks up, and mode and value of a dictionary only EXISTS reads. Two are real gaps: SKIP_IF to EXIT_LOOP_IF (only Closed NCRs follow the blank one) and LASTCOL + 1 to + 2 for the added heading (TESTs find it by name).",
+  "total": 33
+ },
+ "op_lines": 17,
+ "ops": [
+  "DICT_ADD",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "dispatch",
+  "ncr"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 8)"
+}

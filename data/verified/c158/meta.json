@@ -1,0 +1,36 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c158",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 9,
+  "killed": 92,
+  "note": "Second try. 92 of 102; 9 equivalent: a blank-Job-ID SKIP_IF whose key \"\" no tracker row looks up, mode and value of two dictionaries only EXISTS reads, and the start and step of two row counters whose gaps the following SORTs close. The tenth, COPY_ROW's LASTCOL + 1 to + 2, is a gap: a real sheet could hold data in the next column.",
+  "total": 102
+ },
+ "op_lines": 67,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "COPY_ROW",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "dispatch",
+  "job_tracker"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 8)"
+}

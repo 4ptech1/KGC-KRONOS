@@ -1,0 +1,30 @@
+{
+ "accepted_warnings": [],
+ "family": "summarise",
+ "id": "c156",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 37,
+  "note": "Third try. 37 of 41; 1 equivalent: the guard before the SORT, > to >=, which differs only for one written row. Three are real fixture gaps: two DICT_ADD seeds that list a customer with no delivered dispatch (the fixture has none) and the guard's 3 to 4.",
+  "total": 41
+ },
+ "op_lines": 22,
+ "ops": [
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "dispatch"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 8)"
+}
