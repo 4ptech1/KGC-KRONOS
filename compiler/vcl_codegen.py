@@ -18,12 +18,7 @@ from resources import ROOT  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from vcl_types import Checker, build_sigs, canon, mentions  # noqa: E402
 
-VBA_RESERVED = set("""and as boolean byref byte byval call case const currency date decimal declare dim do
-double each else elseif empty end enum eqv erase error event exit false for friend function get global
-gosub goto if imp implements in integer is let lib like long loop lset me mod new next not nothing null
-object on optional or paramarray preserve private property public raiseevent redim rem resume return rset
-select set single static step stop string sub then to true type typeof until variant wend while with
-withevents xor""".split())
+from vba_lint import VBA_RESERVED  # noqa: E402  (the one list, MS-VBAL 3.3.5)
 DIM_TYPE = {"Long": "Long", "Double": "Double", "String": "String", "Boolean": "Boolean", "Date": "Date",
             "Variant": "Variant", "Range": "Range", "Worksheet": "Worksheet", "Workbook": "Workbook",
             "Dictionary": "Object", "Collection": "Collection"}
@@ -175,7 +170,7 @@ class Gen:
         code, k = self.ex(t)
         if k in ("raw", "word"):
             fact = self.facts.get(canon(t))
-            if fact == "Date" or (fact is None and prefer == "date"):
+            if fact == "date" or (fact is None and prefer == "date"):   # facts are stored lower case (with_facts)
                 return f"CDate({code})", "date"
             return f"ForgeNum({code})", "num"
         return code, k

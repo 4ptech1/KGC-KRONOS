@@ -16,6 +16,19 @@ procedure can't borrow a helper's name.
 import re
 import sys
 
+# Names VBA reserves (MS-VBAL 3.3.5: statement, marker and operator keywords, reserved type names, literals,
+# special forms and reserved names such as CDate, Len and Int). A variable, argument or procedure with one of
+# these names stops Excel compiling the module ("Expected: identifier"); vcl_codegen.vba_name renames them.
+VBA_RESERVED = set("""abs addressof and any array as attribute base binary boolean byref byte byval call case cbool
+cbyte ccur cdate cdbl cdec cint circle clng clnglng clngptr close compare const csng cstr currency cvar cverr date
+debug decimal declare defbool defbyte defcur defdate defdbl defdec defint deflng deflnglng deflngptr defobj defsng
+defstr defvar dim do doevents double each else elseif empty end endif enum eqv erase error event exit explicit false
+fix for friend function get global gosub goto if imp implements in input inputb int integer is len lenb let lib like
+lock long longlong longptr loop lset me mod new next not nothing null object on open option optional or paramarray
+preserve print private property pset ptrsafe public put raiseevent redim rem resume return rset scale seek select
+set sgn shared single spc static stop string sub tab then to true type typeof ubound unlock until variant wend while
+with withevents write xor""".split())
+
 BANNED = [(r"\.Select\b", "Select is banned"), (r"\.Activate\b", "Activate is banned"),
           (r"\bSelection\b", "Selection is banned"), (r"\bSendKeys\b", "SendKeys is banned"),
           (r"\bAs\s+Integer\b", "use Long, not Integer"), (r"^\s*End\s*$", "bare End statement"),
@@ -167,9 +180,13 @@ def lint(text, helpers=()):
             proc_lines.setdefault(m.group(2).lower(), no)
             stack, labels, gotos = [], set(), []
             declared = {m.group(2)} | module_vars
+            if m.group(2).lower() in VBA_RESERVED:
+                problems.append((no, f"{m.group(2)} is a name VBA reserves: Excel won't compile the module"))
             for p in filter(None, (x.strip() for x in m.group(3).split(","))):
                 pm = re.match(r"(?:ByVal |ByRef |Optional )*(\w+)", p)
                 declared.add(pm.group(1))
+                if pm.group(1).lower() in VBA_RESERVED:
+                    problems.append((no, f"{pm.group(1)} is a name VBA reserves: Excel won't compile the module"))
             continue
         m = re.match(r"^End (Function|Sub)$", stmt)
         if m:
@@ -191,6 +208,8 @@ def lint(text, helpers=()):
             continue
         for dm in re.finditer(r"\bDim (\w+) As ", stmt):
             declared.add(dm.group(1))
+            if dm.group(1).lower() in VBA_RESERVED:
+                problems.append((no, f"{dm.group(1)} is a name VBA reserves: Excel won't compile the module"))
         for g in re.findall(r"\b(?:GoTo|Resume) (\w+)", stmt):
             if not g.isdigit() and g != "Next":
                 gotos.append((g, no))

@@ -157,6 +157,7 @@ compiler/kronos_ai.py     KRONOS's AI adapters: the fake AI for the tests, and t
 compiler/kronos_web.py    KRONOS Offline's bridge: the page's Pyodide and the tests call check(text) (D86)
 compiler/kronos_book.py   an uploaded workbook: describe it, run a proven recipe on it, write the changed copy (D87)
 compiler/vba_sim.py       the VBA simulator: runs the VBA we generate without Excel (D90, D98)
+compiler/vba_check.py     every TEST's compiled VBA in the simulator against the interpreter (D99)
 web/                      KRONOS Offline's page: index.html, styles.css, app.js, worker.js (Pyodide), logo.svg (D86)
 packaging/kronos.spec     the PyInstaller spec for KRONOS.exe (D79)
 packaging/build_offline.py  builds KRONOS Offline's zip from offline/ (launcher, servers, licences), offline_pins.json and web/ (D86)
@@ -650,7 +651,7 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    and workbook change into `KRONOS\work` (D91 S2).
 7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026, D90, `docs/ai-vba-plan.md`). Phase 0, the
    design, is done. Before March: Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes (first it proves
-   the compiler's own VBA for every spec and corpus pair; part 1, the language core, is done, D98), and Phase 2, the VCL memory. **March 2027:** the new PC; train
+   the compiler's own VBA for every spec and corpus pair; parts 1 and 2 are done, D98, D99), and Phase 2, the VCL memory. **March 2027:** the new PC; train
    our own model from zero on in-house data (D25). It writes VCL and the VBA; its VBA is used only when the simulator
    proves it, else the compiler's. Excel conformance runs.
 8. **The new PC's 300 GB, KRONOS's home from March 2027** (Boss, 17 Nov 2026, D91, `docs/kronos-storage-plan.md`):
@@ -766,6 +767,8 @@ from zero, grammar-constrained), D (repair; used once it passes enough of the be
   which VCL refuses: a request may be hard, never impossible by its own wording.
 - **D97:** the end-of-Phase-6 wording fixes: the FIXTURE `+boundary` rules, the wrong-sheet TEST, only Run as an
   entry macro, fill names reserved, RANGE literal, date minus date, DICT_GET of a missing key, RETURN; no meaning changes.
+- **D99:** the compiled VBA of 130 specs and pairs ends where the interpreter does on every TEST; two compiler bugs found
+  and fixed (`cDate`, a VBA reserved name, and a date written where a number of days belongs).
 - **D98:** the VBA simulator's core: the ForgeLib self-test passes in it, planted bugs are caught, and what it can't run is
   refused, never guessed; it found a conformance gap (no number below 1).
 - **D91, D92:** from March 2027 KRONOS's home is the new PC's 300 GB of company storage
@@ -2657,7 +2660,7 @@ TEST     fixture=ncr_01.xlsx call=BuildOpenNcrSummary(NcrSummary, NcrSummary) as
 '@VCL PROC=BuildOpenNcrSummary  source: task_09.vcl
 Public Function BuildOpenNcrSummary(ByVal ncr As Worksheet, ByVal out As Worksheet) As Long
           Dim cNcr As Long
-          Dim cDate As Long
+          Dim cDate_v As Long
           Dim cStatus As Long
           Dim lastCol As Long
           Dim outRow As Long
@@ -2675,7 +2678,7 @@ Public Function BuildOpenNcrSummary(ByVal ncr As Worksheet, ByVal out As Workshe
           Application.ScreenUpdating = False
           Application.Calculation = xlCalculationManual
 190       cNcr = ForgeCol(ncr, "NCR No")
-200       cDate = ForgeCol(ncr, "Issue Date")
+200       cDate_v = ForgeCol(ncr, "Issue Date")
 210       cStatus = ForgeCol(ncr, "Status")
 220       lastCol = ForgeLastCol(ncr, 1)
 230       ForgeUsedRange(out).Clear
@@ -2685,12 +2688,12 @@ Public Function BuildOpenNcrSummary(ByVal ncr As Worksheet, ByVal out As Workshe
 270       For r = 2 To ForgeLastRow(ncr, cNcr)
 280           If ForgeSame(ncr.Cells(r, cStatus).Value, "OPEN") Then
 290               ForgeCopyRow ncr, r, out, outRow, lastCol
-300               If ForgeIsDate(ncr.Cells(r, cDate).Value) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), (Date - ForgeNum(ncr.Cells(r, cDate).Value))
-310               If (Not ForgeIsDate(ncr.Cells(r, cDate).Value)) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), "Issue date missing"
+300               If ForgeIsDate(ncr.Cells(r, cDate_v).Value) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), (Date - CDate(ncr.Cells(r, cDate_v).Value))
+310               If (Not ForgeIsDate(ncr.Cells(r, cDate_v).Value)) Then ForgeSetValue out.Cells(outRow, (lastCol + 1)), "Issue date missing"
 320               outRow = (outRow + 1)
               End If
           Next r
-330       ForgeSort ForgeUsedRange(out), cDate, True, True
+330       ForgeSort ForgeUsedRange(out), cDate_v, True, True
 340       BuildOpenNcrSummary = (outRow - 2)
 341       GoTo CleanExit
 CleanExit:
@@ -2786,8 +2789,8 @@ Public Function BuildCalibrationDueList(ByVal cal As Worksheet, ByVal out As Wor
 280           status = ""
 290           If (Not ForgeIsDate(cal.Cells(r, cDue).Value)) Then status = "Due date missing"
 300           If ForgeIsDate(cal.Cells(r, cDue).Value) Then
-310               If (ForgeNum(cal.Cells(r, cDue).Value) < Date) Then status = "Overdue"
-320               If ((ForgeNum(cal.Cells(r, cDue).Value) >= Date) And (ForgeNum(cal.Cells(r, cDue).Value) <= (Date + 15))) Then status = "Due within 15 days"
+310               If (CDate(cal.Cells(r, cDue).Value) < Date) Then status = "Overdue"
+320               If ((CDate(cal.Cells(r, cDue).Value) >= Date) And (CDate(cal.Cells(r, cDue).Value) <= (Date + 15))) Then status = "Due within 15 days"
               End If
 330           If (Not ForgeIsEmpty(status)) Then
 340               ForgeCopyRow cal, r, out, outRow, lastCol
@@ -3249,6 +3252,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D96 | 19 Nov 2026 | **Stage A Phase 6 is complete: the corpus has 150 pairs (batch 7 and a top-up, batch 8).** (1) Batch 7's 27 requests were saved first (`data/batches/batch_07.json`: c119 and c120 again, c131 to c155, c153 to c155 in place of the retired c074, c098 and c106); the top-up's four (`batch_08.json`: c156 to c159) were saved, each before its helper saw it. Ten Sonnet helpers, two at a time (D82); the account's 5-hour limit stopped two of them once, and they were resumed with their saved work. 27 pairs are stored: 23 of batch 7 (21 verified and, held out, c133 and c149, which fill the 15 held-out pairs) and all 4 of the top-up. Every family is full and every register has 10 or more pairs: 150 of 150 (135 verified, 15 held out; 118 TASKs and 17 BUILDs verified), and the whole corpus re-checks clean, mutation included (4943 of 4972 catchable mutants). (2) **Not stored:** c120 (layout, then its own fixture order; retired after two batches because the 150 was reached), c137 (numbers and text in one FIXTURE column, a language gap) and **c148 and c152, which failed because of my own wording**: I added "Each numbered step should also be a macro I can run on its own" to every build request to make a BUILD the natural answer (D95), but VCL lets only modMain.Run pass SHEET(THIS_BOOK, ...), so the request asked for something the language refuses. The other five builds met it by an ASSUME (the steps run through Run or RunHeadless's step argument). The top-up's builds left the sentence out. Lesson, written into the corpus plan: a request may be hard, never impossible by its own wording unless that is the point of the pair. (3) The 27 pairs catch 1149 of 1165 catchable mutants; 55 are named equivalent. I read every claim and refused 16, recorded as real gaps in the notes: `LASTCOL` to row 2 (c131, c139), loop starts and EXIT_LOOP_IF on unlucky fixture rows (c139, c157), `mode=keep` to overwrite where only an ASSUME or the fixture makes keys unique (c151, c159), an IS_ERROR guard no FIXTURE can reach (c142), a heading one column off that TESTs find by name (c157), an extra copied column (c158), seeds for a case the fixture lacks (c156), and three single survivors (c119, c133, c149's loop start). Each pair still clears the 90% floor without them. (4) `data/gaps.md` grew by 8 language gaps, 8 wording problems and 1 tooling note. (5) Cost: about 1.37 million helper tokens for batch 7 and the top-up (about 137,000 a helper). (6) Next, as Boss's step 4 asks: the wording fixes the gap log has been collecting since D65, in spec.md and the prompt together, so Boss pastes the prompt once. | The corpus reached its plan through the same gates as every pair before it, and a request that could not be met is recorded as that, my own wording included. |
 | D97 | 19 Nov 2026 | **The end-of-Phase-6 wording fixes: spec.md and the prompt say what the tools already do, where the 150-pair corpus showed writers misled.** Step 4 of Boss's list, its second part (the first was D94). Since D65 the wording problems waited for the end of Phase 6 so Boss updates the Orchestrator once; D94's SEMANTICS line is in the same paste. I chose the sentences by the cost they caused, and checked each against the interpreter, the compiler or the checker before writing it: (1) FIXTURE `+boundary`: `""` is a blank in any rule, otherwise quoted text for `values()` and `text()`, numbers for `seq()`, `int()` and `num()`, bare dates for `dates()`, days for `reldates()` (V262, X001 to X004), and a `values()` boundary uses only its own values, no more often than listed (V264, X008): the most often named problem of batches 5 to 7, about twenty lost tries and five pairs. (2) `values()` always holds text, and one column can't hold real numbers and text together: say how to test "not a number". (3) Rule 5's wrong-sheet TEST: pass a sheet whose headings fail PRE, never the swapped source and output (V055, and a PRE that passes): c098, c119, c143. (4) Rule 23 and the BUILD rules: Run is the only procedure with no ARGS that may pass SHEET(THIS_BOOK, ...), so a step can't be a macro of its own (c148, c152); a callee whose count nobody reads is a Sub (c130, c150). (5) Fill colour names are reserved like option names (c131's VAR `red` hijacked `fill=red`). (6) RANGE's A1 ref is written as it is (c093, c127, c145). (7) A date minus a date is days (c099). (8) DICT_GET of a missing key gives 0 to a number VAR and "" to a String VAR (c108, c116, c138). (9) RETURN leaves at once, from inside a loop too (c087, c096; it compiles to `GoTo CleanExit`). No syntax or meaning changes, so no stored spec, test or mutation score moves; the version line stays `VCL 0.6`. **Left for later, on purpose:** the language gaps in `data/gaps.md` (a column of numbers and text, FIND in one column, several entry macros, a second SORT key, a folder TEST) are Stage B's input, not wording; and wording rows I could not confirm against the tools stay in the log. | One paste for Boss, and every new sentence is a fact the tools already enforce. |
 | D98 | 19 Nov 2026 | **The VBA simulator, part 1: the language core, proven by the ForgeLib self-test (`compiler/vba_sim.py`, `tests/test_vba_sim.py`; D90 Phase 1, step 5 of Boss's list, "Complete 5").** The simulator runs, without Excel, the VBA that the compiler, ForgeLib and the self-test emit: a module is read into procedures, each a flat list of steps with jumps, so GoTo, line labels, Erl, On Error GoTo, On Error Resume Next and Resume work as VBA's do; values follow VBA's rules, not Python's (Variant subtypes, banker's rounding in CLng, `\` and Mod rounding first, Str leaving out the 0 before the point, Val skipping spaces, ByRef arguments by default, a Function's name as its return variable, Empty, Null and Nothing); Collection, Scripting.Dictionary (CompareMode), Err, Application and Debug are modelled; and a small Excel model keeps numbers as Doubles, text after an apostrophe as text, fills, number formats, hidden rows, End(xlUp), UsedRange and sheets. **The proof:** `dist/forge_selftest.bas`, the module Boss can paste into Excel, runs in the simulator with ForgeLib and every one of the 241 conformance cases passes, in half a second; eight bugs planted in ForgeLib (a non-breaking space no longer a space, a reversed ForgeCompare, a missing 0 before the point, 31/02 accepted, VBA's Mod for Excel's MOD, a sheet name of 32 characters, a lone CR dropped as a line break) each make cases fail, so it is not simply agreeing; and 19 tests pin VBA's documented rules one by one. **Found on the way:** one of those bugs survived at first, because no conformance case had a number below 1, so ForgeLib's own fix for VBA's Str (" .5") was never checked, not even by the Excel self-test. Two cases (0.5 and -0.25) close it; the self-test has 241 cases. **My choices:** (1) What the simulator does not run is refused with VbaUnsupported (With blocks, Kill, Shell and the other statements the linter bans, functions it doesn't know), never guessed; an Excel feature outside the model raises VBA error 438, so a macro that needs one fails loudly. (2) It reads text as an English Excel does ("." as the decimal point), the PC ForgeLib is written to be independent of. (3) File statements are read now and run by the file model in part 3. **Next:** part 2 runs every compiled TASK on its TESTs' practice workbooks and compares the final state with the interpreter's; part 3 adds files, BUILDs and `vclc sim` in CI. | Proof before use: the simulator is itself checked against VBA's rules and against bugs it must catch, before it is trusted to judge any macro. |
+| D99 | 19 Nov 2026 | **The VBA simulator, part 2: every compiled TASK runs on its TESTs' practice workbooks and ends where the interpreter does (`compiler/vba_check.py`, `tests/test_vba_check.py`); it found two compiler bugs, both fixed.** For every TEST of a spec: build the practice workbook from its FIXTURE lines (the one fixture generator), run the compiled procedure in the simulator with the TEST's arguments and runs=n, and compare with the interpreter's run of the same TEST: RESULT, ERROR_COUNT, the MSG and LOG texts, and every sheet's cells (as canonical text), fills, number formats and hidden rows. The simulator gained Excel's Range.Sort (numbers and dates, then text with case ignored, then booleans, then errors, blanks last, stable), row Delete and Insert, and RGB. **Result: 130 proven, 0 differences** (the 11 specs that have no folder, Example 1, and all 118 corpus TASKs without folders); the 36 with folder FIXTUREs or a BUILD wait for part 3 and are listed as skipped, never as proven. Four bugs planted in compiled VBA (a reversed SORT, a wrong RESULT, a wrong PRE result, a date where a number belongs) are each caught. **The two compiler bugs, both in task_09 and its corpus copy c009, which no one had run in Excel:** (1) the spec's variable `cDate` compiled to `Dim cDate As Long`, but CDate is a name VBA reserves, so Excel would have refused to compile the whole module: the compiler's list of reserved names lacked MS-VBAL's reserved names and special forms (CDate, CStr, Int, Len, Fix, LBound, UBound, Debug, Open, Print and the rest). The complete list now lives in `vba_lint.py`; the compiler imports it and renames such a variable (`cDate_v`), and the linter and the simulator both refuse a reserved name, so it can't come back unnoticed. (2) `TODAY - CELL(...)` on a cell guarded by IS_DATE compiled to `Date - ForgeNum(cell)`, which in VBA is a Date, so Excel would have shown 06/10/1900 where the recipe means 280 days. The compiler stored the guard's fact as `date` but looked for `Date`, so no IS_DATE guard ever reached the arithmetic; with the one word fixed it writes `Date - CDate(cell)`, a number of days, as the interpreter says. `dist/forge_module.bas` changes in 7 lines. No spec, TEST or mutation score changes: mutation works on VCL. | The proof found real bugs before anything ran in Excel, which is what it is for; the fixes are in the compiler, so every macro KRONOS writes gets them. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4970,7 +4974,8 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      kronos_book.py (an uploaded workbook: describe, run a proven recipe on it, write the copy, D87),
                      kronos_recipes.py (recipes read from .vcl/.txt/.md/.docx files, D89), kronos_wizard.py (the browser
                      wizard: KRONOS.exe's Run with copy and paste for the AI, D89), kronos_words.py (EXAMPLE, TIPS, NEVER),
-                     vba_sim.py (the VBA simulator: runs generated VBA without Excel, D90, D98)
+                     vba_sim.py (the VBA simulator: runs generated VBA without Excel, D90, D98), vba_check.py (the
+                     compiled VBA of every TEST in the simulator against the interpreter, D99)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
                      forge_pilot.bas are committed (builds/<NAME>.bas: one module per BUILD)
@@ -5231,8 +5236,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
 7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026; `docs/ai-vba-plan.md`, D90). Phase 0, the design,
    is done. Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes (Boss: "Complete 5", 19 Nov 2026), is
    in three parts: part 1, the language core, is done (D98: the ForgeLib self-test's 241 cases pass in it, and planted
-   bugs are caught); next, part 2 runs every compiled TASK on its TESTs' practice workbooks against the interpreter,
-   and part 3 adds files, BUILDs and `vclc sim` in CI; Phase 2, the VCL memory (request, VCL, VBA pairs and a
+   bugs are caught); part 2 is done (D99: every compiled TASK without folders, 130 in all, ends where the interpreter
+   does on every TEST, and it found and fixed two compiler bugs in task_09: a reserved name, `cDate`, and a date
+   where a number of days belongs); part 3 adds files, BUILDs and `vclc sim` in CI; Phase 2, the VCL memory (request, VCL, VBA pairs and a
    similar-recipe index); the model itself from March 2027.
 8. **The new PC's 300 GB, KRONOS's home from March 2027** (Boss, 17 Nov 2026; `docs/kronos-storage-plan.md`, D91): company
    storage, real data allowed, only Boss for now, reserved and filled as KRONOS grows, with a monthly report for his
