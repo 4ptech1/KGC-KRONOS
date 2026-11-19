@@ -59,6 +59,8 @@ CASES = [
     # text_of (used by TRIM, UPPER, &, dictionary keys)
     ("text_of", [25.0], "25", "whole number without .0"),
     ("text_of", [2.5], "2.5", "decimal point is always '.'"),
+    ("text_of", [0.5], "0.5", "a number below 1 keeps its 0 (VBA's Str leaves it out)"),
+    ("text_of", [-0.25], "-0.25", "a negative one too"),
     ("text_of", [D], "2026-10-15", "dates are yyyy-mm-dd on every PC"),
     ("text_of", [True], "TRUE", "boolean"),
     ("text_of", [NA], "#N/A", "error text, not VBA's 'Error 2042'"),
