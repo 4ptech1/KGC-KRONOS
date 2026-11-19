@@ -1,0 +1,1 @@
+Welder Performance sheet from the NDE report: (1) ignore seams with no result yet, they are not inspected; (2) per welder count the seams inspected and the seams that needed repair; (3) work out the repair rate; (4) sort highest rate first.

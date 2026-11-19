@@ -1,0 +1,1 @@
+BOM sheet (Part No, Description, Required Qty, Unit, Remark): put Unit? in Remark on every row where Unit is blank or not NOS, KG, MTR or SET (any case, stray spaces are fine). Clear Remark on the other rows. Report rows needing a unit fix.

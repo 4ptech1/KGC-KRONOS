@@ -1,0 +1,1 @@
+BOM (Part No, Required Qty), GRN (Part No, Received Qty). A part can be on several GRN lines. Shortages sheet: every part where Received is below Required, plus the amount short. If Required Qty is missing, list the part and say so.

@@ -1,0 +1,1 @@
+Could you go through the BOM sheet (Part No, Description, Required Qty, Unit) and write Check in a Flag column on every row where Required Qty is blank, not a number, zero or negative? Clear the Flag on the other rows, add the Flag heading if it isn't there, and tell me how many rows you flagged.

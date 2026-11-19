@@ -1,0 +1,1 @@
+(1) Look at fit-up and visual in the weld log. (2) Where either one isn't Accepted, or is blank, copy the row to a Weld Log Exceptions sheet. (3) Delete nothing from the weld log. (4) Tell me how many rows were copied.

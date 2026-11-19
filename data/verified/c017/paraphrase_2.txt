@@ -1,0 +1,1 @@
+Could you build a Welds Per Welder sheet from the weld log (Weld Seam No, Welder ID, Joint Type, Weld Date, Visual)? For every welder I'd like the number of welds and how many of them were Rejected, with the welder with most welds first.

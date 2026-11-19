@@ -1,0 +1,1 @@
+Could you make a Supplier Grades sheet from the Material Certs sheet (Heat No, Supplier, Grade)? I want one row for each supplier and grade that appear together, with the number of certificates, suppliers A to Z. Supplier and grade are matched ignoring case and stray spaces, rows with no supplier or no grade are ignored, and the sheet is rebuilt every run.

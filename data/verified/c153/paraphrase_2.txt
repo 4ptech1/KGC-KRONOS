@@ -1,0 +1,1 @@
+Could you look at the PQR List (PQR No, Process, Test Date, Result, Remark) and write Retest due in Remark for every PQR whose Result is Fail and whose Test Date is more than 90 days ago? Clear the Remark on the others. Fail is typed in any case, and a PQR with no real Test Date is left alone. Tell me how many retests are due.

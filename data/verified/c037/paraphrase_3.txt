@@ -1,0 +1,1 @@
+Joint Summary sheet: (1) ignore weld log rows (Weld Seam No, Welder ID, Weld Date, Joint Type) that have no joint type; (2) count welds per joint type; (3) write the counts, biggest first.

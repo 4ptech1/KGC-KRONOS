@@ -1,0 +1,1 @@
+Welder List sheet, rebuilt every run: (1) take the process I give the macro, ignoring case and stray spaces, (2) copy every row of Welder Quals (Welder ID, Process, Expiry Date) for it, with the same headings, (3) Welder IDs A to Z.

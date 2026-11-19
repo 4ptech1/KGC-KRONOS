@@ -9,7 +9,9 @@ One pair is a folder data/<set>/<id>/ with
     task.txt   the request, in the words Boss would type
     spec.vcl   the proven spec: VCL 0.6, canonical (vclc fmt), with its GOAL lines
     meta.json  what the pair is (below), and the mutation score it was stored with
-    paraphrase_N.txt   the same request worded differently (optional)
+    paraphrase_N.txt   the same request worded differently (optional; never in data/eval): it can't be proven, so
+                       it must keep every number of the request and every heading, sheet name and text of the
+                       spec that the request names, exactly, and add no number (D104)
 The VBA is never stored: it is derived and goes stale, so `export` compiles it fresh.
 
 A pair is stored only when the whole toolchain accepts it: valid with no warnings (but those meta.json
@@ -46,6 +48,45 @@ QUOTAS = {"flag": 30, "summarise": 25, "reconcile": 20, "clean": 15, "rebuild": 
 FLOOR = 0.90
 FILES = {"task.txt", "spec.vcl", "meta.json"}
 META_KEYS = {"id", "kind", "registers", "family", "ops", "op_lines", "source", "mutation", "accepted_warnings"}
+
+NUMBER = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w])")
+STEP = re.compile(r"\(\d+\)")
+
+
+def facts_of(request, spec_text):
+    """What a paraphrase must keep exactly (D104): every text of the spec (quoted texts, FIXTURE headings and sheet
+    names) that the request names, and every number of the request (step markers like (1) aside)."""
+    texts = {t.replace('""', '"') for t in re.findall(r'"((?:[^"]|"")+)"', spec_text)}
+    for line in spec_text.splitlines():
+        if line.startswith("FIXTURE"):
+            cols = re.search(r"cols=(.*?) rows=", line)
+            if cols:
+                texts.update(c.split(":", 1)[1] for c in re.split(r",(?=[A-Z]{1,3}:)", cols.group(1)))
+            sheet = re.search(r"sheet=(\S+)", line)
+            if sheet:
+                texts.add(sheet.group(1))
+    named = sorted(t for t in texts if len(t.strip()) > 1 and re.search(rf"(?<!\w){re.escape(t)}(?!\w)", request))
+    return named, sorted(set(NUMBER.findall(STEP.sub(" ", request))))
+
+
+def paraphrase_problems(name, request, spec_text, paraphrases):
+    """A paraphrase can't be proven, so a mechanical check filters it (VEP 0.6 section 6, D104)."""
+    named, numbers = facts_of(request, spec_text)
+    problems, seen = [], {" ".join(request.lower().split())}
+    for file, text in paraphrases:
+        where = f"{name}: {file}"
+        if not (20 <= len(text.strip()) <= 1500) or any(ord(c) > 126 or (ord(c) < 32 and c not in "\n\t") for c in text):
+            problems.append(f"{where} must be 20 to 1500 characters of plain printable ASCII")
+        flat = " ".join(text.lower().split())
+        if flat in seen:
+            problems.append(f"{where} is the same as the request or another paraphrase")
+        seen.add(flat)
+        problems += [f"{where} loses {t!r}, which the request names" for t in named
+                     if not re.search(rf"(?<!\w){re.escape(t)}(?!\w)", text)]
+        got = set(NUMBER.findall(STEP.sub(" ", text)))
+        problems += [f"{where} loses the number {n}" for n in numbers if n not in got]
+        problems += [f"{where} adds the number {n}, which the request doesn't have" for n in sorted(got - set(numbers))]
+    return problems
 
 
 def items(kind):
@@ -106,6 +147,10 @@ def check_item(folder, mutation=False, classified=True):
         meta = json.loads(meta_text)
     except ValueError as err:
         return problems + [f"{name}: meta.json is not JSON ({err})"]
+    paraphrases = [(p.name, p.read_text(encoding="utf-8")) for p in sorted(folder.glob("paraphrase_*.txt"))]
+    if paraphrases and folder.parent.name == "eval":
+        problems.append(f"{name}: a held-out pair is never paraphrased (D59)")
+    problems += paraphrase_problems(name, request, spec_text, paraphrases)
     if dump(meta) != meta_text:
         problems.append(f"{name}: meta.json is not in its canonical form (sorted keys, 1-space indent)")
     if set(meta) != META_KEYS:

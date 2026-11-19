@@ -1,0 +1,1 @@
+Could you highlight rows in the Welder Quals sheet (Welder ID, Name, Process, Expiry Date) for me? The whole row should be red if the qualification expired before today and yellow if it expires in the next 60 days. Clear old highlights first so I can run it again, and tell me how many rows are highlighted.

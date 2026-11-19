@@ -1,0 +1,1 @@
+Dispatch sheet (Dispatch No, Job ID, Actual Date) vs Job Tracker (Job ID, Customer, Status). In the Job Tracker put Dispatched in a Dispatch Remark column for each job with at least one dispatch that has an Actual Date; clear it on the others. Add the heading if missing. Job IDs may have stray spaces. Report how many jobs are dispatched.

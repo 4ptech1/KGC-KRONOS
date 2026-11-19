@@ -1,0 +1,1 @@
+Could you build a Customer Load sheet from the Job Tracker (Job ID, Customer, Due Date, Status)? For each customer I need how many jobs are not Closed and how many of those are past their Due Date, with the customer with the most open jobs first. If all of a customer's jobs are Closed they shouldn't appear. Rebuild the sheet every run, please.

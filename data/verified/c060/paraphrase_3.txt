@@ -1,0 +1,1 @@
+(1) Add a Dispatch Remark heading to the Job Tracker (Job ID, Customer, Status) if it's missing. (2) For each job, look on the Dispatch sheet (Dispatch No, Job ID, Actual Date) for a dispatch with an Actual Date; Job IDs sometimes have stray spaces. (3) If there is at least one, write Dispatched in Dispatch Remark; otherwise clear it. (4) Tell me how many jobs are dispatched.

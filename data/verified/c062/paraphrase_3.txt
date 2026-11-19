@@ -1,0 +1,1 @@
+(1) Look at the Inspection Status cells in the ITP Tracker, which hold things like 'open', 'OPEN ' and ' closed'. (2) Any status that is Open or Closed (ignoring case and stray spaces) must read exactly Open or Closed. (3) Leave any other status alone. (4) Tell me how many cells changed.

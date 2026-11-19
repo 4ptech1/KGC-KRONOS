@@ -1,0 +1,1 @@
+Weld log vs welder qualification list: red row if the welder is not on the list, has no valid expiry date, or is expired. Rows that are fine must not keep an old red. Tell me the number of red rows.

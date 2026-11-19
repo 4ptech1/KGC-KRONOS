@@ -1,0 +1,1 @@
+Could you fill in the Remark column of the Calibration Tracker (Instrument ID, Type, Range Max, Reading Max, Remark)? Write Over range where Reading Max is bigger than Range Max, and Check where either of them is blank or not a number, and clear the Remark on the others. The numbers are sometimes typed as text. Please tell me how many are Over range.

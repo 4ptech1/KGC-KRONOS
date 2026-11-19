@@ -1,0 +1,1 @@
+ITP Status sheet, rebuilt every run, from the ITP Tracker (ITP No, Point, Inspection Status): (1) one row per ITP No, A to Z, (2) three columns for the number of points that are Open, Hold and Closed, (3) ignore case and stray spaces in the status, (4) any other status is not counted.

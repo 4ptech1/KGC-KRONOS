@@ -1,0 +1,1 @@
+Calibration Tracker (Instrument ID, Type, Range Max, Reading Max, Remark): Remark = Over range if Reading Max is bigger than Range Max, Check if either is blank or not a number, else cleared. Numbers are sometimes text. Report how many are Over range.

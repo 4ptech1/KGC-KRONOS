@@ -1,0 +1,1 @@
+Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date): hide every row whose Customer isn't the name given to the macro, so only that customer's dispatches show. Ignore case and stray spaces in names. Report rows visible below the headings. Running again for another customer must show that customer's rows.

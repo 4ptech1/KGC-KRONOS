@@ -1,0 +1,1 @@
+(1) Clear the old highlights in the weld log. (2) Skip rows without a seam number. (3) Make the row red when Visual isn't Accepted. (4) Tell me how many rows are red.

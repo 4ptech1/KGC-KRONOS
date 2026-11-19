@@ -1,0 +1,1 @@
+Dispatch sheet (Dispatch No, Job ID, Planned Date, NCR Check) vs NCR Register (NCR No, Job ID, Status): write Open NCR in NCR Check for each dispatch whose Job ID has an NCR not Closed, else clear it. Job IDs differ in case and stray spaces; no Job ID means left alone. Add heading if missing. Report dispatches with an Open NCR.

@@ -1,0 +1,1 @@
+Could you make a folder for every Job ID in the Job Tracker sheet, inside the Jobs folder? In the Folder Status column please write what happened for each row (made, already there, or a problem). Never delete or overwrite anything.

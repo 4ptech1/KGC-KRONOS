@@ -1,0 +1,1 @@
+Make a Method Summary sheet from the NDE Report (Weld Seam No, Method, Result). Per method count the seams Accepted, the seams Repair, and the seams with no result yet.

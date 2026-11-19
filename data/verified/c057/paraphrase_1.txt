@@ -1,0 +1,1 @@
+Qual Summary sheet from Welder Quals (Welder ID, Name, Process, Expiry Date): one row per process, three counts: valid for more than 60 days, expiring within the next 60 days, already expired. Processes alphabetical. Ignore rows with no process or no valid Expiry Date.

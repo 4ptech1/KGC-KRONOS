@@ -1,0 +1,1 @@
+I need a weld follow-up tool, started with one macro. First, highlight in red the weld log rows (Weld Seam No, Welder ID, Visual) whose Visual isn't Accepted. Then copy those rows to a Weld Exceptions sheet with the same headings. Last, on a Welder Exceptions sheet write how many exceptions each welder has, most first. Both output sheets are rebuilt every run.

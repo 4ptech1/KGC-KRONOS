@@ -1,0 +1,1 @@
+Method Summary sheet from the NDE Report, which has Weld Seam No, Method and Result. For each method, count: (1) seams Accepted; (2) seams Repair; (3) seams with no result yet.

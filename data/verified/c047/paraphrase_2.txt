@@ -1,0 +1,1 @@
+Could you put a formula in the Value column of the Stock sheet (Batch No, Qty On Hand, Unit Cost, Value) on every data row? Value should be Qty On Hand times Unit Cost. Excel 2016 only, please.

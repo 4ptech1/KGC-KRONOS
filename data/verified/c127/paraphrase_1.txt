@@ -1,0 +1,1 @@
+Consumable Stock sheet (Batch No, Qty On Hand, Reorder Level, Reorder): formula in Reorder on every data row, YES when Qty On Hand is at or below Reorder Level, blank otherwise. Excel 2016 only.

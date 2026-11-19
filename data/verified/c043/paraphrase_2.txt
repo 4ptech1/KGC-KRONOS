@@ -1,0 +1,1 @@
+Could you clean up the weld log by deleting the leftover empty rows? That means rows where both Weld Seam No and Welder ID are blank. Keep any row that has at least one of them, and tell me how many rows you deleted.

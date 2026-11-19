@@ -27,6 +27,13 @@ class TheCorpus(unittest.TestCase):
             body = "\n".join(l for l in pair["spec"].split("\n") if not l.startswith("GOAL "))
             self.assertEqual(body.split("\n", 1)[1], original.split("\n", 1)[1])   # the spec itself is unchanged
 
+    def test_every_training_pair_has_three_paraphrases_and_no_held_out_pair_has_one(self):   # D104
+        for folder in vcl_corpus.items("verified"):
+            self.assertEqual(sorted(p.name for p in folder.glob("paraphrase_*.txt")),
+                             ["paraphrase_1.txt", "paraphrase_2.txt", "paraphrase_3.txt"], folder.name)
+        for folder in vcl_corpus.items("eval"):
+            self.assertEqual(list(folder.glob("paraphrase_*.txt")), [], folder.name)
+
     def test_the_report_counts_what_there_is(self):
         text = vcl_corpus.report()
         self.assertIn(f"{len(vcl_corpus.items('verified'))} pairs in data/verified, "
@@ -75,8 +82,41 @@ class Rules(unittest.TestCase):
         (self.folder / "notes.md").write_text("x")
         self.assertEqual(self.problems(), ["c005: unexpected file notes.md"])
         (self.folder / "notes.md").unlink()
-        (self.folder / "paraphrase_1.txt").write_text("Put the unaccepted weld log rows on an exceptions sheet.\n")
+        (self.folder / "paraphrase_1.txt").write_text("Put the weld log rows that aren't Accepted on a Weld Log Exceptions sheet.\n")
         self.assertEqual(self.problems(), [])
+
+    def test_a_paraphrase_keeps_every_fact_and_adds_no_number(self):   # D104
+        self.assertEqual(vcl_corpus.facts_of((self.folder / "task.txt").read_text(encoding="utf-8"),
+                                             (self.folder / "spec.vcl").read_text(encoding="utf-8")),
+                         (["Accepted", "Exceptions"], []))
+        para = self.folder / "paraphrase_2.txt"
+        para.write_text("Copy the weld log rows whose fit-up or visual isn't accepted to an exceptions sheet.\n")
+        self.assertEqual(self.problems(), ["c005: paraphrase_2.txt loses 'Accepted', which the request names",
+                                           "c005: paraphrase_2.txt loses 'Exceptions', which the request names"])
+        para.write_text("Copy the 3 kinds of weld log rows that aren't Accepted to a Weld Log Exceptions sheet.\n")
+        self.assertEqual(self.problems(), ["c005: paraphrase_2.txt adds the number 3, which the request doesn't have"])
+        para.write_text((self.folder / "task.txt").read_text(encoding="utf-8").upper().lower())
+        self.assertEqual(self.problems()[0], "c005: paraphrase_2.txt is the same as the request or another paraphrase")
+        para.write_text("Copy rows that aren\u2019t Accepted to the Weld Log Exceptions sheet, please.\n", encoding="utf-8")
+        self.assertEqual(self.problems(), ["c005: paraphrase_2.txt must be 20 to 1500 characters of plain printable ASCII"])
+
+    def test_a_number_of_the_request_must_stay_and_step_markers_dont_count(self):
+        task = self.folder / "task.txt"
+        task.write_text("(1) Copy every weld log row that isn't Accepted to a Weld Log Exceptions sheet if older than "
+                        "30 days. (2) Tell me how many I copied.\n")
+        for p in self.folder.glob("paraphrase_*.txt"):
+            p.unlink()
+        para = self.folder / "paraphrase_1.txt"
+        para.write_text("(1) Weld log rows not Accepted and older than 30 days go to a Weld Log Exceptions sheet. (2) Count.\n")
+        self.assertEqual(self.problems(), [])
+        para.write_text("Weld log rows not Accepted and older than a month go to a Weld Log Exceptions sheet; count them.\n")
+        self.assertEqual(self.problems(), ["c005: paraphrase_1.txt loses the number 30"])
+
+    def test_a_held_out_pair_is_never_paraphrased(self):
+        (self.data / "eval").mkdir()
+        held = self.data / "eval" / "c005"
+        self.folder.rename(held)
+        self.assertEqual(vcl_corpus.check_item(held), ["c005: a held-out pair is never paraphrased (D59)"])
 
     def test_the_request_is_plain_text(self):
         (self.folder / "task.txt").write_text("Too short\n")
@@ -145,7 +185,7 @@ class Rules(unittest.TestCase):
 
     def test_an_id_cannot_be_in_both_sets(self):
         (self.data / "eval").mkdir()
-        shutil.copytree(self.folder, self.data / "eval" / "c005")
+        shutil.copytree(self.folder, self.data / "eval" / "c005", ignore=shutil.ignore_patterns("paraphrase_*"))
         self.assertEqual(vcl_corpus.check_all(), ["c005: in both data/verified and data/eval"])
 
 

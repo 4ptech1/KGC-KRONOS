@@ -1,0 +1,1 @@
+PDF files in the Dispatch Docs folder on a File List sheet: one per row, name order, file name in column A. Report the number of files.

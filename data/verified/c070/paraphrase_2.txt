@@ -1,0 +1,1 @@
+Could you list every supplier from the Material Certs sheet (Heat No, MTC No, Supplier) once on a Suppliers sheet? Use a Supplier heading and alphabetical order. 'Acme Steel' and 'ACME STEEL' are the same supplier, rows with no supplier are ignored, and the sheet is rebuilt every run.

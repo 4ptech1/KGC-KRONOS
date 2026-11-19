@@ -603,7 +603,8 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
    spec.md and the prompt teach VCL 0.6, hard rule 24, D63; Boss updates the Orchestrator once) are done.
    Phase 5 (the corpus tooling and the first twelve pairs, `vclc corpus`, D64) is done; Phase 6, the corpus to
    150 tasks in batches of about 20, is complete: 150 of 150 pairs, 15 held out (D65, D66, D82, D85, D93, D95, D96). Next:
-   the prompt wording fixes from `data/gaps.md` are done (D97; Boss pastes the prompt once), then Phase 7, the data generator. D94: `<`, `>`, `<=` and `>=` now
+   the prompt wording fixes from `data/gaps.md` are done (D97; Boss pastes the prompt once), then Phase 7, the data generator, is done (D103: `vclc datagen`, 4,432 repairs and 124 contrast examples; D104:
+   405 checked paraphrases); next Phase 8, the benchmark. D94: `<`, `>`, `<=` and `>=` now
    mean the same in the interpreter and the VBA.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    Tkinter window, shipped as one KRONOS.exe built by GitHub Actions. A person types a request;
@@ -677,7 +678,7 @@ from zero and a small open model tuned with LoRA, D102), D (repair; used once it
 (Boss's daily use).
 
 **Boss's ten steps (18 Nov 2026, D101):** 1 and 2 done by Boss; 3 to 5 done (the corpus, the prompt fixes, the VBA
-simulator); next 6 the data generator, then 7 the benchmark, 8 KRONOS Offline version 6, 9 storage S1, 10 the VCL
+simulator), 6 the data generator (D103, D104); next 7 the benchmark, 8 KRONOS Offline version 6, 9 storage S1, 10 the VCL
 memory and the day-one kit.
 
 **Pending Boss decisions right now:**
@@ -687,8 +688,8 @@ memory and the day-one kit.
    Python 3.11, Git, PyTorch and the GPU driver, and IT's backup of `KRONOS\work`, `KRONOS\models` and `KRONOS\reports`.
 1. Paste the updated VCL 0.6 prompt (`vcl/orchestrator_prompt.txt`, with D94's and D97's wording) into the
    Orchestrator Project's instructions, once, replacing the old text.
-1b. Share the permitted KGC samples after the data generator (step 6); they shape the benchmark and later batches,
-   and never go into the repo (D101).
+1b. Share the permitted KGC samples now that the data generator (step 6) is done; they shape the benchmark and
+   later batches, and never go into the repo (D101).
 2. When, if ever, to run the optional Excel pilot (`docs/excel-pilot.md`).
 3. task_11 (HighlightRejectedWelds) has one small test gap (D24): if the macro's last-row scan
    skipped column A, no TEST would notice. Closing it needs a FIXTURE whose last row has a value
@@ -785,6 +786,9 @@ memory and the day-one kit.
   refused, never guessed; it found a conformance gap (no number below 1).
 - **D101:** Boss's report (KRONOS Offline v5 works on the work PC; the IT request is done), his ten steps (next: the
   data generator), and KGC samples he has permission for: read to learn the registers' shape, never put in the repo.
+- **D103, D104:** the data generator: `vclc datagen` makes repairs (from mutants and the helpers' failed tries, with
+  KRONOS's own feedback) and contrast examples into `dist/datagen/`, never from held-out pairs; and three paraphrases
+  per training request, checked to keep every heading, status and number. Stage A Phase 7 is complete.
 - **D102:** D25's ban on pre-trained weights lifted (Boss). In March 2027 two candidates are built and the held-out
   benchmark chooses: A, our own model from zero (at most about 350 million parameters); B, a small open-weight coder
   model (Apache 2.0 or MIT, at most about 7 billion) tuned with LoRA on our data, run in 4-bit, offline on the new PC.
@@ -3275,6 +3279,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D101 | 19 Nov 2026 | **What Boss reported on 18 and 19 Nov 2026, his ten steps, and KGC samples.** (1) **Boss's report (18 Nov):** KRONOS Offline version 5 works on the work PC ("Tried and successful"), and step 2, asking IT for KRONOS.exe and the Codex CLI and pasting the prompt, was "Successful". Whether KRONOS.exe and the Codex CLI are now installed is not confirmed, so the pilot (KRONOS app Phase 4) still waits for that. (2) **Boss's ten steps (18 Nov), the order of work:** 1 try KRONOS Offline v5 and 2 the IT request and prompt paste (Boss, done); 3 and 4 the corpus to 150 and the prompt fixes (done: D93 to D97); 5 the VBA simulator (done: D98 to D100); next 6 the data generator (Stage A Phase 7), then 7 the benchmark (Phase 8), 8 KRONOS Offline version 6 (its Phase 3), 9 storage S1 (`vclc drive`), 10 the VCL memory (D90 Phase 2) and the day-one kit (storage S4). For model and effort Boss accepted my advice: Opus for design and review, Sonnet helpers for corpus specs (D93). Still for Boss: paste the updated prompt (D94, D97) into the Orchestrator Project; KRONOS.exe and KRONOS Offline carry the earlier prompt until new versions are published. (3) **KGC samples (19 Nov):** Boss offered KGC company document samples, "safe samples that I have taken permission for". This changes the standing rule that no real KGC file goes into Claude's prompts, for these permitted samples only, so I chose the careful reading: they may be read in a Claude Code session to learn the shape of KGC's registers and requests (sheet layouts, headings, how values are typed, what people ask); nothing from them goes into the public repo, its tests, specs, corpus or docs; recipes and FIXTUREs modelled on them use invented values in the same shape; and what was learnt is written down only in general words ("dates are often typed as text"). Timing: after step 6, because the data generator works only from the 150 proven pairs; they serve step 7 (held-out benchmark tasks that look like real registers) and the next corpus batches. Boss can widen or narrow this. | Boss's words are the record; the repo stays public and synthetic whatever is learnt from the samples. |
 | D102 | 19 Nov 2026 | **D25 lifted for the model's starting point: an open-weight model may be tuned for KRONOS (Boss: "Lift d25 and let your recommendation be noted").** Boss asked which open-source model KRONOS could use, whether one could be trimmed and tuned, whether a 200 GB model could be trimmed, and how big a model I recommend at most. **My recommendation, now the plan:** (1) two candidates, built in March 2027 on the new PC and scored on the same held-out benchmark (Stage A Phase 8, `data/eval/`); the one that scores better is used, and the other is kept for comparison. Candidate A, our own model trained from zero, at most about 350 million parameters (data, not hardware, is its limit: a bigger model trained from zero on our corpus only memorises it); start at 50 to 100 million and grow only when the benchmark says it helps. Candidate B, a small open-weight coder model tuned with LoRA (QLoRA on one graphics card of 16 to 24 GB), at most about 7 billion parameters, run in 4-bit (about 5 GB); 14 billion is not planned. No giant model is trimmed: a model of about 200 GB (about 100 billion parameters) needs data-centre graphics cards just to load, would take two-thirds of the 300 GB, and loses more by heavy pruning than a small model its makers trained; both ceilings are confirmed in March, once the graphics card is known. **What is lifted:** only D25's ban on pre-trained weights and on tuning someone else's model. **My conservative choices, since Boss said only "lift":** (2) what the model learns from stays in-house and proven, as D25 and D70 say: our corpus, the data generator's output, Boss's and KRONOS's proven runs; no scraped or downloaded code, datasets or prompts are added for tuning, and no retrieval over outside sources (its memory is our proven recipes, D90). (3) Only a model whose licence allows company use without conditions: Apache 2.0 or MIT (for example Qwen2.5-Coder 1.5B or 7B, Apache 2.0, to be checked in March); its name, version, licence, model card and SHA-256 are written down beside it. (4) The open model is downloaded once onto the new PC, with IT's approval, into `KRONOS\models\base`; never into the repo or a Claude Code session; it runs offline, so no request or record leaves the PC. A model tuned on real data stays on that PC (D91). (5) Nothing else moves: the compiler first and its VBA the fallback (D31), the model's VCL and VBA used only when the toolchain and the VBA simulator prove them (D90), no model work before March 2027, and Claude stays the design and build tool. The Orchestrator prompt does not change, so Boss pastes nothing. (6) The storage plan makes room: `models\` grows from 10 to 40 GB (the base models and their 4-bit copies, about 25 GB, and the releases), `train\runs\` shrinks from 100 to 70 GB (LoRA checkpoints are small; the from-zero runs still fit). Updated: CLAUDE.md, AGENTS.md, README.md, `docs/ai-plan.md`, `docs/ai-vba-plan.md`, `docs/kronos-storage-plan.md`, `docs/vcl-mvp-plan.md`, the context file and the roadmap .docx. | A tuned open model may understand loose English far better on day one; building both and letting the benchmark choose keeps the decision measured and reversible, and the data rules keep everything it learns from ours and proven. |
 | D103 | 19 Nov 2026 | **The data generator, part 1: `vclc datagen` (Stage A Phase 7, Boss's step 6: "Go").** `compiler/vcl_datagen.py` makes training examples from the proven pairs, with the toolchain as the only judge. (1) **Repairs from mutants:** every mutant of a pair (the mutation score's own small bugs, `vcl_mutate.mutants`) that the toolchain refuses, because it doesn't check or a TEST fails, becomes "the request, the broken spec, the messages, the proven spec". The messages are exactly what KRONOS sends back to the AI in its repair loop (`kronos_engine.prove` and `feedback`, with their codes), so the model learns the loop it will run in. (2) **Repairs from the helpers' failed tries** (`data/repair/attempts/`), for pairs stored in data/verified: each try is proven again today, so its messages never go stale; a try that passes every check but whose TESTs catch under 90% of the deliberate bugs gets the corpus gate's message and the bugs that survive. A try that passes every gate is left out (what was wrong with it, for example one TASK for a build request, needs a reader), and so is a try identical to the fix. (3) **Contrast examples:** a mutant that passes its own TESTs yet ends differently (another workbook, RESULT, files or messages): "read carefully" data, marked and never trained as a fix. A mutant that ends the same is an equivalent and is dropped. (4) **Only data/verified** is used; the 15 held-out pairs in data/eval are never mutated, repaired or paraphrased (D59), and a test proves it. (5) **Nothing generated is stored in the repo:** like `vclc export`, it is made fresh into `dist/datagen/` (git-ignored), with `summary.json` (counts per pair, the date the TESTs ran with, the commit), because derived data goes stale and the full set is about 72 MB; on the new PC it goes into `KRONOS\train\data` (D91). Two runs give the same files. **The first full run (TODAY 19 Nov 2026, 135 pairs, under an hour):** 4,432 repairs (4,362 from mutants: 863 refused by the checks and 3,499 by a TEST; 70 from the helpers' tries: 28 check, 19 test, 23 weak tests), 124 contrast examples, no mutant left out; 37 tries passed every gate and were left out. The plan expected about 4,500 repairs. Tests: `tests/test_datagen.py` (every example is what it says on c020, held-out pairs never used, same files twice, `vclc datagen`). Part 2 is the paraphrases and their check. | The toolchain already judges every spec, so every example it makes is right by construction, and KRONOS's own repair messages make the examples match what the model will see. |
+| D104 | 19 Nov 2026 | **The data generator, part 2: the paraphrases (Stage A Phase 7 is complete).** Every one of the 135 training pairs now has three more wordings of its request (`paraphrase_1.txt` to `paraphrase_3.txt`, 405 in all): terse, conversational, and the same facts in another order or as steps. Two Sonnet helpers wrote them through our pipeline (D25), seeing only the requests and the facts to keep. **The check (`vcl_corpus.facts_of`, `paraphrase_problems`, run by `vclc corpus` and CI):** a paraphrase can't be proven, so it must keep, exactly and with the same capitals, every heading, sheet name and quoted text of the spec that the request names, and every number of the request (step markers like (1) aside); it may add no number; it is 20 to 1500 characters of plain ASCII; and it differs from the request and the other paraphrases. A held-out pair (data/eval) may have none (D59). **What the check can't see, and how I covered it:** the meaning. Reading samples showed two faults the check passes: a "reordered" wording that put numbered steps in another order (later steps use earlier results, so that changes the macro), and an example the request never gave. Both helpers got the rule (keep the order of the work; add no examples) and fixed their files; a script then compared the order of each request's steps in every paraphrase (none out of order), and I read a sample of each half. `vclc export` already carries the paraphrases with each pair. **The data for March, from the 135 training pairs:** 135 requests plus 405 paraphrases, each with its proven spec and fresh VBA (`vclc export`), 4,432 repairs and 124 contrast examples (`vclc datagen`, D103). Next: Phase 8, the benchmark (Boss's step 7), for which Boss's permitted KGC samples are now welcome (D101). | Three wordings per request teach the model that people say the same job in different ways, and the mechanical check keeps every fact the proven spec depends on. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -5113,7 +5118,7 @@ lines of VBA (rule 9: about 60); accepted for now, revisit in March.
 
 **Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
 paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98
-to D100); **next 6, the data generator** (Stage A Phase 7), then 7 the benchmark (Phase 8, with Boss's permitted KGC
+to D100); 6 the data generator (done, D103, D104: `vclc datagen` and 405 paraphrases); **next 7, the benchmark** (Phase 8, with Boss's permitted KGC
 samples shaping realistic held-out tasks, D101), 8 KRONOS Offline version 6, 9 storage S1, 10 the VCL memory and the
 day-one kit. For Boss: paste the updated prompt (D94, D97) into the Orchestrator Project.
 
@@ -5189,7 +5194,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    c098 and c106 after three batches each (D95). Batch 7 and a top-up finished the 150 on 19 Nov 2026 (D96). The
    wording fixes are done too (D97: the FIXTURE `+boundary` rules, the wrong-sheet TEST, entry macros, and five
    smaller facts, in spec.md and the prompt together; Boss pastes the prompt once, with D94's line in it). Next:
-   Phase 7, the data generator (Boss's step 6), then Phase 8, the benchmark (step 7). No training before March 2027.
+   Phase 7, the data generator (Boss's step 6), is done: `vclc datagen` makes 4,432 repairs and 124 contrast examples
+   from the 135 training pairs (D103), and every training pair has three checked paraphrases (D104). Next: Phase 8,
+   the benchmark (step 7). No training before March 2027.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,
@@ -5393,8 +5400,9 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    D64), and the corpus is complete: 150 of 150 pairs, 15 of them held out (D65, D66, D82, D85, D93, D95,
    D96); D94 made `<`, `>`, `<=` and `>=` mean the same in the interpreter and
    the VBA.
-7. **Dataset generator (next, Boss's step 6, D101):** tasks in plain English with their proven specs (and the compiler's
-   VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
+7. **Dataset generator (done, Boss's step 6, D103, D104):** tasks in plain English with their proven specs (and the compiler's
+   VBA), plus repair pairs: `vclc datagen` makes 4,432 repairs and 124 contrast examples, and every training request has
+   three checked paraphrases. Next, the benchmark (step 7). The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
    carefully" training data the Phase 2 plan wanted. See `docs/ai-plan.md`, Stages A and B.
 8. **March:** train our own model on the in-house dataset (D25: no outside data): two candidates,
@@ -5529,7 +5537,7 @@ proven specs; paraphrases and mutants help multiply them.
 
 | Stage | When | What |
 | --- | --- | --- |
-| A | Before March (cloud) | The `GOAL` line, the formatter and error codes; the 150-task corpus (done, D96); the data generator (next); the benchmark |
+| A | Before March (cloud) | The `GOAL` line, the formatter and error codes; the 150-task corpus (done, D96); the data generator (done, D103, D104); the benchmark (next) |
 | B | Before March (cloud) | Grow VCL from the NOTE count; grow the data to thousands of proven specs |
 | C | March 2027 (new PC) | Two candidates, English -> VCL with grammar-constrained output, scored on the benchmark (D102): A, a tokenizer and a model trained from zero (up to about 350 million parameters); B, a small open-weight model tuned with LoRA (up to about 7 billion) |
 | D | After C | Add repair. The model is used only when it passes enough benchmark tasks; Claude stays the Orchestrator until then |
@@ -5882,8 +5890,8 @@ tokenizer, any training. Stage A only prepares the data and the scoreboard.
    grows. The 150 pairs, 15 held out, were complete on 19 Nov 2026.
 7. **The data generator (D101, D103):** part 1, `vclc datagen` (`compiler/vcl_datagen.py`): repairs from mutants
    and from the helpers' failed tries, and contrast pairs, as JSON Lines in `dist/datagen/` (done, D103); part 2, the
-   paraphrases and their check (next).
-8. **The benchmark:** the 15 held-out items, contracts, `vclc bench`, the baseline. Boss's permitted KGC samples may
+   paraphrases and their check (done, D104: 405 paraphrases, checked by `vclc corpus`). **Phase 7 is complete.**
+8. **The benchmark (next):** the 15 held-out items, contracts, `vclc bench`, the baseline. Boss's permitted KGC samples may
    shape realistic held-out tasks, with invented values (D101).
 
 ##### Verification (every phase)

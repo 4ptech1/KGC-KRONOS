@@ -1,0 +1,1 @@
+Weld log cleanup: (1) a row with at least one of Weld Seam No and Welder ID stays; (2) a row with both blank is deleted (leftover empty rows); (3) report the number of rows deleted.

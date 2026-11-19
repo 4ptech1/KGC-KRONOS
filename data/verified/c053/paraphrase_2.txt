@@ -1,0 +1,1 @@
+In the WPS Register (WPS No, Process, PQR Ref, Review Date, Remark), could you write Check in Remark for every WPS whose PQR Ref doesn't start with PQR-, including blank ones? Clear the Remark on the others and tell me how many you marked.

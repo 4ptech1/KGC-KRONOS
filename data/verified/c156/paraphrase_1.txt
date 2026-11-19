@@ -1,0 +1,1 @@
+Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date): make an On Time sheet with each Customer, how many dispatches have an Actual Date, and how many of those are late (Actual Date after Planned Date), A to Z. Customer names in mixed case; skip rows with no Customer. Rebuild every run.

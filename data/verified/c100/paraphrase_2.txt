@@ -1,0 +1,1 @@
+Could you look at the GRN sheet (GRN No, Part No, Received Date, Received Qty, Inspection, Remark) and write Inspection pending in Remark for every line that was received more than 7 days ago and still has a blank Inspection? Clear the Remark on the other lines, and tell me how many lines are pending.

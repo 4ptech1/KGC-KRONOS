@@ -1,0 +1,1 @@
+Dispatch sheet (columns Dispatch No, Customer, Planned Date, Actual Date, Status): (1) no Actual Date and Planned Date before today: Status = Late; (2) Actual Date not later than Planned Date: Status = On time; (3) leave other rows alone; (4) tell me how many are Late.

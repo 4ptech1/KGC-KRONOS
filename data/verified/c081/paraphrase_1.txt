@@ -1,0 +1,1 @@
+Job Tracker (Job ID, Customer, Due Date, Status): make a Customer Load sheet, per customer the number of jobs not Closed and how many of those are past Due Date, most open jobs first. Customers with all jobs Closed are left out. Rebuild every run.

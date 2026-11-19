@@ -1,0 +1,1 @@
+Not Inspected sheet: (1) from the Weld Log (Weld Seam No, Visual) take the seams whose Visual is Accepted; (2) look each one up in the NDE Report (Weld Seam No, Result), ignoring stray spaces in seam numbers; (3) list the seams with no row there.

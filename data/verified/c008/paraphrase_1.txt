@@ -1,0 +1,1 @@
+Update the consumable inventory from the issue log. Per batch: total issued to date, balance (opening stock minus issued) and a remark, in the inventory sheet. Safe to run twice, no double counting. Report how many issue lines use a batch not in the inventory.

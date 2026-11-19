@@ -1,0 +1,1 @@
+Summary sheet: (1) take all open NCRs; (2) work out how many days each has been open; (3) sort oldest first; (4) any with no issue date go at the bottom marked 'Issue date missing'.

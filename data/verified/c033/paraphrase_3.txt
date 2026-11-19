@@ -1,0 +1,1 @@
+Welder Quals sheet (Welder ID, Name, Process, Expiry Date): (1) clear the old highlights so it can be run again; (2) Expiry Date before today: whole row red; (3) expires in the next 60 days: whole row yellow; (4) tell me how many rows are highlighted.

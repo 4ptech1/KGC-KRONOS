@@ -1,0 +1,1 @@
+Consumable Issue log (Issue No, Batch No, Qty Issued, Job ID) vs Job Tracker (Job ID, Status). In the issue log, Remark = Closed job where the job is Closed; clear Remark on the others. Report how many issues are for closed jobs.

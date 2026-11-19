@@ -1,0 +1,1 @@
+WPS register (WPS No, Process, PQR Ref, Review Date): yellow on the WPS No cell if PQR Ref is blank or Review Date is over 12 months before today. Clear old highlights first, so it can be rerun. Report how many highlighted.

@@ -1,0 +1,1 @@
+PQR List (PQR No, Process, Test Date, Result, Remark): Remark = Retest due for each PQR with Result Fail and Test Date more than 90 days ago, else cleared. Fail in any case. A PQR with no real Test Date is left alone. Report retests due.

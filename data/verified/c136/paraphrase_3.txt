@@ -1,0 +1,1 @@
+WPS by Process sheet, rebuilt every run, from the WPS Register (WPS No, Process, PQR Ref): (1) processes in mixed case count as the same, A to Z, (2) number of WPS for each Process, (3) how many of those have no PQR Ref, (4) last row Total with the two sums.

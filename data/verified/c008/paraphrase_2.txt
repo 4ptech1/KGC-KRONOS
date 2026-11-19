@@ -1,0 +1,1 @@
+I need the consumable inventory updated from the issue log. For each batch, could you put in the inventory sheet the total issued to date, the balance (opening stock minus issued) and a remark? Running it twice mustn't double count. Also tell me how many issue lines use a batch that isn't in the inventory.

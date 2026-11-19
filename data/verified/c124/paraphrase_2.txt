@@ -1,0 +1,1 @@
+Could you fix the Next Calibration Due column in the Calibration Tracker (Instrument ID, Next Calibration Due, Remark)? Some due dates were typed as text like 15/03/2026, day first. Turn each of those into a real date, write Bad date in Remark for a text due date that isn't a real day-first date, and leave real dates and blank cells alone. Tell me how many dates you converted.

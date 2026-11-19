@@ -1,0 +1,1 @@
+From the BOM sheet (Part No, Description, Required Qty, Unit): (1) group by Unit, treating KG and kg as the same, (2) write the total Required Qty for each into a Unit Totals sheet, units A to Z, (3) skip rows with no unit or a Required Qty that is not a number, (4) tell me how many rows were left out.

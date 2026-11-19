@@ -1,0 +1,1 @@
+Welder Quals sheet (Welder ID, Name, Process, Expiry Date): whole row red if expired before today, yellow if expiring in the next 60 days. Clear old highlights first, so it can be rerun. Report how many rows highlighted.

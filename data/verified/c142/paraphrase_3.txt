@@ -1,0 +1,1 @@
+BOM (Part No, Description, Unit), Unit column: (1) kg, Kg, kgs become KG, (2) nos, no, pcs become NOS, (3) mtr, m, meter become MTR, (4) ignore case and stray spaces, (5) leave other units and blank cells alone, (6) tell me how many cells I changed.

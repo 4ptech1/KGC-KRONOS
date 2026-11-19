@@ -1,0 +1,1 @@
+PQR List (PQR No, Process, Test Date, Result, Remark): (1) Fail can be in any case, (2) Result Fail and Test Date more than 90 days ago: write Retest due in Remark, (3) clear Remark on the others, (4) leave a PQR with no real Test Date alone, (5) tell me how many retests are due.

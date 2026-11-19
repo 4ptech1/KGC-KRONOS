@@ -1,0 +1,1 @@
+In the WPS Register (WPS No, Process, PQR Ref): (1) trim every Process cell and make it upper case (examples of the mess: 'smaw', ' SMAW', 'Gtaw '), (2) empty each PQR Ref cell that has only spaces, (3) leave everything else alone, (4) tell me how many cells were changed.

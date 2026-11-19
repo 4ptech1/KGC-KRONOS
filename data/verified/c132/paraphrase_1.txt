@@ -1,0 +1,1 @@
+Welder Quals (Welder ID, Process, Expiry Date, Status): Status = Expired if Expiry Date is before today, Expires soon if within the next 30 days, Valid otherwise, No date if no Expiry Date. Report Expired plus Expires soon.

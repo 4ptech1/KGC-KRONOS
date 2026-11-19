@@ -1,0 +1,1 @@
+BOM sheet (Part No, Description, Required Qty): remove duplicate rows by Part No, keep the first, report how many removed. Stray spaces in part numbers: 'P-100' and ' P-100 ' are the same.

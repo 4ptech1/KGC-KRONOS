@@ -1,0 +1,1 @@
+For each tracker row: (1) take the Job ID and the report name; (2) find the report in the dump folder; (3) copy it into the folder named after the job inside the jobs folder; (4) write in Status what happened. Never move or overwrite a file.

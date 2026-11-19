@@ -1,0 +1,1 @@
+Calibration Tracker (Instrument ID, Cert Status) against the Cal Certs folder (a folder path I give the macro): (1) each certificate is a PDF named after its instrument, like PG-104.pdf, (2) per row write Found in Cert Status if that PDF exists and Missing if not, (3) a row with no Instrument ID gets nothing, (4) never change a file, (5) tell me how many are Missing.

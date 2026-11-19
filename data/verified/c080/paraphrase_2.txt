@@ -1,0 +1,1 @@
+Could you make a Unit Totals sheet from the BOM sheet (Part No, Description, Required Qty, Unit) showing the total Required Qty for each Unit, units A to Z? KG and kg count as the same unit. Rows with no unit, or with a Required Qty that is not a number, should be left out, and please tell me how many rows you left out.

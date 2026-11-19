@@ -1,0 +1,1 @@
+Could you create a Method Summary sheet from the NDE Report (Weld Seam No, Method, Result)? For each Method I need how many welds were tested and how many have the Result Reject, methods A to Z. RT and rt count as the same method, rows with no method are ignored, and the sheet should be rebuilt every run.

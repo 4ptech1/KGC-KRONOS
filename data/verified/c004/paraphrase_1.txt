@@ -1,0 +1,1 @@
+Four NDE sheets: RT, UT, MPT, DPT, each with Weld Seam No and Result. Make a Summary: one row per seam, its Result in each method, sorted by seam number. Seam shot twice in a sheet: the top row is the latest.

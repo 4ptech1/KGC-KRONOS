@@ -1,0 +1,1 @@
+Suppliers sheet, rebuilt every run: (1) read the Supplier column of the Material Certs sheet (Heat No, MTC No, Supplier); (2) ignore rows with no supplier; (3) treat 'Acme Steel' and 'ACME STEEL' as one supplier; (4) list each once, alphabetically, under a Supplier heading.

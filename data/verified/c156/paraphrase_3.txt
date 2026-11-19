@@ -1,0 +1,1 @@
+On Time sheet, rebuilt every run, from the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date): (1) one row per Customer, A to Z, names in mixed case counted together, (2) how many of its dispatches have an Actual Date, (3) how many of those were late (Actual Date after Planned Date), (4) rows with no Customer are ignored.

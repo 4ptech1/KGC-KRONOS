@@ -1,0 +1,1 @@
+(1) Add a sheet called NCR Stats if the workbook doesn't have one yet, (2) write Open NCRs in A1, (3) in B1 put a formula that counts the cells of the Status column in the NCR sheet (NCR No, Status) that read Open, so it stays right when the sheet changes, (4) running it again must not add a second sheet.

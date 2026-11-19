@@ -1,0 +1,1 @@
+Add a sheet NCR Stats to the workbook if it's missing. A1 = Open NCRs; B1 = formula counting cells in the Status column of the NCR sheet (NCR No, Status) that read Open, so it follows changes. A second run must not add another sheet.

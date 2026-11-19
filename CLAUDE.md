@@ -237,7 +237,7 @@ lines of VBA (rule 9: about 60); accepted for now, revisit in March.
 
 **Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
 paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98
-to D100); **next 6, the data generator** (Stage A Phase 7), then 7 the benchmark (Phase 8, with Boss's permitted KGC
+to D100); 6 the data generator (done, D103, D104: `vclc datagen` and 405 paraphrases); **next 7, the benchmark** (Phase 8, with Boss's permitted KGC
 samples shaping realistic held-out tasks, D101), 8 KRONOS Offline version 6, 9 storage S1, 10 the VCL memory and the
 day-one kit. For Boss: paste the updated prompt (D94, D97) into the Orchestrator Project.
 
@@ -313,7 +313,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    c098 and c106 after three batches each (D95). Batch 7 and a top-up finished the 150 on 19 Nov 2026 (D96). The
    wording fixes are done too (D97: the FIXTURE `+boundary` rules, the wrong-sheet TEST, entry macros, and five
    smaller facts, in spec.md and the prompt together; Boss pastes the prompt once, with D94's line in it). Next:
-   Phase 7, the data generator (Boss's step 6), then Phase 8, the benchmark (step 7). No training before March 2027.
+   Phase 7, the data generator (Boss's step 6), is done: `vclc datagen` makes 4,432 repairs and 124 contrast examples
+   from the 135 training pairs (D103), and every training pair has three checked paraphrases (D104). Next: Phase 8,
+   the benchmark (step 7). No training before March 2027.
 5. **The KGC KRONOS desktop app** (Boss asked on 30 Oct 2026; `docs/kronos-app.md`, D68 to D71): a
    window where a person types a request; KRONOS asks ChatGPT Codex (the Codex CLI, `codex exec`,
    read-only) for the VCL, then checks, tests and builds it, sends problems back for up to 2 more tries,

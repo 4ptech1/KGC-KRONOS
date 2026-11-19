@@ -1,0 +1,1 @@
+Could you clean up the Status column in the NCR Register (NCR No, Department, Status)? It's typed every which way. Anything that reads open (in any case and with stray spaces) should read exactly Open, and anything reading closed or close should read exactly Closed. Leave other statuses and blank cells alone, don't change any other column, and tell me how many cells you changed.

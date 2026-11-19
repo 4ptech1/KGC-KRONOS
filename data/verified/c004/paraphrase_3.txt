@@ -1,0 +1,1 @@
+Summary sheet, in order: (1) read the Weld Seam No and Result from the RT, UT, MPT and DPT sheets (all NDE); (2) if a seam appears twice in a sheet, the top row is the latest, so take that; (3) one row per seam with its Result for each method; (4) sort by seam number.

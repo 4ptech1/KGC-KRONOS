@@ -1,0 +1,1 @@
+Weld Log (Weld Seam No, Welder ID, Visual): show only rows of the Welder ID given to the macro (any case, stray spaces), hide the rest. Report rows visible below the headings.

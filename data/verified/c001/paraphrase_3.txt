@@ -1,0 +1,1 @@
+Make a Shortages sheet in these steps: (1) add up Received Qty per Part No from the GRN sheet, since a part can be on several lines; (2) compare with Required Qty per Part No on the BOM sheet; (3) list every part where Received is less than Required, with the amount short; (4) if Required Qty is missing, list the part and say so.

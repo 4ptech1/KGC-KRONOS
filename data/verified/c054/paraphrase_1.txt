@@ -1,0 +1,1 @@
+Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date): whole row green if there is an Actual Date; red if none and Planned Date is before today; otherwise no colour. Clear old highlights first, so it can be rerun. Report how many rows are red.

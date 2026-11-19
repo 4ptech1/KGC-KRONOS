@@ -1,0 +1,1 @@
+Customer Summary sheet, customers A to Z. Per customer: (1) number of dispatches on the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date); (2) how many of those were late (Actual Date after Planned Date).

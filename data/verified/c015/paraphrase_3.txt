@@ -1,0 +1,1 @@
+NCR register columns: NCR No, Raised By, Issue Date, Category, Status. (1) Find NCRs still Open and issued more than 30 days ago. (2) Highlight their NCR No cell yellow. (3) Tell me how many. (4) On a second run, old highlights must not stay on NCRs that have been closed.

@@ -1,0 +1,1 @@
+Supplier Summary sheet from Material Certs (Heat No, MTC No, Supplier): certificates per supplier and, next to it, how many have no MTC No. Most certificates first. Ignore rows with no supplier.

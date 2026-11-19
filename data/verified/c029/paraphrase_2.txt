@@ -1,0 +1,1 @@
+Could you fill the Balance column of the Consumable Issue sheet (Batch No, Opening Stock, Issued, Balance) with a formula on every data row? It should be Opening Stock minus Issued. Excel 2016 only, please.

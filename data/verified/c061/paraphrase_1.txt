@@ -1,0 +1,1 @@
+Welder Quals (Welder ID, Process, Expiry Date) vs WPS Register (WPS No, Process). No WPS sheet, same headings as Welder Quals: every qualification whose Process has no WPS in the register. Case doesn't matter ('gtaw' matches 'GTAW'). Report how many listed.

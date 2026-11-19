@@ -1,0 +1,1 @@
+Calibration Tracker (Instrument ID, Next Calibration Due, Remark): (1) a text due date such as 15/03/2026 (day first) becomes a real date, (2) a text due date that isn't a real day-first date gets Bad date in Remark, (3) leave real dates and blank cells alone, (4) tell me how many dates I converted.

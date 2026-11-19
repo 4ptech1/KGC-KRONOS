@@ -1,0 +1,1 @@
+Expiring Quals sheet: list every qualification in Welder Quals (Welder ID, Process, Expiry Date) that has expired or expires within the next 60 days, same headings plus a Days Left column (negative if already expired), soonest first. Skip rows with no Expiry Date. Rebuild every run.

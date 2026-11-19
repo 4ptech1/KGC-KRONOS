@@ -1,0 +1,1 @@
+Could you go through the Consumable Stock sheet (Batch No, Description, Qty On Hand, Reorder Level, Remark)? Where Qty On Hand is at or below Reorder Level, write Reorder in Remark, and where it's above, clear the Remark. Then tell me how many batches need reordering.

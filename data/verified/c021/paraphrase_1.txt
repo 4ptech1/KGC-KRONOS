@@ -1,0 +1,1 @@
+GRN sheet (GRN No, Part No, Heat No) vs Material Certs sheet (Heat No, MTC No). Missing Certs sheet: every GRN line whose heat number isn't in Material Certs. Heat numbers have stray spaces and mixed case, so compare tidily.

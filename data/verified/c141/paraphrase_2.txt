@@ -1,0 +1,1 @@
+Could you tidy the Weld Seam No and Welder ID columns in the Weld Log (Weld Seam No, Welder ID, Visual)? Make each value trimmed and upper case, with any run of spaces inside made one space. Leave blank cells alone, change no other column, and tell me how many cells you changed.

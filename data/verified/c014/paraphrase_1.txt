@@ -1,0 +1,1 @@
+Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date, Status). Status = Late if no Actual Date and Planned Date before today. Status = On time if Actual Date is not later than Planned Date. Other rows untouched. Report the number Late.

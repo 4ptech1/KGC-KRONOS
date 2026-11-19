@@ -1,0 +1,1 @@
+ITP Tracker (ITP No, Point, Inspection Status): make an ITP Status sheet, one row per ITP No, three columns counting its points that are Open, Hold and Closed (any case, stray spaces). Other statuses not counted. ITP numbers A to Z. Rebuild every run.

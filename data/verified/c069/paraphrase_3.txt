@@ -1,0 +1,1 @@
+(1) On the NDE Report (Weld Seam No, Method, Result) hide every row whose Result is not Reject. (2) Only the rejected welds stay visible. (3) Tell me how many rows are visible below the headings. (4) A second run must give the same.

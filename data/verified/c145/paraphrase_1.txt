@@ -1,0 +1,1 @@
+BOM (Part No, Required Qty, Issued Qty, Short Qty): formula in Short Qty on every data row, Required Qty minus Issued Qty if that is more than zero, else 0. Excel 2016 only.

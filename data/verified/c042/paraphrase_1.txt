@@ -1,0 +1,1 @@
+GRN sheet: trim spaces off the Part No and GRN No cells, upper-case Part No. Nothing else changes. Report how many cells changed.

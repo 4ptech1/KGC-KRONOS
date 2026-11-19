@@ -1,0 +1,1 @@
+(1) In the NCR Register compare NCR No values ignoring upper and lower case. (2) Remove duplicate rows, keeping the first. (3) Tell me how many were removed.

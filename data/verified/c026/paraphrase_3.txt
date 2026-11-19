@@ -1,0 +1,1 @@
+(1) Go through the Job Tracker sheet row by row. (2) For each Job ID make a folder inside the Jobs folder. (3) Write the outcome in the Folder Status column: made, already there, or a problem. Never delete or overwrite anything.

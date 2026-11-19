@@ -1,0 +1,1 @@
+Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date): count rows with no Actual Date and write the number as text in a new file open_dispatches.txt in the Dispatch Docs folder (path given to the macro). If the file already holds that number, leave it. Write what happened in cell G1 of the sheet.

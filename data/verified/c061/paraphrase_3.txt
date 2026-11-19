@@ -1,0 +1,1 @@
+No WPS sheet, same headings as Welder Quals (Welder ID, Process, Expiry Date): (1) for each qualification look up its Process in the WPS Register (WPS No, Process), ignoring upper and lower case ('gtaw' matches 'GTAW'); (2) list the qualification if the register has no WPS for it; (3) tell me how many were listed.

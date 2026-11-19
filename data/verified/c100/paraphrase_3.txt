@@ -1,0 +1,1 @@
+On the GRN sheet (GRN No, Part No, Received Date, Received Qty, Inspection, Remark): (1) find lines whose Received Date is more than 7 days ago and whose Inspection is blank, (2) write Inspection pending in their Remark, (3) clear Remark on the others, (4) tell me how many lines are pending.

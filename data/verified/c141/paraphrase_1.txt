@@ -1,0 +1,1 @@
+Weld Log (Weld Seam No, Welder ID, Visual): make every Weld Seam No and Welder ID trimmed and upper case, runs of inner spaces collapsed to one. Blank cells alone, no other column changed. Report cells changed.

@@ -1,0 +1,1 @@
+On the Dispatch sheet (Dispatch No, Customer, Planned Date, Actual Date): (1) take the customer name I give the macro, matching in any case and with stray spaces, (2) hide each row whose Customer is not that name, (3) tell me how many rows are visible below the headings, (4) a second run for another customer must show that customer's rows.

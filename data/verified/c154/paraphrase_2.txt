@@ -1,0 +1,1 @@
+Could you make a Welder List sheet listing every row of Welder Quals (Welder ID, Process, Expiry Date) for the process I give the macro? The process can be in any case and with stray spaces. Use the same headings, Welder IDs A to Z, and rebuild the sheet every run.

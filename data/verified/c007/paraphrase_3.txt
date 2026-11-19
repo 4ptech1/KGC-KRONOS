@@ -1,0 +1,1 @@
+Call Notice sheet, same headings as the tracker: (1) take the ITP tracker; (2) keep only Hold and Witness points; (3) of those, only inspection status Ready. Review points don't need a call notice.

@@ -1,0 +1,1 @@
+Welder List sheet: list every row of Welder Quals (Welder ID, Process, Expiry Date) for the process given to the macro (any case, stray spaces), same headings, Welder IDs A to Z. Rebuild every run.

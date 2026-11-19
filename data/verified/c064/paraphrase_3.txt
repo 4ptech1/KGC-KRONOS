@@ -1,0 +1,1 @@
+Rejected Welds sheet, rebuilt every time: (1) take the NDE Report (Weld Seam No, Method, Result, Report Date); (2) keep rows whose Result is Reject; (3) same headings; (4) sort newest Report Date first.

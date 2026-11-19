@@ -1,0 +1,1 @@
+Could you make a Supplier Summary sheet from the Material Certs sheet (Heat No, MTC No, Supplier)? I want the number of certificates per supplier and, next to it, how many of them have no MTC No, with the supplier with the most certificates first. Rows with no supplier should be ignored.

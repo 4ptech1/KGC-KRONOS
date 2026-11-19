@@ -1,0 +1,1 @@
+Could you add a sheet called NCR Stats to the workbook if it isn't there yet? In A1 I want Open NCRs and in B1 a formula that counts how many cells of the Status column in the NCR sheet (NCR No, Status) read Open, so it stays right when the NCR sheet changes. Running it again mustn't add a second sheet.

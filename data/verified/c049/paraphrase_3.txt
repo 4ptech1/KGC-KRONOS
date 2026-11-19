@@ -1,0 +1,1 @@
+Return the row number of NCR-104 on the NCR Register, or 0 if it isn't there. On that row, write Reviewed in the Status column.

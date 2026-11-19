@@ -1,0 +1,1 @@
+Could you set up job folders from the Job Tracker (Job ID, Status, Folder)? For every job that is not Closed, make a folder named after the Job ID inside the Jobs folder, a folder path I give the macro, with a Drawings folder inside it. Write Made, Already there or Bad name in Folder, and leave Folder empty for Closed jobs. Never delete or overwrite anything.

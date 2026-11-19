@@ -1,0 +1,1 @@
+Could you build a Welder Visual sheet from the Weld Log (Weld Seam No, Welder ID, Visual)? For each Welder ID I need how many welds they made and how many were not Accepted, the most welds first. Welder IDs are typed with stray spaces, rows with no Welder ID are ignored, and the sheet is rebuilt every run.

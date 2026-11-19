@@ -1,0 +1,1 @@
+Could you check the ITP Tracker (ITP No, Point, Inspection Status, Inspector, Remark) and write No inspector in Remark for every Closed point whose Inspector is blank? Closed is typed in any case and with stray spaces. Clear the Remark on the others, and tell me how many points have no inspector.

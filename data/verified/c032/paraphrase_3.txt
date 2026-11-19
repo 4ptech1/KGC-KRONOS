@@ -1,0 +1,1 @@
+Weld follow-up tool, one macro, with two output sheets rebuilt every run. Source: the weld log, columns Weld Seam No, Welder ID, Visual. (1) Highlight in red the rows whose Visual isn't Accepted. (2) Copy those rows to a Weld Exceptions sheet with the same headings. (3) On a Welder Exceptions sheet write how many exceptions each welder has, most first.

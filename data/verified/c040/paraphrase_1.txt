@@ -1,0 +1,1 @@
+NDE Report (Weld Seam No, Result) vs Weld Log (Weld Seam No, Visual). Not Inspected sheet: weld log seams with Visual Accepted but no row in the NDE Report. Seam numbers may have stray spaces.

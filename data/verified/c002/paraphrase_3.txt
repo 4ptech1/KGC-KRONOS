@@ -1,0 +1,1 @@
+In the material traceability register: (1) skip rows with no part number; (2) for the rest, highlight the whole row in red if the heat number or the MTC number is missing; (3) tell me how many rows were flagged.

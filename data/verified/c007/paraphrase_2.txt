@@ -1,0 +1,1 @@
+Could you make a Call Notice sheet from the ITP tracker? I need the Hold and Witness points whose inspection status is Ready, with the same headings as the tracker. Review points don't need a call notice, so leave them out.

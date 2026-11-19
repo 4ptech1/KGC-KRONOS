@@ -1,0 +1,1 @@
+Status Count sheet, rebuilt every run, from the Job Tracker (Job ID, Customer, Status): (1) one row per Status with its number of jobs, most first, (2) 'closed' and 'Closed ' are the same status, (3) a job with no Status is counted as Blank, (4) last row Total with all the jobs counted.

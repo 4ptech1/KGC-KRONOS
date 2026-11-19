@@ -1,0 +1,1 @@
+WPS Register (WPS No, Process, PQR Ref): Process is typed every which way ('smaw', ' SMAW', 'Gtaw '). Trim it and make it upper case. Empty any PQR Ref cell holding only spaces. Nothing else changes. Report cells changed.

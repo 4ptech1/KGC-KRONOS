@@ -1,0 +1,1 @@
+I need the weld log checked against the welder qualification list. Please highlight in red every weld log row where the welder isn't on the list, has no valid expiry date, or has an expired qualification. Rows that are fine shouldn't keep an old red, and I'd like to know how many rows are red.
