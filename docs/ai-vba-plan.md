@@ -12,7 +12,8 @@ it (300 GB).
 
 So **our own model (D25) writes the VBA for a task, and its context and memory are written in VCL.** This changes D31
 ("the model writes VCL, never VBA"): the model may now write VBA too, from a VCL recipe. Everything else in D25 stays:
-the model is designed and trained from zero, on in-house data only.
+the model learns from in-house data only. (Since D102, 19 Nov 2026, it may start from a small open-weight model tuned
+on that data instead of from zero; see `docs/ai-plan.md`.)
 
 ## How the proof works around it
 
@@ -42,7 +43,7 @@ The rule that nothing unproven reaches a workbook unlabelled stays. The proof mo
 | 0 | This design, D90, CLAUDE.md and `docs/ai-plan.md` changed to match | now |
 | 1 | **`compiler/vba_sim.py`, the VBA simulator.** Part 1, the language core, is done (D98): the ForgeLib self-test passes in it, and planted bugs are caught. Part 2 is done (D99): every compiled TASK without folders ends where the interpreter does on every TEST, and two compiler bugs it found are fixed. Part 3 is done (D100): files and BUILDs too, 165 specs, examples and pairs, `python compiler/vclc.py sim` in CI. **Phase 1 is complete.** It runs the subset of VBA that KRONOS writes and allows, with ForgeLib, on the TESTs' practice workbooks. First proof: the compiler's own VBA for every spec, example and corpus pair ends exactly where the interpreter says (this already makes today's macros better proven, with no AI) | before March 2027 |
 | 2 | **The memory.** The training pairs grow from request → VCL to request → VCL → VBA (`vclc export` already compiles the VBA); a small index finds similar proven recipes for a new one | before March 2027 |
-| 3 | **The model** (new PC): trained from zero on the pairs; KRONOS gets "the AI writes the VBA": prove the recipe, ask the model for the VBA, prove it in the simulator, else fall back to the compiler | from March 2027 |
+| 3 | **The model** (new PC): trained on the pairs (from zero, or a small open model tuned on them, D102); KRONOS gets "the AI writes the VBA": prove the recipe, ask the model for the VBA, prove it in the simulator, else fall back to the compiler | from March 2027 |
 | 4 | KRONOS.exe and KRONOS Offline show the labels; the practice run checks the AI's module in Excel | with Phase 3 |
 
 ## Where it lives
@@ -51,7 +52,8 @@ From March 2027 the memory, the simulator's results, the training data, the trai
 
 ## What doesn't change
 
-- D25: the model and everything it learns from are ours; no pre-trained weights, outside data or outside retrieval.
+- D25 and D102: everything the model learns from is ours and proven; no outside data or outside retrieval. Since D102 its
+  starting weights may be a small open model's (Apache 2.0 or MIT, at most about 7 billion parameters).
 - Synthetic data only in the repo; no training before March 2027.
 - The compiler and ForgeLib stay: they are the reference for what VBA a recipe means, and the fallback whenever the AI's
   VBA is not proven.

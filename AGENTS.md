@@ -17,7 +17,8 @@ If this folder came from a zip, `SNAPSHOT.txt` says which commit and date it is.
   calibration and similar.
 - **Boss** owns the project. He is learning and does no testing: plain words, brief, call him Boss.
 - **Claude Code** (in the cloud) builds, verifies and merges everything.
-- From March 2027 our own model, trained from zero on our proven pairs, will write VCL, and VBA that is used only when
+- From March 2027 our own model, trained on our proven pairs (from zero, or since D102 a small open model tuned on
+  them, whichever scores better), will write VCL, and VBA that is used only when
   it passes the recipe's TESTs in a VBA simulator; otherwise the compiler's VBA is used (D90). It lives on the new
   PC's 300 GB, KRONOS's home, where the real records are kept in `KRONOS\work` (D91).
 

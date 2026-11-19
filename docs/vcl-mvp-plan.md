@@ -103,8 +103,9 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
    carefully" training data the Phase 2 plan wanted. See `docs/ai-plan.md`, Stages A and B.
-8. **March:** train our own model from zero on the in-house dataset (D25: no pre-trained weights,
-   no outside data). It writes VCL (D31, `docs/ai-plan.md`) and, since D90 (`docs/ai-vba-plan.md`), the VBA
+8. **March:** train our own model on the in-house dataset (D25: no outside data): two candidates,
+   one trained from zero (up to about 350 million parameters) and one small open-weight model tuned with LoRA (up to
+   about 7 billion, Apache 2.0 or MIT), and the benchmark chooses (D102). It writes VCL (D31, `docs/ai-plan.md`) and, since D90 (`docs/ai-vba-plan.md`), the VBA
    from a proven recipe, used only when a VBA simulator proves it against the recipe's TESTs; otherwise the
    compiler's VBA. Excel conformance runs whenever Boss chooses. It trains on the new PC, with its datasets,
    checkpoints and models on the 300 GB reserved for KRONOS there; models trained on real data never leave

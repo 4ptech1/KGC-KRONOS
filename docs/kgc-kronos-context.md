@@ -43,8 +43,9 @@ How it works:
    synthetic data in a reference interpreter, and compiles it to Excel 2016 VBA that calls a
    shared runtime, **ForgeLib**.
 3. Every task in plain English plus its proven spec (and the compiler's VBA) is a **verified
-   pair**. From March 2027 those pairs train **our own model, designed and trained from zero**
-   (D25). **The model writes VCL** (D31, `docs/ai-plan.md`): from plain English, and as repairs of
+   pair**. From March 2027 those pairs train **our own model**, on in-house data only (D25): since D102
+   (Boss, 19 Nov 2026) two candidates, one trained from zero and one small open-weight model tuned on our data, and
+   the benchmark chooses. **The model writes VCL** (D31, `docs/ai-plan.md`): from plain English, and as repairs of
    failing specs; **since D90 (Boss, 17 Nov 2026, `docs/ai-vba-plan.md`) it also writes the VBA**
    from a proven recipe, with its context and memory in VCL. Its VBA is used only when it passes the
    recipe's own TESTs in a VBA simulator; otherwise KRONOS gives the compiler's VBA, which stays the
@@ -102,9 +103,10 @@ Boss's working policy (from `CLAUDE.md`):
   nothing generated ever touches real workbooks or real folders, except the copy KRONOS Offline
   makes of a workbook Boss uploads (D87); no TEST ever uses one.
 - **No model training or local-model work** until the new PC arrives in March 2027.
-- **Original model and context data (D25, standing rule).** The VBA Forge model is designed and
-  trained from zero by us: no pre-trained weights (Llama, Qwen, ...), no fine-tuning of someone
-  else's model, no scraped or downloaded code, datasets or prompts (GitHub, Stack Overflow, public
+- **Original model and context data (D25, standing rule; its weights rule lifted by D102).** Since D102
+  (Boss, 19 Nov 2026) the model may start from a small open-weight model (Apache 2.0 or MIT, at most about
+  7 billion parameters, tuned with LoRA, offline on the new PC), built beside one trained from zero (at most
+  about 350 million); the benchmark chooses. Still banned: no scraped or downloaded code, datasets or prompts (GitHub, Stack Overflow, public
   VBA collections), no retrieval over outside sources. In-house means made by this repo's tools, by
   Boss, by Claude through our pipeline, or by Codex through KRONOS (D70), and verified by our
   toolchain. General tools (Python,
@@ -653,7 +655,7 @@ router item 4, this item 2 its item 5, and item 3 its items 6 and 7):
 7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026, D90, `docs/ai-vba-plan.md`). Phase 0, the
    design, is done. Before March: Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes (first it proves
    the compiler's own VBA for every spec and corpus pair; Phase 1 is complete, D98 to D100), and Phase 2, the VCL memory. **March 2027:** the new PC; train
-   our own model from zero on in-house data (D25). It writes VCL and the VBA; its VBA is used only when the simulator
+   our own model on in-house data (D25): from zero and a small tuned open model, the benchmark chooses (D102). It writes VCL and the VBA; its VBA is used only when the simulator
    proves it, else the compiler's. Excel conformance runs.
 8. **The new PC's 300 GB, KRONOS's home from March 2027** (Boss, 17 Nov 2026, D91, `docs/kronos-storage-plan.md`):
    company storage, real data allowed (only under `KRONOS\work`), only Boss for now, reserved for KRONOS and filled as
@@ -670,8 +672,8 @@ plain English to VCL, and repairing failing specs. NOTE steps shrink as VCL grow
 they go to Claude or Boss. Planned VCL changes, each its own VEP after the MVP: a `GOAL` line
 (one English sentence per TASK), a canonical formatter, error codes in checker messages, fewer
 NOTE steps, a small language, and a minimum mutation score for model-written TESTs. Stages: A and
-B before March (corpus, data generator, benchmark, growing VCL), C in March (train a small model
-from zero, grammar-constrained), D (repair; used once it passes enough of the benchmark), E
+B before March (corpus, data generator, benchmark, growing VCL), C in March (two candidates, grammar-constrained: a small model
+from zero and a small open model tuned with LoRA, D102), D (repair; used once it passes enough of the benchmark), E
 (Boss's daily use).
 
 **Boss's ten steps (18 Nov 2026, D101):** 1 and 2 done by Boss; 3 to 5 done (the corpus, the prompt fixes, the VBA
@@ -713,7 +715,8 @@ memory and the day-one kit.
 - **D22:** blank key rows for SKIP_IF, plus the matching rule 19 warning.
 - **D23:** FORMAT fill names work: each name is the VBA colour constant of that name.
 - **D24:** Boss's weld-log spec is task_11, unchanged. The router spec becomes task_12.
-- **D25:** original model and context data: the model is trained from zero, on in-house data only.
+- **D25:** original model and context data: the model learns from in-house data only. **Changed by D102:** its
+  starting weights may be a small open model's; see D102.
 - **D31:** the model writes VCL; the compiler writes the VBA (`docs/ai-plan.md`). **Changed by D90:** the model may
   also write the VBA from a proven recipe, with its context in VCL, used only when a VBA simulator proves it against the
   recipe's TESTs; the compiler's VBA is the fallback (`docs/ai-vba-plan.md`).
@@ -757,7 +760,7 @@ memory and the day-one kit.
   a reply is its one vcl block (K001 to K003 when it can't be used); 3 tries by the AI; a .bas only
   for a proven spec, with a starter macro that passes the real sheet names.
 - **D73:** the roadmap .docx's phase list is the plan of 14 Oct 2026; the current order of work is
-  CLAUDE.md's "Next" list and `docs/vcl-mvp-plan.md`. Its picture still shows fine-tuning, which D25 rules out.
+  CLAUDE.md's "Next" list and `docs/vcl-mvp-plan.md`. Its picture shows fine-tuning, which D25 ruled out and D102 allows again for a small open model.
 - **D74:** the KRONOS window comes before everything else: a four-step wizard (Ask, Questions,
   Review, Save), the recipe hidden behind a setting, screenshots for Boss in every window PR.
 - **D86:** KRONOS Offline, Boss's four decisions: in the browser with no install, the AI step by copy and paste, no
@@ -782,6 +785,10 @@ memory and the day-one kit.
   refused, never guessed; it found a conformance gap (no number below 1).
 - **D101:** Boss's report (KRONOS Offline v5 works on the work PC; the IT request is done), his ten steps (next: the
   data generator), and KGC samples he has permission for: read to learn the registers' shape, never put in the repo.
+- **D102:** D25's ban on pre-trained weights lifted (Boss). In March 2027 two candidates are built and the held-out
+  benchmark chooses: A, our own model from zero (at most about 350 million parameters); B, a small open-weight coder
+  model (Apache 2.0 or MIT, at most about 7 billion) tuned with LoRA on our data, run in 4-bit, offline on the new PC.
+  No giant model is trimmed. Training data stays in-house and proven, no outside retrieval; the prompt is unchanged.
 - **D91, D92:** from March 2027 KRONOS's home is the new PC's 300 GB of company storage
   (`docs/kronos-storage-plan.md`): one `KRONOS` folder, real data only in `work`, a budget per folder with 30 GB
   always free, and a monthly report for Boss's manager. KRONOS never deletes real records, and a model trained on
@@ -3266,6 +3273,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D99 | 19 Nov 2026 | **The VBA simulator, part 2: every compiled TASK runs on its TESTs' practice workbooks and ends where the interpreter does (`compiler/vba_check.py`, `tests/test_vba_check.py`); it found two compiler bugs, both fixed.** For every TEST of a spec: build the practice workbook from its FIXTURE lines (the one fixture generator), run the compiled procedure in the simulator with the TEST's arguments and runs=n, and compare with the interpreter's run of the same TEST: RESULT, ERROR_COUNT, the MSG and LOG texts, and every sheet's cells (as canonical text), fills, number formats and hidden rows. The simulator gained Excel's Range.Sort (numbers and dates, then text with case ignored, then booleans, then errors, blanks last, stable), row Delete and Insert, and RGB. **Result: 130 proven, 0 differences** (the 11 specs that have no folder, Example 1, and all 118 corpus TASKs without folders); the 36 with folder FIXTUREs or a BUILD wait for part 3 and are listed as skipped, never as proven. Four bugs planted in compiled VBA (a reversed SORT, a wrong RESULT, a wrong PRE result, a date where a number belongs) are each caught. **The two compiler bugs, both in task_09 and its corpus copy c009, which no one had run in Excel:** (1) the spec's variable `cDate` compiled to `Dim cDate As Long`, but CDate is a name VBA reserves, so Excel would have refused to compile the whole module: the compiler's list of reserved names lacked MS-VBAL's reserved names and special forms (CDate, CStr, Int, Len, Fix, LBound, UBound, Debug, Open, Print and the rest). The complete list now lives in `vba_lint.py`; the compiler imports it and renames such a variable (`cDate_v`), and the linter and the simulator both refuse a reserved name, so it can't come back unnoticed. (2) `TODAY - CELL(...)` on a cell guarded by IS_DATE compiled to `Date - ForgeNum(cell)`, which in VBA is a Date, so Excel would have shown 06/10/1900 where the recipe means 280 days. The compiler stored the guard's fact as `date` but looked for `Date`, so no IS_DATE guard ever reached the arithmetic; with the one word fixed it writes `Date - CDate(cell)`, a number of days, as the interpreter says. `dist/forge_module.bas` changes in 7 lines. No spec, TEST or mutation score changes: mutation works on VCL. | The proof found real bugs before anything ran in Excel, which is what it is for; the fixes are in the compiler, so every macro KRONOS writes gets them. |
 | D100 | 19 Nov 2026 | **The VBA simulator, part 3: files and BUILDs too, and `vclc sim` in CI; D90 Phase 1 is complete (step 5 of Boss's list).** The simulator gained Scripting.FileSystemObject (FolderExists, FileExists, GetAbsolutePathName, CreateFolder, CopyFile, GetFile, GetFolder().Files, CreateTextFile) and the Open, Get and Close statements ForgeReadRaw uses, all on the interpreter's own mock file system (`vcl_fixtures.MockFS`), with Windows' errors (53 file not found, 58 already exists, 70 a locked file, 76 path not found). It models Windows, not the interpreter: a copy keeps its source's text, a relative path is read from the PC's own folder. The checker runs a BUILD through its modMain.RunHeadless and compares the folders, files and texts as well as the sheets. **Result: 165 proven, 0 differences**: every committed spec, every example that runs TESTs and all 150 corpus pairs, the 17 BUILDs and 13 file pairs among them; only `build_example.vcl`, which doesn't parse on purpose, is skipped. Bugs planted in file and BUILD code (a wrong copy status, a copy that never happens, a wrong text file, a wrong read, a BUILD step that writes nothing) are each caught. `python compiler/vclc.py sim FILES...` runs it, and CI runs it on every spec, example and pair. **What is still not proven, and why it matters:** the simulator is a model, checked against VBA's documented rules, the ForgeLib self-test and planted bugs, not against Excel itself. The practice run in real Excel (D81) and the pilot remain the final word, and any difference they show is fixed in the simulator first. **Next for D90:** Phase 2, the VCL memory; from March 2027 the simulator is how our model's VBA is proven (`docs/ai-vba-plan.md`). | Every macro the compiler writes is now run, not only checked, before it reaches Excel. |
 | D101 | 19 Nov 2026 | **What Boss reported on 18 and 19 Nov 2026, his ten steps, and KGC samples.** (1) **Boss's report (18 Nov):** KRONOS Offline version 5 works on the work PC ("Tried and successful"), and step 2, asking IT for KRONOS.exe and the Codex CLI and pasting the prompt, was "Successful". Whether KRONOS.exe and the Codex CLI are now installed is not confirmed, so the pilot (KRONOS app Phase 4) still waits for that. (2) **Boss's ten steps (18 Nov), the order of work:** 1 try KRONOS Offline v5 and 2 the IT request and prompt paste (Boss, done); 3 and 4 the corpus to 150 and the prompt fixes (done: D93 to D97); 5 the VBA simulator (done: D98 to D100); next 6 the data generator (Stage A Phase 7), then 7 the benchmark (Phase 8), 8 KRONOS Offline version 6 (its Phase 3), 9 storage S1 (`vclc drive`), 10 the VCL memory (D90 Phase 2) and the day-one kit (storage S4). For model and effort Boss accepted my advice: Opus for design and review, Sonnet helpers for corpus specs (D93). Still for Boss: paste the updated prompt (D94, D97) into the Orchestrator Project; KRONOS.exe and KRONOS Offline carry the earlier prompt until new versions are published. (3) **KGC samples (19 Nov):** Boss offered KGC company document samples, "safe samples that I have taken permission for". This changes the standing rule that no real KGC file goes into Claude's prompts, for these permitted samples only, so I chose the careful reading: they may be read in a Claude Code session to learn the shape of KGC's registers and requests (sheet layouts, headings, how values are typed, what people ask); nothing from them goes into the public repo, its tests, specs, corpus or docs; recipes and FIXTUREs modelled on them use invented values in the same shape; and what was learnt is written down only in general words ("dates are often typed as text"). Timing: after step 6, because the data generator works only from the 150 proven pairs; they serve step 7 (held-out benchmark tasks that look like real registers) and the next corpus batches. Boss can widen or narrow this. | Boss's words are the record; the repo stays public and synthetic whatever is learnt from the samples. |
+| D102 | 19 Nov 2026 | **D25 lifted for the model's starting point: an open-weight model may be tuned for KRONOS (Boss: "Lift d25 and let your recommendation be noted").** Boss asked which open-source model KRONOS could use, whether one could be trimmed and tuned, whether a 200 GB model could be trimmed, and how big a model I recommend at most. **My recommendation, now the plan:** (1) two candidates, built in March 2027 on the new PC and scored on the same held-out benchmark (Stage A Phase 8, `data/eval/`); the one that scores better is used, and the other is kept for comparison. Candidate A, our own model trained from zero, at most about 350 million parameters (data, not hardware, is its limit: a bigger model trained from zero on our corpus only memorises it); start at 50 to 100 million and grow only when the benchmark says it helps. Candidate B, a small open-weight coder model tuned with LoRA (QLoRA on one graphics card of 16 to 24 GB), at most about 7 billion parameters, run in 4-bit (about 5 GB); 14 billion is not planned. No giant model is trimmed: a model of about 200 GB (about 100 billion parameters) needs data-centre graphics cards just to load, would take two-thirds of the 300 GB, and loses more by heavy pruning than a small model its makers trained; both ceilings are confirmed in March, once the graphics card is known. **What is lifted:** only D25's ban on pre-trained weights and on tuning someone else's model. **My conservative choices, since Boss said only "lift":** (2) what the model learns from stays in-house and proven, as D25 and D70 say: our corpus, the data generator's output, Boss's and KRONOS's proven runs; no scraped or downloaded code, datasets or prompts are added for tuning, and no retrieval over outside sources (its memory is our proven recipes, D90). (3) Only a model whose licence allows company use without conditions: Apache 2.0 or MIT (for example Qwen2.5-Coder 1.5B or 7B, Apache 2.0, to be checked in March); its name, version, licence, model card and SHA-256 are written down beside it. (4) The open model is downloaded once onto the new PC, with IT's approval, into `KRONOS\models\base`; never into the repo or a Claude Code session; it runs offline, so no request or record leaves the PC. A model tuned on real data stays on that PC (D91). (5) Nothing else moves: the compiler first and its VBA the fallback (D31), the model's VCL and VBA used only when the toolchain and the VBA simulator prove them (D90), no model work before March 2027, and Claude stays the design and build tool. The Orchestrator prompt does not change, so Boss pastes nothing. (6) The storage plan makes room: `models\` grows from 10 to 40 GB (the base models and their 4-bit copies, about 25 GB, and the releases), `train\runs\` shrinks from 100 to 70 GB (LoRA checkpoints are small; the from-zero runs still fit). Updated: CLAUDE.md, AGENTS.md, README.md, `docs/ai-plan.md`, `docs/ai-vba-plan.md`, `docs/kronos-storage-plan.md`, `docs/vcl-mvp-plan.md`, the context file and the roadmap .docx. | A tuned open model may understand loose English far better on day one; building both and letting the benchmark choose keeps the decision measured and reversible, and the data rules keep everything it learns from ours and proven. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4877,8 +4885,8 @@ VBA Forge is a VBA-only code generator for Excel automation at KGC Engineering P
 registers). An AI writes task specs in VCL (VBA Command Language): Claude today, and ChatGPT
 Codex through the KGC KRONOS desktop app (item 5, D68). VBA Forge turns each spec into VBA and
 proves the macro works with tests. Only the request-to-VCL step may go online; the toolchain and
-the VBA stay offline (D69). From March 2027 our own model, trained from zero on our data (D25,
-D70), will write VCL specs from plain English, and the VBA for them with its context and memory in VCL (D90,
+the VBA stay offline (D69). From March 2027 our own model, trained on our data (D25,
+D70; since D102 either trained from zero or a small open model tuned on it, whichever scores better), will write VCL specs from plain English, and the VBA for them with its context and memory in VCL (D90,
 `docs/ai-vba-plan.md`): its VBA is used only when it passes the recipe's own TESTs, else the compiler's (D31). Until then, the goal is the KRONOS app and a verified dataset of tasks
 and their proven specs, each with its VBA.
 
@@ -4933,9 +4941,11 @@ and their proven specs, each with its VBA.
   until March 2027, and nothing we generate ever touches real workbooks, except the copy KRONOS
   Offline makes of a workbook Boss uploads (D87); no TEST ever uses one.
 - No model training or local-model work until the new PC arrives in March 2027.
-- **Original model and context data (D25, standing rule).** The VBA Forge model is designed and
-  trained from zero by us: no pre-trained weights, no fine-tuning of someone else's model, no
-  scraped or downloaded code, datasets or prompts, no retrieval over outside sources. Everything it
+- **Original model and context data (D25, standing rule; its weights rule lifted by D102).** Since D102 (Boss,
+  19 Nov 2026) the model may start from a small open-weight model (Apache 2.0 or MIT licence, at most about 7 billion
+  parameters, tuned with LoRA, run offline on the new PC), built beside our own model trained from zero (at most about
+  350 million parameters); the held-out benchmark chooses. Still banned: scraped or downloaded code, datasets or
+  prompts as training data, and retrieval over outside sources. Everything it
   learns from or reads is in-house: made by this repo's tools, by me, by Claude through our
   pipeline, or by Codex through KRONOS (D70), and verified by our toolchain. General tools (Python,
   PyTorch) are allowed, and Claude stays the design and build tool (Orchestrator, Claude Code) and the only
@@ -5264,6 +5274,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    corpus pairs with TESTs end where the interpreter does, and `vclc sim` runs in CI). **Phase 1 is complete.**
    Next: Phase 2, the VCL memory (request, VCL, VBA pairs and a similar-recipe index); the model itself from
    March 2027.
+   **D102 (Boss, 19 Nov 2026): D25's ban on pre-trained weights is lifted.** In March two candidates are built and the
+   held-out benchmark chooses: our own model from zero (at most about 350 million parameters) and a small open-weight
+   coder model (Apache 2.0 or MIT, at most about 7 billion) tuned with LoRA on our data, offline on the new PC.
 8. **The new PC's 300 GB, KRONOS's home from March 2027** (Boss, 17 Nov 2026; `docs/kronos-storage-plan.md`, D91): company
    storage, real data allowed, only Boss for now, reserved and filled as KRONOS grows, with a monthly report for his
    manager. The plan (S0) is done, and every reference file follows it (D92). Before March: S1
@@ -5382,8 +5395,9 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    VBA), plus repair pairs. The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
    carefully" training data the Phase 2 plan wanted. See `docs/ai-plan.md`, Stages A and B.
-8. **March:** train our own model from zero on the in-house dataset (D25: no pre-trained weights,
-   no outside data). It writes VCL (D31, `docs/ai-plan.md`) and, since D90 (`docs/ai-vba-plan.md`), the VBA
+8. **March:** train our own model on the in-house dataset (D25: no outside data): two candidates,
+   one trained from zero (up to about 350 million parameters) and one small open-weight model tuned with LoRA (up to
+   about 7 billion, Apache 2.0 or MIT), and the benchmark chooses (D102). It writes VCL (D31, `docs/ai-plan.md`) and, since D90 (`docs/ai-vba-plan.md`), the VBA
    from a proven recipe, used only when a VBA simulator proves it against the recipe's TESTs; otherwise the
    compiler's VBA. Excel conformance runs whenever Boss chooses. It trains on the new PC, with its datasets,
    checkpoints and models on the 300 GB reserved for KRONOS there; models trained on real data never leave
@@ -5417,7 +5431,12 @@ new PC arrives in March 2027.
 
 > **Changed by D90 (Boss, 17 Nov 2026):** the model may also write the VBA from a proven VCL recipe, with its context and memory in VCL. Its VBA is used only when it passes the recipe's own TESTs in a VBA simulator; otherwise KRONOS gives the compiler's VBA. See `docs/ai-vba-plan.md`. The reasons below still explain why the recipe and the compiler stay the proof and the fallback.
 
-The model is still ours (D25): designed and trained from zero, on in-house data only. Since D70,
+> **Changed by D102 (Boss, 19 Nov 2026):** D25's ban on pre-trained weights is lifted. In March 2027 two candidates are
+> built and scored on the same benchmark, and the better one is used: **A**, our own model trained from zero (at most
+> about 350 million parameters), and **B**, a small open-weight coder model (Apache 2.0 or MIT licence, at most about
+> 7 billion parameters) tuned with LoRA on our data and run in 4-bit, offline, on the new PC. No giant model is trimmed.
+
+What the model learns from is still ours (D25): in-house data only. Since D70,
 in-house also covers a spec that ChatGPT Codex wrote through the KGC KRONOS app and the toolchain
 proved; Codex writes data, never part of the model.
 
@@ -5457,7 +5476,7 @@ Still failing  -> the task goes to Claude (the Orchestrator), Codex or Boss
 
 | VCL feature | What it gives the model |
 | --- | --- |
-| A small vocabulary (a few dozen keywords) | A small model, trainable from zero on one PC |
+| A small vocabulary (a few dozen keywords) | A small model, trainable from zero on one PC, or a small open model tuned on one graphics card (D102) |
 | One step per line | Easy to learn, and every error points at one line |
 | A formal grammar (`vcl/grammar.lark`) | Output can be forced to be valid VCL (grammar-constrained decoding) |
 | The validator and type checker | Wrong outputs are rejected at once; every error is a free "error -> fix" training pair |
@@ -5510,7 +5529,7 @@ proven specs; paraphrases and mutants help multiply them.
 | --- | --- | --- |
 | A | Before March (cloud) | The `GOAL` line, the formatter and error codes; the 150-task corpus (done, D96); the data generator (next); the benchmark |
 | B | Before March (cloud) | Grow VCL from the NOTE count; grow the data to thousands of proven specs |
-| C | March 2027 (new PC) | A tokenizer and a small model trained from zero: English -> VCL, with grammar-constrained output |
+| C | March 2027 (new PC) | Two candidates, English -> VCL with grammar-constrained output, scored on the benchmark (D102): A, a tokenizer and a model trained from zero (up to about 350 million parameters); B, a small open-weight model tuned with LoRA (up to about 7 billion) |
 | D | After C | Add repair. The model is used only when it passes enough benchmark tasks; Claude stays the Orchestrator until then |
 | E | From item 5 (now) | Daily use: the KGC KRONOS desktop app (`docs/kronos-app.md`, D68). Boss types a task and gets proven VBA; Codex writes the VCL until our model passes the benchmark |
 
@@ -5519,14 +5538,14 @@ even if the model takes longer than planned.
 
 **Where Stage C lives (D91, `docs/kronos-storage-plan.md`):** on the new PC's 300 GB, the datasets in
 `KRONOS\train\data`, the training runs and their checkpoints in `KRONOS\train\runs`, and the released
-models in `KRONOS\models`, each with a budget. The budgets assume a model of up to about 350 million
-parameters and are resized in March to the PC's graphics card; a run never starts if it would eat
+models in `KRONOS\models`, each with a budget. The budgets assume candidate A of up to about 350 million
+parameters and candidate B of up to about 7 billion (D102: its base models in `KRONOS\models\base`), and are resized in March to the PC's graphics card; a run never starts if it would eat
 into the 30 GB kept free.
 
 ##### What doesn't change
 
-- D25: the model and everything it learns from are ours; no pre-trained weights, outside data
-  or retrieval. D70 only adds proven Codex specs to what counts as in-house data.
+- D25: everything the model learns from is ours; no outside data or retrieval. D70 only adds proven Codex specs to
+  what counts as in-house data, and D102 only allows a small open model's weights as a starting point.
 - The compiler and ForgeLib stay the core, and the reference for what VBA a spec means.
 - Running anything in Excel stays optional and never blocks work.
 
