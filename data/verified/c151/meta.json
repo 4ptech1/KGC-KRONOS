@@ -1,0 +1,35 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c151",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 4,
+  "killed": 105,
+  "note": "Second try. 105 of 110; 4 equivalent: mode and value of the set clean (only EXISTS reads it) and the Process Coverage row counter's start and step, which the SORT closes up. The fifth, mode=keep to overwrite on the PQR dictionary, is equivalent only under the ASSUME that PQR numbers are unique, so it is counted as a gap, not an equivalent.",
+  "total": 110
+ },
+ "op_lines": 71,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "wps_pqr",
+  "welder_quals"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}

@@ -1,0 +1,35 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c150",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 6,
+  "killed": 95,
+  "note": "Third try (try 1: extra no-argument step macros, which VCL refuses; try 2 under the floor). 95 of 101; 6 equivalent: mode and value of a dictionary only EXISTS reads, a blank-part SKIP_IF whose key \"\" no BOM row looks up, > 0 to >= 0 on a quantity that is only added to a sum, and the Short Parts row counter's start and step, which the SORT closes up.",
+  "total": 101
+ },
+ "op_lines": 67,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "bom",
+  "grn",
+  "material_certs"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}
