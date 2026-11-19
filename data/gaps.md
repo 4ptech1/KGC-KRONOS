@@ -79,6 +79,14 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c128 | a FIXTURE sheet whose name has a space, so "if it isn't there yet" can't be shown with the sheet already there | runs=2 with ERROR_COUNT = 0 proves the second run adds nothing |
 | c129 | FIND in one column found by its heading (same as c087) | a loop over the column instead of FIND |
 | c106, c107 | a build request that one TASK of under 40 steps can do is answered with a TASK, which the corpus refuses for the family build | not stored; batch 7's build requests ask for steps that can also be run on their own |
+| c148, c150, c151, c152, c155, c147 | a BUILD with several no-argument entry macros ("each step should also be a macro I can run on its own"): only modMain.Run may pass SHEET(THIS_BOOK, ...) | c148 and c152 not stored (the request asked for it, D96); the others ASSUME the steps run through Run or RunHeadless's step argument |
+| c137, c133 | a FIXTURE column with real numbers beside non-numeric text (same as c034, c105, c124) | c137 not stored; c133 uses two fixture files |
+| c119, c135, c138 | a dictionary value with two parts, or a second count per key | a second or third dictionary |
+| c119, c135, c143, c158, c159 | SORT with a second key, or a stated tie order | ASSUMEs, or fixtures with no ties |
+| c142 | a FIXTURE cell holding an error value, so an IS_ERROR guard can be tested | the guard stays, untested |
+| c144 | a TEST that sees an empty folder (same as c126) | the status text proves it |
+| c145 | SET_FORMULA on a column range whose last row is known only at run time (same as c093, c127) | a loop with one CELL per row |
+| c146 | the number of visible rows in a Function (VISIBLE_COUNT is an assertion only, same as c097) | a counter that repeats FILTER's rule |
 
 ## Wording of the prompt to fix
 
@@ -207,6 +215,14 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c127 | SET_FORMULA style=r1c1 | does not say one CELL is a valid range (it is) or that RANGE needs a literal (same as c093) |
 | c124 | TEST assertions | nothing says how to check a date value (`VALUE(...) = "2026-03-15"` works) |
 | c130 | rule 23 | does not say that a callee whose count nobody reads should be a Sub; the unused count cost a try |
+| c119, c131, c133, c137, c140, c156, c157, c158 | FIXTURE `+boundary` (same as D93, D95) | all ten helpers of batch 7 named it; c137 did not pass because of it |
+| c131 | the reserved words | a VAR named like a fill colour (red) breaks FORMAT fill= and stops the run with RESULT -2 and no message; fill names are not listed as reserved |
+| c143 | rule 5 and rule 19 | swapping two sheets with the same headings neither fails PRE nor avoids V055 (same as c098, c119) |
+| c138 | DICT_GET into= | what a missing key gives (0, and the old value is not kept) is still not said (same as c108, c116) |
+| c139, c141 | SET_VALUE of "" and VALUE(...) in a TEST | whether "" clears a cell and whether VALUE compares exactly are not said |
+| c144 | MAKE_FOLDER statuses | Created and Exists against a request's Made and Already there (same as c126) |
+| c150, c152 | rule 23 | does not say that no Sub but modMain.Run may pass SHEET(THIS_BOOK, ...) |
+| c159 | SORT key= | whether key is a sheet column or a column inside the range |
 
 ## Tooling notes (not the language)
 
@@ -228,3 +244,4 @@ are fixed together at the end of Phase 6 so the Orchestrator is updated once.
 | c098 | V055 names the source sheet without saying the swapped wrong-sheet TEST caused it (same as c081) |
 | c074, c098, c106, c120 | layout problems one at a time, each costing a try (same as D93): four pairs lost tries to it again; V059 and V055 are given per fixture file, so a second file brings new warnings after a fix |
 | c106, c130 | survivor lines are those of the file `--fix` rewrote, and two same-line `2 -> 3` entries don't say which constant |
+| c147, c150, c155, c157 | the gate prints FAIL when only equivalents are under the floor, and survivor lines are those of the `--fix` file (same as D95) |

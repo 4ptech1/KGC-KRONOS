@@ -51,6 +51,10 @@ Registers: `bom`, `grn`, `weld_log`, `nde`, `ncr`, `itp`, `welder_quals`, `calib
 
 ## Batches
 
+A request may be hard, but never impossible by its own wording unless that is the point of the pair: batch 7's
+"each step also a macro of its own" asked for something VCL refuses and cost two pairs (D96).
+
+
 Phase 6 makes the corpus in batches of about 20 requests, one PR each, with the gap report growing. The 12
 committed specs (`specs/task_01.vcl` to `task_12.vcl`) are `c001` to `c012`; new pairs continue from `c013`.
 Each batch keeps its requests, with registers, family and set, in `data/batches/batch_NN.json`; the failed
@@ -65,4 +69,5 @@ say goes to `data/gaps.md`.
 | 4 | c073 to c092 | stored (D85): 17 verified, 2 held out; c074 did not pass its three tries and returns in batch 5; the corpus has 91 of 150 pairs |
 | 5 | c093 to c111, and c074 again | stored (D93): 13 verified, 2 held out; c074, c094, c098, c106 and c107 not stored; the corpus has 106 of 150 pairs |
 | 6 | c112 to c130, and c074, c098 and c106 again | stored (D95): 14 verified, 3 held out; c074, c098 and c106 retired, c119 and c120 not stored; the corpus has 123 of 150 pairs |
-| 7 | c131 on, and c119 and c120 again | next: 27 pairs to finish the 150, 7 of them BUILDs whose steps can also run on their own, and 2 held out |
+| 7 | c131 to c155, and c119 and c120 again | stored (D96): 21 verified, 2 held out; c120, c137, c148 and c152 not stored |
+| 8 | c156 to c159, the top-up | stored (D96): 4 verified; **the corpus has 150 of 150 pairs, 15 held out, and Phase 6 is complete** |
