@@ -1,0 +1,35 @@
+{
+ "accepted_warnings": [],
+ "family": "build",
+ "id": "c155",
+ "kind": "BUILD",
+ "mutation": {
+  "equivalent": 8,
+  "killed": 78,
+  "note": "Second try. 78 of 86; 8 equivalent: mode and value of two dictionaries only EXISTS reads, and the start and step of two row counters whose gaps the following SORTs close.",
+  "total": 86
+ },
+ "op_lines": 51,
+ "ops": [
+  "CALL",
+  "CLEAR",
+  "DICT_ADD",
+  "DICT_GET",
+  "ELSE",
+  "FOR_EACH",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "MSG",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF",
+  "SORT",
+  "WRITE_ROW"
+ ],
+ "registers": [
+  "weld_log",
+  "nde"
+ ],
+ "source": "orchestrator helper (Sonnet), VCL 0.6 prompt (batch 7)"
+}
