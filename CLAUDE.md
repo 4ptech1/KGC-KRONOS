@@ -10,8 +10,8 @@ VBA Forge is a VBA-only code generator for Excel automation at KGC Engineering P
 registers). An AI writes task specs in VCL (VBA Command Language): Claude today, and ChatGPT
 Codex through the KGC KRONOS desktop app (item 5, D68). VBA Forge turns each spec into VBA and
 proves the macro works with tests. Only the request-to-VCL step may go online; the toolchain and
-the VBA stay offline (D69). From March 2027 our own model, trained from zero on our data (D25,
-D70), will write VCL specs from plain English, and the VBA for them with its context and memory in VCL (D90,
+the VBA stay offline (D69). From March 2027 our own model, trained on our data (D25,
+D70; since D102 either trained from zero or a small open model tuned on it, whichever scores better), will write VCL specs from plain English, and the VBA for them with its context and memory in VCL (D90,
 `docs/ai-vba-plan.md`): its VBA is used only when it passes the recipe's own TESTs, else the compiler's (D31). Until then, the goal is the KRONOS app and a verified dataset of tasks
 and their proven specs, each with its VBA.
 
@@ -66,9 +66,11 @@ and their proven specs, each with its VBA.
   until March 2027, and nothing we generate ever touches real workbooks, except the copy KRONOS
   Offline makes of a workbook Boss uploads (D87); no TEST ever uses one.
 - No model training or local-model work until the new PC arrives in March 2027.
-- **Original model and context data (D25, standing rule).** The VBA Forge model is designed and
-  trained from zero by us: no pre-trained weights, no fine-tuning of someone else's model, no
-  scraped or downloaded code, datasets or prompts, no retrieval over outside sources. Everything it
+- **Original model and context data (D25, standing rule; its weights rule lifted by D102).** Since D102 (Boss,
+  19 Nov 2026) the model may start from a small open-weight model (Apache 2.0 or MIT licence, at most about 7 billion
+  parameters, tuned with LoRA, run offline on the new PC), built beside our own model trained from zero (at most about
+  350 million parameters); the held-out benchmark chooses. Still banned: scraped or downloaded code, datasets or
+  prompts as training data, and retrieval over outside sources. Everything it
   learns from or reads is in-house: made by this repo's tools, by me, by Claude through our
   pipeline, or by Codex through KRONOS (D70), and verified by our toolchain. General tools (Python,
   PyTorch) are allowed, and Claude stays the design and build tool (Orchestrator, Claude Code) and the only
@@ -397,6 +399,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    corpus pairs with TESTs end where the interpreter does, and `vclc sim` runs in CI). **Phase 1 is complete.**
    Next: Phase 2, the VCL memory (request, VCL, VBA pairs and a similar-recipe index); the model itself from
    March 2027.
+   **D102 (Boss, 19 Nov 2026): D25's ban on pre-trained weights is lifted.** In March two candidates are built and the
+   held-out benchmark chooses: our own model from zero (at most about 350 million parameters) and a small open-weight
+   coder model (Apache 2.0 or MIT, at most about 7 billion) tuned with LoRA on our data, offline on the new PC.
 8. **The new PC's 300 GB, KRONOS's home from March 2027** (Boss, 17 Nov 2026; `docs/kronos-storage-plan.md`, D91): company
    storage, real data allowed, only Boss for now, reserved and filled as KRONOS grows, with a monthly report for his
    manager. The plan (S0) is done, and every reference file follows it (D92). Before March: S1

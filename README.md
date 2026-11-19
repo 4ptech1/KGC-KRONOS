@@ -5,7 +5,8 @@ registers (BOM, weld log, NDE, NCR, calibration and similar). An AI writes each 
 VCL (VBA Command Language): Claude today, and ChatGPT Codex through the KGC KRONOS desktop app
 (`docs/kronos-app.md`, D68). VBA Forge turns the spec into VBA and proves the macro works with
 tests. Only the request-to-VCL step may go online; the toolchain and the VBA stay offline (D69). Each verified spec, with its task in plain English and its proven VBA,
-becomes training data for our own model, designed and trained from zero on in-house data only
+becomes training data for our own model, trained on in-house data only: either from zero or, since D102, a small
+open-weight model tuned on it, whichever scores better on the benchmark
 (`DECISIONS.md` D25; a spec Codex writes counts once the toolchain proves it, D70). From March 2027 that model writes VCL from plain English (D31,
 `docs/ai-plan.md`) and the VBA for it, which is used only when a VBA simulator proves it against the recipe's own TESTs;
 otherwise the compiler's VBA is used (D90, `docs/ai-vba-plan.md`). It is trained and kept on the new PC's 300 GB
@@ -397,3 +398,6 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   D90 Phase 1 is complete.
   Boss's report: KRONOS Offline version 5 works on his work PC, and the IT request is done. KGC samples he has
   permission for may be read to learn the shape of real registers, never stored in the repo (D101).
+  Boss lifted D25's ban on pre-trained weights (D102): in March 2027 our own model trained from zero (up to about
+  350 million parameters) and a small open-weight model tuned on our data (up to about 7 billion, Apache 2.0 or MIT)
+  are both built, and the benchmark chooses. What the model learns from stays in-house and proven.

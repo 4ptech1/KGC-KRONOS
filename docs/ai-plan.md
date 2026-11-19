@@ -11,7 +11,12 @@ new PC arrives in March 2027.
 
 > **Changed by D90 (Boss, 17 Nov 2026):** the model may also write the VBA from a proven VCL recipe, with its context and memory in VCL. Its VBA is used only when it passes the recipe's own TESTs in a VBA simulator; otherwise KRONOS gives the compiler's VBA. See `docs/ai-vba-plan.md`. The reasons below still explain why the recipe and the compiler stay the proof and the fallback.
 
-The model is still ours (D25): designed and trained from zero, on in-house data only. Since D70,
+> **Changed by D102 (Boss, 19 Nov 2026):** D25's ban on pre-trained weights is lifted. In March 2027 two candidates are
+> built and scored on the same benchmark, and the better one is used: **A**, our own model trained from zero (at most
+> about 350 million parameters), and **B**, a small open-weight coder model (Apache 2.0 or MIT licence, at most about
+> 7 billion parameters) tuned with LoRA on our data and run in 4-bit, offline, on the new PC. No giant model is trimmed.
+
+What the model learns from is still ours (D25): in-house data only. Since D70,
 in-house also covers a spec that ChatGPT Codex wrote through the KGC KRONOS app and the toolchain
 proved; Codex writes data, never part of the model.
 
@@ -51,7 +56,7 @@ Still failing  -> the task goes to Claude (the Orchestrator), Codex or Boss
 
 | VCL feature | What it gives the model |
 | --- | --- |
-| A small vocabulary (a few dozen keywords) | A small model, trainable from zero on one PC |
+| A small vocabulary (a few dozen keywords) | A small model, trainable from zero on one PC, or a small open model tuned on one graphics card (D102) |
 | One step per line | Easy to learn, and every error points at one line |
 | A formal grammar (`vcl/grammar.lark`) | Output can be forced to be valid VCL (grammar-constrained decoding) |
 | The validator and type checker | Wrong outputs are rejected at once; every error is a free "error -> fix" training pair |
@@ -104,7 +109,7 @@ proven specs; paraphrases and mutants help multiply them.
 | --- | --- | --- |
 | A | Before March (cloud) | The `GOAL` line, the formatter and error codes; the 150-task corpus (done, D96); the data generator (next); the benchmark |
 | B | Before March (cloud) | Grow VCL from the NOTE count; grow the data to thousands of proven specs |
-| C | March 2027 (new PC) | A tokenizer and a small model trained from zero: English -> VCL, with grammar-constrained output |
+| C | March 2027 (new PC) | Two candidates, English -> VCL with grammar-constrained output, scored on the benchmark (D102): A, a tokenizer and a model trained from zero (up to about 350 million parameters); B, a small open-weight model tuned with LoRA (up to about 7 billion) |
 | D | After C | Add repair. The model is used only when it passes enough benchmark tasks; Claude stays the Orchestrator until then |
 | E | From item 5 (now) | Daily use: the KGC KRONOS desktop app (`docs/kronos-app.md`, D68). Boss types a task and gets proven VBA; Codex writes the VCL until our model passes the benchmark |
 
@@ -113,13 +118,13 @@ even if the model takes longer than planned.
 
 **Where Stage C lives (D91, `docs/kronos-storage-plan.md`):** on the new PC's 300 GB, the datasets in
 `KRONOS\train\data`, the training runs and their checkpoints in `KRONOS\train\runs`, and the released
-models in `KRONOS\models`, each with a budget. The budgets assume a model of up to about 350 million
-parameters and are resized in March to the PC's graphics card; a run never starts if it would eat
+models in `KRONOS\models`, each with a budget. The budgets assume candidate A of up to about 350 million
+parameters and candidate B of up to about 7 billion (D102: its base models in `KRONOS\models\base`), and are resized in March to the PC's graphics card; a run never starts if it would eat
 into the 30 GB kept free.
 
 ## What doesn't change
 
-- D25: the model and everything it learns from are ours; no pre-trained weights, outside data
-  or retrieval. D70 only adds proven Codex specs to what counts as in-house data.
+- D25: everything the model learns from is ours; no outside data or retrieval. D70 only adds proven Codex specs to
+  what counts as in-house data, and D102 only allows a small open model's weights as a starting point.
 - The compiler and ForgeLib stay the core, and the reference for what VBA a spec means.
 - Running anything in Excel stays optional and never blocks work.

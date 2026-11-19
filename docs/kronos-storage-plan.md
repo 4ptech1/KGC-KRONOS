@@ -28,7 +28,8 @@ Boss's manager gave him 300 GB of storage to be used entirely for KRONOS. Boss a
 
 So KRONOS uses well under 0.1 GB today. Three things will fill the drive:
 
-1. **Training our own model (from March 2027):** datasets, checkpoints and released models. This is the biggest user.
+1. **Training our own model (from March 2027):** datasets, checkpoints, released models and, since D102, the open
+   base models one candidate is tuned from. This is the biggest user.
 2. **Real workbook records:** a copy of each workbook before and after every KRONOS change. This is the traceability
    record a fabrication quality system values.
 3. **Offline copies and backups:** every tool the PC needs (Python, PyTorch, the GPU's libraries), every KRONOS
@@ -57,6 +58,8 @@ KRONOS\
     data\          training datasets: generated, the public library, and the private library (shards)
     runs\          one folder per training run: settings, logs, checkpoints, results
   models\          released model versions: weights, model card, test results, SHA-256. Never pushed
+    base\          the open-weight models candidate B is tuned from (D102): name, version, licence, model card,
+                   SHA-256; downloaded once with IT's approval, never deleted by KRONOS
   mirror\          offline copies of every tool, each checked by SHA-256 (Python, Git, PyTorch, GPU libraries,
                    Pyodide, the Python wheels)
   backup\          weekly safety copies of work\runs, work\recipes, memory\ and reports\; repo bundles
@@ -77,8 +80,8 @@ Each budget is a ceiling, not a target. The report shows the real numbers each m
 | `practice\`, `sim\` | 5 GB | results and summaries |
 | `memory\` | 5 GB | about 10 KB a triple; 100,000 triples and their index |
 | `train\data\` | 40 GB | about 8 KB a triple; 1 million triples are about 8 GB raw, about 3 GB prepared; the last 3 versions kept |
-| `train\runs\` | 100 GB | for a model of up to about 350 million parameters: about 4.2 GB per full checkpoint (the weights and the optimiser's two copies). Each run keeps its best and its last 3; older runs keep only their final weights |
-| `models\` | 10 GB | about 0.7 GB per released model; about 10 releases with their test results |
+| `train\runs\` | 70 GB | candidate A, up to about 350 million parameters: about 4.2 GB per full checkpoint (the weights and the optimiser's two copies). Candidate B (D102) saves only its LoRA add-on, well under 1 GB a checkpoint. Each run keeps its best and its last 3; older runs keep only their final weights |
+| `models\` | 40 GB | `base\` (D102): a 7-billion-parameter open model and its 4-bit copy, about 20 GB, plus a smaller one, about 4 GB; releases: about 0.7 GB for candidate A, a LoRA add-on plus a 4-bit copy (about 5 GB) for the last 2 releases of candidate B, add-ons only for older ones |
 | `mirror\` | 20 GB | PyTorch with the GPU libraries is several GB per version; two versions, plus Python, Git, Pyodide and wheels |
 | `backup\` | 25 GB | 52 weekly copies of the small folders, and repo bundles |
 | `reports\` and logs | 3 GB | small; kept for years |
@@ -90,12 +93,12 @@ How it is expected to fill (estimates, to be replaced by the monthly report):
 | When | Used | Mostly |
 | --- | --- | --- |
 | Day one (March 2027) | about 12 GB | `mirror\` (PyTorch and the GPU libraries), `apps\`, `repo\` |
-| Three months later | about 60 GB | the first datasets and training runs, the first real runs and workbook records |
-| End of 2027 | about 150 GB | datasets, checkpoints, released models, a year of workbook records |
+| Three months later | about 85 GB | the base models (D102), the first datasets and training runs, the first real runs and workbook records |
+| End of 2027 | about 175 GB | datasets, checkpoints, released models, a year of workbook records |
 | 2029 | about 250 GB | records keep growing; old checkpoints are thinned |
 
-The model's size depends on the PC's graphics card, which is known in March. The budgets above assume a model of up to
-about 350 million parameters. A smaller model needs less, and `train\runs\` is resized in March, before training starts.
+The model's size depends on the PC's graphics card, which is known in March. The budgets above assume candidate A of up to
+about 350 million parameters and candidate B of up to about 7 billion (D102). A smaller model needs less, and `train\runs\` is resized in March, before training starts.
 
 ## 5. The rules
 
@@ -167,14 +170,16 @@ about 350 million parameters. A smaller model needs less, and `train\runs\` is r
 ## 8. What is needed from Boss in March
 
 1. The drive's letter, and whether the 300 GB is a drive of its own or shares the Windows disk.
-2. The PC's graphics card and memory, to size the model and `train\runs\`.
-3. IT's answer on installing Python 3.11, Git, PyTorch and the GPU driver, and on running KRONOS.exe there.
+2. The PC's graphics card and memory, to size both candidates (D102) and `train\runs\`.
+3. IT's answer on installing Python 3.11, Git, PyTorch and the GPU driver, on running KRONOS.exe there, and on
+   downloading one open-weight model (D102) once onto the PC.
 4. IT's backup for `KRONOS\work`, `KRONOS\models` and `KRONOS\reports`.
 
 ## 9. What does not change
 
 - The public repo holds invented data only. Real data never goes into it, its tests or a Claude Code session.
-- No training before the new PC arrives (CLAUDE.md). D25: the model is trained from zero, on in-house data only.
+- No training before the new PC arrives (CLAUDE.md). D25 and D102: the model learns from in-house data only;
+  it is trained from zero or tuned from a small open model, whichever scores better.
 - D90: the AI's VBA is used only when the simulator proves it against the recipe's TESTs; the compiler's VBA is the
   fallback.
 - Running anything in Excel stays optional and never blocks work.
