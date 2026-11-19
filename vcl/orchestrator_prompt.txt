@@ -19,7 +19,10 @@ HARD RULES
     COUNTA(Orders![Status]) = PRE_COUNTA(Orders![Status]) (for read-only work: proves the
     source data is unchanged). At least one TEST includes ERROR_COUNT = 0. When the test
     workbook has another sheet, add a wrong-sheet TEST that passes it and expects
-    RESULT = -1 AND ERROR_COUNT = 1.
+    RESULT = -1 AND ERROR_COUNT = 1. Pass a sheet whose headings fail PRE (add a small
+    Notes sheet to the FIXTURE if needed); never swap the source and output sheets: an
+    output sheet with the source's headings passes PRE, and a source sheet passed as the
+    output counts as rebuilt and needs stale=<n>.
 6.  Put every assumption at the top of the spec as a line starting with # ASSUME:
     Prefer a sensible assumption over a question.
 7.  Ask only when a wrong guess could destroy or overwrite data, when the request cannot be
@@ -92,7 +95,8 @@ HARD RULES
     VCL 0.6 and each with its own GOAL, PRE, MODIFIES and ERR. CALL(<module>.<Proc>, <args>)
     runs another procedure of the same BUILD, never itself, directly or through others.
     Pass a Worksheet, Workbook or Range only as one of the caller's own $arguments, and
-    keep a Function's result with into=<VAR>: a callee that stops at its PRE gives -1 and
+    keep a Function's result with into=<VAR> (make a callee whose count nobody reads a Sub):
+    a callee that stops at its PRE gives -1 and
     one that fails gives -2, and the caller goes on. Check that VAR (IF n < 0) only when the
     callee has a PRE the caller doesn't; then a TEST needs a fixture where that PRE fails
     and one where the callee gives 0. Every TASK that writes declares MODIFIES, and a
@@ -159,7 +163,10 @@ BUILD rules: procedure names are unique in the whole BUILD, whatever their modul
 modMain has RunHeadless (runs the whole tool on the sheets it is given; every TEST calls
 it) and Run (a Sub with no ARGS that starts the tool on the real workbook, rule 23). FIXTURE
 and TEST lines go in the BUILD part only; the TESTs check the whole tool, with the same
-PRE_ measures and wrong-sheet TEST as a TASK (rule 5; swap two of the sheets RunHeadless takes).
+PRE_ measures and wrong-sheet TEST as a TASK (rule 5: pass a sheet whose headings fail a PRE
+in place of one RunHeadless takes). Run is the only procedure with no ARGS and the only one
+that may pass SHEET(THIS_BOOK, ...), so a step can't also be a macro of its own: it runs
+through Run, or through an argument of RunHeadless that picks the step.
 
 OP SYNTAX
 Structural ops begin an OP line:
@@ -215,6 +222,8 @@ Value functions:
   LASTROW(<ws>, <col>)  LASTCOL(<ws>, <row>)  USED_RANGE(<ws>)
   COL(<ws>, "<header>")   column number of a row-1 header, or 0 if it is missing
   CELL(<ws>, <row>, <col>)  ROW_RANGE(<ws>, <row>, <fromCol>, <toCol>)  RANGE(<ws>, "<A1 ref>")
+  (the A1 ref of RANGE is quoted text as written, never built with &: for a column whose
+  last row is known only at run time, loop over its CELLs)
   SHEET(<book>, "<name>")  SHEET_EXISTS(<book>, <name>)  THIS_BOOK
   FIND(<range>, <expr>, match=whole|part)   the first matching cell, or NOTHING
   ROW_OF(<range>)   the sheet row of the range's first cell, such as a FIND result
@@ -238,7 +247,8 @@ Precedence, tightest first: - (negation), * /, + -, &, comparisons, NOT, AND, OR
 Comparisons don't chain: write a < b AND b < c, never a < b < c.
 Option names are reserved words: dir from to var in mode into key order header what fill
 numfmt bold width style cols col crit readonly format save after name match. Write an
-option as name=value with no space before "="; never use these words as names.
+option as name=value with no space before "="; never use these words, or a fill colour
+name (red, yellow, ...), as names.
 Columns are numbers (1 = A) everywhere except inside "A1 ref" strings.
 An array element can be a SET_VALUE target: SET_VALUE(ARR(data, r, 3), 0).
 
@@ -250,7 +260,8 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               " -3.5 "); false for blanks, TRUE/FALSE, dates, errors, "1,250", "1e3", "25%"
   IS_DATE     true only for real Excel date values; text that looks like a date is false
   Dates       TODAY + n and TODAY - n (a date plus or minus whole days) are dates n days
-              away; compare a date from the workbook only after IS_DATE
+              away, and a date minus a date is the whole number of days between them;
+              compare a date from the workbook only after IS_DATE
   Text        a value becomes text the same way everywhere (TRIM, UPPER, LOWER, LEN, LEFT,
               RIGHT, &, keys): whole numbers without ".0", "." as the decimal point, dates
               as yyyy-mm-dd, TRUE/FALSE, errors as their Excel text (#N/A)
@@ -286,11 +297,13 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               is empty. LASTCOL works the same along a row
   Dictionary  keys are compared as text ignoring case, not trimmed (TRIM them first), so
               1001 and "1001" are one key; KEYS walks them in the order they were first
-              added; Dictionary and Collection VARs start empty
+              added; Dictionary and Collection VARs start empty; DICT_GET of a key that
+              isn't there gives 0 to a number VAR and "" to a String VAR
   PRE         if a condition is false: one ForgeLog entry, nothing changes, and a Function
               returns -1
   EXIT_IF     leaves the procedure; a Function then returns 0, "" or FALSE (use IF ... THEN
               RETURN(<value>) to return something else)
+  RETURN      leaves the procedure at once, from inside a loop too
   AND / OR    both sides are always evaluated, so a guard on the left does not protect the
               right: guard risky comparisons with a nested IF on the check itself
   SAFE_NAME   "" when the CLEAN_TEXT result is empty, over 100 characters, holds any of
@@ -455,15 +468,22 @@ FIXTURE SPEC
   reldates(lo, hi) gives dates from TODAY + lo to TODAY + hi days, worked out when the
   file is built, so TESTs that use TODAY give the same results on every day.
   Modifiers, after the rule, in this order, each at most once:
-    +boundary(v1,v2,...)  the first data rows hold exactly these values ("" is a blank
-                          cell; numbers of days for reldates). For values(...) the values
-                          move up, so the counts stay the same.
+    +boundary(v1,v2,...)  the first data rows hold exactly these values. "" is a blank
+                          cell in any rule; every other value fits the rule: quoted text
+                          for values() and text(), numbers for seq(), int() and num(),
+                          bare yyyy-mm-dd dates for dates(), whole numbers of days for
+                          reldates(). For values(...) each boundary value must be one of
+                          its values, used no more times than values() lists it: the
+                          values move up, so the counts stay the same.
     +blank(<n>)           leave n random cells below the boundary rows blank.
     +dupes(<n>)           give n random rows the value of another row (repeated keys).
   stale=<n> marks n rows as leftovers of an earlier run, with a red fill across the whole row: on a rows=0
   sheet, n rows of the text "stale"; on a sheet with data, n random data rows, whose
   values stay.
   values(...) counts add up to rows. rows=0 creates the sheet with its header row only.
+  values() always holds text, so "10" is a number typed as text. One column can't hold
+  real numbers and text together: test "not a number" with a blank cell, or with values()
+  of text numbers beside text such as "n/a".
   Repeat FIXTURE lines with the same file name to add more sheets.
   FIXTURE <name>.xlsx folder=<Name> [files=<path>[:<bytes>|:"<text>"],...] [locked=<path>,...]
   adds a synthetic folder to the same test file: each file below it (\ between folders,

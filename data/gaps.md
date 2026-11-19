@@ -3,7 +3,9 @@
 What the corpus helpers could not say in VCL, or only by a workaround (`docs/corpus-plan.md`). The count per
 kind is what Stage B reads to decide which ops and functions to add. A gap is a fact about the language, not
 a mistake of the helper. The "wording" table lists prompt sentences that misled a helper; they
-are fixed together at the end of Phase 6 so the Orchestrator is updated once.
+are fixed together at the end of Phase 6 so the Orchestrator is updated once. The first set is fixed (D94, D97): the FIXTURE
+`+boundary` rules, the wrong-sheet TEST, entry macros in a BUILD, fill names, RANGE, date minus date, DICT_GET of a
+missing key and RETURN; the rows below stay as the record.
 
 ## Gaps in the language
 
