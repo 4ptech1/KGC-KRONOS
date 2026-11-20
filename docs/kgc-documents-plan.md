@@ -2,7 +2,8 @@
 
 Status: **approved by Boss on 20 Nov 2026.** Written to be handed to another Claude Code session: read `CLAUDE.md`
 first, then this file. **Phase 0 is done (D106):** all 11 samples are in `samples/kgc/`, so the next session needs no
-uploads. **Phase 1 is done (D107):** the survey is `docs/kgc-documents.md`. Each phase is its own PR.
+uploads. **Phase 1 is done (D107):** the survey is `docs/kgc-documents.md`. **Phase 2 is done (D108):** the look-alike
+templates are in `data/templates/`, with their Word mark-up in its README. Each phase is its own PR.
 
 **Boss's answers of 20 Nov 2026, second round (D107):** a new WPS is made from an existing WPS workbook (its PQR
 values; a two-workbook job, KRONOS Offline only); the Word estimation sheet is filled either from an estimation
@@ -71,7 +72,7 @@ file back, proven by tests on look-alike practice files, with every AI-written t
   sample cell it came from. Nothing from outside sources (D25).
 - What VCL can't say yet, as rows in `data/gaps.md` (a new "KGC documents" section).
 
-### Phase 2: look-alike templates (synthetic, for tests)
+### Phase 2: look-alike templates (synthetic, for tests) - done (D108)
 - `data/templates/`: invented copies with the same layout as each sample: the WPS form (merged cells, a sketch
   picture, print area, the heat-input block), the 7-sheet estimation workbook with its formulas, the enquiry
   register with merged enquiry blocks, the Word estimation template and a Word technical proposal template with `{{field}}` placeholders and one
