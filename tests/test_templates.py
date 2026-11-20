@@ -1,7 +1,7 @@
 """The look-alike KGC templates (D108, data/templates/): invented practice copies of KGC's documents.
 
-Every committed template must be what data/templates/make_templates.py makes today (the same zip parts, byte for byte,
-once unzipped), and must hold what the tests and recipes of the KGC documents plan depend on: the WPS form's merged
+Every committed template must be what data/templates/make_templates.py makes today (the same zip parts, once unzipped, their XML
+in canonical form), and must hold what the tests and recipes of the KGC documents plan depend on: the WPS form's merged
 cells, pictures, print area and heat-input check; the estimation workbook's sheets and formulas; the register's merged
 enquiry blocks; the Word templates' fields, repeated parts, header and footer. The saved formula values are checked
 against the rules worked out here independently.
@@ -34,6 +34,29 @@ def parts(data):
         return {n: z.read(n) for n in z.namelist()}
 
 
+def _tree(e):
+    return (e.tag, sorted(e.attrib.items()), (e.text or "").strip(), [_tree(k) for k in e], (e.tail or "").strip())
+
+
+def canonical(data):
+    """Each part, its XML as a tree of (name with its namespace, attributes, text, children): openpyxl writes the
+    same document a little differently with lxml (`<x/>`) and without it (`<x />`, namespaces declared elsewhere)."""
+    out = {}
+    for name, body in parts(data).items():
+        if name.endswith((".xml", ".rels", ".vml")):
+            body = _tree(ET.fromstring(body))
+        out[name] = body
+    return out
+
+
+def pictures(data, sheet_part):
+    """The pictures anchored on a sheet, read from its drawing (openpyxl reads them only with Pillow)."""
+    p = parts(data)
+    rels = p.get(sheet_part.replace("worksheets/", "worksheets/_rels/") + ".rels", b"").decode("utf-8")
+    drawings = re.findall(r'Target="\.\./drawings/([^"]+)"', rels)
+    return sum(p[f"xl/drawings/{d}"].count(b"<xdr:pic>") for d in drawings)
+
+
 def paragraphs(xml):
     """The text of each paragraph, its runs read together."""
     root = ET.fromstring(xml)
@@ -48,7 +71,7 @@ class TheFilesAreWhatTheScriptMakes(unittest.TestCase):
         self.assertEqual(on_disk, sorted(make_templates.FILES))
         for name in make_templates.FILES:
             with self.subTest(file=name):
-                self.assertEqual(parts((TEMPLATES / name).read_bytes()), parts(make_templates.build(name)),
+                self.assertEqual(canonical((TEMPLATES / name).read_bytes()), canonical(make_templates.build(name)),
                                  "run: python data/templates/make_templates.py")
 
     def test_the_readme_names_every_template(self):
@@ -88,7 +111,7 @@ class TheWorkbooks(unittest.TestCase):
         self.assertEqual(len(ws.merged_cells.ranges), 97)
         self.assertEqual(ws.print_area, "'WPS'!$A$1:$I$50")
         self.assertEqual([b.id for b in ws.row_breaks.brk], [33])
-        self.assertEqual(len(ws._images), 2)   # the logo and the weld sketch
+        self.assertEqual(pictures((TEMPLATES / "wps_form.xlsx").read_bytes(), "xl/worksheets/sheet1.xml"), 2)
         self.assertIn("A14:C19", {str(r) for r in ws.merged_cells.ranges})   # the sketch's place
         self.assertEqual(ws["A25"].value, "Material Thickness (mm)")
 
