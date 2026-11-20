@@ -63,6 +63,7 @@ FUNCS = {
     # VCL 0.7 (D111): Excel's ROUND and ROUNDUP, and MIN and MAX of two numbers
     "ROUND": (["Num!", "Num"], "Num"), "ROUNDUP": (["Num!", "Num"], "Num"),
     "MIN": (["Num!", "Num!"], "Num"), "MAX": (["Num!", "Num!"], "Num"),
+    "AI_TEXT": (["Text"], "Text"),   # D112: text the AI wrote
 }
 FILE_OPS = {"MAKE_FOLDER", "COPY_FILE", "LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # paths by shape (T4)
 ONE_PATH = {"LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # a path, then something that isn't one

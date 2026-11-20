@@ -31,7 +31,7 @@ sys.path.insert(0, str(HERE))
 from resources import ROOT  # noqa: E402
 from errcodes import code_of, coded, tag  # noqa: E402
 from kronos_ai import CODEX_COMMAND, CODEX_TIMEOUT, AiError, CodexAI, FakeAI  # noqa: E402
-from validator import MODIFIES_RE, validate_text  # noqa: E402
+from validator import MODIFIES_RE, ai_texts, validate_text  # noqa: E402
 from vba_lint import lint, public_helpers  # noqa: E402
 from vcl_corpus import make_candidate  # noqa: E402
 from vcl_codegen import (FORGELIB, CompileError, assemble, compile_build_procs, compile_text,  # noqa: E402
@@ -163,6 +163,7 @@ class Proof:
     module: str = ""              # ForgeLib and the procedures, lint-clean, when the spec is proven
     canonical: object = None      # the spec as `vclc fmt` writes it (None if it can't)
     strength: object = None       # (caught, total) deliberate bugs, with mutation=True
+    ai_texts: list = field(default_factory=list)   # [(line, text)] the AI wrote, for a person to check (D112)
     seconds: dict = field(default_factory=dict)
 
     @property
@@ -211,6 +212,7 @@ def prove(text, today=None, mutation=False, step=None):
         return proof
     spec, _ = parse(proof.spec)
     proof.kind = spec["kind"]
+    proof.ai_texts = ai_texts(proof.spec)
     try:
         proof.canonical = format_text(proof.spec)
     except FormatError:
