@@ -58,7 +58,9 @@ and their proven specs, each with its VBA.
   never goes into the repo or into this Claude Code session, and what he copies from it into an AI
   chat is his choice. Permitted KGC samples (D101, Boss, 19 Nov 2026) may be read in a Claude Code session to learn
   the shape of the registers; nothing from them goes into the repo, its tests, specs, corpus or docs, and recipes
-  modelled on them use invented values.
+  modelled on them use invented values. **D105 (Boss, 20 Nov 2026):** the KGC samples themselves are to be published
+  in `samples/kgc/` (Phase 0 of `docs/kgc-documents-plan.md`), the one exception to the synthetic-only rule; specs,
+  TESTs, FIXTUREs, the corpus and unit tests still use invented look-alikes only.
   From March 2027 the company storage is the new PC's 300 GB, reserved for KRONOS (D91,
   `docs/kronos-storage-plan.md`): real data only under `KRONOS\work` (and what is trained on it), models trained
   on real data never leave that PC, and KRONOS never deletes real records.
@@ -99,6 +101,8 @@ and their proven specs, each with its VBA.
   plan of 14 Oct 2026; the current order of work is "Next" below and `docs/vcl-mvp-plan.md` (D73).
 - `docs/kronos-app.md`: the KGC KRONOS desktop app (item 5, D68 to D71).
 - `docs/ai-vba-plan.md`: our model writes the VBA from a proven recipe, and the VBA simulator proves it (item 7, D90).
+- `docs/kgc-documents-plan.md`: KRONOS fills KGC's own Excel and Word documents (WPS, estimation, enquiry register;
+  D105), the plan another session implements, Phase 0 first.
 - `docs/kronos-storage-plan.md`: the new PC's 300 GB, KRONOS's home from March 2027: the layout, budgets, rules
   and monthly report (item 8, D91; the reference files follow it, D92).
 
@@ -237,8 +241,10 @@ lines of VBA (rule 9: about 60); accepted for now, revisit in March.
 
 **Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
 paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98
-to D100); 6 the data generator (done, D103, D104: `vclc datagen` and 405 paraphrases); **next 7, the benchmark** (Phase 8, with Boss's permitted KGC
-samples shaping realistic held-out tasks, D101), 8 KRONOS Offline version 6, 9 storage S1, 10 the VCL memory and the
+to D100); 6 the data generator (done, D103, D104: `vclc datagen` and 405 paraphrases). **Next: KGC's own documents (D105,
+`docs/kgc-documents-plan.md`, Phases 0 to 6)**: KRONOS fills the WPS forms, the estimation workbook, the enquiry register and the
+Word estimation sheet; its Phase 4 is KRONOS Offline version 6 and its Phase 6 is step 7, the benchmark. Then 8 KRONOS Offline
+version 7 (the old version 6 scope), 9 storage S1, 10 the VCL memory and the
 day-one kit. For Boss: paste the updated prompt (D94, D97) into the Orchestrator Project.
 
 Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):

@@ -19,7 +19,8 @@ Offline (version 5) runs in a browser with nothing installed, and Boss has it wo
 D101). The corpus is complete: 150 proven request and recipe pairs, 15 held out (D96). The VBA simulator runs every
 compiled macro without Excel and checks it against its TESTs, all 165 specs, examples and pairs (D98 to D100).
 The data generator makes repairs and contrast examples from the pairs, and every training request has three
-checked paraphrases (D103, D104). Next, in Boss's order (D101): the benchmark, KRONOS Offline version 6, storage S1, the VCL
+checked paraphrases (D103, D104). Next: KRONOS fills KGC's own Excel and Word documents (D105, `docs/kgc-documents-plan.md`), ending with the
+benchmark; then, in Boss's order (D101): KRONOS Offline version 7, storage S1, the VCL
 memory and the day-one kit; from March 2027 the new PC's 300 GB as KRONOS's home (D91). All development runs in the
 cloud. Every check is automated; running the generated VBA in Excel is optional and never blocks work.
 
@@ -405,3 +406,7 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   The data generator (Boss's step 6): `vclc datagen` makes 4,432 repairs and 124 contrast examples from the 135
   training pairs (D103), and every training request has three paraphrases, checked to keep every heading, status
   and number (D104). Next: the benchmark.
+- **2026-11-20:** Boss shared KGC's own documents (WPS forms, a cost estimation workbook, the enquiry register,
+  the internal Word estimation sheet): KRONOS will fill such files. The plan, for another session to implement, is
+  `docs/kgc-documents-plan.md` (D105): publish the samples, survey them, look-alike templates, VCL 0.7 with Word
+  documents and two workbooks, KRONOS Offline version 6, a corpus batch of document jobs, then the benchmark.
