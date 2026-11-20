@@ -98,6 +98,7 @@ VALUE_FUNCS = {
     "ROW_OF": (1, 1, {}),
     # VCL 0.7 (docs/vep-0.7-documents.md, part 3c)
     "ROUND": (2, 2, {}), "ROUNDUP": (2, 2, {}), "MIN": (2, 2, {}), "MAX": (2, 2, {}),
+    "AI_TEXT": (1, 1, {}),   # part 3e
 }
 VCL_02_FUNCS = {"SAME", "CLEAN_TEXT", "IS_ERROR", "PARSE_DATE", "IIF", "MOD"}
 VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
@@ -105,7 +106,7 @@ VCL_03_FUNCS = {"SAFE_NAME", "PATH_JOIN", "FOLDER_EXISTS"}
 VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
 VCL_04_FUNCS = {"SHEET_EXISTS"}
 VCL_05_FUNCS = {"ROW_OF"}   # D55
-VCL_07_FUNCS = {"ROUND", "ROUNDUP", "MIN", "MAX"}   # D111
+VCL_07_FUNCS = {"ROUND", "ROUNDUP", "MIN", "MAX", "AI_TEXT"}   # D111, D112
 DIGITS_SECOND = {"ROUND", "ROUNDUP"}   # their second argument: a whole number from -15 to 15, written in place
 VCL_04_OPS = {"LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # D44, D45: S24, S25 and the path rules of VCL 0.3
 VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4, "VCL 0.5": 5, "VCL 0.6": 6, "VCL 0.7": 7}
@@ -1267,7 +1268,10 @@ class TaskChecker:
             else:
                 self.check_choice(name, key.text, items, allowed[key.text])
         for i, items in enumerate(positional):
-            if name in STRING_SECOND and i == 1:
+            if name == "AI_TEXT":   # D112: the AI's own words, written in place, so a person can read them
+                if not (len(items) == 1 and is_tok(items[0], "string")):
+                    self.error(coded('AI_TEXT needs one "quoted" text, written in place', "V338"))
+            elif name in STRING_SECOND and i == 1:
                 if not (len(items) == 1 and is_tok(items[0], "string")):
                     self.error(coded(f'{name} needs a "quoted" text as its second argument', "V185"))
                 elif name == "PARSE_DATE" and items[0].text[1:-1] not in DATE_FORMATS:
@@ -2131,6 +2135,27 @@ def validate(spec):
     elif spec.kind == "BUILD":
         problems += check_build(spec)
     return _sorted_unique(problems)
+
+
+def ai_texts(text):
+    """[(line, text)] of every AI_TEXT("...") in a spec (VCL 0.7, D112): text the AI wrote, which no TEST can prove
+    right, for a person to check. Empty when the spec doesn't parse."""
+    spec, problems = grammar_parse(text)
+    if problems or not spec:
+        return []
+    tasks = [spec] if spec["kind"] == "TASK" else spec.get("tasks", [])
+    out = []
+    for task in tasks:
+        for k in (task or {}).get("keys", []):
+            tree = k.get("tree")
+            if tree is None or not hasattr(tree, "iter_subtrees_topdown"):
+                continue
+            for t in tree.iter_subtrees_topdown():
+                if t.data == "call" and str(t.children[0]) == "AI_TEXT" and len(t.children) > 1:
+                    arg = t.children[1].children[0]
+                    if getattr(arg, "type", "") == "STRING":
+                        out.append((k["line"], str(arg)[1:-1].replace('""', '"')))
+    return out
 
 
 def grammar_and_type_problems(text, known, sigs=None):

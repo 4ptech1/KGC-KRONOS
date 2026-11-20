@@ -15,6 +15,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "vcl"))
 import semantics as S  # noqa: E402
 from resources import ROOT  # noqa: E402
+from vcl_fixtures import vba_text  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 from vcl_types import Checker, build_sigs, canon, mentions  # noqa: E402
 
@@ -112,8 +113,9 @@ class Gen:
             kind = t.type
             if kind == "NUMBER":
                 return str(t), "num"
-            if kind == "STRING":
-                return str(t), "text"
+            if kind == "STRING":   # text beyond ASCII as ChrW(...) pieces, as the VBA editor needs (D112)
+                text = str(t)[1:-1].replace('""', '"')
+                return (str(t) if text.isascii() else vba_text(text)), "text"
             if kind == "COLOR":
                 return color(t), "color"
             if kind == "ARG":
@@ -273,6 +275,8 @@ class Gen:
             return f"ForgeIif({e(0)}, {ac}, {bc})", ak if ak == bk else "raw"
         if name == "MOD":
             return f"ForgeMod({n(0)}, {n(1)})", "num"
+        if name == "AI_TEXT":   # VCL 0.7 (D112): the quoted text itself
+            return self.ex(pos[0])[0], "text"
         if name == "ROUND":   # VCL 0.7 (D111): Excel's own worksheet functions
             return f"ForgeRound({n(0)}, {n(1)})", "num"
         if name == "ROUNDUP":

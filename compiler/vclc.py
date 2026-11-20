@@ -52,7 +52,7 @@ from vcl_mutate import mutate_report  # noqa: E402
 from vcl_pilot import PILOT_SPECS, check as pilot_check, pilot_module  # noqa: E402
 from vcl_selftest import selftest_module  # noqa: E402
 from vcl_parse import parse  # noqa: E402
-from validator import expand, validate_file  # noqa: E402
+from validator import ai_texts, expand, validate_file  # noqa: E402
 
 
 def cmd_check(files):
@@ -64,6 +64,10 @@ def cmd_check(files):
         print(f"{'OK  ' if not errors else 'FAIL'} check  {p}")
         for x in problems:
             print(f"       line {x.line}: {x.severity}: {x.message}{tag(x.message)}")
+        if errors:
+            continue
+        for line, text in ai_texts(Path(p).read_text(encoding="utf-8")):   # D112: notes, not problems
+            print(f"       line {line}: note: written by the AI, not proven: check it: {text}")
     return bad == 0
 
 

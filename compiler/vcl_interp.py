@@ -521,6 +521,8 @@ class Machine:
             if b == 0:
                 raise VclError(coded("division by zero", "R017"))
             return S.mod(a, b)
+        if name == "AI_TEXT":   # VCL 0.7 (D112): its text, nothing more
+            return e(pos[0])
         if name in ("ROUND", "ROUNDUP"):   # VCL 0.7 (S27)
             x, digits = self.num(e(pos[0])), int(self.num(e(pos[1])))
             return (S.round_up if name == "ROUNDUP" else S.round_half)(x, digits)
