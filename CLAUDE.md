@@ -244,7 +244,9 @@ lines of VBA (rule 9: about 60); accepted for now, revisit in March.
 paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98
 to D100); 6 the data generator (done, D103, D104: `vclc datagen` and 405 paraphrases). **Next: KGC's own documents (D105,
 `docs/kgc-documents-plan.md`, Phases 0 to 6)**: KRONOS fills the WPS forms, the estimation workbook, the enquiry register and the
-Word estimation sheet; its Phase 4 is KRONOS Offline version 6 and its Phase 6 is step 7, the benchmark. Then 8 KRONOS Offline
+Word estimation sheet and technical proposals; Phase 0 (the samples, D106) and Phase 1 (the survey, `docs/kgc-documents.md`,
+D107) are done; next Phase 2, the look-alike templates, then Phase 3, VCL 0.7 (Boss asked for Phases 1 to 3 in one
+session). Its Phase 4 is KRONOS Offline version 6 and its Phase 6 is step 7, the benchmark. Then 8 KRONOS Offline
 version 7 (the old version 6 scope), 9 storage S1, 10 the VCL memory and the
 day-one kit. For Boss: paste the updated prompt (D94, D97) into the Orchestrator Project.
 

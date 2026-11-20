@@ -2,7 +2,12 @@
 
 Status: **approved by Boss on 20 Nov 2026.** Written to be handed to another Claude Code session: read `CLAUDE.md`
 first, then this file. **Phase 0 is done (D106):** all 11 samples are in `samples/kgc/`, so the next session needs no
-uploads; start with Phase 1. Each phase is its own PR.
+uploads. **Phase 1 is done (D107):** the survey is `docs/kgc-documents.md`. Each phase is its own PR.
+
+**Boss's answers of 20 Nov 2026, second round (D107):** a new WPS is made from an existing WPS workbook (its PQR
+values; a two-workbook job, KRONOS Offline only); the Word estimation sheet is filled either from an estimation
+workbook or from typed values and AI text with no workbook; and a technical proposal repeats a whole item section
+(Annexure B's tables) once per item.
 
 ## Context
 
@@ -54,7 +59,7 @@ file back, proven by tests on look-alike practice files, with every AI-written t
 - `CLAUDE.md` hard constraints: say exactly this exception; the rest of the synthetic-only rule stands.
 - A test: `samples/kgc/` holds only the files the README lists, and no test, spec or corpus file reads from it.
 
-### Phase 1: the document survey (`docs/kgc-documents.md`)
+### Phase 1: the document survey (`docs/kgc-documents.md`) - done (D107)
 - For each sample, every field KRONOS may fill: its cell (or Word table cell), its kind (text, number, date, formula),
   and where its value comes from (another sheet or file, typed, a rule, AI text). Use `kronos_book.describe`
   (`compiler/kronos_book.py`) for the workbook facts; read the Word XML with the standard library.
@@ -99,6 +104,9 @@ DECISIONS.md, `dist/forge_module.bas`; and `vclc sim` must still prove every spe
   assert `FIELD_TEXT(Client)` and table cells, with a FIXTURE workbook and the look-alike template. The interpreter
   fills the template with the standard library (`zipfile` and `xml.etree`), keeping every run's formatting, the
   header, footer and pictures. The compiler refuses DOCUMENT with a clear message (it makes no VBA).
+  The survey adds (D107): zero or more Workbook ARGS, so a DOCUMENT can be filled from typed ARGS and AI_TEXT alone; a
+  column repeated per item (the estimation sheet's tables 3 to 5); a whole section repeated per item (the proposal's
+  Annexure B, the estimation sheet's sections 6.n); an optional section (the NACE table); fields in the header and footer.
 - **3g. The switch:** spec.md and the prompt teach VCL 0.7 once (hard rules for templates, two workbooks, AI_TEXT and
   DOCUMENT; one example of each); Boss pastes the prompt once.
 
