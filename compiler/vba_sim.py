@@ -1320,6 +1320,8 @@ class Application(VbaObject):
             return self.props[n]
         if n == "thisworkbook" or n == "activeworkbook":
             return sim.this_workbook
+        if n == "worksheetfunction":
+            return WorksheetFunction()
         return super().get(sim, name, args, named)
 
     def let(self, sim, name, args, value):
@@ -1328,6 +1330,20 @@ class Application(VbaObject):
             self.props[n] = value
             return
         super().let(sim, name, args, value)
+
+
+class WorksheetFunction(VbaObject):
+    """Application.WorksheetFunction: only Round and RoundUp (ForgeRound, ForgeRoundUp; VCL 0.7), with Excel's meaning
+    from vcl/semantics.py (S27)."""
+    vba_type = "WorksheetFunction"
+
+    def get(self, sim, name, args, named):
+        n = name.lower()
+        if n in ("round", "roundup") and len(args) == 2:
+            import semantics
+            x, digits = to_double(args[0]), to_long(args[1])
+            return float((semantics.round_up if n == "roundup" else semantics.round_half)(x, digits))
+        return super().get(sim, name, args, named)
 
 
 class Debug(VbaObject):

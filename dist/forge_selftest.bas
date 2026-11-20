@@ -25,7 +25,7 @@ Public Sub ForgeSelfTest()
     SelfTestPart6
     SelfTestPart7
     SelfTestFlush
-    total = 241
+    total = 258
     For r = 2 To total + 1
         If gWs.Cells(r, 6).Value = "PASS" Then
             passed = passed + 1
@@ -436,265 +436,299 @@ End Sub
 Private Sub SelfTestPart4()
     ' A call that raises an error goes to the next line; SelfTestFlush records it.
     On Error Resume Next
-    SelfTestCase 121, "needs_text_guard", "plain words are stored as typed"
+    SelfTestCase 121, "round_half", "the decimal Excel shows, not the double (VBA's Round gives 2.67)"
+    SelfTestCheck ForgeRound(2.675, 2#), 2.68
+    SelfTestCase 122, "round_half", "a half goes away from zero (VBA's Round gives 2)"
+    SelfTestCheck ForgeRound(2.5, 0#), 3#
+    SelfTestCase 123, "round_half", "away from zero below zero too"
+    SelfTestCheck ForgeRound(-2.5, 0#), -3#
+    SelfTestCase 124, "round_half", "-3 rounds to thousands"
+    SelfTestCheck ForgeRound(1234.5, -3#), 1000#
+    SelfTestCase 125, "round_half", "a half thousand goes up"
+    SelfTestCheck ForgeRound(1500#, -3#), 2000#
+    SelfTestCase 126, "round_half", "18 barg in kg/cm2, as the enquiry register"
+    SelfTestCheck ForgeRound(18.35496, 2#), 18.35
+    SelfTestCase 127, "round_half", "a whole number stays whole"
+    SelfTestCheck ForgeRound(7#, 2#), 7#
+    SelfTestCase 128, "round_up", "the next thousand, as the estimate's selling price"
+    SelfTestCheck ForgeRoundUp(288364#, -3#), 289000#
+    SelfTestCase 129, "round_up", "already a thousand"
+    SelfTestCheck ForgeRoundUp(289000#, -3#), 289000#
+    SelfTestCase 130, "round_up", "away from zero"
+    SelfTestCheck ForgeRoundUp(-1.21, 1#), -1.3
+    SelfTestCase 131, "round_up", "any part goes up"
+    SelfTestCheck ForgeRoundUp(1.0001, 0#), 2#
+    SelfTestCase 132, "round_up", "0.30000000000000004 is 0.3 to Excel"
+    SelfTestCheck ForgeRoundUp(0.30000000000000004, 1#), 0.3
+    SelfTestCase 133, "smaller", "the smaller"
+    SelfTestCheck ForgeMin(3#, 7#), 3#
+    SelfTestCase 134, "smaller", "below zero"
+    SelfTestCheck ForgeMin(-2#, -5#), -5#
+    SelfTestCase 135, "smaller", "equal"
+    SelfTestCheck ForgeMin(4#, 4#), 4#
+    SelfTestCase 136, "larger", "the larger"
+    SelfTestCheck ForgeMax(3#, 7#), 7#
+    SelfTestCase 137, "larger", "decimals"
+    SelfTestCheck ForgeMax(2.5, 2.25), 2.5
+    SelfTestCase 138, "needs_text_guard", "plain words are stored as typed"
     SelfTestCheck ForgeNeedsTextGuard("Short"), False
-    SelfTestCase 122, "needs_text_guard", "spaces are fine"
+    SelfTestCase 139, "needs_text_guard", "spaces are fine"
     SelfTestCheck ForgeNeedsTextGuard("Days Open"), False
-    SelfTestCase 123, "needs_text_guard", "empty text empties the cell"
+    SelfTestCase 140, "needs_text_guard", "empty text empties the cell"
     SelfTestCheck ForgeNeedsTextGuard(""), False
-    SelfTestCase 124, "needs_text_guard", "Excel would store the number 1001"
+    SelfTestCase 141, "needs_text_guard", "Excel would store the number 1001"
     SelfTestCheck ForgeNeedsTextGuard("1001"), True
-    SelfTestCase 125, "needs_text_guard", "Excel would store a date"
+    SelfTestCase 142, "needs_text_guard", "Excel would store a date"
     SelfTestCheck ForgeNeedsTextGuard("1-2"), True
-    SelfTestCase 126, "needs_text_guard", "any digit counts, to be safe"
+    SelfTestCase 143, "needs_text_guard", "any digit counts, to be safe"
     SelfTestCheck ForgeNeedsTextGuard("W-01"), True
-    SelfTestCase 127, "needs_text_guard", "Excel would store the logical TRUE"
+    SelfTestCase 144, "needs_text_guard", "Excel would store the logical TRUE"
     SelfTestCheck ForgeNeedsTextGuard("TRUE"), True
-    SelfTestCase 128, "needs_text_guard", "after TRIM, in any case"
+    SelfTestCase 145, "needs_text_guard", "after TRIM, in any case"
     SelfTestCheck ForgeNeedsTextGuard(" false "), True
-    SelfTestCase 129, "needs_text_guard", "Excel would store a formula"
+    SelfTestCase 146, "needs_text_guard", "Excel would store a formula"
     SelfTestCheck ForgeNeedsTextGuard("=A1"), True
-    SelfTestCase 130, "needs_text_guard", "a leading minus could start a formula"
+    SelfTestCase 147, "needs_text_guard", "a leading minus could start a formula"
     SelfTestCheck ForgeNeedsTextGuard("-"), True
-    SelfTestCase 131, "needs_text_guard", "Excel would store the error value"
+    SelfTestCase 148, "needs_text_guard", "Excel would store the error value"
     SelfTestCheck ForgeNeedsTextGuard("#N/A"), True
-    SelfTestCase 132, "needs_text_guard", "a leading ' would be hidden"
+    SelfTestCase 149, "needs_text_guard", "a leading ' would be hidden"
     SelfTestCheck ForgeNeedsTextGuard("'quoted"), True
-    SelfTestCase 133, "needs_text_guard", "a character above code 127 counts, to be safe"
+    SelfTestCase 150, "needs_text_guard", "a character above code 127 counts, to be safe"
     SelfTestCheck ForgeNeedsTextGuard("caf" & ChrW(233)), True
-    SelfTestCase 134, "safe_name", "an ordinary job number"
+    SelfTestCase 151, "safe_name", "an ordinary job number"
     SelfTestCheck ForgeSafeName("J-101"), "J-101"
-    SelfTestCase 135, "safe_name", "tidied like CLEAN_TEXT"
+    SelfTestCase 152, "safe_name", "tidied like CLEAN_TEXT"
     SelfTestCheck ForgeSafeName("  J-101 " & ChrW(160)), "J-101"
-    SelfTestCase 136, "safe_name", "inner spaces joined, extension kept"
+    SelfTestCase 153, "safe_name", "inner spaces joined, extension kept"
     SelfTestCheck ForgeSafeName("Report  2026.pdf"), "Report 2026.pdf"
-    SelfTestCase 137, "safe_name", "a number becomes its text"
+    SelfTestCase 154, "safe_name", "a number becomes its text"
     SelfTestCheck ForgeSafeName(1001#), "1001"
-    SelfTestCase 138, "safe_name", "empty"
+    SelfTestCase 155, "safe_name", "empty"
     SelfTestCheck ForgeSafeName(Empty), ""
-    SelfTestCase 139, "safe_name", "can't climb out of the folder"
+    SelfTestCase 156, "safe_name", "can't climb out of the folder"
     SelfTestCheck ForgeSafeName(".."), ""
-    SelfTestCase 140, "safe_name", "the folder itself"
+    SelfTestCase 157, "safe_name", "the folder itself"
     SelfTestCheck ForgeSafeName("."), ""
-    SelfTestCase 141, "safe_name", "a separator is never allowed"
+    SelfTestCase 158, "safe_name", "a separator is never allowed"
     SelfTestCheck ForgeSafeName("..\..\Windows"), ""
-    SelfTestCase 142, "safe_name", "neither is /"
+    SelfTestCase 159, "safe_name", "neither is /"
     SelfTestCheck ForgeSafeName("A/B"), ""
-    SelfTestCase 143, "safe_name", "wildcards are refused"
+    SelfTestCase 160, "safe_name", "wildcards are refused"
     SelfTestCheck ForgeSafeName("J*1"), ""
-    SelfTestCase 144, "safe_name", "wildcards are refused"
-    SelfTestCheck ForgeSafeName("J?1"), ""
-    SelfTestCase 145, "safe_name", "a drive colon is refused"
-    SelfTestCheck ForgeSafeName("C:x"), ""
-    SelfTestCase 146, "safe_name", "quotes are refused"
-    SelfTestCheck ForgeSafeName("J""1"), ""
-    SelfTestCase 147, "safe_name", "angle brackets are refused"
-    SelfTestCheck ForgeSafeName("J<1>"), ""
-    SelfTestCase 148, "safe_name", "a pipe is refused"
-    SelfTestCheck ForgeSafeName("J|1"), ""
-    SelfTestCase 149, "safe_name", "Windows drops a trailing dot, so it is refused"
-    SelfTestCheck ForgeSafeName("J-1."), ""
-    SelfTestCase 150, "safe_name", "a reserved device name"
-    SelfTestCheck ForgeSafeName("CON"), ""
-    SelfTestCase 151, "safe_name", "reserved with any extension and any case"
-    SelfTestCheck ForgeSafeName("con.txt"), ""
-    SelfTestCase 152, "safe_name", "COM1 to COM9 are reserved"
-    SelfTestCheck ForgeSafeName("COM1"), ""
-    SelfTestCase 153, "safe_name", "LPT1 to LPT9 are reserved"
-    SelfTestCheck ForgeSafeName("LPT9.pdf"), ""
-    SelfTestCase 154, "safe_name", "only the exact device names are reserved"
-    SelfTestCheck ForgeSafeName("CONSOLE"), "CONSOLE"
-    SelfTestCase 155, "safe_name", "COM10 is an ordinary name"
-    SelfTestCheck ForgeSafeName("COM10"), "COM10"
-    SelfTestCase 156, "safe_name", "control characters are removed, as CLEAN_TEXT"
-    SelfTestCheck ForgeSafeName("J" & ChrW(1) & "-1"), "J-1"
-    SelfTestCase 157, "safe_name", "100 characters is the limit"
-    SelfTestCheck ForgeSafeName("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    SelfTestCase 158, "safe_name", "over 100 characters is refused"
-    SelfTestCheck ForgeSafeName("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), ""
-    SelfTestCase 159, "path_join", "base, then each name"
-    SelfTestCheck ForgePathJoin("C:\Jobs", Array("J-101", "r1.pdf")), "C:\Jobs\J-101\r1.pdf"
-    SelfTestCase 160, "path_join", "a trailing separator on base is dropped"
-    SelfTestCheck ForgePathJoin("C:\Jobs\", Array("J-101")), "C:\Jobs\J-101"
     SelfTestFlush
 End Sub
 
 Private Sub SelfTestPart5()
     ' A call that raises an error goes to the next line; SelfTestFlush records it.
     On Error Resume Next
-    SelfTestCase 161, "path_join", "a network (UNC) root works"
+    SelfTestCase 161, "safe_name", "wildcards are refused"
+    SelfTestCheck ForgeSafeName("J?1"), ""
+    SelfTestCase 162, "safe_name", "a drive colon is refused"
+    SelfTestCheck ForgeSafeName("C:x"), ""
+    SelfTestCase 163, "safe_name", "quotes are refused"
+    SelfTestCheck ForgeSafeName("J""1"), ""
+    SelfTestCase 164, "safe_name", "angle brackets are refused"
+    SelfTestCheck ForgeSafeName("J<1>"), ""
+    SelfTestCase 165, "safe_name", "a pipe is refused"
+    SelfTestCheck ForgeSafeName("J|1"), ""
+    SelfTestCase 166, "safe_name", "Windows drops a trailing dot, so it is refused"
+    SelfTestCheck ForgeSafeName("J-1."), ""
+    SelfTestCase 167, "safe_name", "a reserved device name"
+    SelfTestCheck ForgeSafeName("CON"), ""
+    SelfTestCase 168, "safe_name", "reserved with any extension and any case"
+    SelfTestCheck ForgeSafeName("con.txt"), ""
+    SelfTestCase 169, "safe_name", "COM1 to COM9 are reserved"
+    SelfTestCheck ForgeSafeName("COM1"), ""
+    SelfTestCase 170, "safe_name", "LPT1 to LPT9 are reserved"
+    SelfTestCheck ForgeSafeName("LPT9.pdf"), ""
+    SelfTestCase 171, "safe_name", "only the exact device names are reserved"
+    SelfTestCheck ForgeSafeName("CONSOLE"), "CONSOLE"
+    SelfTestCase 172, "safe_name", "COM10 is an ordinary name"
+    SelfTestCheck ForgeSafeName("COM10"), "COM10"
+    SelfTestCase 173, "safe_name", "control characters are removed, as CLEAN_TEXT"
+    SelfTestCheck ForgeSafeName("J" & ChrW(1) & "-1"), "J-1"
+    SelfTestCase 174, "safe_name", "100 characters is the limit"
+    SelfTestCheck ForgeSafeName("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    SelfTestCase 175, "safe_name", "over 100 characters is refused"
+    SelfTestCheck ForgeSafeName("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), ""
+    SelfTestCase 176, "path_join", "base, then each name"
+    SelfTestCheck ForgePathJoin("C:\Jobs", Array("J-101", "r1.pdf")), "C:\Jobs\J-101\r1.pdf"
+    SelfTestCase 177, "path_join", "a trailing separator on base is dropped"
+    SelfTestCheck ForgePathJoin("C:\Jobs\", Array("J-101")), "C:\Jobs\J-101"
+    SelfTestCase 178, "path_join", "a network (UNC) root works"
     SelfTestCheck ForgePathJoin("\\server\share", Array("J-101")), "\\server\share\J-101"
-    SelfTestCase 162, "path_join", "an empty part gives an empty path"
+    SelfTestCase 179, "path_join", "an empty part gives an empty path"
     SelfTestCheck ForgePathJoin("C:\Jobs", Array("")), ""
-    SelfTestCase 163, "path_join", "an unsafe part gives an empty path"
+    SelfTestCase 180, "path_join", "an unsafe part gives an empty path"
     SelfTestCheck ForgePathJoin("C:\Jobs", Array("..")), ""
-    SelfTestCase 164, "path_join", "a part may not hide a separator"
+    SelfTestCase 181, "path_join", "a part may not hide a separator"
     SelfTestCheck ForgePathJoin("C:\Jobs", Array("A\B")), ""
-    SelfTestCase 165, "path_join", "no root, no path"
+    SelfTestCase 182, "path_join", "no root, no path"
     SelfTestCheck ForgePathJoin("", Array("J-101")), ""
-    SelfTestCase 166, "file_name", "the part after the last backslash"
+    SelfTestCase 183, "file_name", "the part after the last backslash"
     SelfTestCheck ForgeFileName("C:\Jobs\J-101\r1.pdf"), "r1.pdf"
-    SelfTestCase 167, "file_name", "no backslash: all of it"
+    SelfTestCase 184, "file_name", "no backslash: all of it"
     SelfTestCheck ForgeFileName("r1.pdf"), "r1.pdf"
-    SelfTestCase 168, "file_name", "a folder path ending in a backslash"
+    SelfTestCase 185, "file_name", "a folder path ending in a backslash"
     SelfTestCheck ForgeFileName("C:\Jobs\"), ""
-    SelfTestCase 169, "file_name", "a network path; spaces are kept"
+    SelfTestCase 186, "file_name", "a network path; spaces are kept"
     SelfTestCheck ForgeFileName("\\server\share\a b.pdf"), "a b.pdf"
-    SelfTestCase 170, "file_name", "only a backslash separates"
+    SelfTestCase 187, "file_name", "only a backslash separates"
     SelfTestCheck ForgeFileName("C:/Jobs/r1.pdf"), "C:/Jobs/r1.pdf"
-    SelfTestCase 171, "file_name", "empty"
+    SelfTestCase 188, "file_name", "empty"
     SelfTestCheck ForgeFileName(Empty), ""
-    SelfTestCase 172, "same_row_key", "the same values in every key column"
+    SelfTestCase 189, "same_row_key", "the same values in every key column"
     SelfTestCheck ForgeSameRowKey(Array("S1", "W1"), Array("S1", "W1")), True
-    SelfTestCase 173, "same_row_key", "case is ignored, as in dictionary keys (S10)"
+    SelfTestCase 190, "same_row_key", "case is ignored, as in dictionary keys (S10)"
     SelfTestCheck ForgeSameRowKey(Array("S1", "W1"), Array("s1", "w1")), True
-    SelfTestCase 174, "same_row_key", "a number and the same number as text"
+    SelfTestCase 191, "same_row_key", "a number and the same number as text"
     SelfTestCheck ForgeSameRowKey(Array(1001#), Array("1001")), True
-    SelfTestCase 175, "same_row_key", "text is compared as typed: 2.50 is not 2.5"
+    SelfTestCase 192, "same_row_key", "text is compared as typed: 2.50 is not 2.5"
     SelfTestCheck ForgeSameRowKey(Array(2.5), Array("2.50")), False
-    SelfTestCase 176, "same_row_key", "no TRIM: a trailing space makes another key"
+    SelfTestCase 193, "same_row_key", "no TRIM: a trailing space makes another key"
     SelfTestCheck ForgeSameRowKey(Array("S1"), Array("S1 ")), False
-    SelfTestCase 177, "same_row_key", "one key column differs"
+    SelfTestCase 194, "same_row_key", "one key column differs"
     SelfTestCheck ForgeSameRowKey(Array("S1", "W1"), Array("S1", "W2")), False
-    SelfTestCase 178, "same_row_key", "the columns stay apart"
+    SelfTestCase 195, "same_row_key", "the columns stay apart"
     SelfTestCheck ForgeSameRowKey(Array("ab", "c"), Array("a", "bc")), False
-    SelfTestCase 179, "same_row_key", "letters are lowered one by one, as LCase$: " & ChrW(223) & " stays " & ChrW(223) & " (D48)"
+    SelfTestCase 196, "same_row_key", "letters are lowered one by one, as LCase$: " & ChrW(223) & " stays " & ChrW(223) & " (D48)"
     SelfTestCheck ForgeSameRowKey(Array("Stra" & ChrW(223) & "e"), Array("STRASSE")), False
-    SelfTestCase 180, "same_row_key", "a full-width letter is not its ASCII twin (D48)"
+    SelfTestCase 197, "same_row_key", "a full-width letter is not its ASCII twin (D48)"
     SelfTestCheck ForgeSameRowKey(Array(ChrW(65313) & "B"), Array("AB")), False
-    SelfTestCase 181, "same_row_key", "an empty key: never a duplicate (data is missing)"
+    SelfTestCase 198, "same_row_key", "an empty key: never a duplicate (data is missing)"
     SelfTestCheck ForgeSameRowKey(Array(Empty), Array(Empty)), False
-    SelfTestCase 182, "same_row_key", "a key cell of spaces only counts as empty"
+    SelfTestCase 199, "same_row_key", "a key cell of spaces only counts as empty"
     SelfTestCheck ForgeSameRowKey(Array("S1", "  "), Array("S1", "  ")), False
-    SelfTestCase 183, "same_row_key", "an error in a key cell: never a duplicate"
+    SelfTestCase 200, "same_row_key", "an error in a key cell: never a duplicate"
     SelfTestCheck ForgeSameRowKey(Array(CVErr(xlErrNA)), Array(CVErr(xlErrNA))), False
-    SelfTestCase 184, "same_row_key", "the same date"
-    SelfTestCheck ForgeSameRowKey(Array(DateSerial(2026, 10, 15)), Array(DateSerial(2026, 10, 15))), True
-    SelfTestCase 185, "find", "whole: SAME, so case is ignored"
-    SelfTestCheck SelfTestFind(Array("Seam", "Welder"), "welder", "whole"), 2#
-    SelfTestCase 186, "find", "whole: spaces at the ends are ignored"
-    SelfTestCheck SelfTestFind(Array(" W1 ", "W1"), "W1", "whole"), 1#
-    SelfTestCase 187, "find", "whole: all of the text must match"
-    SelfTestCheck SelfTestFind(Array("W12", "W1"), "W1", "whole"), 2#
-    SelfTestCase 188, "find", "numbers compare as text: 25.0 is not 25"
-    SelfTestCheck SelfTestFind(Array(25#, "25"), "25.0", "whole"), 0#
-    SelfTestCase 189, "find", "a number and the same number as text"
-    SelfTestCheck SelfTestFind(Array(25#), "25", "whole"), 1#
-    SelfTestCase 190, "find", "whole: an empty x finds the first empty cell"
-    SelfTestCheck SelfTestFind(Array("a", Empty, "b"), "", "whole"), 2#
-    SelfTestCase 191, "find", "not there: NOTHING"
-    SelfTestCheck SelfTestFind(Array("a", "b"), "c", "whole"), 0#
-    SelfTestCase 192, "find", "part: the first cell that holds the text"
-    SelfTestCheck SelfTestFind(Array("W12", "W1"), "W1", "part"), 1#
-    SelfTestCase 193, "find", "part: TRIM(x), case ignored"
-    SelfTestCheck SelfTestFind(Array("Seam S-12 repair"), " s-12 ", "part"), 1#
-    SelfTestCase 194, "find", "part: a number is its text"
-    SelfTestCheck SelfTestFind(Array(1250#), 25#, "part"), 1#
-    SelfTestCase 195, "find", "part: nothing to look for finds NOTHING"
-    SelfTestCheck SelfTestFind(Array("a", "b"), "  ", "part"), 0#
-    SelfTestCase 196, "find", "a date is its yyyy-mm-dd text"
-    SelfTestCheck SelfTestFind(Array(DateSerial(2026, 10, 15)), "2026-10-15", "whole"), 1#
-    SelfTestCase 197, "sheet_name_ok", "a plain name"
-    SelfTestCheck ForgeSheetNameOk("Summary"), True
-    SelfTestCase 198, "sheet_name_ok", "spaces inside, digits and a dash"
-    SelfTestCheck ForgeSheetNameOk("NCR Log 2026-10"), True
-    SelfTestCase 199, "sheet_name_ok", "31 characters, the most Excel allows"
-    SelfTestCheck ForgeSheetNameOk("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), True
-    SelfTestCase 200, "sheet_name_ok", "32 characters is one too many"
-    SelfTestCheck ForgeSheetNameOk("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), False
     SelfTestFlush
 End Sub
 
 Private Sub SelfTestPart6()
     ' A call that raises an error goes to the next line; SelfTestFlush records it.
     On Error Resume Next
-    SelfTestCase 201, "sheet_name_ok", "letters above U+7FFF are fine (Hangul, D48)"
+    SelfTestCase 201, "same_row_key", "the same date"
+    SelfTestCheck ForgeSameRowKey(Array(DateSerial(2026, 10, 15)), Array(DateSerial(2026, 10, 15))), True
+    SelfTestCase 202, "find", "whole: SAME, so case is ignored"
+    SelfTestCheck SelfTestFind(Array("Seam", "Welder"), "welder", "whole"), 2#
+    SelfTestCase 203, "find", "whole: spaces at the ends are ignored"
+    SelfTestCheck SelfTestFind(Array(" W1 ", "W1"), "W1", "whole"), 1#
+    SelfTestCase 204, "find", "whole: all of the text must match"
+    SelfTestCheck SelfTestFind(Array("W12", "W1"), "W1", "whole"), 2#
+    SelfTestCase 205, "find", "numbers compare as text: 25.0 is not 25"
+    SelfTestCheck SelfTestFind(Array(25#, "25"), "25.0", "whole"), 0#
+    SelfTestCase 206, "find", "a number and the same number as text"
+    SelfTestCheck SelfTestFind(Array(25#), "25", "whole"), 1#
+    SelfTestCase 207, "find", "whole: an empty x finds the first empty cell"
+    SelfTestCheck SelfTestFind(Array("a", Empty, "b"), "", "whole"), 2#
+    SelfTestCase 208, "find", "not there: NOTHING"
+    SelfTestCheck SelfTestFind(Array("a", "b"), "c", "whole"), 0#
+    SelfTestCase 209, "find", "part: the first cell that holds the text"
+    SelfTestCheck SelfTestFind(Array("W12", "W1"), "W1", "part"), 1#
+    SelfTestCase 210, "find", "part: TRIM(x), case ignored"
+    SelfTestCheck SelfTestFind(Array("Seam S-12 repair"), " s-12 ", "part"), 1#
+    SelfTestCase 211, "find", "part: a number is its text"
+    SelfTestCheck SelfTestFind(Array(1250#), 25#, "part"), 1#
+    SelfTestCase 212, "find", "part: nothing to look for finds NOTHING"
+    SelfTestCheck SelfTestFind(Array("a", "b"), "  ", "part"), 0#
+    SelfTestCase 213, "find", "a date is its yyyy-mm-dd text"
+    SelfTestCheck SelfTestFind(Array(DateSerial(2026, 10, 15)), "2026-10-15", "whole"), 1#
+    SelfTestCase 214, "sheet_name_ok", "a plain name"
+    SelfTestCheck ForgeSheetNameOk("Summary"), True
+    SelfTestCase 215, "sheet_name_ok", "spaces inside, digits and a dash"
+    SelfTestCheck ForgeSheetNameOk("NCR Log 2026-10"), True
+    SelfTestCase 216, "sheet_name_ok", "31 characters, the most Excel allows"
+    SelfTestCheck ForgeSheetNameOk("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), True
+    SelfTestCase 217, "sheet_name_ok", "32 characters is one too many"
+    SelfTestCheck ForgeSheetNameOk("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"), False
+    SelfTestCase 218, "sheet_name_ok", "letters above U+7FFF are fine (Hangul, D48)"
     SelfTestCheck ForgeSheetNameOk(ChrW(48372) & ChrW(44256) & ChrW(49436)), True
-    SelfTestCase 202, "sheet_name_ok", "empty"
+    SelfTestCase 219, "sheet_name_ok", "empty"
     SelfTestCheck ForgeSheetNameOk(""), False
-    SelfTestCase 203, "sheet_name_ok", "a space at the start"
+    SelfTestCase 220, "sheet_name_ok", "a space at the start"
     SelfTestCheck ForgeSheetNameOk(" Summary"), False
-    SelfTestCase 204, "sheet_name_ok", "a space at the end"
+    SelfTestCase 221, "sheet_name_ok", "a space at the end"
     SelfTestCheck ForgeSheetNameOk("Summary "), False
-    SelfTestCase 205, "sheet_name_ok", "a slash"
+    SelfTestCase 222, "sheet_name_ok", "a slash"
     SelfTestCheck ForgeSheetNameOk("Q1/Q2"), False
-    SelfTestCase 206, "sheet_name_ok", "square brackets"
+    SelfTestCase 223, "sheet_name_ok", "square brackets"
     SelfTestCheck ForgeSheetNameOk("Rev[2]"), False
-    SelfTestCase 207, "sheet_name_ok", "a colon"
+    SelfTestCase 224, "sheet_name_ok", "a colon"
     SelfTestCheck ForgeSheetNameOk("Time 10:30"), False
-    SelfTestCase 208, "sheet_name_ok", "a question mark"
+    SelfTestCase 225, "sheet_name_ok", "a question mark"
     SelfTestCheck ForgeSheetNameOk("What?"), False
-    SelfTestCase 209, "sheet_name_ok", "an apostrophe first"
+    SelfTestCase 226, "sheet_name_ok", "an apostrophe first"
     SelfTestCheck ForgeSheetNameOk("'Draft"), False
-    SelfTestCase 210, "sheet_name_ok", "an apostrophe inside is fine"
+    SelfTestCase 227, "sheet_name_ok", "an apostrophe inside is fine"
     SelfTestCheck ForgeSheetNameOk("Bob's"), True
-    SelfTestCase 211, "sheet_name_ok", "History is kept by Excel, in any case"
+    SelfTestCase 228, "sheet_name_ok", "History is kept by Excel, in any case"
     SelfTestCheck ForgeSheetNameOk("history"), False
-    SelfTestCase 212, "sheet_name_ok", "a number is its text"
+    SelfTestCase 229, "sheet_name_ok", "a number is its text"
     SelfTestCheck ForgeSheetNameOk(2026#), True
-    SelfTestCase 213, "list_files", "case ignored, then name order"
+    SelfTestCase 230, "list_files", "case ignored, then name order"
     SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("b.pdf", "A.PDF", "c.txt"), "*.pdf")), "A.PDF|b.pdf"
-    SelfTestCase 214, "list_files", "the whole name: *.pdf is not x.pdfa"
+    SelfTestCase 231, "list_files", "the whole name: *.pdf is not x.pdfa"
     SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("x.pdfa", "x.pdf"), "*.pdf")), "x.pdf"
-    SelfTestCase 215, "list_files", "? is exactly one character"
+    SelfTestCase 232, "list_files", "? is exactly one character"
     SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("r1.pdf", "r10.pdf", "r2.pdf"), "r?.pdf")), "r1.pdf|r2.pdf"
-    SelfTestCase 216, "list_files", "* is any run; the order is by character, not by number"
+    SelfTestCase 233, "list_files", "* is any run; the order is by character, not by number"
     SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("r1.pdf", "r10.pdf", "r2.pdf"), "r*.pdf")), "r1.pdf|r10.pdf|r2.pdf"
-    SelfTestCase 217, "list_files", "the same name in two cases: as written breaks the tie"
+    SelfTestCase 234, "list_files", "the same name in two cases: as written breaks the tie"
     SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("a.pdf", "A.pdf"), "*")), "A.pdf|a.pdf"
-    SelfTestCase 218, "list_files", "[ ] are themselves, not a set"
+    SelfTestCase 235, "list_files", "[ ] are themselves, not a set"
     SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("ab[1].txt", "ab1.txt"), "ab[1].txt")), "ab[1].txt"
-    SelfTestCase 219, "list_files", "nothing matches: an empty list"
+    SelfTestCase 236, "list_files", "nothing matches: an empty list"
     SelfTestCheck SelfTestJoin(ForgeMatchNames(Array("a.pdf"), "*.txt")), ""
-    SelfTestCase 220, "list_files", "an empty folder"
+    SelfTestCase 237, "list_files", "an empty folder"
     SelfTestCheck SelfTestJoin(ForgeMatchNames(Array(), "*")), ""
-    SelfTestCase 221, "file_text", "one line, as it is"
+    SelfTestCase 238, "file_text", "one line, as it is"
     SelfTestCheck SelfTestFileText("J-101 Shell"), "J-101 Shell"
-    SelfTestCase 222, "file_text", "one final CR LF is dropped"
+    SelfTestCase 239, "file_text", "one final CR LF is dropped"
     SelfTestCheck SelfTestFileText("J-101" & ChrW(13) & ChrW(10)), "J-101"
-    SelfTestCase 223, "file_text", "one final LF is dropped"
+    SelfTestCase 240, "file_text", "one final LF is dropped"
     SelfTestCheck SelfTestFileText("J-101" & ChrW(10)), "J-101"
-    SelfTestCase 224, "file_text", "only one: the inner and the other line breaks stay"
-    SelfTestCheck SelfTestFileText("a" & ChrW(13) & ChrW(10) & "b" & ChrW(13) & ChrW(10) & ChrW(13) & ChrW(10)), "a" & ChrW(13) & ChrW(10) & "b" & ChrW(13) & ChrW(10)
-    SelfTestCase 225, "file_text", "a tab is text"
-    SelfTestCheck SelfTestFileText("a" & ChrW(9) & "b"), "a" & ChrW(9) & "b"
-    SelfTestCase 226, "file_text", "an empty file"
-    SelfTestCheck SelfTestFileText(""), ""
-    SelfTestCase 227, "file_text", "an accented letter is not text: it reads differently with each code page"
-    SelfTestCheck SelfTestFileText("caf" & ChrW(233)), Empty
-    SelfTestCase 228, "file_text", "a NUL byte is not text"
-    SelfTestCheck SelfTestFileText("x" & ChrW(0) & "y"), Empty
-    SelfTestCase 229, "text_ok", "printable ASCII"
-    SelfTestCheck ForgeIsTextOk("done: J-101"), True
-    SelfTestCase 230, "text_ok", "line breaks"
-    SelfTestCheck ForgeIsTextOk("a" & ChrW(13) & ChrW(10) & "b"), True
-    SelfTestCase 231, "text_ok", "the euro sign is not ASCII"
-    SelfTestCheck ForgeIsTextOk(ChrW(8364) & " 5"), False
-    SelfTestCase 232, "order", "numbers typed as text compare as numbers"
-    SelfTestCheck ForgeCompare("9", "10"), -1#
-    SelfTestCase 233, "order", "a text number against a number"
-    SelfTestCheck ForgeCompare(" 10 ", 9#), 1#
-    SelfTestCase 234, "order", "the same number, however typed"
-    SelfTestCheck ForgeCompare("2.5", 2.5), 0#
-    SelfTestCase 235, "order", "negative numbers"
-    SelfTestCheck ForgeCompare(-3#, "-2"), -1#
-    SelfTestCase 236, "order", "two dates compare as dates"
-    SelfTestCheck ForgeCompare(DateSerial(2026, 10, 15), DateSerial(2026, 10, 16)), -1#
-    SelfTestCase 237, "order", "other text compares character by character"
-    SelfTestCheck ForgeCompare("W-10", "W-9"), -1#
-    SelfTestCase 238, "order", "case counts: capitals come first"
-    SelfTestCheck ForgeCompare("abc", "ABC"), 1#
-    SelfTestCase 239, "order", "empty text comes first"
-    SelfTestCheck ForgeCompare("", "a"), -1#
-    SelfTestCase 240, "order", "a blank cell is not 0: it compares as empty text"
-    SelfTestCheck ForgeCompare(Empty, "0"), -1#
     SelfTestFlush
 End Sub
 
 Private Sub SelfTestPart7()
     ' A call that raises an error goes to the next line; SelfTestFlush records it.
     On Error Resume Next
-    SelfTestCase 241, "order", "text that is not a plain number compares as text"
+    SelfTestCase 241, "file_text", "only one: the inner and the other line breaks stay"
+    SelfTestCheck SelfTestFileText("a" & ChrW(13) & ChrW(10) & "b" & ChrW(13) & ChrW(10) & ChrW(13) & ChrW(10)), "a" & ChrW(13) & ChrW(10) & "b" & ChrW(13) & ChrW(10)
+    SelfTestCase 242, "file_text", "a tab is text"
+    SelfTestCheck SelfTestFileText("a" & ChrW(9) & "b"), "a" & ChrW(9) & "b"
+    SelfTestCase 243, "file_text", "an empty file"
+    SelfTestCheck SelfTestFileText(""), ""
+    SelfTestCase 244, "file_text", "an accented letter is not text: it reads differently with each code page"
+    SelfTestCheck SelfTestFileText("caf" & ChrW(233)), Empty
+    SelfTestCase 245, "file_text", "a NUL byte is not text"
+    SelfTestCheck SelfTestFileText("x" & ChrW(0) & "y"), Empty
+    SelfTestCase 246, "text_ok", "printable ASCII"
+    SelfTestCheck ForgeIsTextOk("done: J-101"), True
+    SelfTestCase 247, "text_ok", "line breaks"
+    SelfTestCheck ForgeIsTextOk("a" & ChrW(13) & ChrW(10) & "b"), True
+    SelfTestCase 248, "text_ok", "the euro sign is not ASCII"
+    SelfTestCheck ForgeIsTextOk(ChrW(8364) & " 5"), False
+    SelfTestCase 249, "order", "numbers typed as text compare as numbers"
+    SelfTestCheck ForgeCompare("9", "10"), -1#
+    SelfTestCase 250, "order", "a text number against a number"
+    SelfTestCheck ForgeCompare(" 10 ", 9#), 1#
+    SelfTestCase 251, "order", "the same number, however typed"
+    SelfTestCheck ForgeCompare("2.5", 2.5), 0#
+    SelfTestCase 252, "order", "negative numbers"
+    SelfTestCheck ForgeCompare(-3#, "-2"), -1#
+    SelfTestCase 253, "order", "two dates compare as dates"
+    SelfTestCheck ForgeCompare(DateSerial(2026, 10, 15), DateSerial(2026, 10, 16)), -1#
+    SelfTestCase 254, "order", "other text compares character by character"
+    SelfTestCheck ForgeCompare("W-10", "W-9"), -1#
+    SelfTestCase 255, "order", "case counts: capitals come first"
+    SelfTestCheck ForgeCompare("abc", "ABC"), 1#
+    SelfTestCase 256, "order", "empty text comes first"
+    SelfTestCheck ForgeCompare("", "a"), -1#
+    SelfTestCase 257, "order", "a blank cell is not 0: it compares as empty text"
+    SelfTestCheck ForgeCompare(Empty, "0"), -1#
+    SelfTestCase 258, "order", "text that is not a plain number compares as text"
     SelfTestCheck ForgeCompare("10 kg", "9 kg"), -1#
     SelfTestFlush
 End Sub

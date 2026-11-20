@@ -449,6 +449,8 @@
  "V333": "template FIXTUREs are VCL 0.7: start the spec with 'VCL 0.7' to use them",
  "V334": "{fx.file} has two template FIXTURE lines: one template makes the whole workbook",
  "V335": "{fx.file} is made from a template, so it can't also have a sheet= FIXTURE line",
+ "V336": "{name} is VCL 0.7: start the spec with 'VCL 0.7' to use it",
+ "V337": "{name} needs a whole number from -15 to 15, written in place, as its second argument (the digits)",
  "X001": "reldates() boundary values are whole numbers of days, got {value}",
  "X002": "dates() boundary values are yyyy-mm-dd dates, got {value}",
  "X003": "{kind}() boundary values are numbers, got {value}",

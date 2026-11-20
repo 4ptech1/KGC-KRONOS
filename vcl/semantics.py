@@ -260,6 +260,45 @@ def mod(a, b):
     return a - b * _math.floor(a / b)
 
 
+def _decimal_of(x):
+    """A number as Excel holds it for rounding: its 15 significant digits, as Excel shows it."""
+    from decimal import Decimal
+    return Decimal(format(float(x), ".15g"))
+
+
+def round_half(x, digits):
+    """S27 (VCL 0.7): ROUND(x, n) as Excel's worksheet ROUND: x to n digits (n from -15 to 15; -3 gives thousands),
+    a half rounded away from zero, on the 15-digit decimal Excel shows, not the binary double: ROUND(2.675, 2) is
+    2.68, where VBA's Round gives 2.67 (banker's rounding on the double). A whole result is written without ".0"."""
+    return _round(x, digits, up=False)
+
+
+def round_up(x, digits):
+    """S27 (VCL 0.7): ROUNDUP(x, n) as Excel's worksheet ROUNDUP: away from zero to n digits, on the same 15-digit
+    decimal: ROUNDUP(288364, -3) is 289000 (the estimate's selling price), ROUNDUP(-1.21, 1) is -1.3."""
+    return _round(x, digits, up=True)
+
+
+def _round(x, digits, up):
+    from decimal import ROUND_HALF_UP, ROUND_UP, Decimal
+    step = Decimal(1).scaleb(-int(digits))
+    out = _decimal_of(x).quantize(step, rounding=ROUND_UP if up else ROUND_HALF_UP) if digits >= 0 else \
+        (_decimal_of(x) / step).quantize(Decimal(1), rounding=ROUND_UP if up else ROUND_HALF_UP) * step
+    value = float(out)
+    return int(value) if value.is_integer() and abs(value) < 1e15 else value
+
+
+def smaller(a, b):
+    """S28 (VCL 0.7): MIN(a, b), the smaller of two numbers (MAX, larger(), the larger); numbers only, guarded like
+    any calculation. Two numbers that are equal give that number."""
+    return a if a <= b else b
+
+
+def larger(a, b):
+    """S28 (VCL 0.7): MAX(a, b), the larger of two numbers."""
+    return a if a >= b else b
+
+
 def needs_text_guard(text):
     """S17 (VCL 0.2): SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text. Excel
     would turn some text into something else when it is written to a cell: a number, date,

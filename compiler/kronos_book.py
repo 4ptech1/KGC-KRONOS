@@ -257,6 +257,9 @@ def test_call(k):
             break
         if isinstance(item, Tree) and item.data == "assertion":
             break
+        if isinstance(item, Tree) and item.data == "neg_number":   # -4
+            values.append("-" + str(item.children[0]))
+            continue
         values.append(str(item)[1:-1] if isinstance(item, Token) and item.type == "STRING" else str(item))
     return values, runs
 

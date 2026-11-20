@@ -35,6 +35,10 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S25 (VEP 0.4, D45) | `text_ok` | text that READ_TEXT and WRITE_TEXT handle: printable ASCII (codes 32 to 126), tabs and line breaks, at most 32,767 characters. Any other character would read or write differently with each PC's code page. |
 | S25 (VEP 0.4, D45) | `file_text` | what READ_TEXT gives for a file's contents: the text with one final line break (CR LF, or LF) dropped, as editors add one; None when it isn't text (S25), which READ_TEXT reports as Not text. |
 | S26 (D94) | `order` | what <, >, <= and >= mean on two values from the workbook (cells, array elements, dictionary values, text from TRIM, UPPER, & and the like): -1, 0 or 1. Two values IS_NUMBER accepts compare as numbers, numbers typed as text too, so "9" is below "10"; two dates compare as dates; anything else compares as text (S6), character by character, case counting (capitals first), so "W-10" is below "W-9". The compiler calls ForgeCompare for exactly these comparisons. |
+| S27 (VCL 0.7) | `round_half` | ROUND(x, n) as Excel's worksheet ROUND: x to n digits (n from -15 to 15; -3 gives thousands), a half rounded away from zero, on the 15-digit decimal Excel shows, not the binary double: ROUND(2.675, 2) is 2.68, where VBA's Round gives 2.67 (banker's rounding on the double). A whole result is written without ".0". |
+| S27 (VCL 0.7) | `round_up` | ROUNDUP(x, n) as Excel's worksheet ROUNDUP: away from zero to n digits, on the same 15-digit decimal: ROUNDUP(288364, -3) is 289000 (the estimate's selling price), ROUNDUP(-1.21, 1) is -1.3. |
+| S28 (VCL 0.7) | `smaller` | MIN(a, b), the smaller of two numbers (MAX, larger(), the larger); numbers only, guarded like any calculation. Two numbers that are equal give that number. |
+| S28 (VCL 0.7) | `larger` | MAX(a, b), the larger of two numbers. |
 
 ## Conformance cases
 
@@ -253,6 +257,43 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | 7.5, 2 | 1.5 | decimals kept (VBA's Mod rounds them away) |
 | 6, 3 | 0 | divides exactly |
 | 0, 5 | 0 | zero |
+
+### ROUND (VCL 0.7)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| 2.675, 2 | 2.68 | the decimal Excel shows, not the double (VBA's Round gives 2.67) |
+| 2.5, 0 | 3 | a half goes away from zero (VBA's Round gives 2) |
+| -2.5, 0 | -3 | away from zero below zero too |
+| 1234.5, -3 | 1000 | -3 rounds to thousands |
+| 1500, -3 | 2000 | a half thousand goes up |
+| 18.35496, 2 | 18.35 | 18 barg in kg/cm2, as the enquiry register |
+| 7, 2 | 7 | a whole number stays whole |
+
+### ROUNDUP (VCL 0.7)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| 288364, -3 | 289000 | the next thousand, as the estimate's selling price |
+| 289000, -3 | 289000 | already a thousand |
+| -1.21, 1 | -1.3 | away from zero |
+| 1.0001, 0 | 2 | any part goes up |
+| 0.30000000000000004, 1 | 0.3 | 0.30000000000000004 is 0.3 to Excel |
+
+### MIN (VCL 0.7)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| 3, 7 | 3 | the smaller |
+| -2, -5 | -5 | below zero |
+| 4, 4 | 4 | equal |
+
+### MAX (VCL 0.7)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| 3, 7 | 7 | the larger |
+| 2.5, 2.25 | 2.5 | decimals |
 
 ### Text written by SET_VALUE, WRITE_ROW and COPY_ROW (VCL 0.2)
 

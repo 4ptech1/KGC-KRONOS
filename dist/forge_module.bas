@@ -345,6 +345,26 @@ Public Function ForgeMod(ByVal a As Double, ByVal b As Double) As Double
     ForgeMod = a - b * Int(a / b)
 End Function
 
+' ---- S27, S28 (VCL 0.7): Excel's own ROUND and ROUNDUP, and MIN and MAX of two numbers ----
+
+Public Function ForgeRound(ByVal x As Double, ByVal digits As Long) As Double
+    ' Excel's worksheet ROUND, half away from zero on the 15-digit decimal. VBA's Round is banker's rounding.
+    ForgeRound = Application.WorksheetFunction.Round(x, digits)
+End Function
+
+Public Function ForgeRoundUp(ByVal x As Double, ByVal digits As Long) As Double
+    ' Excel's worksheet ROUNDUP: away from zero to digits places; -3 gives the next thousand.
+    ForgeRoundUp = Application.WorksheetFunction.RoundUp(x, digits)
+End Function
+
+Public Function ForgeMin(ByVal a As Double, ByVal b As Double) As Double
+    If a <= b Then ForgeMin = a Else ForgeMin = b
+End Function
+
+Public Function ForgeMax(ByVal a As Double, ByVal b As Double) As Double
+    If a >= b Then ForgeMax = a Else ForgeMax = b
+End Function
+
 ' ---- S9: COL matches headers ignoring case, extra spaces and line breaks ----
 
 Public Function ForgeHeaderKey(ByVal v As Variant) As String

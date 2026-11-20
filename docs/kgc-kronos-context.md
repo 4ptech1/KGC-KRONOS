@@ -3303,6 +3303,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D108 | 20 Nov 2026 | **Phase 2 of the KGC documents plan: the look-alike templates (`data/templates/`).** `make_templates.py` writes five invented practice copies with the layouts the survey found (D107): `wps_form.xlsx` (97 merged ranges, a logo and a weld sketch, a print area on two pages, three run rows and the heat-input check outside the print area, with one run over the limit and one PQR run outside the range), `estimation.xlsx` (the same 7 sheets and kinds of formulas: ring and plate weights, SUMIF and SUMIFS by scope, mark-ups, `ROUNDUP(...,-3)`), `enquiry_register.xlsx` (merged enquiry blocks, Shell OD and kg/cm2 formulas, two cell notes, dates as text), `estimate_template.docx` and `proposal_template.docx`. `tests/test_templates.py` checks each committed file against what the script makes today (every zip part, unzipped) and what each holds, and recomputes the rules from the cells. **My choices:** the script needs only the standard library and openpyxl (the pictures are PNGs it draws itself and adds as Excel stores them, no Pillow); the workbooks hold each formula's **saved value**, worked out by the script, so a reader of "the last values Excel saved" (plan Phase 4c) finds them, and LibreOffice made to recalculate gives the same 141 values (checked once by hand, not in CI, which has no LibreOffice); the zip dates and document properties are fixed so the files are the same on every run. **The Word mark-up** (README.md): `{{Name}}` fields anywhere, the header and footer included, one of them split over two runs on purpose as Word often stores typing; a repeated row or column is a row or column of fields that the recipe names; a repeated or optional section lies between the paragraphs `{{BEGIN Name}}` and `{{END Name}}`, may hold its own repeated row, and loses its marker paragraphs when filled. VCL 0.7's DOCUMENT (part 3f) is designed on this mark-up. `.gitignore` lets `data/templates/*.xlsx` in, as for the demo. | Tests need the real layouts without the real files (D105); fixed bytes make "the file is what the script makes" checkable; saved values let a workbook be read as Excel left it. |
 | D109 | 20 Nov 2026 | **VEP 0.7, KGC's own documents (`docs/vep-0.7-documents.md`): the design of Phase 3 of the KGC documents plan.** Built from the survey (D107) and the look-alike templates (D108), in seven parts, each its own PR: 3a template FIXTUREs (`FIXTURE <file> template=<name>`, read with the standard library, formulas kept with their saved values); 3b merged cells (a write inside a merged range that is not its top-left cell stops the run, `MERGE`, the `MERGED` assertion, row ops refused on a sheet with merged ranges); 3c `ROUND`, `ROUNDUP`, `PI`, `MIN`, `MAX` as Excel computes them (`TEXT` stays off the SET_FORMULA allowlist); 3d two workbooks (`TEST ... read=<file>`, a read-only Workbook argument whose formula cells give their saved values, KRONOS Offline only); 3e `AI_TEXT("...")`, listed for a person to check; 3f the `DOCUMENT` kind for Word (TEMPLATE, FIELD, REPEAT row, column or section, from a range or from values written in place, `match=` for a repeat inside a section, KEEP for an optional section, `NUMBER_TEXT` with the Indian grouping and `DATE_TEXT`, TEST assertions on the filled document; KRONOS Offline only); 3g the switch of spec.md and the prompt. Every 0.6 spec stays valid in 0.7 and gives the same results (E16). **My conservative choices:** reading a formula cell still stops a TEST (R009), even in a template, because a recipe that wrote cells can't know what Excel would recalculate; the only exception is a workbook nothing can write (3d's read workbook, a DOCUMENT's workbooks), where Excel's saved value is the truth; anything Excel or Word would do silently with lost data (a value under a merge, a row op cutting a merged block) stops the run instead; a DOCUMENT and a two-workbook recipe make no VBA. | The survey's jobs need these parts; each is proven on look-alikes before the prompt teaches it, as for every earlier version. |
 | D110 | 20 Nov 2026 | **VCL 0.7 part 3a: template FIXTUREs (E16).** `compiler/vcl_template.py` reads a look-alike template with the standard library (`zipfile`, `xml.etree`), so neither the toolchain nor KRONOS Offline's page needs openpyxl for it; `Formula` moves to `vcl_fixtures.py` (still importable from `vcl_interp`) and gains the saved value, which takes no part in comparing two formulas; `Sheet` keeps merged ranges (used from part 3b). The line parser makes one FIXTURE per template sheet with its row-1 cells as headers, so every TEST check that names a sheet or a header works unchanged; the spec's own FIXTURE rules (one-word sheet names, columns in order, unique headers) don't apply to a template's sheets. In Excel, `forge_fixtures.bas` writes the values (text with the `'` guard, numbers with an exponent through `Val`), then the formulas, number formats, fills and merges. `tests/data/template_wps.vcl` sets the revision and date on both pages of the WPS look-alike: it validates, its TESTs pass, the compiler's VBA ends where the interpreter does in the simulator, and its 13 mutants are all caught. **Known, for plan Phase 4:** KRONOS.exe and KRONOS Offline bundle nothing from `data/` (a guard of their tests), so the reader finds the templates from the repo checkout, and a recipe with a template FIXTURE is refused there ("there is no data/templates/..."); plan Phase 4 (KRONOS Offline version 6) decides how they ship. | Tests on the real layouts, read the same way everywhere. |
+| D111 | 20 Nov 2026 | **VCL 0.7 part 3c: ROUND, ROUNDUP, MIN and MAX (S27, S28).** Value functions with Excel's meaning: `ROUND(x, n)` half away from zero and `ROUNDUP(x, n)` away from zero, both on the 15-digit decimal Excel shows (`ROUND(2.675, 2)` is 2.68, where VBA's Round gives 2.67), n a whole number from -15 to 15 written in place (`-3` gives thousands, the estimate's selling price); `MIN(a, b)` and `MAX(a, b)` of two numbers. Numbers only, guarded like any calculation (rule 15, the type checker's `Num!`); VCL 0.7 only. ForgeLib's `ForgeRound` and `ForgeRoundUp` call Excel's own `Application.WorksheetFunction.Round` and `RoundUp`, so the macro rounds exactly as the workbook's formulas do; the simulator gives `WorksheetFunction` those two, with `semantics.py`'s meaning; 17 conformance cases, so the ForgeLib self-test has 258. **Left out:** `PI()`, planned in the VEP: the ring-weight formulas that use it are Excel formulas already (SET_FORMULA allows PI), no job computes a weight inside a recipe, and Excel's PI() and Python's pi agree only to 15 digits, so a recipe value could differ from Excel's in the last digit. `tests/data/rule_functions.vcl` fills kg/cm2 and rounded prices: proven in every stage, 17 of 17 mutants caught. **A bug found and fixed:** a negative number passed in a TEST call (`call=P(Out, 2.5, -4)`), which the grammar always allowed, stopped the interpreter and the simulator and showed as text in KRONOS Offline's defaults; all three now read it as the number. | The survey's rules (kg/cm2, prices to the next thousand) as Excel computes them; nothing a recipe doesn't need. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -3343,6 +3344,10 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S25 (VEP 0.4, D45) | `text_ok` | text that READ_TEXT and WRITE_TEXT handle: printable ASCII (codes 32 to 126), tabs and line breaks, at most 32,767 characters. Any other character would read or write differently with each PC's code page. |
 | S25 (VEP 0.4, D45) | `file_text` | what READ_TEXT gives for a file's contents: the text with one final line break (CR LF, or LF) dropped, as editors add one; None when it isn't text (S25), which READ_TEXT reports as Not text. |
 | S26 (D94) | `order` | what <, >, <= and >= mean on two values from the workbook (cells, array elements, dictionary values, text from TRIM, UPPER, & and the like): -1, 0 or 1. Two values IS_NUMBER accepts compare as numbers, numbers typed as text too, so "9" is below "10"; two dates compare as dates; anything else compares as text (S6), character by character, case counting (capitals first), so "W-10" is below "W-9". The compiler calls ForgeCompare for exactly these comparisons. |
+| S27 (VCL 0.7) | `round_half` | ROUND(x, n) as Excel's worksheet ROUND: x to n digits (n from -15 to 15; -3 gives thousands), a half rounded away from zero, on the 15-digit decimal Excel shows, not the binary double: ROUND(2.675, 2) is 2.68, where VBA's Round gives 2.67 (banker's rounding on the double). A whole result is written without ".0". |
+| S27 (VCL 0.7) | `round_up` | ROUNDUP(x, n) as Excel's worksheet ROUNDUP: away from zero to n digits, on the same 15-digit decimal: ROUNDUP(288364, -3) is 289000 (the estimate's selling price), ROUNDUP(-1.21, 1) is -1.3. |
+| S28 (VCL 0.7) | `smaller` | MIN(a, b), the smaller of two numbers (MAX, larger(), the larger); numbers only, guarded like any calculation. Two numbers that are equal give that number. |
+| S28 (VCL 0.7) | `larger` | MAX(a, b), the larger of two numbers. |
 
 #### Conformance cases
 
@@ -3561,6 +3566,43 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | 7.5, 2 | 1.5 | decimals kept (VBA's Mod rounds them away) |
 | 6, 3 | 0 | divides exactly |
 | 0, 5 | 0 | zero |
+
+##### ROUND (VCL 0.7)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| 2.675, 2 | 2.68 | the decimal Excel shows, not the double (VBA's Round gives 2.67) |
+| 2.5, 0 | 3 | a half goes away from zero (VBA's Round gives 2) |
+| -2.5, 0 | -3 | away from zero below zero too |
+| 1234.5, -3 | 1000 | -3 rounds to thousands |
+| 1500, -3 | 2000 | a half thousand goes up |
+| 18.35496, 2 | 18.35 | 18 barg in kg/cm2, as the enquiry register |
+| 7, 2 | 7 | a whole number stays whole |
+
+##### ROUNDUP (VCL 0.7)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| 288364, -3 | 289000 | the next thousand, as the estimate's selling price |
+| 289000, -3 | 289000 | already a thousand |
+| -1.21, 1 | -1.3 | away from zero |
+| 1.0001, 0 | 2 | any part goes up |
+| 0.30000000000000004, 1 | 0.3 | 0.30000000000000004 is 0.3 to Excel |
+
+##### MIN (VCL 0.7)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| 3, 7 | 3 | the smaller |
+| -2, -5 | -5 | below zero |
+| 4, 4 | 4 | equal |
+
+##### MAX (VCL 0.7)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| 3, 7 | 7 | the larger |
+| 2.5, 2.25 | 2.5 | decimals |
 
 ##### Text written by SET_VALUE, WRITE_ROW and COPY_ROW (VCL 0.2)
 
@@ -4083,6 +4125,26 @@ End Function
 Public Function ForgeMod(ByVal a As Double, ByVal b As Double) As Double
     ' Excel's MOD: the sign of b, decimals kept. VBA's Mod rounds first. b = 0 raises error 11.
     ForgeMod = a - b * Int(a / b)
+End Function
+
+' ---- S27, S28 (VCL 0.7): Excel's own ROUND and ROUNDUP, and MIN and MAX of two numbers ----
+
+Public Function ForgeRound(ByVal x As Double, ByVal digits As Long) As Double
+    ' Excel's worksheet ROUND, half away from zero on the 15-digit decimal. VBA's Round is banker's rounding.
+    ForgeRound = Application.WorksheetFunction.Round(x, digits)
+End Function
+
+Public Function ForgeRoundUp(ByVal x As Double, ByVal digits As Long) As Double
+    ' Excel's worksheet ROUNDUP: away from zero to digits places; -3 gives the next thousand.
+    ForgeRoundUp = Application.WorksheetFunction.RoundUp(x, digits)
+End Function
+
+Public Function ForgeMin(ByVal a As Double, ByVal b As Double) As Double
+    If a <= b Then ForgeMin = a Else ForgeMin = b
+End Function
+
+Public Function ForgeMax(ByVal a As Double, ByVal b As Double) As Double
+    If a >= b Then ForgeMax = a Else ForgeMax = b
 End Function
 
 ' ---- S9: COL matches headers ignoring case, extra spaces and line breaks ----
@@ -5677,7 +5739,7 @@ Run this only when you choose; nothing waits for it. It takes about 15 minutes.
 
 **What it proves:**
 1. ForgeLib, the VBA runtime every generated macro calls, behaves in Excel 2016 the way our
-   Python reference says (241 cases).
+   Python reference says (258 cases).
 2. The router spec (task_12, RouteJobPacks) does in Excel what its TESTs say.
 
 **Why it's safe:**
@@ -5727,11 +5789,11 @@ here.
 **5. Run the self-test.** Go back to Excel (click its window), press **Alt+F8**, click
 **ForgeSelfTest**, then **Run**.
 *Expected:*
-- A message says `ForgeLib self-test: 241 of 241 cases pass.`
+- A message says `ForgeLib self-test: 258 of 258 cases pass.`
 - A new sheet, ForgeSelfTest, has one row per case.
 
 Click cell **H4** on that sheet, press **Ctrl+C**, and paste it to Claude. It looks like
-`SELFTEST 241/241 FAILED: none`.
+`SELFTEST 258/258 FAILED: none`.
 
 **6. Run the router pilot.** Press **Alt+F8**, click **ForgePilotRun**, then **Run**.
 (If a message says it runs only in a new, empty workbook, this workbook has something else in it: go back to step 1
@@ -5776,7 +5838,7 @@ Orchestrator prompt, so Boss pastes it once.
 | --- | --- | --- |
 | 3a | `FIXTURE <file> template=<name>`: a practice workbook from a template, with formulas and their saved values, merged cells and number formats | everywhere |
 | 3b | merged cells: writing inside a merged range, `MERGE`, the `MERGED` assertion | everywhere |
-| 3c | `ROUND`, `ROUNDUP`, `PI`, `MIN`, `MAX` as value functions; `TEXT` stays refused in SET_FORMULA | everywhere |
+| 3c | `ROUND`, `ROUNDUP`, `MIN`, `MAX` as value functions; `TEXT` stays refused in SET_FORMULA | everywhere |
 | 3d | two workbooks: `TEST ... read=<file>`, a read-only Workbook argument whose formulas give their saved values | KRONOS Offline only |
 | 3e | `AI_TEXT("...")`: text the AI wrote, listed for a person to check | everywhere |
 | 3f | `DOCUMENT`, the Word kind: fields, repeated rows, columns and sections, optional sections | KRONOS Offline only |
@@ -5833,12 +5895,13 @@ The rules of the survey (section 6) that VCL can't compute today:
 | --- | --- |
 | `ROUND(<x>, <n>)` | x rounded to n digits, a half away from zero, n from -15 to 15 written in place; `ROUND(1234.5, -3)` is 1000 |
 | `ROUNDUP(<x>, <n>)` | x rounded away from zero to n digits; `ROUNDUP(288364, -3)` is 289000 (the estimate's selling price) |
-| `PI()` | 3.14159265358979 |
 | `MIN(<a>, <b>)`, `MAX(<a>, <b>)` | the smaller or larger of two numbers |
 
-Numbers only, guarded like any calculation (rule 15). Excel rounds the decimal it shows, not the binary double, so
+`PI()` was planned and left out (D111): the weight formulas that use it are Excel formulas already (SET_FORMULA
+allows PI), and no job computes a weight in a recipe. Numbers only, guarded like any calculation (rule 15). Excel rounds the decimal it shows, not the binary double, so
 `ROUND(2.675, 2)` is 2.68: `semantics.py` rounds the value's 15-digit decimal form, and ForgeLib calls Excel's own
-`WorksheetFunction.Round` and `RoundUp`. `TEXT` stays off the SET_FORMULA allowlist: the WPS's `TEXT(R33,"0.00")`
+`WorksheetFunction.Round` and `RoundUp` (the simulator gives them `semantics.py`'s meaning). The digits are a whole
+number from -15 to 15 written in place. `TEXT` stays off the SET_FORMULA allowlist: the WPS's `TEXT(R33,"0.00")`
 formulas are already in the template, and a recipe that needs a range as text builds it with `&` and `ROUND`.
 
 ##### 3d. Two workbooks (KRONOS Offline only)
