@@ -104,6 +104,7 @@ class Test:
     args: list
     runs: int
     assertion: str
+    read: str = ""   # VCL 0.7 (D114): a second FIXTURE workbook the TEST opens read-only
 
 
 @dataclass
@@ -241,7 +242,7 @@ FOLDER_RE = re.compile(r"(?P<file>\S+)\s+folder=(?P<folder>\S+)(?:\s+files=(?P<f
                        r"(?:\s+locked=(?P<locked>\S+))?")
 FILE_ENTRY_RE = re.compile(r"(?P<path>[^:\"]+)(?::(?:(?P<size>\d+)|(?P<text>\"(?:[^\"]|\"\")*\")))?")
 CALL_HEAD_RE = re.compile(r"(\w+)\(")
-TEST_RE = re.compile(r"fixture=(?P<fixture>\S+)\s+call=(?P<proc>[A-Za-z_][\w.]*)\((?P<args>[^()]*)\)"
+TEST_RE = re.compile(r"fixture=(?P<fixture>\S+)(?:\s+read=(?P<read>\S+))?\s+call=(?P<proc>[A-Za-z_][\w.]*)\((?P<args>[^()]*)\)"
                      r"(?:\s+runs=(?P<runs>\S+))?\s+assert=(?P<assertion>.+)")
 SIG_RE = re.compile(r"(?P<module>[A-Za-z_]\w*)\.(?P<proc>[A-Za-z_]\w*)\((?P<params>[^()]*)\)"
                     r"(?:\s+As\s+(?P<ret>\w+))?")
@@ -596,7 +597,7 @@ def _test(spec, n, value):
         else:
             spec.error(n, coded(f"runs= must be a whole number of 1 or more, got '{m['runs']}'", "V039"))
     args = [a.strip() for a in split_top(m["args"], ",")] if m["args"].strip() else []
-    spec.tests.append(Test(n, m["fixture"], m["proc"], args, runs, m["assertion"].strip()))
+    spec.tests.append(Test(n, m["fixture"], m["proc"], args, runs, m["assertion"].strip(), m["read"] or ""))
 
 
 def _sig(spec, n, value):

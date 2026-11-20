@@ -98,7 +98,7 @@ TEST     fixture=wps_new_01.xlsx read=wps_old_01.xlsx call=MakeWps(wps_old_01.xl
   Writes already go only through `$sheet` arguments (rule 20), so nothing in it can be written.
 - Because nothing in the read workbook changes, reading one of its formula cells gives the **saved value** (Excel's
   last calculation), the one exception to R009. KRONOS Offline will refuse a formula with no saved value (plan 4c).
-- The validator marks a spec with a `read=` TEST "KRONOS Offline only" (a note, not a problem); the compiler refuses it
+- The validator marks a spec with a `read=` TEST "KRONOS Offline only" (a warning, once); the compiler refuses it
   with that message, so `vclc build` and KRONOS.exe never make a .bas that would need a second workbook open.
 
 ## 3e. AI_TEXT

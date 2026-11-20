@@ -151,6 +151,9 @@ def check_text(text, name="spec", today=None, module=None):
         out.skipped = "a BUILD before VCL 0.5 runs no TESTs (R044)"
         return out
     trees = [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]
+    if any(k.get("read") for k in spec["keys"]):
+        out.skipped = "KRONOS Offline only: a TEST reads a second workbook, so there is no VBA (D114)"
+        return out
     task, _, keys = entry_of(spec)
     proc = next(k["tree"] for k in task["keys"] if k["key"] == "PROC").children[0]
     if module is None:

@@ -349,6 +349,11 @@ message, `{...}` stands for the part that varies.
 | V338 | error | AI_TEXT needs one "quoted" text, written in place | validator.py |
 | V339 | error | {name} is VCL 0.7: start the spec with 'VCL 0.7' to use it | validator.py |
 | V340 | error | MERGED is VCL 0.7: start the spec with 'VCL 0.7' to use it | validator.py |
+| V341 | error | read= is VCL 0.7: start the spec with 'VCL 0.7' to use it | validator.py |
+| V342 | error | read={test.read} is the TEST's own workbook: read= names a second FIXTURE file | validator.py |
+| V343 | error | TEST reads {test.read}, but no FIXTURE line builds it | validator.py |
+| V344 | error | KRONOS Offline only: a TEST reads a second workbook (read=), so no macro is made for this spec until macros may open a second workbook (D36, D114) | validator.py |
+| V345 | error | ${decl.name} is the workbook the TEST reads (read={test.read}): it is read-only, so no MODIFIES line may name it | validator.py |
 
 ## G: grammar
 
@@ -512,6 +517,9 @@ message, `{...}` stands for the part that varies.
 | R054 | error | MERGE needs two or more cells, got {_letters(c1)}{r1} | vcl_interp.py |
 | R055 | error | MERGE {_letters(c1)}{r1}:{_letters(c2)}{r2} overlaps the merged range {_letters(m[1])}{m[0]}:{_letters(m[3])}{m[2]} | vcl_interp.py |
 | R056 | error | MERGE {_letters(c1)}{r1}:{_letters(c2)}{r2}: {_letters(c)}{r} holds a value, which Excel would drop | vcl_interp.py |
+| R057 | error | {sh.name}!{_letters(c)}{r} holds a formula ({v.text}) with no saved value: open the workbook in Excel and save it, so the value is there | vcl_interp.py |
+| R058 | error | TEST reads {read}, but no FIXTURE line builds it | vcl_interp.py |
+| R059 | error | the workbook the TEST reads ({read}) changed on sheet {name} | vcl_interp.py |
 
 ## K: KRONOS engine
 

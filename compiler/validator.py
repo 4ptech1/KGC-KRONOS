@@ -1356,8 +1356,24 @@ class TaskChecker:
         if len(test.args) != len(spec.args):
             self.error(coded(f"TEST passes {len(test.args)} argument{'s' if len(test.args) != 1 else ''}, "
                        f"but ARGS has {len(spec.args)}", "V197"))
-        elif sheets is not None:
+        if test.read:   # VCL 0.7 (D114): a second workbook, opened read-only
+            if not self.at_least("VCL 0.7"):
+                self.error(coded("read= is VCL 0.7: start the spec with 'VCL 0.7' to use it", "V341"))
+            if test.read == test.fixture:
+                self.error(coded(f"read={test.read} is the TEST's own workbook: read= names a second FIXTURE file", "V342"))
+            elif test.read not in files:
+                self.error(coded(f"TEST reads {test.read}, but no FIXTURE line builds it", "V343"))
+            if not self.in_build and not getattr(self, "offline_noted", False):
+                self.offline_noted = True
+                self.warning(coded("KRONOS Offline only: a TEST reads a second workbook (read=), so no macro is made "
+                                   "for this spec until macros may open a second workbook (D36, D114)", "V344"))
+        if len(test.args) == len(spec.args) and sheets is not None:
             for decl, value in zip(spec.args, test.args):
+                if decl.type == "Workbook" and test.read and value == test.read:   # the read workbook (D114)
+                    if decl.name in self.modifies or decl.name in self.modifies_sheets:
+                        self.error(coded(f"${decl.name} is the workbook the TEST reads (read={test.read}): it is read-only, "
+                                         "so no MODIFIES line may name it", "V345"))
+                    continue
                 if decl.type == "Workbook":   # VCL 0.4 (D40): the workbook is the TEST's fixture file
                     if value != test.fixture:
                         self.error(coded(f"TEST passes {value} for ${decl.name}, a Workbook: pass this TEST's "

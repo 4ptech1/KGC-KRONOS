@@ -291,6 +291,11 @@ def copy_file(fs, src, dst):
 def value(sh, r, c):
     """A cell's value for an op. A formula has no value here: only an Excel run can prove what it gives."""
     v = sh.get(r, c)
+    if isinstance(v, Formula) and sh.read_only:   # D114: nothing can change a workbook read with read=, so Excel's
+        if v.saved is None:                        # saved value is the cell's value
+            raise VclError(coded(f"{sh.name}!{_letters(c)}{r} holds a formula ({v.text}) with no saved value: open the "
+                                 "workbook in Excel and save it, so the value is there", "R057"))
+        return v.saved
     if isinstance(v, Formula):
         raise VclError(coded(f"{sh.name}!{_letters(c)}{r} holds a formula ({v.text}), which the interpreter can't "
                        "calculate: a TEST checks it with FORMULA(...)", "R009"))
@@ -1429,13 +1434,22 @@ def run_tests(text, today=None):
             raise VclError(coded(f"TEST uses fixture {fixture}, but no FIXTURE line builds it", "R047"))
         book = {name: sh.snapshot() for name, sh in books.get(fixture, {}).items()}
         before = {name: sh.snapshot() for name, sh in book.items()}
+        read = k.get("read", "")   # VCL 0.7 (D114): a second workbook, read-only
+        if read and read not in books:
+            raise VclError(coded(f"TEST reads {read}, but no FIXTURE line builds it", "R058"))
+        read_book = {name: sh.snapshot() for name, sh in books.get(read, {}).items()} if read else {}
+        for sh in read_book.values():
+            sh.read_only = True
+        read_before = {name: sh.snapshot() for name, sh in read_book.items()}
         fs = systems[fixture].snapshot()
         fs_before = fs.snapshot()
         params = [str(p.children[0]) for kk in spec["keys"] if kk["key"] == "ARGS" for p in kk["tree"].children]
         wb = Book(book)   # THIS_BOOK, ACTIVE_BOOK and every Workbook argument: this TEST's fixture file
         bound, book_args = {}, []
         for pname, v in zip(params, call_vals):
-            if isinstance(v, Token) and v.type == "FILENAME":   # VCL 0.4 (D40)
+            if isinstance(v, Token) and v.type == "FILENAME" and read and str(v) == read:   # D114: the read workbook
+                bound[pname] = Book(read_book)
+            elif isinstance(v, Token) and v.type == "FILENAME":   # VCL 0.4 (D40)
                 if str(v) != fixture:
                     raise VclError(coded(f"TEST passes {v} for ${pname}, but its fixture is {fixture}", "R048"))
                 bound[pname] = wb
@@ -1480,6 +1494,10 @@ def run_tests(text, today=None):
             roots = [bound[a] for a, kinds in modifies.items() if kinds.get("files") and isinstance(bound.get(a), str)]
             failed += file_unchanged_problems(roots, fs_before, fs, stopped_at_pre)
         failed += sandbox_length_problems(file_paths)
+        for name, sh in read_book.items():   # D114: the workbook a TEST reads never changes
+            old = read_before[name]
+            if (sh.cells, sh.fills, sh.formats, sorted(sh.merged)) != (old.cells, old.fills, old.formats, sorted(old.merged)):
+                failed.append(coded(f"the workbook the TEST reads ({read}) changed on sheet {name}", "R059"))
         state = {name: (sorted((rc, cell_text(v)) for rc, v in sh.cells.items()), sorted(sh.fills.items()),
                         sorted(sh.formats.items()))
                  for name, sh in book.items()}
