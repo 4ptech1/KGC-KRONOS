@@ -87,6 +87,7 @@ class Sheet:
         self.formats = {}  # (row, col) -> number format
         self.hidden = set()   # row numbers
         self.merged = []      # merged ranges, (row1, col1, row2, col2): a template FIXTURE's (D110)
+        self.read_only = False   # a sheet of the workbook a TEST reads (read=, D114): its formulas give saved values
         self.origins = None   # KRONOS Offline's upload (D87): (row, col) -> (sheet, row, col, keep_style) of the
         self.copy_of = None   # uploaded cell it came from, moved with the cells; None everywhere else. copy_of: the
                               # sheet COPY_SHEET copied this one from

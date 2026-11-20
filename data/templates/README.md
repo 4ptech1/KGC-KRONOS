@@ -10,13 +10,14 @@ They are made by `make_templates.py` (run `python data/templates/make_templates.
 | File | Look-alike of | What it has |
 | --- | --- | --- |
 | `wps_form.xlsx` | the WPS form (ISO 15609-1) | one sheet `WPS`: 97 merged ranges, a logo and a weld sketch, print area `A1:I50` on two pages, three run rows (29 to 31) with range formulas, and the heat-input check in `K24:AC31` outside the print area (k-factor `N25`, limit `N26`; run 3 is OVER LIMIT, run 2's PQR run is outside the WPS range) |
+| `wps_form_b.xlsx` | a second WPS on the same form (KGC's samples are two WPS) | the same layout with other numbers, PQR values and IDs (DM-WPS-105, DM-PQR-105), every run inside its limits: the old WPS a new one is made from (D114) |
 | `estimation.xlsx` | the cost estimation workbook | the same 7 sheets (Summary, Inputs, BOM-RM, Conversion, Hydrotest Options, Enq Summary, Assumptions & Clarif.) and the same kinds of formulas: ring and plate weights, SUMIF and SUMIFS by scope, mark-ups, `ROUNDUP(...,-3)` selling prices, the register's columns |
 | `enquiry_register.xlsx` | the marketing enquiry register | three enquiries: two with columns A to I merged over their item rows, one with a single item; Shell OD and kg/cm2 formulas; two cell notes; dates as text |
 | `estimate_template.docx` | the internal estimation sheet | fields, a repeated row, a repeated column, a repeated paragraph and a repeated section, a header with a logo and fields, a footer with page numbers |
 | `proposal_template.docx` | the technical proposal (Part A) | fields, repeated rows, a section repeated per item with a repeated row inside it, an optional section, a header with a logo |
 
 The workbooks hold each formula's value as Excel saves it (worked out by the script; LibreOffice, made to recalculate,
-gives the same 141 values), so a reader of "the last values saved by Excel" finds them.
+gives the same 168 values), so a reader of "the last values saved by Excel" finds them.
 
 ## How a Word template is marked up
 

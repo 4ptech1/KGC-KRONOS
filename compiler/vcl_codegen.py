@@ -29,6 +29,10 @@ KIND_OF = {"Long": "num", "Double": "num", "String": "text", "Boolean": "bool", 
 OBJECT_KINDS = {"obj", "dict", "coll"}
 
 
+OFFLINE_ONLY = ("KRONOS Offline only: this recipe reads a second workbook (a TEST with read=), and a macro may not open "
+                "a second workbook until March 2027 (D36, D114), so no VBA is made for it")
+
+
 class CompileError(Exception):
     pass
 
@@ -667,6 +671,8 @@ def compile_text(text, source_name=""):
         raise CompileError(f"spec doesn't parse: {problems[:3]}")
     if spec["kind"] != "TASK":
         raise CompileError("only TASK specs can be compiled by the MVP compiler")
+    if any(k.get("read") for k in spec["keys"]):   # VCL 0.7 (D114)
+        raise CompileError(OFFLINE_ONLY)
     found = Checker(spec).run()
     if found:
         raise CompileError(f"spec doesn't type-check: {found[:3]}")

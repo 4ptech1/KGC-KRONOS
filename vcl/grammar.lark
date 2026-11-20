@@ -38,7 +38,8 @@ fixture_value: FILENAME "sheet=" NAME "cols=" col_list "rows=" INT stale_opt? ("
              | FILENAME "folder=" NAME folder_files? folder_locked? -> folder_fixture   // VCL 0.3
              | FILENAME "template=" NAME -> template_fixture   // VCL 0.7: a look-alike in data/templates/ (D110)
 stale_opt: "stale=" INT
-test_value: "fixture=" FILENAME "call=" call_target "(" [call_arg ("," call_arg)*] ")" ("runs=" INT)? "assert=" assertion
+read_opt: "read=" FILENAME   // VCL 0.7 (D114): a second FIXTURE workbook the TEST opens read-only
+test_value: "fixture=" FILENAME read_opt? "call=" call_target "(" [call_arg ("," call_arg)*] ")" ("runs=" INT)? "assert=" assertion
 
 // ---------- BUILD key values ----------
 name_value: NAME

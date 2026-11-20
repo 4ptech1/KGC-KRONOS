@@ -6,6 +6,8 @@ documents, with the same layout as the forms the survey describes (docs/kgc-docu
 writes, next to this file:
   wps_form.xlsx           a WPS form: merged cells, a logo and a weld sketch, a print area, a page break, three run rows,
                           and the heat-input check outside the print area
+  wps_form_b.xlsx         a second WPS on the same form, with other numbers and PQR values (the old WPS a new one is
+                          made from, D114)
   estimation.xlsx         a cost estimate in the same 7 sheets, with the same kinds of formulas
   enquiry_register.xlsx   an enquiry register: an enquiry's first columns merged over its item rows, formulas, notes
   estimate_template.docx  an internal estimation sheet with {{fields}}, a repeated row, a repeated column and a repeated
@@ -35,7 +37,7 @@ from openpyxl.comments import Comment  # noqa: E402
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side  # noqa: E402
 from openpyxl.worksheet.pagebreak import Break  # noqa: E402
 
-FILES = ("wps_form.xlsx", "estimation.xlsx", "enquiry_register.xlsx", "estimate_template.docx",
+FILES = ("wps_form.xlsx", "wps_form_b.xlsx", "estimation.xlsx", "enquiry_register.xlsx", "estimate_template.docx",
          "proposal_template.docx")
 ZIP_DATE = (2026, 11, 20, 0, 0, 0)
 CORE = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
@@ -259,8 +261,21 @@ def excel_text_2dp(x):
     return f"{math.floor(x * 100 + 0.5) / 100:.2f}"
 
 
-def wps_form():
-    b = Book("WPS form (look-alike)")
+RUNS_B = [   # a second WPS on the same form, as KGC's two samples are (D114): other PQR values, every run in range
+    ("1 (root)", 80, 120, 10, 12, 60, 90, 90, 110, 10, 12, 75, 0.58),
+    ("2 (fill)", 130, 170, 11, 14, 70, 110, 140, 160, 12, 13, 95, 0.79),
+    ("3 (cap)", 140, 180, 12, 15, 80, 120, 150, 170, 13, 14, 100, 0.86),
+]
+WPS_IDS = {"a": ("DM-WPS-201", "DM-PQR-201", "PQR-201", RUNS), "b": ("DM-WPS-105", "DM-PQR-105", "PQR-105", RUNS_B)}
+
+
+def wps_form_b():
+    return wps_form("b")
+
+
+def wps_form(variant="a"):
+    wps_no, pqr_no, pqr_short, runs = WPS_IDS[variant]
+    b = Book("WPS form (look-alike)" if variant == "a" else "WPS form, second WPS (look-alike)")
     ws = b.sheet("WPS", first=True)
     for letter, width in zip("ABCDEFGHI", (24, 14, 14, 12, 12, 14, 14, 12, 12)):
         ws.column_dimensions[letter].width = width
@@ -290,8 +305,8 @@ def wps_form():
 
     row(4, "Company Name :", "Demo Fabricators Pvt Ltd", wide=True)
     row(5, "Company Address :", "Plot 12, Example Industrial Estate", wide=True)
-    row(6, "Welding Procedure Specification No. :", "DM-WPS-201", "Rev. R0 - first issue")
-    row(7, "WPQR No. :", "DM-PQR-201", "Certificate DM/2026/014")
+    row(6, "Welding Procedure Specification No. :", wps_no, "Rev. R0 - first issue")
+    row(7, "WPQR No. :", pqr_no, "Certificate DM/2026/014")
     row(8, "Welding Process :", "GTAW (141) - single process", wide=True)
     row(9, "Degree of mechanization :", "Manual", wide=True)
     row(10, "Mode of Metal Transfer :", "Not applicable", wide=True)
@@ -345,7 +360,7 @@ def wps_form():
                           "PQR HI calc. (max A, V)", "PQR run inside WPS range?")):
         b.put(ws, f"{col}28", head, bold=True, fill=HEAD_FILL)
 
-    for n, (run, i1, i2, u1, u2, v1, v2, pi1, pi2, pu1, pu2, pv, phi) in enumerate(RUNS):
+    for n, (run, i1, i2, u1, u2, v1, v2, pi1, pi2, pu1, pu2, pv, phi) in enumerate(runs):
         r = 29 + n
         ws.merge_cells(f"H{r}:I{r}")
         b.put(ws, f"A{r}", run)
@@ -381,7 +396,7 @@ def wps_form():
     # page 2
     ws.merge_cells("C37:E37")
     ws.merge_cells("F37:I37")
-    b.put(ws, "C37", "Actual (PQR-201)", bold=True)
+    b.put(ws, "C37", f"Actual ({pqr_short})", bold=True)
     b.put(ws, "F37", "Qualified / WPS range", bold=True)
     for r, label, actual, qualified in (
             (38, "Weld Deposited Thickness", "GTAW (141) = 12 mm", "Max. 24 mm"),
@@ -932,7 +947,7 @@ def proposal_template():
     return docx("Technical proposal (look-alike)", "".join(body), header, footer_with("QF-DM-009 Rev 1"))
 
 
-BUILDERS = {"wps_form.xlsx": wps_form, "estimation.xlsx": estimation, "enquiry_register.xlsx": enquiry_register,
+BUILDERS = {"wps_form.xlsx": wps_form, "wps_form_b.xlsx": wps_form_b, "estimation.xlsx": estimation, "enquiry_register.xlsx": enquiry_register,
             "estimate_template.docx": estimate_template, "proposal_template.docx": proposal_template}
 
 

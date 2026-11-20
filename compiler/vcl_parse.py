@@ -62,6 +62,18 @@ def fold_dedupe_cols(tree):
     return tree
 
 
+def split_read(tree):
+    """VCL 0.7 (D114): a TEST's read=<file> is kept beside the tree, not in it, so every reader of a TEST's
+    children (fixture, call, values, runs, assertion) sees the layout it always had. -> (tree, read file or "")."""
+    if tree is None or tree.data != "test_value":
+        return tree, ""
+    read = [c for c in tree.children if isinstance(c, Tree) and c.data == "read_opt"]
+    if not read:
+        return tree, ""
+    tree.children = [c for c in tree.children if not (isinstance(c, Tree) and c.data == "read_opt")]
+    return tree, str(read[0].children[0])
+
+
 def parser():
     global _parser
     if _parser is None:
@@ -115,7 +127,10 @@ def _parse_task(lines, first_no, problems, version):
         tree = None if key == "GOAL" else _parse_value(START[key], value, line_no, problems)   # GOAL: free text (D61)
         if key == "OP" and tree is not None:
             fold_dedupe_cols(tree)
+        tree, read = split_read(tree)
         entry = {"key": key, "line": line_no, "text": value, "tree": tree}
+        if read:
+            entry["read"] = read
         spec["keys"].append(entry)
         if key != "OP" or tree is None:
             continue
@@ -187,7 +202,8 @@ def _parse_lines(lines, first_no, problems, allow_build=True, want=None):
                 else:
                     value = raw[len(key):].lstrip(" ")
                     tree = None if key == "GOAL" else _parse_value(START[key], value, line_no, problems)
-                    head["keys"].append({"key": key, "line": line_no, "tree": tree})
+                    tree, read = split_read(tree)
+                    head["keys"].append({"key": key, "line": line_no, "tree": tree, **({"read": read} if read else {})})
         for a, b in zip(seps, seps[1:] + [len(lines)]):
             head["tasks"].append(_parse_lines(lines[a + 1:b], first_no + a + 1, problems,
                                               allow_build=False, want=version))
