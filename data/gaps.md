@@ -90,6 +90,24 @@ missing key and RETURN; the rows below stay as the record.
 | c145 | SET_FORMULA on a column range whose last row is known only at run time (same as c093, c127) | a loop with one CELL per row |
 | c146 | the number of visible rows in a Function (VISIBLE_COUNT is an assertion only, same as c097) | a counter that repeats FILTER's rule |
 
+## KGC documents (the survey, D107)
+
+What KRONOS needs for KGC's own documents and VCL 0.6 can't say. The jobs (W1 to P5) and the forms are in
+`docs/kgc-documents.md`; VCL 0.7 (`docs/kgc-documents-plan.md` Phase 3) answers these rows.
+
+| Jobs | Could not do | What a recipe can do today |
+| --- | --- | --- |
+| all | a FIXTURE that has a form's layout: merged cells, formulas, number formats, a picture, a print area | a FIXTURE of plain columns, which is not the form |
+| R1, R3 | write into a merged range, or merge a new enquiry block over its item rows | write the top-left cells and leave the merging to a person |
+| E1, R4, S1 | ROUND, ROUNDUP to a multiple (`-3`), PI, MIN and MAX as value functions | SET_FORMULA, so Excel computes them and no TEST sees the number |
+| W3 | `TEXT` in a SET_FORMULA formula (the WPS's `TEXT(R33,"0.00")`) | not allowed: `TEXT` is not on the allowlist |
+| W1, W4, R2 | read one workbook and write another | none (macros open no second workbook until March 2027, D36) |
+| E4, S3, P4 | mark a text as written by the AI, so a person checks it | an ASSUME line, which nobody sees in the workbook |
+| S1, S2, P1 to P5 | fill a Word document: fields, a row, a column or a whole section repeated per item, an optional section, the header and footer | none: VCL has no Word kind |
+| S1, S2 | write a number as text in the Indian grouping (`2,89,000`) | FORMAT numfmt on a cell, not in a text |
+| R1 | write a cell note (comment) | none |
+| P1 | page numbers in a contents table (they depend on Word's layout) | none: typed and checked by a person |
+
 ## Wording of the prompt to fix
 
 | Pair | Sentence | Problem |
