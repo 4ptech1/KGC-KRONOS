@@ -80,7 +80,7 @@ file back, proven by tests on look-alike practice files, with every AI-written t
 - Made by scripts beside them (the `docs/demo/` pattern), with a test that the files equal what the scripts make
   today (as `tests/test_demo.py`).
 
-### Phase 3: VCL 0.7 (a VEP first: `docs/vep-0.7-documents.md`, then one PR per part)
+### Phase 3: VCL 0.7 (a VEP first: `docs/vep-0.7-documents.md`, then one PR per part) - the VEP is done (D109)
 Every language change follows CLAUDE.md "Any VCL change means": spec.md and the prompt together, grammar, parser,
 validator, type checker, interpreter, compiler, ForgeLib, conformance cases, `docs/vcl-semantics.md`, tests,
 DECISIONS.md, `dist/forge_module.bas`; and `vclc sim` must still prove every spec.
