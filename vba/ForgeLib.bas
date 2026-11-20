@@ -447,8 +447,58 @@ Public Function ForgeNeedsTextGuard(ByVal s As String) As Boolean
     ForgeNeedsTextGuard = (t = "TRUE" Or t = "FALSE")
 End Function
 
+Public Sub ForgeMergeCheck(ByVal rng As Range)
+    ' D113: a value goes only to a merged range's top-left cell. Excel would refuse it elsewhere in the merged
+    ' range, or keep it where nobody sees it, so the run stops first. MergeCells is False when no cell is merged.
+    Dim c As Range
+    Dim m As Variant
+    m = rng.MergeCells
+    If Not IsNull(m) Then
+        If Not m Then Exit Sub
+    End If
+    For Each c In rng.Cells
+        If c.MergeCells Then
+            If c.Address <> c.MergeArea.Cells(1, 1).Address Then Err.Raise 1004, "ForgeMergeCheck", _
+                c.Address(False, False) & " is inside the merged range " & c.MergeArea.Address(False, False) & _
+                ": write its top-left cell"
+        End If
+    Next c
+End Sub
+
+Public Sub ForgeNoMerges(ByVal ws As Worksheet, ByVal opName As String)
+    ' D113: INSERT_ROW, DELETE_ROW, SORT, DEDUPE and FILTER would cut a merged block: refused on a sheet that has one.
+    Dim m As Variant
+    m = ws.UsedRange.MergeCells
+    If IsNull(m) Then m = True
+    If m Then Err.Raise 1004, "ForgeNoMerges", opName & " on " & ws.Name & ", which has merged cells"
+End Sub
+
+Public Sub ForgeMerge(ByVal rng As Range)
+    ' MERGE (D113): the same block again changes nothing; an overlap with another merged range, or a value outside
+    ' the top-left cell (Excel would drop it), stops the run before anything changes.
+    Dim c As Range
+    Dim m As Variant
+    If rng.Cells.CountLarge < 2 Then Err.Raise 1004, "ForgeMerge", "MERGE needs two or more cells"
+    m = rng.MergeCells
+    If Not IsNull(m) Then
+        If m Then
+            If rng.MergeArea.Address = rng.Address Then Exit Sub
+        End If
+    End If
+    If IsNull(m) Then m = True
+    If m Then Err.Raise 1004, "ForgeMerge", "MERGE " & rng.Address(False, False) & " overlaps a merged range"
+    For Each c In rng.Cells
+        If c.Address <> rng.Cells(1, 1).Address Then
+            If Not IsEmpty(c.Value) Then Err.Raise 1004, "ForgeMerge", _
+                "MERGE " & rng.Address(False, False) & ": " & c.Address(False, False) & " holds a value"
+        End If
+    Next c
+    rng.Merge
+End Sub
+
 Public Sub ForgeSetValue(ByVal target As Range, ByVal v As Variant)
     ' The ' prefix is hidden by Excel: the cell holds the text unchanged.
+    ForgeMergeCheck target
     If VarType(v) = vbString Then
         If ForgeNeedsTextGuard(v) Then
             target.Value = "'" & v
@@ -460,6 +510,7 @@ End Sub
 
 Public Sub ForgeWriteRow(ByVal ws As Worksheet, ByVal rowNo As Long, ByVal firstCol As Long, ByVal values As Variant)
     Dim i As Long
+    ForgeMergeCheck ws.Range(ws.Cells(rowNo, firstCol), ws.Cells(rowNo, firstCol + UBound(values) - LBound(values)))
     For i = LBound(values) To UBound(values)
         ForgeSetValue ws.Cells(rowNo, firstCol + i - LBound(values)), values(i)
     Next i
@@ -467,6 +518,7 @@ End Sub
 
 Public Sub ForgeCopyRow(ByVal src As Worksheet, ByVal srcRow As Long, ByVal dst As Worksheet, ByVal dstRow As Long, ByVal nCols As Long)
     Dim c As Long
+    If nCols >= 1 Then ForgeMergeCheck dst.Range(dst.Cells(dstRow, 1), dst.Cells(dstRow, nCols))
     For c = 1 To nCols
         ForgeSetValue dst.Cells(dstRow, c), src.Cells(srcRow, c).Value
     Next c
@@ -478,6 +530,7 @@ End Sub
 
 Public Sub ForgeSort(ByVal rng As Range, ByVal keyCol As Long, ByVal ascending As Boolean, ByVal hasHeader As Boolean)
     Dim minRows As Long
+    ForgeNoMerges rng.Worksheet, "SORT"
     If hasHeader Then minRows = 3 Else minRows = 2
     If rng.Rows.Count < minRows Then Exit Sub
     ' Every option is given (D51): Range.Sort reuses the sheet's last Orientation, OrderCustom and
@@ -494,6 +547,7 @@ Public Sub ForgeWriteArray(ByVal arr As Variant, ByVal topLeft As Range)
     Dim r As Long
     Dim c As Long
     out = arr
+    ForgeMergeCheck topLeft.Resize(UBound(out, 1) - LBound(out, 1) + 1, UBound(out, 2) - LBound(out, 2) + 1)
     For r = LBound(out, 1) To UBound(out, 1)
         For c = LBound(out, 2) To UBound(out, 2)
             If VarType(out(r, c)) = vbString Then
@@ -524,6 +578,7 @@ Public Sub ForgeSetFormula(ByVal rng As Range, ByVal f As String, ByVal r1c1 As 
         If c.NumberFormat = "@" Then Err.Raise 1004, "ForgeSetFormula", _
             "SET_FORMULA: " & c.Address(False, False) & " is formatted as Text, so Excel would keep the formula as text"
     Next c
+    ForgeMergeCheck rng
     If r1c1 Then
         rng.FormulaR1C1 = f
     Else
@@ -538,6 +593,7 @@ Public Sub ForgeFilter(ByVal rng As Range, ByVal col As Long, ByVal crit As Vari
     Dim ws As Worksheet
     Dim r As Long
     Set ws = rng.Worksheet
+    ForgeNoMerges ws, "FILTER"
     For r = rng.Row + 1 To rng.Row + rng.Rows.Count - 1
         ws.Rows(r).Hidden = Not ForgeSame(ws.Cells(r, col).Value, crit)
     Next r
@@ -545,6 +601,7 @@ End Sub
 
 Public Sub ForgeInsertRow(ByVal ws As Worksheet, ByVal rowNo As Long)
     ' INSERT_ROW (D36): a blank row with no fill and no number format, whatever the row above holds.
+    ForgeNoMerges ws, "INSERT_ROW"
     ws.Rows(rowNo).Insert
     ws.Rows(rowNo).ClearFormats
     ws.Rows(rowNo).Hidden = False   ' never hidden like a filtered row next to it (D42)
@@ -659,6 +716,7 @@ Public Function ForgeDedupe(ByVal rng As Range, ByVal cols As Variant, ByVal has
     Dim first As Long
     Dim r As Long
     Dim i As Long
+    ForgeNoMerges rng.Worksheet, "DEDUPE"
     Set seen = ForgeNewDict()
     seen.CompareMode = vbBinaryCompare   ' the keys are already lower case (ForgeRowKey, D48)
     If hasHeader Then first = 2 Else first = 1

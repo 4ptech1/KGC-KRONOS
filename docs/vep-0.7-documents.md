@@ -60,6 +60,8 @@ FIXTURE  wps_01.xlsx template=wps_form
 - `MERGE(<range>)` merges a block (two or more cells), with the whole sheet in MODIFIES. It stops the run when a cell
   other than the top-left holds a value (Excel would drop it) or when the block overlaps a merged range that is not the
   same block; merging the same block again does nothing, so a re-run is safe.
+- `BLOCK($ws, <row1>, <col1>, <row2>, <col2>)` is the block between two corners known only at run time (a new
+  enquiry's item rows), for MERGE and anything else that takes a range (D113: RANGE takes only a quoted A1 text).
 - Assertion `MERGED(<Sheet>!<range>)` is 1 when exactly that block is merged, else 0. The automatic unchanged-check also
   compares merged ranges.
 

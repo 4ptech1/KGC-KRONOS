@@ -144,6 +144,7 @@ class Book:
         new = self.add(name, after)
         new.cells, new.fills, new.formats = dict(src.cells), dict(src.fills), dict(src.formats)
         new.hidden = set(src.hidden)
+        new.merged = list(src.merged)
         if src.origins is not None:   # an uploaded sheet's copy (D87): its cells come from the same uploaded cells
             new.origins, new.copy_of = dict(src.origins), src.name
         return new
@@ -299,6 +300,52 @@ def value(sh, r, c):
 def cell_text(v):
     """A cell's text in the TEST state: a formula's own text, any other value as S6 text."""
     return v.text if isinstance(v, Formula) else S.text_of(v)
+
+
+def merge_of(sh, r, c):
+    """The merged range (row1, col1, row2, col2) that holds this cell, or None (VCL 0.7, D113)."""
+    for m in sh.merged:
+        if m[0] <= r <= m[2] and m[1] <= c <= m[3]:
+            return m
+    return None
+
+
+def check_write(sh, cells):
+    """D113: a value written inside a merged range must go to its top-left cell. Excel would refuse it, or keep the
+    value where nobody sees it, so the run stops (ForgeMergeCheck in VBA)."""
+    for r, c in cells:
+        m = merge_of(sh, r, c)
+        if m and (r, c) != (m[0], m[1]):
+            raise VclError(coded(f"{sh.name}!{_letters(c)}{r} is inside the merged range "
+                                 f"{_letters(m[1])}{m[0]}:{_letters(m[3])}{m[2]}: write its top-left cell "
+                                 f"{_letters(m[1])}{m[0]}", "R052"))
+
+
+def check_no_merges(sh, op):
+    """D113: a row op on a sheet with merged ranges would cut a merged block in Excel, so the run stops
+    (ForgeNoMerges in VBA)."""
+    if sh.merged:
+        raise VclError(coded(f"{op} on {sh.name}, which has merged cells: Excel would cut a merged block", "R053"))
+
+
+def merge(sh, r1, c1, r2, c2):
+    """MERGE (D113): merge a block of two or more cells. The same block again changes nothing (a re-run is safe);
+    a value outside the top-left cell (Excel would drop it) or an overlap with another merged range stops the run."""
+    block = (r1, c1, r2, c2)
+    if (r1, c1) == (r2, c2):
+        raise VclError(coded(f"MERGE needs two or more cells, got {_letters(c1)}{r1}", "R054"))
+    if block in sh.merged:
+        return
+    for m in sh.merged:
+        if not (m[2] < r1 or m[0] > r2 or m[3] < c1 or m[1] > c2):
+            raise VclError(coded(f"MERGE {_letters(c1)}{r1}:{_letters(c2)}{r2} overlaps the merged range "
+                                 f"{_letters(m[1])}{m[0]}:{_letters(m[3])}{m[2]}", "R055"))
+    for r in range(r1, r2 + 1):
+        for c in range(c1, c2 + 1):
+            if (r, c) != (r1, c1) and sh.get(r, c) is not None:
+                raise VclError(coded(f"MERGE {_letters(c1)}{r1}:{_letters(c2)}{r2}: {_letters(c)}{r} holds a value, "
+                                     "which Excel would drop", "R056"))
+    sh.merged.append(block)
 
 
 def delete_row(sh, row):
@@ -478,6 +525,10 @@ class Machine:
         if name == "USED_RANGE":
             sh = e(pos[0])
             return Rng(sh, 1, 1, sh.max_row(), sh.max_col())
+        if name == "BLOCK":   # VCL 0.7 (D113): from (row1, col1) to (row2, col2), corners in any order
+            sh = e(pos[0])
+            r1, c1, r2, c2 = (self.index(e(p)) for p in pos[1:5])
+            return Rng(sh, min(r1, r2), min(c1, c2), max(r1, r2), max(c1, c2))
         if name == "COL":
             sh = e(pos[0])
             return S.col([value(sh, 1, c) for c in range(1, sh.max_col() + 1)], e(pos[1]))
@@ -602,11 +653,17 @@ class Machine:
         elif name == "SET_VALUE":
             rng = self.target(pos[0])
             v = e(pos[1])
+            check_write(rng.sheet, rng.cells())
             for r, c in rng.cells():
                 rng.sheet.set(r, c, v)
+        elif name == "MERGE":   # VCL 0.7 (D113)
+            rng = self.target(pos[0])
+            merge(rng.sheet, rng.r1, rng.c1, rng.r2, rng.c2)
         elif name == "CLEAR":
             rng = self.target(pos[0])
             what = str(opts["what"]) if "what" in opts else "all"
+            if what in ("all", "contents"):
+                check_write(rng.sheet, rng.cells())
             for r, c in rng.cells():
                 if what in ("all", "contents"):
                     rng.sheet.set(r, c, None)
@@ -632,15 +689,19 @@ class Machine:
         elif name == "WRITE_ROW":
             sh, r = e(pos[0]), self.index(e(pos[1]))
             c = self.index(e(opts["col"])) if "col" in opts else 1
-            for i, v in enumerate([e(a) for a in pos[2:]]):
+            values = [e(a) for a in pos[2:]]
+            check_write(sh, [(r, c + i) for i in range(len(values))])
+            for i, v in enumerate(values):
                 sh.set(r, c + i, v)
         elif name == "COPY_ROW":
             src, r, dst, r2 = e(pos[0]), self.index(e(pos[1])), e(pos[2]), self.index(e(pos[3]))
             n = self.index(e(opts["cols"]))
+            check_write(dst, [(r2, c) for c in range(1, n + 1)])
             for c in range(1, n + 1):
                 dst.set(r2, c, value(src, r, c))
         elif name == "INSERT_ROW":   # a new empty row, no fill, no number format (D36)
             sh, row = e(pos[0]), self.index(e(pos[1]))
+            check_no_merges(sh, "INSERT_ROW")
             sh.cells = {(r + (r >= row), c): v for (r, c), v in sh.cells.items()}
             sh.fills = {(r + (r >= row), c): v for (r, c), v in sh.fills.items()}
             sh.formats = {(r + (r >= row), c): v for (r, c), v in sh.formats.items()}
@@ -653,15 +714,19 @@ class Machine:
             self.assign(str(opts["into"]), Arr(rng.r2 - rng.r1 + 1, rng.c2 - rng.c1 + 1, data))
         elif name == "WRITE_ARRAY":   # from the top-left cell of to=; text stays text (S17)
             arr, top = e(pos[0]), self.target(opts["to"])
+            check_write(top.sheet, [(top.r1 + r - 1, top.c1 + c - 1) for r in range(1, arr.rows + 1)
+                                    for c in range(1, arr.cols + 1)])
             for r in range(1, arr.rows + 1):
                 for c in range(1, arr.cols + 1):
                     top.sheet.set(top.r1 + r - 1, top.c1 + c - 1, arr.data.get((r, c)))
         elif name in ("LOG", "MSG"):
             self.messages.append((name, S.text_of(e(pos[0]))))
         elif name == "DELETE_ROW":
+            check_no_merges(e(pos[0]), "DELETE_ROW")
             delete_row(e(pos[0]), int(e(pos[1])))
         elif name == "DEDUPE":   # S21: keep the first row of each key, delete the later whole rows (D38)
             rng, cols = self.target(pos[0]), opts["cols"]
+            check_no_merges(rng.sheet, "DEDUPE")
             items = cols.children if isinstance(cols, Tree) and cols.data == "list_lit" else [cols]
             keys = [int(self.num(e(c))) for c in items]
             first = rng.r1 + (1 if str(opts.get("header", "yes")) == "yes" else 0)
@@ -688,10 +753,12 @@ class Machine:
             if any(rng.sheet.formats.get((r, c)) == "@" for r, c in cells):   # D48: Excel would keep it as text
                 raise VclError(coded("SET_FORMULA on a cell formatted as Text (@): Excel would store the formula as "
                                "text, not as a formula", "R022"))
+            check_write(rng.sheet, cells)
             for r, c in cells:
                 rng.sheet.set(r, c, Formula(str(pos[1])[1:-1].replace('""', '"'), r1c1))
         elif name == "FILTER":   # D42: below the range's first row, a row stays visible when SAME, else hidden
             rng, crit = self.target(pos[0]), e(opts["crit"])
+            check_no_merges(rng.sheet, "FILTER")
             col = self.index(e(opts["col"]))
             if col > EXCEL_COLS:
                 raise VclError(coded(f"Excel error 1004: FILTER col= column {col} is beyond column XFD", "R023"))
@@ -723,6 +790,7 @@ class Machine:
         elif name == "DICT_GET":
             self.assign(str(opts["into"]), e(pos[0]).get(e(pos[1])))
         elif name == "SORT":
+            check_no_merges(self.target(pos[0]).sheet, "SORT")
             self.sort(self.target(pos[0]), int(self.num(e(opts["key"]))),
                       str(opts.get("order", "asc")) == "asc", str(opts.get("header", "yes")) == "yes")
         elif name == "LIST_FILES":   # D44: names, S24 order; a Collection VAR
@@ -1022,6 +1090,10 @@ class Asserter:
             if fn == "COUNTA":   # a formula cell counts, as in Excel, without being calculated
                 sh, pts = self.cells(args[0], pre)
                 return sum(1 for r, c in pts if sh.get(r, c) is not None)
+            if fn == "MERGED":   # D113: 1 when exactly that block is merged
+                sh, pts = self.cells(args[0], pre)
+                (r1, c1), (r2, c2) = pts[0], pts[-1]
+                return 1 if (r1, c1, r2, c2) in sh.merged else 0
             if fn == "FORMULA":   # D43: the formula text as written, or "" when the cell holds none
                 sh, pts = self.cells(args[0], pre)
                 v = sh.get(*pts[0])
@@ -1131,7 +1203,7 @@ def modifies_of(spec):
 
 
 WRITE_OPS = {"SET_VALUE", "WRITE_ROW", "FORMAT", "CLEAR", "COPY_ROW", "INSERT_ROW", "DELETE_ROW", "SORT",
-             "WRITE_ARRAY", "SET_FORMULA", "DEDUPE", "FILTER", "ADD_SHEET", "COPY_SHEET"}
+             "WRITE_ARRAY", "SET_FORMULA", "DEDUPE", "FILTER", "ADD_SHEET", "COPY_SHEET", "MERGE"}
 
 
 def writes_anything(spec):
@@ -1243,6 +1315,7 @@ class TestResult:
     messages: list = field(default_factory=list)   # LOG and MSG texts of the last run (D36)
     hidden: dict = field(default_factory=dict)   # sheet -> the rows hidden after the last run (D42)
     texts: list = field(default_factory=list)    # (path below the sandbox, text) of every text file (D45)
+    merged: dict = field(default_factory=dict)   # sheet -> its merged ranges after the last run (D113)
 
 
 def files_of(fs):
@@ -1411,8 +1484,9 @@ def run_tests(text, today=None):
                         sorted(sh.formats.items()))
                  for name, sh in book.items()}
         hidden = {name: sorted(sh.hidden) for name, sh in book.items() if sh.hidden}
+        merged = {name: sorted(sh.merged) for name, sh in book.items() if sh.merged}
         results.append(TestResult(k["line"], not failed, result, len(log), failed, list(log), state, files_of(fs),
-                                   list(machine.messages), hidden, texts_of(fs)))
+                                   list(machine.messages), hidden, texts_of(fs), merged))
     return results
 
 

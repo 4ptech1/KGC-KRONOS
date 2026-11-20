@@ -213,6 +213,10 @@ class Gen:
                 return "ForgeRowRange(" + ", ".join(self.ex(p)[0] if i == 0 else self.as_num(p)[0] for i, p in enumerate(pos)) + ")"
             if name == "USED_RANGE":
                 return f"ForgeUsedRange({self.ex(pos[0])[0]})"
+            if name == "BLOCK":   # D113
+                ws = self.ex(pos[0])[0]
+                n = [self.as_num(p)[0] for p in pos[1:5]]
+                return f"{ws}.Range({ws}.Cells({n[0]}, {n[1]}), {ws}.Cells({n[2]}, {n[3]}))"
             if name == "RANGE":
                 return f"{self.ex(pos[0])[0]}.Range({self.ex(pos[1])[0]})"
         code, k = self.ex(t)
@@ -233,7 +237,7 @@ class Gen:
             return f"ForgeLastRow({e(0)}, {n(1)})", "num"
         if name == "LASTCOL":
             return f"ForgeLastCol({e(0)}, {n(1)})", "num"
-        if name in ("USED_RANGE", "ROW_RANGE", "RANGE"):
+        if name in ("USED_RANGE", "ROW_RANGE", "RANGE", "BLOCK"):
             return self.rng(t), "obj"
         if name == "TRIM":
             return f"ForgeTrim({e(0)})", "text"
@@ -341,7 +345,11 @@ class Gen:
         if name == "CLEAR":
             what = str(opts.get("what", "all"))
             method = {"all": "Clear", "contents": "ClearContents", "formats": "ClearFormats"}[what]
+            if what in ("all", "contents"):   # D113: a value is cleared from a merged range's top-left cell only
+                return [f"ForgeMergeCheck {self.rng(pos[0])}", f"{self.rng(pos[0])}.{method}"]
             return [f"{self.rng(pos[0])}.{method}"]
+        if name == "MERGE":   # VCL 0.7 (D113)
+            return [f"ForgeMerge {self.rng(pos[0])}"]
         if name == "FORMAT":
             target = self.rng(pos[0])
             out = []
@@ -365,8 +373,8 @@ class Gen:
             return out
         if name == "COPY_ROW":
             return [f"ForgeCopyRow {e(pos[0])}, {self.as_num(pos[1])[0]}, {e(pos[2])}, {self.as_num(pos[3])[0]}, {self.as_num(opts['cols'])[0]}"]
-        if name == "DELETE_ROW":
-            return [f"{e(pos[0])}.Rows({self.as_num(pos[1])[0]}).Delete"]
+        if name == "DELETE_ROW":   # D113: never on a sheet with merged cells
+            return [f'ForgeNoMerges {e(pos[0])}, "DELETE_ROW"', f"{e(pos[0])}.Rows({self.as_num(pos[1])[0]}).Delete"]
         if name == "INSERT_ROW":   # a blank row, whatever the row above holds (D36)
             return [f"ForgeInsertRow {e(pos[0])}, {self.as_num(pos[1])[0]}"]
         if name == "DICT_ADD":

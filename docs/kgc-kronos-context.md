@@ -1741,7 +1741,8 @@ Public Function BuildShortageList(ByVal bom As Worksheet, ByVal grn As Worksheet
 240       bomReq = ForgeCol(bom, "Required Qty")
 250       grnPart = ForgeCol(grn, "Part No")
 260       grnQty = ForgeCol(grn, "Received Qty")
-270       ForgeUsedRange(out).Clear
+270       ForgeMergeCheck ForgeUsedRange(out)
+271       ForgeUsedRange(out).Clear
 280       ForgeWriteRow out, 1, 1, Array("Part No", "Required", "Received", "Shortage", "Remark")
 290       For r = 2 To ForgeLastRow(grn, grnPart)
 300           If ((Not ForgeIsEmpty(grn.Cells(r, grnPart).Value)) And ForgeIsNumber(grn.Cells(r, grnQty).Value)) Then ForgeDictAdd received, ForgeTrim(grn.Cells(r, grnPart).Value), grn.Cells(r, grnQty).Value, "sum"
@@ -1954,7 +1955,8 @@ Public Function BuildWelderRepairRate(ByVal nde As Worksheet, ByVal out As Works
 230       cSeam = ForgeCol(nde, "Weld Seam No")
 240       cWelder = ForgeCol(nde, "Welder ID")
 250       cResult = ForgeCol(nde, "Result")
-260       ForgeUsedRange(out).Clear
+260       ForgeMergeCheck ForgeUsedRange(out)
+261       ForgeUsedRange(out).Clear
 270       ForgeWriteRow out, 1, 1, Array("Welder ID", "Seams Inspected", "Repairs", "Repair Rate")
 280       For r = 2 To ForgeLastRow(nde, cSeam)
 290           If ((Not ForgeIsEmpty(nde.Cells(r, cWelder).Value)) And (Not ForgeIsEmpty(nde.Cells(r, cResult).Value))) Then
@@ -2128,7 +2130,8 @@ Public Function BuildNdeSummary(ByVal rt As Worksheet, ByVal ut As Worksheet, By
 340       cMptRes = ForgeCol(mpt, "Result")
 350       cDptSeam = ForgeCol(dpt, "Weld Seam No")
 360       cDptRes = ForgeCol(dpt, "Result")
-370       ForgeUsedRange(out).Clear
+370       ForgeMergeCheck ForgeUsedRange(out)
+371       ForgeUsedRange(out).Clear
 380       ForgeWriteRow out, 1, 1, Array("Weld Seam No", "RT", "UT", "MPT", "DPT")
 390       For r = 2 To ForgeLastRow(rt, cRtSeam)
 400           If ForgeIsEmpty(rt.Cells(r, cRtSeam).Value) Then GoTo Next_39
@@ -2256,7 +2259,8 @@ Public Function ListWeldLogExceptions(ByVal weldLog As Worksheet, ByVal out As W
 200       cFit = ForgeCol(weldLog, "Fit-up")
 210       cVisual = ForgeCol(weldLog, "Visual")
 220       lastCol = ForgeLastCol(weldLog, 1)
-230       ForgeUsedRange(out).Clear
+230       ForgeMergeCheck ForgeUsedRange(out)
+231       ForgeUsedRange(out).Clear
 240       ForgeCopyRow weldLog, 1, out, 1, lastCol
 250       outRow = 2
 260       For r = 2 To ForgeLastRow(weldLog, cSeam)
@@ -2474,7 +2478,8 @@ Public Function BuildCallNoticeList(ByVal itp As Worksheet, ByVal out As Workshe
 200       cType = ForgeCol(itp, "Point Type")
 210       cStatus = ForgeCol(itp, "Inspection Status")
 220       lastCol = ForgeLastCol(itp, 1)
-230       ForgeUsedRange(out).Clear
+230       ForgeMergeCheck ForgeUsedRange(out)
+231       ForgeUsedRange(out).Clear
 240       ForgeCopyRow itp, 1, out, 1, lastCol
 250       outRow = 2
 260       For r = 2 To ForgeLastRow(itp, cStatus)
@@ -2625,12 +2630,14 @@ Public Function ReconcileConsumableStock(ByVal issues As Worksheet, ByVal inv As
 450           used = 0
 460           If ForgeDictExists(issued, batch) Then used = ForgeNum(ForgeDictGet(issued, batch))
 470           ForgeSetValue inv.Cells(r, vIssued), used
-480           inv.Cells(r, vRemark).ClearContents
+480           ForgeMergeCheck inv.Cells(r, vRemark)
+481           inv.Cells(r, vRemark).ClearContents
 490           If ForgeIsNumber(inv.Cells(r, vOpen).Value) Then
 500               ForgeSetValue inv.Cells(r, vBal), (ForgeNum(inv.Cells(r, vOpen).Value) - used)
 510               If ((ForgeNum(inv.Cells(r, vOpen).Value) - used) < 0) Then ForgeSetValue inv.Cells(r, vRemark), "Negative balance"
               Else
-530               inv.Cells(r, vBal).ClearContents
+530               ForgeMergeCheck inv.Cells(r, vBal)
+531               inv.Cells(r, vBal).ClearContents
 540               ForgeSetValue inv.Cells(r, vRemark), "Opening stock missing"
               End If
 Next_42:
@@ -2719,7 +2726,8 @@ Public Function BuildOpenNcrSummary(ByVal ncr As Worksheet, ByVal out As Workshe
 200       cDate_v = ForgeCol(ncr, "Issue Date")
 210       cStatus = ForgeCol(ncr, "Status")
 220       lastCol = ForgeLastCol(ncr, 1)
-230       ForgeUsedRange(out).Clear
+230       ForgeMergeCheck ForgeUsedRange(out)
+231       ForgeUsedRange(out).Clear
 240       ForgeCopyRow ncr, 1, out, 1, lastCol
 250       ForgeSetValue out.Cells(1, (lastCol + 1)), "Days Open"
 260       outRow = 2
@@ -2818,7 +2826,8 @@ Public Function BuildCalibrationDueList(ByVal cal As Worksheet, ByVal out As Wor
 190       cId = ForgeCol(cal, "Instrument ID")
 200       cDue = ForgeCol(cal, "Next Calibration Due")
 210       lastCol = ForgeLastCol(cal, 1)
-220       ForgeUsedRange(out).Clear
+220       ForgeMergeCheck ForgeUsedRange(out)
+221       ForgeUsedRange(out).Clear
 230       ForgeCopyRow cal, 1, out, 1, lastCol
 240       ForgeSetValue out.Cells(1, (lastCol + 1)), "Status"
 250       outRow = 2
@@ -3305,6 +3314,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D110 | 20 Nov 2026 | **VCL 0.7 part 3a: template FIXTUREs (E16).** `compiler/vcl_template.py` reads a look-alike template with the standard library (`zipfile`, `xml.etree`), so neither the toolchain nor KRONOS Offline's page needs openpyxl for it; `Formula` moves to `vcl_fixtures.py` (still importable from `vcl_interp`) and gains the saved value, which takes no part in comparing two formulas; `Sheet` keeps merged ranges (used from part 3b). The line parser makes one FIXTURE per template sheet with its row-1 cells as headers, so every TEST check that names a sheet or a header works unchanged; the spec's own FIXTURE rules (one-word sheet names, columns in order, unique headers) don't apply to a template's sheets. In Excel, `forge_fixtures.bas` writes the values (text with the `'` guard, numbers with an exponent through `Val`), then the formulas, number formats, fills and merges. `tests/data/template_wps.vcl` sets the revision and date on both pages of the WPS look-alike: it validates, its TESTs pass, the compiler's VBA ends where the interpreter does in the simulator, and its 13 mutants are all caught. **Known, for plan Phase 4:** KRONOS.exe and KRONOS Offline bundle nothing from `data/` (a guard of their tests), so the reader finds the templates from the repo checkout, and a recipe with a template FIXTURE is refused there ("there is no data/templates/..."); plan Phase 4 (KRONOS Offline version 6) decides how they ship. | Tests on the real layouts, read the same way everywhere. |
 | D111 | 20 Nov 2026 | **VCL 0.7 part 3c: ROUND, ROUNDUP, MIN and MAX (S27, S28).** Value functions with Excel's meaning: `ROUND(x, n)` half away from zero and `ROUNDUP(x, n)` away from zero, both on the 15-digit decimal Excel shows (`ROUND(2.675, 2)` is 2.68, where VBA's Round gives 2.67), n a whole number from -15 to 15 written in place (`-3` gives thousands, the estimate's selling price); `MIN(a, b)` and `MAX(a, b)` of two numbers. Numbers only, guarded like any calculation (rule 15, the type checker's `Num!`); VCL 0.7 only. ForgeLib's `ForgeRound` and `ForgeRoundUp` call Excel's own `Application.WorksheetFunction.Round` and `RoundUp`, so the macro rounds exactly as the workbook's formulas do; the simulator gives `WorksheetFunction` those two, with `semantics.py`'s meaning; 17 conformance cases, so the ForgeLib self-test has 258. **Left out:** `PI()`, planned in the VEP: the ring-weight formulas that use it are Excel formulas already (SET_FORMULA allows PI), no job computes a weight inside a recipe, and Excel's PI() and Python's pi agree only to 15 digits, so a recipe value could differ from Excel's in the last digit. `tests/data/rule_functions.vcl` fills kg/cm2 and rounded prices: proven in every stage, 17 of 17 mutants caught. **A bug found and fixed:** a negative number passed in a TEST call (`call=P(Out, 2.5, -4)`), which the grammar always allowed, stopped the interpreter and the simulator and showed as text in KRONOS Offline's defaults; all three now read it as the number. | The survey's rules (kg/cm2, prices to the next thousand) as Excel computes them; nothing a recipe doesn't need. |
 | D112 | 20 Nov 2026 | **VCL 0.7 part 3e: AI_TEXT.** `AI_TEXT("<text>")` is a text value meaning its quoted text, in the interpreter and in VBA; it marks words the AI wrote (a remark, an assumption, a query) that no TEST can prove right. Its argument is one quoted text written in place (an expression is refused), VCL 0.7 only. `validator.ai_texts(text)` lists every one with its line; `vclc check` prints them as notes ("written by the AI, not proven: check it"), never as problems, and KRONOS's proof carries them (`Proof.ai_texts`) for Review and Save (plan Phase 4d). It has no conformance case: it has no meaning beyond its text. **Fixed on the way:** the compiler wrote text beyond ASCII straight into the VBA, which the linter (rightly) refuses because the VBA editor can't hold it; KGC's forms are full of ° and –, so the compiler now writes such text as `ChrW(...)` pieces, as the fixture builder already did. `tests/data/ai_text_wps.vcl` writes two remarks on the WPS look-alike: proven in every stage, 9 of 9 mutants caught. | What can't be proven is shown, not hidden; the compiler change makes every non-ASCII text compile, not only AI_TEXT's. |
+| D113 | 20 Nov 2026 | **VCL 0.7 part 3b: merged cells.** The model keeps each sheet's merged ranges (a template's, D110). A value written inside a merged range must go to its top-left cell: SET_VALUE, WRITE_ROW, COPY_ROW, WRITE_ARRAY, SET_FORMULA and CLEAR of contents elsewhere in it stop the run before anything is written (FORMAT and CLEAR of formats may touch any cell). INSERT_ROW, DELETE_ROW, SORT, DEDUPE and FILTER stop on a sheet with merged cells, since Excel would cut a merged block. `MERGE(<range>)` merges two or more cells, with the whole sheet in MODIFIES: the same block again changes nothing, so a re-run is safe; an overlap with another merged range, a value outside the top-left cell (Excel would drop it) or a single cell stops the run. `MERGED(<Sheet>!<range>)` is a TEST assertion (1 or 0). **Added beyond the VEP:** `BLOCK($ws, row1, col1, row2, col2)`, a block between two corners known only at run time, because RANGE takes only a quoted A1 text and the register's MERGE needs the new enquiry's rows. In VBA, ForgeLib's `ForgeMergeCheck` (in ForgeSetValue, ForgeWriteRow, ForgeCopyRow, ForgeWriteArray, ForgeSetFormula and before CLEAR), `ForgeNoMerges` (in the row ops) and `ForgeMerge` raise the same errors; the simulator models MergeCells (False, True or Null, as Excel), MergeArea and Merge, and `vclc sim` now also compares the merged ranges. The simulator caught one real difference while this was built: VBA's WRITE_ROW wrote its first cell before refusing the second, so ForgeWriteRow and ForgeCopyRow now check the whole row first. `tests/data/merge_register.vcl` adds an enquiry with two items to the register look-alike and merges columns A to I over them: proven in every stage; its 6 surviving mutants are equivalent on the template's fixed data (column K ends where column J does, the enquiry is found from any start row). | Excel's silent behaviours with merged cells (values dropped or hidden, blocks cut) become refusals, the same in the interpreter and in the macro. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -4233,8 +4243,58 @@ Public Function ForgeNeedsTextGuard(ByVal s As String) As Boolean
     ForgeNeedsTextGuard = (t = "TRUE" Or t = "FALSE")
 End Function
 
+Public Sub ForgeMergeCheck(ByVal rng As Range)
+    ' D113: a value goes only to a merged range's top-left cell. Excel would refuse it elsewhere in the merged
+    ' range, or keep it where nobody sees it, so the run stops first. MergeCells is False when no cell is merged.
+    Dim c As Range
+    Dim m As Variant
+    m = rng.MergeCells
+    If Not IsNull(m) Then
+        If Not m Then Exit Sub
+    End If
+    For Each c In rng.Cells
+        If c.MergeCells Then
+            If c.Address <> c.MergeArea.Cells(1, 1).Address Then Err.Raise 1004, "ForgeMergeCheck", _
+                c.Address(False, False) & " is inside the merged range " & c.MergeArea.Address(False, False) & _
+                ": write its top-left cell"
+        End If
+    Next c
+End Sub
+
+Public Sub ForgeNoMerges(ByVal ws As Worksheet, ByVal opName As String)
+    ' D113: INSERT_ROW, DELETE_ROW, SORT, DEDUPE and FILTER would cut a merged block: refused on a sheet that has one.
+    Dim m As Variant
+    m = ws.UsedRange.MergeCells
+    If IsNull(m) Then m = True
+    If m Then Err.Raise 1004, "ForgeNoMerges", opName & " on " & ws.Name & ", which has merged cells"
+End Sub
+
+Public Sub ForgeMerge(ByVal rng As Range)
+    ' MERGE (D113): the same block again changes nothing; an overlap with another merged range, or a value outside
+    ' the top-left cell (Excel would drop it), stops the run before anything changes.
+    Dim c As Range
+    Dim m As Variant
+    If rng.Cells.CountLarge < 2 Then Err.Raise 1004, "ForgeMerge", "MERGE needs two or more cells"
+    m = rng.MergeCells
+    If Not IsNull(m) Then
+        If m Then
+            If rng.MergeArea.Address = rng.Address Then Exit Sub
+        End If
+    End If
+    If IsNull(m) Then m = True
+    If m Then Err.Raise 1004, "ForgeMerge", "MERGE " & rng.Address(False, False) & " overlaps a merged range"
+    For Each c In rng.Cells
+        If c.Address <> rng.Cells(1, 1).Address Then
+            If Not IsEmpty(c.Value) Then Err.Raise 1004, "ForgeMerge", _
+                "MERGE " & rng.Address(False, False) & ": " & c.Address(False, False) & " holds a value"
+        End If
+    Next c
+    rng.Merge
+End Sub
+
 Public Sub ForgeSetValue(ByVal target As Range, ByVal v As Variant)
     ' The ' prefix is hidden by Excel: the cell holds the text unchanged.
+    ForgeMergeCheck target
     If VarType(v) = vbString Then
         If ForgeNeedsTextGuard(v) Then
             target.Value = "'" & v
@@ -4246,6 +4306,7 @@ End Sub
 
 Public Sub ForgeWriteRow(ByVal ws As Worksheet, ByVal rowNo As Long, ByVal firstCol As Long, ByVal values As Variant)
     Dim i As Long
+    ForgeMergeCheck ws.Range(ws.Cells(rowNo, firstCol), ws.Cells(rowNo, firstCol + UBound(values) - LBound(values)))
     For i = LBound(values) To UBound(values)
         ForgeSetValue ws.Cells(rowNo, firstCol + i - LBound(values)), values(i)
     Next i
@@ -4253,6 +4314,7 @@ End Sub
 
 Public Sub ForgeCopyRow(ByVal src As Worksheet, ByVal srcRow As Long, ByVal dst As Worksheet, ByVal dstRow As Long, ByVal nCols As Long)
     Dim c As Long
+    If nCols >= 1 Then ForgeMergeCheck dst.Range(dst.Cells(dstRow, 1), dst.Cells(dstRow, nCols))
     For c = 1 To nCols
         ForgeSetValue dst.Cells(dstRow, c), src.Cells(srcRow, c).Value
     Next c
@@ -4264,6 +4326,7 @@ End Sub
 
 Public Sub ForgeSort(ByVal rng As Range, ByVal keyCol As Long, ByVal ascending As Boolean, ByVal hasHeader As Boolean)
     Dim minRows As Long
+    ForgeNoMerges rng.Worksheet, "SORT"
     If hasHeader Then minRows = 3 Else minRows = 2
     If rng.Rows.Count < minRows Then Exit Sub
     ' Every option is given (D51): Range.Sort reuses the sheet's last Orientation, OrderCustom and
@@ -4280,6 +4343,7 @@ Public Sub ForgeWriteArray(ByVal arr As Variant, ByVal topLeft As Range)
     Dim r As Long
     Dim c As Long
     out = arr
+    ForgeMergeCheck topLeft.Resize(UBound(out, 1) - LBound(out, 1) + 1, UBound(out, 2) - LBound(out, 2) + 1)
     For r = LBound(out, 1) To UBound(out, 1)
         For c = LBound(out, 2) To UBound(out, 2)
             If VarType(out(r, c)) = vbString Then
@@ -4310,6 +4374,7 @@ Public Sub ForgeSetFormula(ByVal rng As Range, ByVal f As String, ByVal r1c1 As 
         If c.NumberFormat = "@" Then Err.Raise 1004, "ForgeSetFormula", _
             "SET_FORMULA: " & c.Address(False, False) & " is formatted as Text, so Excel would keep the formula as text"
     Next c
+    ForgeMergeCheck rng
     If r1c1 Then
         rng.FormulaR1C1 = f
     Else
@@ -4324,6 +4389,7 @@ Public Sub ForgeFilter(ByVal rng As Range, ByVal col As Long, ByVal crit As Vari
     Dim ws As Worksheet
     Dim r As Long
     Set ws = rng.Worksheet
+    ForgeNoMerges ws, "FILTER"
     For r = rng.Row + 1 To rng.Row + rng.Rows.Count - 1
         ws.Rows(r).Hidden = Not ForgeSame(ws.Cells(r, col).Value, crit)
     Next r
@@ -4331,6 +4397,7 @@ End Sub
 
 Public Sub ForgeInsertRow(ByVal ws As Worksheet, ByVal rowNo As Long)
     ' INSERT_ROW (D36): a blank row with no fill and no number format, whatever the row above holds.
+    ForgeNoMerges ws, "INSERT_ROW"
     ws.Rows(rowNo).Insert
     ws.Rows(rowNo).ClearFormats
     ws.Rows(rowNo).Hidden = False   ' never hidden like a filtered row next to it (D42)
@@ -4445,6 +4512,7 @@ Public Function ForgeDedupe(ByVal rng As Range, ByVal cols As Variant, ByVal has
     Dim first As Long
     Dim r As Long
     Dim i As Long
+    ForgeNoMerges rng.Worksheet, "DEDUPE"
     Set seen = ForgeNewDict()
     seen.CompareMode = vbBinaryCompare   ' the keys are already lower case (ForgeRowKey, D48)
     If hasHeader Then first = 2 Else first = 1
@@ -5885,6 +5953,8 @@ FIXTURE  wps_01.xlsx template=wps_form
 - `MERGE(<range>)` merges a block (two or more cells), with the whole sheet in MODIFIES. It stops the run when a cell
   other than the top-left holds a value (Excel would drop it) or when the block overlaps a merged range that is not the
   same block; merging the same block again does nothing, so a re-run is safe.
+- `BLOCK($ws, <row1>, <col1>, <row2>, <col2>)` is the block between two corners known only at run time (a new
+  enquiry's item rows), for MERGE and anything else that takes a range (D113: RANGE takes only a quoted A1 text).
 - Assertion `MERGED(<Sheet>!<range>)` is 1 when exactly that block is merged, else 0. The automatic unchanged-check also
   compares merged ranges.
 

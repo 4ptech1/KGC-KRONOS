@@ -347,6 +347,8 @@ message, `{...}` stands for the part that varies.
 | V336 | error | {name} is VCL 0.7: start the spec with 'VCL 0.7' to use it | validator.py |
 | V337 | error | {name} needs a whole number from -15 to 15, written in place, as its second argument (the digits) | validator.py |
 | V338 | error | AI_TEXT needs one "quoted" text, written in place | validator.py |
+| V339 | error | {name} is VCL 0.7: start the spec with 'VCL 0.7' to use it | validator.py |
+| V340 | error | MERGED is VCL 0.7: start the spec with 'VCL 0.7' to use it | validator.py |
 
 ## G: grammar
 
@@ -505,6 +507,11 @@ message, `{...}` stands for the part that varies.
 | R049 | error | TEST passes {v}, which is neither a sheet nor a folder of {fixture} | vcl_interp.py |
 | R050 | error | ASSERT: {assertion_text(cond)} can't be checked: {ex} | vcl_interp.py |
 | R051 | error | ASSERT: {assertion_text(cond)} is false{asserter.sides(cond)} | vcl_interp.py |
+| R052 | error | {sh.name}!{_letters(c)}{r} is inside the merged range {_letters(m[1])}{m[0]}:{_letters(m[3])}{m[2]}: write its top-left cell {_letters(m[1])}{m[0]} | vcl_interp.py |
+| R053 | error | {op} on {sh.name}, which has merged cells: Excel would cut a merged block | vcl_interp.py |
+| R054 | error | MERGE needs two or more cells, got {_letters(c1)}{r1} | vcl_interp.py |
+| R055 | error | MERGE {_letters(c1)}{r1}:{_letters(c2)}{r2} overlaps the merged range {_letters(m[1])}{m[0]}:{_letters(m[3])}{m[2]} | vcl_interp.py |
+| R056 | error | MERGE {_letters(c1)}{r1}:{_letters(c2)}{r2}: {_letters(c)}{r} holds a value, which Excel would drop | vcl_interp.py |
 
 ## K: KRONOS engine
 

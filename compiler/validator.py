@@ -76,6 +76,7 @@ OPS = {
     "WRITE_ROW": (3, None, {"col": "expr"}, ()),   # VCL 0.2
     "MAKE_FOLDER": (1, 1, {"into": "var"}, ("into",)),   # VCL 0.3 (E9)
     "COPY_FILE": (2, 2, {"into": "var"}, ("into",)),
+    "MERGE": (1, 1, {}, ()),   # VCL 0.7 (D113)
 }
 # Value functions: (fewest args, most args, {option: allowed values})
 VALUE_FUNCS = {
@@ -99,6 +100,7 @@ VALUE_FUNCS = {
     # VCL 0.7 (docs/vep-0.7-documents.md, part 3c)
     "ROUND": (2, 2, {}), "ROUNDUP": (2, 2, {}), "MIN": (2, 2, {}), "MAX": (2, 2, {}),
     "AI_TEXT": (1, 1, {}),   # part 3e
+    "BLOCK": (5, 5, {}),     # part 3b: a block of cells whose rows are known at run time (D113)
 }
 VCL_02_FUNCS = {"SAME", "CLEAN_TEXT", "IS_ERROR", "PARSE_DATE", "IIF", "MOD"}
 VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
@@ -106,13 +108,15 @@ VCL_03_FUNCS = {"SAFE_NAME", "PATH_JOIN", "FOLDER_EXISTS"}
 VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
 VCL_04_FUNCS = {"SHEET_EXISTS"}
 VCL_05_FUNCS = {"ROW_OF"}   # D55
-VCL_07_FUNCS = {"ROUND", "ROUNDUP", "MIN", "MAX", "AI_TEXT"}   # D111, D112
+VCL_07_FUNCS = {"ROUND", "ROUNDUP", "MIN", "MAX", "AI_TEXT", "BLOCK"}   # D111, D112, D113
 DIGITS_SECOND = {"ROUND", "ROUNDUP"}   # their second argument: a whole number from -15 to 15, written in place
+VCL_07_OPS = {"MERGE"}   # D113
+VCL_07_ASSERTS = {"MERGED"}   # D113: TEST assertions
 VCL_04_OPS = {"LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # D44, D45: S24, S25 and the path rules of VCL 0.3
 VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4, "VCL 0.5": 5, "VCL 0.6": 6, "VCL 0.7": 7}
 GOAL_LENGTH = (10, 200)   # VCL 0.6 (D61)
 # MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
-SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE"}
+SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE", "BLOCK"}
 ROW_OPS = {"INSERT_ROW", "DELETE_ROW", "SORT", "DEDUPE", "FILTER"}   # these move or hide rows
 MODIFIES_RE = re.compile(r"\$(?P<arg>[A-Za-z_]\w*)\s*(?:\[(?P<cols>.*)\]|\s(?P<fills>fills)|\s(?P<files>files)"
                          r"|\s(?P<sheets>sheets))?")
@@ -126,7 +130,7 @@ VBA_LEAKS = ["Dim ", "Set ", "End If", ".Value", "Cells(", "Range(", "Next ", "W
 
 # TEST assertion functions and the kind of each argument
 ASSERT_FUNCS = {"COUNTIF", "COUNTIFS", "COUNTA", "SUM", "SUMIFS", "VALUE", "ROWS_USED", "SHEET_EXISTS",
-                "FILE_EXISTS", "FILL_COUNT", "FILE_COUNT", "VISIBLE_COUNT", "FORMULA", "FILE_TEXT"}
+                "FILE_EXISTS", "FILL_COUNT", "FILE_COUNT", "VISIBLE_COUNT", "FORMULA", "FILE_TEXT", "MERGED"}
 ASSERT_COMPARE = {"=", "<>", "<", ">", "<=", ">=", "+", "-", "*", "/"}
 
 KEYWORD = re.compile(r"[A-Z][A-Z0-9_]+")
@@ -645,7 +649,7 @@ class TaskChecker:
     def record_write(self, name, positional, options):
         """Remember which sheet argument a write op changes, and how (MODIFIES checks it)."""
         if name not in ("SET_VALUE", "WRITE_ROW", "FORMAT", "CLEAR", "COPY_ROW", "INSERT_ROW", "DELETE_ROW",
-                        "SORT", "WRITE_ARRAY", "SET_FORMULA", "DEDUPE", "FILTER"):
+                        "SORT", "WRITE_ARRAY", "SET_FORMULA", "DEDUPE", "FILTER", "MERGE"):
             return
         if name == "WRITE_ARRAY":
             target = dict((k.text, v) for k, v in options).get("to")
@@ -664,7 +668,7 @@ class TaskChecker:
         arg = target_sheet(target)
         keys = {k.text for k, _ in options}
         what = dict((k.text, show(v)) for k, v in options).get("what", "all")
-        if name in ROW_OPS:
+        if name in ROW_OPS or name == "MERGE":   # MERGE changes the sheet's layout: the whole sheet (D113)
             change = "rows"
         elif name == "FORMAT":
             change = "fills" if keys == {"fill"} else "formats"
@@ -843,6 +847,8 @@ class TaskChecker:
             self.error(coded(f"{name} is VCL 0.2: start the spec with 'VCL 0.2' to use it", "V120"))
         if name in VCL_03_OPS and not self.at_least("VCL 0.3"):
             self.error(coded(f"{name} is VCL 0.3: start the spec with 'VCL 0.3' to use it", "V121"))
+        if name in VCL_07_OPS and not self.at_least("VCL 0.7"):
+            self.error(coded(f"{name} is VCL 0.7: start the spec with 'VCL 0.7' to use it", "V339"))
         if name in VCL_04_OPS and not self.at_least("VCL 0.4"):
             self.error(coded(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it", "V122"))
         if name == "NOTE":
@@ -1490,6 +1496,8 @@ class AssertionChecker:
             self.error(coded("FILE_COUNT is VCL 0.3: start the spec with 'VCL 0.3' to use it", "V217"))
         if name in ("VISIBLE_COUNT", "FORMULA", "FILE_TEXT") and not self.c.at_least("VCL 0.4"):
             self.error(coded(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it", "V218"))
+        if name in VCL_07_ASSERTS and not self.c.at_least("VCL 0.7"):
+            self.error(coded("MERGED is VCL 0.7: start the spec with 'VCL 0.7' to use it", "V340"))
         args = call.positional
         n = len(args)
         if name == "COUNTIFS":
@@ -1504,7 +1512,7 @@ class AssertionChecker:
             kinds = {"COUNTIF": ["range", "crit"], "COUNTA": ["range"], "SUM": ["range"], "VALUE": ["cell"],
                      "ROWS_USED": ["sheet"], "SHEET_EXISTS": ["string"], "FILE_EXISTS": ["path"],
                      "FILL_COUNT": ["range", "hex"], "FILE_COUNT": ["path"], "VISIBLE_COUNT": ["range"],
-                     "FORMULA": ["cell"], "FILE_TEXT": ["path"]}[name]
+                     "FORMULA": ["cell"], "FILE_TEXT": ["path"], "MERGED": ["range"]}[name]
             ok = n == len(kinds)
             want = f"{len(kinds)} argument{'s' if len(kinds) > 1 else ''}"
         if not ok:

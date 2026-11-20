@@ -1469,6 +1469,7 @@ class Worksheet(VbaObject):
         self.fills = {}     # (r, c) -> colour (BGR long, as Interior.Color)
         self.formats = {}   # (r, c) -> number format
         self.hidden = set()
+        self.merged = []    # merged ranges, (r1, c1, r2, c2) (VCL 0.7, D113)
 
     # -- storage
     def value(self, r, c):
@@ -1525,8 +1526,16 @@ class Worksheet(VbaObject):
             for c, f in fills_above.items():
                 self.fills[(row, c)] = f
 
+    def merge_at(self, r, c):
+        """The merged range holding this cell, or None."""
+        for m in self.merged:
+            if m[0] <= r <= m[2] and m[1] <= c <= m[3]:
+                return m
+        return None
+
     def used_box(self):
         keys = set(self.cells) | set(self.formulas) | set(self.fills) | set(self.formats)
+        keys |= {(m[0], m[1]) for m in self.merged} | {(m[2], m[3]) for m in self.merged}   # merging is formatting
         if not keys:
             return 1, 1, 1, 1
         rows = [k[0] for k in keys]
@@ -1578,6 +1587,7 @@ class Worksheet(VbaObject):
             copy = Worksheet(self.book, self.name + " (2)")
             copy.cells, copy.formulas = dict(self.cells), dict(self.formulas)
             copy.fills, copy.formats, copy.hidden = dict(self.fills), dict(self.formats), set(self.hidden)
+            copy.merged = list(self.merged)
             idx = self.book.sheets.index(after) + 1 if after not in (None, MISSING) else len(self.book.sheets)
             self.book.sheets.insert(idx, copy)
             return EMPTY
@@ -1751,6 +1761,23 @@ class Range(VbaObject):
             if args:
                 return self.get(sim, "item", args, named)
             return self
+        if n == "mergecells":   # D113: False when no cell is merged, True when every cell is, else Null
+            if not ws.merged:
+                return False
+            flags = {ws.merge_at(r, c) is not None for r, c in self.each()}
+            return flags.pop() if len(flags) == 1 else NULL
+        if n == "mergearea":
+            m = ws.merge_at(self.r1, self.c1)
+            if m:
+                return Range(ws, *m)
+            if self.single():
+                return self
+            raise VbaError(438, "MergeArea of several cells that are not merged")
+        if n == "merge":
+            block = (self.r1, self.c1, self.r2, self.c2)
+            if block not in ws.merged:
+                ws.merged.append(block)
+            return EMPTY
         if n == "row":
             return self.r1
         if n == "column":
