@@ -19,13 +19,15 @@ GRAMMAR = ROOT / "vcl" / "grammar.lark"
 TASK_ORDER = ["GOAL", "PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
               "ALLOW", "FIXTURE", "TEST"]
 BUILD_ORDER = ["GOAL", "NAME", "TARGET", "ENTRY", "MODULE", "FORM", "SIG", "FLOW", "FIXTURE", "TEST"]
+DOC_ORDER = ["GOAL", "NAME", "TEMPLATE", "ARGS", "FIELD", "REPEAT", "KEEP", "FIXTURE", "TEST"]   # VCL 0.7 (D115)
 START = {"PROC": "proc_value", "KIND": "kind_value", "MODULE": "module_value",
          "ARGS": "args_value", "RET": "ret_value", "VAR": "var_value", "PRE": "pre_value",
          "MODIFIES": "modifies_value",
          "OP": "op_value", "PERF": "perf_value", "ERR": "err_value", "ALLOW": "allow_value",
          "FIXTURE": "fixture_value", "TEST": "test_value", "NAME": "name_value",
          "TARGET": "target_value", "ENTRY": "entry_value", "FORM": "form_value",
-         "SIG": "sig_value", "FLOW": "flow_value"}
+         "SIG": "sig_value", "FLOW": "flow_value",
+         "TEMPLATE": "template_value", "FIELD": "field_value", "REPEAT": "repeat_value", "KEEP": "keep_value"}
 VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5", "VCL 0.6", "VCL 0.7")
 OPENERS = {"loop_rows", "loop_cols", "for_each", "if_block", "select_case", "case_line",
            "case_else"}
@@ -190,6 +192,34 @@ def _parse_lines(lines, first_no, problems, allow_build=True, want=None):
     kind = lines[kind_i].strip() if kind_i < len(lines) else ""
     if kind == "TASK":
         return _parse_task(lines[kind_i + 1:], first_no + kind_i + 1, problems, want or version)
+    if kind == "DOCUMENT" and allow_build:   # VCL 0.7 (D115): keys only, no OPs
+        head = {"kind": "DOCUMENT", "version": version, "keys": [], "assumes": []}
+        order_idx, seen_key = 0, False
+        for i in range(kind_i + 1, len(lines)):
+            raw, line_no = lines[i], first_no + i
+            if not raw.strip():
+                problems.append((line_no, coded("blank lines are not allowed inside a spec", "G016")))
+                continue
+            if raw.startswith("#"):
+                if raw.startswith("# ASSUME:") and not seen_key:
+                    head["assumes"].append(raw[len("# ASSUME:"):].strip())
+                else:
+                    problems.append((line_no, coded("only '# ASSUME:' comments, before the first key, are allowed", "G017")))
+                continue
+            key = raw.split()[0]
+            if key not in DOC_ORDER:
+                problems.append((line_no, coded(f"unknown DOCUMENT key {key!r}", "G018")))
+                continue
+            seen_key = True
+            if DOC_ORDER.index(key) < order_idx:
+                problems.append((line_no, coded(f"key {key} is out of order", "G019")))
+            order_idx = max(order_idx, DOC_ORDER.index(key))
+            value = raw[len(key):].lstrip(" ")
+            tree = None if key == "GOAL" else _parse_value(START[key], value, line_no, problems)
+            tree, read = split_read(tree)
+            head["keys"].append({"key": key, "line": line_no, "text": value, "tree": tree,
+                                 **({"read": read} if read else {})})
+        return head
     if kind == "BUILD" and allow_build:
         head = {"kind": "BUILD", "version": version, "keys": [], "tasks": []}
         seps = [i for i in range(kind_i + 1, len(lines)) if lines[i].strip() == "---"]
@@ -208,7 +238,8 @@ def _parse_lines(lines, first_no, problems, allow_build=True, want=None):
             head["tasks"].append(_parse_lines(lines[a + 1:b], first_no + a + 1, problems,
                                               allow_build=False, want=version))
         return head
-    problems.append((first_no + kind_i, coded("line 2 must be TASK" + (" or BUILD" if allow_build else ""), "G015")))
+    problems.append((first_no + kind_i, coded("line 2 must be TASK" + (", BUILD or DOCUMENT" if allow_build else ""),
+                                              "G015")))
     return None
 
 

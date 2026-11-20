@@ -892,8 +892,10 @@ def estimate_template():
                ["Factory cost (A + B)", "{{Factory_Cost}}"],
                ["Unit price (rounded up to INR 1,000)", "{{Unit_Price}}"]], [6000, 2400]),
         marker("{{END Cost}}"),
+        para(""),   # two tables with nothing between them show as one in Word
         table([["Prepared by", "Checked by", "Approved by"],
                ["Name:", "Name:", "Name:"]], [3200, 3200, 3200]),
+        para(""),   # Word ends a body with a paragraph
     ]
     header = header_with("Estimation Sheet No. {{Est_No}}    Date: {{Date}}",
                          "INTERNAL - PRACTICE TEMPLATE - NOT FOR A CLIENT")

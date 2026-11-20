@@ -39,6 +39,8 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S27 (VCL 0.7) | `round_up` | ROUNDUP(x, n) as Excel's worksheet ROUNDUP: away from zero to n digits, on the same 15-digit decimal: ROUNDUP(288364, -3) is 289000 (the estimate's selling price), ROUNDUP(-1.21, 1) is -1.3. |
 | S28 (VCL 0.7) | `smaller` | MIN(a, b), the smaller of two numbers (MAX, larger(), the larger); numbers only, guarded like any calculation. Two numbers that are equal give that number. |
 | S28 (VCL 0.7) | `larger` | MAX(a, b), the larger of two numbers. |
+| S29 (VCL 0.7, a DOCUMENT's) | `number_text` | a number as text in one of NUMBER_FORMATS, rounded as ROUND does (a half away from zero, on the 15-digit decimal). "#,##0" groups thousands (1,234,567); the Indian "#,##,##0" groups the last three digits, then twos (12,34,567), as KGC's estimates write prices (2,89,000). A minus sign goes first. |
+| S29 (VCL 0.7, a DOCUMENT's) | `date_text` | a real date as text, "dd Mmm yyyy" (20 Nov 2026), "dd.mm.yyyy" or "dd/mm/yyyy", the same on every PC (English month names). Anything that is not a real date gives "" (guard with IS_DATE). |
 
 ## Conformance cases
 
@@ -294,6 +296,28 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | --- | --- | --- |
 | 3, 7 | 7 | the larger |
 | 2.5, 2.25 | 2.5 | decimals |
+
+### NUMBER_TEXT (VCL 0.7, DOCUMENT)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| 289000, "#,##,##0" | "2,89,000" | Indian grouping, as KGC's estimates write prices |
+| 2440000, "#,##,##0" | "24,40,000" | lakhs: groups of two above the thousands |
+| 12345678, "#,##,##0.00" | "1,23,45,678.00" | crores, with two decimals |
+| 999, "#,##,##0" | "999" | below a thousand: no comma |
+| -1500, "#,##,##0" | "-1,500" | the minus sign goes first |
+| 1234567.891, "#,##0.00" | "1,234,567.89" | thousands grouping, rounded as ROUND |
+| 2.675, "0.00" | "2.68" | the 15-digit decimal, half away from zero |
+| 0.4, "0" | "0" | rounded to a whole number |
+
+### DATE_TEXT (VCL 0.7, DOCUMENT)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| date 2026-10-15, "dd Mmm yyyy" | "15 Oct 2026" | English month names on every PC |
+| date 2026-10-15, "dd.mm.yyyy" | "15.10.2026" | as the enquiry register writes dates |
+| date 2026-10-15, "dd/mm/yyyy" | "15/10/2026" | slashes |
+| "15/10/2026", "dd/mm/yyyy" | "" | text is not a date: guard with IS_DATE |
 
 ### Text written by SET_VALUE, WRITE_ROW and COPY_ROW (VCL 0.2)
 

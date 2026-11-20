@@ -299,6 +299,47 @@ def larger(a, b):
     return a if a >= b else b
 
 
+NUMBER_FORMATS = ("0", "0.0", "0.00", "#,##0", "#,##0.00", "#,##,##0", "#,##,##0.00")
+DATE_FORMATS_TEXT = ("dd Mmm yyyy", "dd.mm.yyyy", "dd/mm/yyyy")
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def number_text(x, fmt):
+    """S29 (VCL 0.7, a DOCUMENT's): a number as text in one of NUMBER_FORMATS, rounded as ROUND does (a half away
+    from zero, on the 15-digit decimal). "#,##0" groups thousands (1,234,567); the Indian "#,##,##0" groups the last
+    three digits, then twos (12,34,567), as KGC's estimates write prices (2,89,000). A minus sign goes first."""
+    if fmt not in NUMBER_FORMATS:
+        raise ValueError(f"NUMBER_TEXT format {fmt!r} is not one of " + ", ".join(NUMBER_FORMATS))
+    places = len(fmt.split(".")[1]) if "." in fmt else 0
+    value = round_half(x, places)
+    text = f"{abs(value):.{places}f}"
+    whole, _, frac = text.partition(".")
+    if fmt.startswith("#,##,##"):
+        head, tail = whole[:-3], whole[-3:]
+        groups = []
+        while len(head) > 2:
+            groups.insert(0, head[-2:])
+            head = head[:-2]
+        whole = ",".join(([head] if head else []) + groups + [tail])
+    elif fmt.startswith("#,##"):
+        whole = f"{int(whole):,}"
+    sign = "-" if value < 0 else ""
+    return sign + whole + ("." + frac if places else "")
+
+
+def date_text(d, fmt):
+    """S29 (VCL 0.7, a DOCUMENT's): a real date as text, "dd Mmm yyyy" (20 Nov 2026), "dd.mm.yyyy" or "dd/mm/yyyy",
+    the same on every PC (English month names). Anything that is not a real date gives "" (guard with IS_DATE)."""
+    if fmt not in DATE_FORMATS_TEXT:
+        raise ValueError(f"DATE_TEXT format {fmt!r} is not one of " + ", ".join(DATE_FORMATS_TEXT))
+    if not is_date(d):
+        return ""
+    if fmt == "dd Mmm yyyy":
+        return f"{d.day:02d} {MONTHS[d.month - 1]} {d.year:04d}"
+    sep = fmt[2]
+    return f"{d.day:02d}{sep}{d.month:02d}{sep}{d.year:04d}"
+
+
 def needs_text_guard(text):
     """S17 (VCL 0.2): SET_VALUE, WRITE_ROW and COPY_ROW store text as exactly that text. Excel
     would turn some text into something else when it is written to a cell: a number, date,

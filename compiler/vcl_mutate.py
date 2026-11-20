@@ -69,6 +69,28 @@ def mutants(text):
             yield i, "loop reversed", body.replace("dir=down", "dir=up")
 
 
+DOC_KEYS = ("FIELD ", "REPEAT ", "KEEP ")
+
+
+def doc_mutants(text):
+    """A DOCUMENT's deliberate bugs (D115): each number one higher and each quoted text changed, on its FIELD,
+    REPEAT and KEEP lines, and each FIELD line's value turned into empty text. (i, what, the whole new line)."""
+    for i, line in enumerate(text.splitlines()):
+        if not line.startswith(DOC_KEYS):
+            continue
+        key, body = line[:9], line[9:]
+        for m in re.finditer(r"(?<![\w$.\"])(\d+)(?![\w.])", body):
+            n = int(m.group(1))
+            yield i, f"{n} -> {n + 1}", key + body[:m.start()] + str(n + 1) + body[m.end():]
+        for m in re.finditer(r'"((?:[^"]|"")+)"', body):
+            yield i, f'"{m.group(1)}" -> changed', key + body[:m.start()] + '"zz' + m.group(1) + '"' + body[m.end():]
+        if key.startswith("FIELD"):
+            name = body.split("=", 1)[0].strip()
+            yield i, f"{name} -> empty", f'{key}{name} = ""'
+        if key.startswith("KEEP"):
+            yield i, "condition negated", key + body.replace(" IF ", " IF NOT ", 1)
+
+
 def mutate_report(text, snapshot=False, today=None):
     """snapshot=True also counts a mutant as caught when any test's final workbook (values, fills
     and number formats), hidden rows (D42), final mock file system (VCL 0.3) with its file texts
@@ -77,23 +99,35 @@ def mutate_report(text, snapshot=False, today=None):
     today pins TODAY for every run (default: the real date)."""
     lines = text.splitlines()
     killed, total, survivors = 0, 0, []
-    golden = [(r.result, r.state, r.files, r.messages, r.hidden, r.texts) for r in run_tests(text, today)] if snapshot else None
-    for i, what, new_body in mutants(text):
+    seen = lambda results: [(r.result, r.state, r.files, r.messages, r.hidden, r.texts, r.document)   # noqa: E731
+                            for r in results]
+    golden = seen(run_tests(text, today)) if snapshot else None
+    spec0, _ = parse(text)
+    document = bool(spec0) and spec0.get("kind") == "DOCUMENT"
+    found = ((i, what, line) for i, what, line in doc_mutants(text)) if document else \
+        ((i, what, None if body is None else "OP" + body) for i, what, body in mutants(text))
+    for i, what, new_line in found:
         new_lines = list(lines)
-        if new_body is None:
+        if new_line is None:
             del new_lines[i]
         else:
-            new_lines[i] = "OP" + new_body
+            new_lines[i] = new_line
         mutant = "\n".join(new_lines)
         spec, problems = parse(mutant)
-        if problems or not spec or spec_problems(mutant, spec):   # a BUILD: every TASK, with its SIGs
+        if problems or not spec:
+            continue
+        if document:   # a DOCUMENT mutant the validator refuses is no bug a TEST must catch
+            from validator import validate_text
+            if any(p.severity == "error" for p in validate_text(mutant)):
+                continue
+        elif spec_problems(mutant, spec):   # a BUILD: every TASK, with its SIGs
             continue
         total += 1
         try:
             results = run_tests(mutant, today)
             caught = any(not r.passed for r in results)
             if snapshot and not caught:
-                caught = [(r.result, r.state, r.files, r.messages, r.hidden, r.texts) for r in results] != golden
+                caught = seen(results) != golden
         except (VclError, KeyError, TypeError, ValueError, IndexError):
             caught = True
         if caught:

@@ -12,7 +12,12 @@ sys.path.insert(0, str(ROOT / "tests"))
 from conformance_cases import CASES  # noqa: E402
 from semantics import XlError  # noqa: E402
 from vba_lint import lint, public_helpers  # noqa: E402
-from vcl_selftest import selftest_module, vba_text, vba_value  # noqa: E402
+from vcl_selftest import NO_VBA, selftest_module, vba_text, vba_value  # noqa: E402
+
+# The cases with a meaning in VBA: all but a DOCUMENT's own functions, which KRONOS Offline runs and no macro does
+# (D115). The set is pinned here, so no other meaning can quietly leave the Excel self-test.
+assert NO_VBA == {"number_text", "date_text"}, NO_VBA
+VBA_CASES = [c for c in CASES if c[0] not in NO_VBA]
 
 FORGELIB = (ROOT / "vba" / "ForgeLib.bas").read_text(encoding="utf-8")
 
@@ -42,9 +47,9 @@ class Module(unittest.TestCase):
 
     def test_every_case_in_order(self):
         found = re.findall(r"^    SelfTestCase (\d+), ", self.MODULE, re.M)
-        self.assertEqual([int(n) for n in found], list(range(1, len(CASES) + 1)))
-        self.assertEqual(len(re.findall(r"^    SelfTestCheck ", self.MODULE, re.M)), len(CASES))
-        self.assertIn(f"    total = {len(CASES)}\n", self.MODULE)
+        self.assertEqual([int(n) for n in found], list(range(1, len(VBA_CASES) + 1)))
+        self.assertEqual(len(re.findall(r"^    SelfTestCheck ", self.MODULE, re.M)), len(VBA_CASES))
+        self.assertIn(f"    total = {len(VBA_CASES)}\n", self.MODULE)
 
     def test_each_meaning_is_checked_through_forgelib(self):
         checks = re.findall(r"^    SelfTestCheck (\w+)", self.MODULE, re.M)
@@ -63,7 +68,7 @@ class Module(unittest.TestCase):
 
     def test_a_case_that_raises_does_not_stop_the_run(self):
         parts = re.findall(r"Private Sub SelfTestPart\d+\(\)\n.*?End Sub", self.MODULE, re.S)
-        self.assertEqual(len(parts), -(-len(CASES) // 40))
+        self.assertEqual(len(parts), -(-len(VBA_CASES) // 40))
         for part in parts:
             self.assertIn("    On Error Resume Next\n", part)
             self.assertTrue(part.endswith("    SelfTestFlush\nEnd Sub"))
@@ -79,7 +84,7 @@ class Module(unittest.TestCase):
         counts = re.findall(r"\((\d+) cases\)|(\d+) of (\d+) cases pass|SELFTEST (\d+)/(\d+)", guide)
         numbers = [int(n) for found in counts for n in found if n]
         self.assertEqual(len(numbers), 5, counts)
-        self.assertEqual(set(numbers), {len(CASES)})
+        self.assertEqual(set(numbers), {len(VBA_CASES)})
 
 
 if __name__ == "__main__":

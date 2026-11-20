@@ -263,8 +263,12 @@ End Function
 '''
 
 
-def selftest_module(cases=CASES):
-    """The whole self-test module, ready to paste into Excel."""
+NO_VBA = {"number_text", "date_text"}   # a DOCUMENT's functions (D115): KRONOS Offline fills Word, no macro does
+
+
+def selftest_module(cases=None):
+    """The whole self-test module, ready to paste into Excel: every conformance case with a meaning in VBA."""
+    cases = [c for c in CASES if c[0] not in NO_VBA] if cases is None else cases
     chunks = [cases[i:i + CASES_PER_PROC] for i in range(0, len(cases), CASES_PER_PROC)]
     calls, procs, n = [], [], 0
     for part, chunk in enumerate(chunks, start=1):

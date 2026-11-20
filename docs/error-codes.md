@@ -354,6 +354,50 @@ message, `{...}` stands for the part that varies.
 | V343 | error | TEST reads {test.read}, but no FIXTURE line builds it | validator.py |
 | V344 | error | KRONOS Offline only: a TEST reads a second workbook (read=), so no macro is made for this spec until macros may open a second workbook (D36, D114) | validator.py |
 | V345 | error | ${decl.name} is the workbook the TEST reads (read={test.read}): it is read-only, so no MODIFIES line may name it | validator.py |
+| V346 | error | DOCUMENT is VCL 0.7: start the spec with 'VCL 0.7' to use it | vcl_document.py |
+| V347 | error | missing NAME: the DOCUMENT's name, PascalCase (FillEstimateSheet) | vcl_document.py |
+| V348 | error | NAME {name} must be PascalCase, letters and digits | vcl_document.py |
+| V349 | error | f'${d.name} As {d.type}: a DOCUMENT takes only ' + ', '.join(sorted(DOC_ARG_TYPES)) | vcl_document.py |
+| V350 | error | a DOCUMENT names exactly one TEMPLATE (a Word .docx in data/templates/) | vcl_document.py |
+| V351 | error | unknown function {fname} in a DOCUMENT | vcl_document.py |
+| V352 | error | f'{fname} needs one of ' + ', '.join((f'"{f}"' for f in allowed)) + ' as its second argument' | vcl_document.py |
+| V353 | error | {fname} takes 2 arguments, got {len(pos)} | vcl_document.py |
+| V354 | error | AI_TEXT needs one "quoted" text, written in place | vcl_document.py |
+| V355 | error | undeclared argument {tok} (declare it in ARGS) | vcl_document.py |
+| V356 | error | {tok} is not an argument or a constant: a DOCUMENT has no variables (write ${tok}) | vcl_document.py |
+| V357 | error | FIELD {fname} is written twice | vcl_document.py |
+| V358 | error | REPEAT binds {bname} twice | vcl_document.py |
+| V359 | error | {bname}={col}: columns are counted from 1 | vcl_document.py |
+| V360 | error | {bname}={col}: a row written in place has {len(items)} values | vcl_document.py |
+| V361 | error | REPEAT row and column take table=<n>; REPEAT section takes a section name | vcl_document.py |
+| V362 | error | KEEP {sname} is written twice | vcl_document.py |
+| V363 | error | the template has no section {target} | vcl_document.py |
+| V364 | error | section {target} is both repeated and kept: use one | vcl_document.py |
+| V365 | error | section {target} is repeated twice | vcl_document.py |
+| V366 | error | section {target} has no field {bname} | vcl_document.py |
+| V367 | error | the template has no table {target} (it has {len(tables)}) | vcl_document.py |
+| V368 | error | table {target} has no {where} holding {', '.join(sorted(binds))} | vcl_document.py |
+| V369 | error | table {target} is inside section {inside}, which repeats: say which rows belong to each copy with match=<n>=<field of {inside}> | vcl_document.py |
+| V370 | error | match={match[0]}={match[1]}: {match[1]} is not a field section {inside} binds | vcl_document.py |
+| V371 | error | match= is only for a table inside a repeated section; table {target} isn't | vcl_document.py |
+| V372 | error | the template's section {sname} needs a REPEAT section {sname} ... or KEEP {sname} IF ... | vcl_document.py |
+| V373 | error | the template has no section {sname} | vcl_document.py |
+| V374 | error | section {sname}'s field {f} is not bound: add {f}=<column> to its REPEAT | vcl_document.py |
+| V375 | error | the template's field {{{f}}} has no FIELD line | vcl_document.py |
+| V376 | error | FIELD {f}: the template has no {{{f}}} outside a repeated row, column or section | vcl_document.py |
+| V377 | error | a DOCUMENT needs at least one TEST | vcl_document.py |
+| V378 | error | TEST calls {test.procedure}, but NAME is {name} | vcl_document.py |
+| V379 | error | TEST uses fixture {test.fixture}, but no FIXTURE line builds it | vcl_document.py |
+| V380 | error | read= is for a TASK: a DOCUMENT reads every workbook it is given | vcl_document.py |
+| V381 | error | runs= is for a TASK: a DOCUMENT is filled once from its template | vcl_document.py |
+| V382 | error | TEST passes {len(test.args)} arguments, but ARGS has {len(spec.args)} | vcl_document.py |
+| V383 | error | TEST passes {v} for ${d.name}, a Workbook: pass this TEST's fixture file, {test.fixture} | vcl_document.py |
+| V384 | error | TEST passes {v} for ${d.name}: a Workbook is a fixture file | vcl_document.py |
+| V385 | error | f"a DOCUMENT's TEST checks the filled document: {fname} is not one of " + ', '.join(sorted(DOC_ASSERTS)) | vcl_document.py |
+| V386 | error | FIELD_TEXT({f}): {f} has no FIELD line | vcl_document.py |
+| V387 | error | SECTION_COUNT({s}): the template has no section {s} | vcl_document.py |
+| V388 | error | no TEST checks ERROR_COUNT = 0 (rule 5) | vcl_document.py |
+| V389 | error | KRONOS Offline only: a DOCUMENT fills a Word file in KRONOS Offline; no macro is made (D115) | vcl_document.py |
 
 ## G: grammar
 
@@ -373,7 +417,11 @@ message, `{...}` stands for the part that varies.
 | G012 | error | line 1 must be '{want}', as in the BUILD | vcl_parse.py |
 | G013 | error | 'line 1 must be ' + ', '.join((f"'{v}'" for v in VERSIONS[:-1])) + f" or '{VERSIONS[-1]}'" | vcl_parse.py |
 | G014 | error | unknown BUILD key {key} | vcl_parse.py |
-| G015 | error | 'line 2 must be TASK' + (' or BUILD' if allow_build else '') | vcl_parse.py |
+| G015 | error | 'line 2 must be TASK' + (', BUILD or DOCUMENT' if allow_build else '') | vcl_parse.py |
+| G016 | error | blank lines are not allowed inside a spec | vcl_parse.py |
+| G017 | error | only '# ASSUME:' comments, before the first key, are allowed | vcl_parse.py |
+| G018 | error | unknown DOCUMENT key {key} | vcl_parse.py |
+| G019 | error | key {key} is out of order | vcl_parse.py |
 
 ## T: type checker
 
@@ -456,6 +504,22 @@ message, `{...}` stands for the part that varies.
 | X025 | error | {where} holds an error value ({raw}): a practice workbook can't | vcl_template.py |
 | X026 | error | {where}: a {f.get('t')} formula, which a practice workbook can't hold: write the formula in each cell | vcl_template.py |
 | X027 | error | template={name}: there is no data/templates/{name}.xlsx | vcl_template.py |
+| X028 | error | TEMPLATE {name}: a Word template is named like estimate_template.docx | vcl_template.py |
+| X029 | error | TEMPLATE {name}: there is no data/templates/{name} | vcl_template.py |
+| X030 | error | the Word template is {len(data) // 1024} KB; a template may be up to 2 MB | vcl_docx.py |
+| X031 | error | this is not a Word .docx file | vcl_docx.py |
+| X032 | error | this is a zip file but not a Word .docx file | vcl_docx.py |
+| X033 | error | section {m.group(2)} starts inside section {current}: sections can't nest | vcl_docx.py |
+| X034 | error | the template has two sections named {m.group(2)} | vcl_docx.py |
+| X035 | error | {{END {m.group(2)}}} doesn't close the section that is open ({current or 'none'}) | vcl_docx.py |
+| X036 | error | a section marker must be a paragraph on its own: {text.strip()} | vcl_docx.py |
+| X037 | error | section {current} has no {{END {current}}} | vcl_docx.py |
+| X038 | error | {name}={col}: the source row has {len(row)} column{'s' if len(row) != 1 else ''} | vcl_docx.py |
+| X039 | error | table {repeat.target} has no row with the fields {', '.join(sorted(names))} | vcl_docx.py |
+| X040 | error | table {repeat.target} has no column with the fields {', '.join(sorted(names))} | vcl_docx.py |
+| X041 | error | the template has no section {name} (paragraphs {{BEGIN {name}}} and {{END {name}}} in the body) | vcl_docx.py |
+| X042 | error | match={col}={key}: {key} is not a field of section {r.target} | vcl_docx.py |
+| X043 | error | the template has no table {r.target} | vcl_docx.py |
 
 ## R: TEST run
 
@@ -520,6 +584,13 @@ message, `{...}` stands for the part that varies.
 | R057 | error | {sh.name}!{_letters(c)}{r} holds a formula ({v.text}) with no saved value: open the workbook in Excel and save it, so the value is there | vcl_interp.py |
 | R058 | error | TEST reads {read}, but no FIXTURE line builds it | vcl_interp.py |
 | R059 | error | the workbook the TEST reads ({read}) changed on sheet {name} | vcl_interp.py |
+| R060 | error | the filled document has {len(self.report.tables)} tables, not {n} | vcl_interp.py |
+| R061 | error | table {n} of the filled document has no cell ({r}, {c}) | vcl_interp.py |
+| R062 | error | TEST uses fixture {fixture}, but no FIXTURE line builds it | vcl_interp.py |
+| R063 | error | TEST passes {v} for ${pname}, but its fixture is {fixture} | vcl_interp.py |
+| R064 | error | the document could not be filled: {ex} | vcl_interp.py |
+| R065 | error | the filled document still holds {report.left_over} {{ (a field nothing filled) | vcl_interp.py |
+| R066 | error | the workbook {fixture} changed on sheet {name}: a DOCUMENT changes no workbook | vcl_interp.py |
 
 ## K: KRONOS engine
 

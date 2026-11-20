@@ -150,6 +150,9 @@ def check_text(text, name="spec", today=None, module=None):
     if spec["kind"] == "BUILD" and spec.get("version") in ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4"):
         out.skipped = "a BUILD before VCL 0.5 runs no TESTs (R044)"
         return out
+    if spec["kind"] == "DOCUMENT":
+        out.skipped = "a DOCUMENT is filled by KRONOS Offline: there is no VBA (D115)"
+        return out
     trees = [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]
     if any(k.get("read") for k in spec["keys"]):
         out.skipped = "KRONOS Offline only: a TEST reads a second workbook, so there is no VBA (D114)"

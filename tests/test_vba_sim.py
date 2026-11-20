@@ -202,12 +202,14 @@ class SelfTest(unittest.TestCase):
         return sim, sim.this_workbook.sheet("ForgeSelfTest")
 
     def test_every_conformance_case_passes(self):
+        from vcl_selftest import NO_VBA   # a DOCUMENT's functions have no VBA (D115; pinned in test_selftest.py)
+        n = len([c for c in CASES if c[0] not in NO_VBA])
         sim, ws = self.run_selftest((ROOT / "dist" / "forge_module.bas").read_text(encoding="utf-8"))
         failed = [(ws.value(r, 1), ws.value(r, 2), ws.value(r, 3), ws.value(r, 4), ws.value(r, 5))
-                  for r in range(2, len(CASES) + 2) if ws.value(r, 6) != "PASS"]
+                  for r in range(2, n + 2) if ws.value(r, 6) != "PASS"]
         self.assertEqual(failed, [])
-        self.assertEqual(ws.value(4, 8), f"SELFTEST {len(CASES)}/{len(CASES)} FAILED: none")
-        self.assertEqual(sim.messages, [f"ForgeLib self-test: {len(CASES)} of {len(CASES)} cases pass. "
+        self.assertEqual(ws.value(4, 8), f"SELFTEST {n}/{n} FAILED: none")
+        self.assertEqual(sim.messages, [f"ForgeLib self-test: {n} of {n} cases pass. "
                                         "Details on the sheet ForgeSelfTest."])
 
     def test_a_bug_planted_in_forgelib_is_caught(self):
