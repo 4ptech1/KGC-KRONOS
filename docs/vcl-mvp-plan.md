@@ -101,7 +101,8 @@ its item 2 (the rest of revision 3) is item 5, its item 3 (CALL and BUILD) is it
    the VBA.
 7. **Dataset generator (done, Boss's step 6, D103, D104):** tasks in plain English with their proven specs (and the compiler's
    VBA), plus repair pairs: `vclc datagen` makes 4,432 repairs and 124 contrast examples, and every training request has
-   three checked paraphrases. Next, the benchmark (step 7). The mutation engine doubles as a contrast-pair generator: every
+   three checked paraphrases. Next: KGC's own documents (D105, `docs/kgc-documents-plan.md`), whose Phase 6 is the
+   benchmark (step 7). The mutation engine doubles as a contrast-pair generator: every
    valid mutant is a near-identical spec with different behaviour. That is exactly the "read
    carefully" training data the Phase 2 plan wanted. See `docs/ai-plan.md`, Stages A and B.
 8. **March:** train our own model on the in-house dataset (D25: no outside data): two candidates,
