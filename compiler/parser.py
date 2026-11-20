@@ -1,4 +1,4 @@
-"""Parse VCL 0.1 to 0.6 specs into Python objects.
+"""Parse VCL 0.1 to 0.7 specs into Python objects.
 
     from parser import parse_spec
     spec = parse_spec(text)
@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from errcodes import code_of, coded, strict
 
 VERSION = "VCL 0.1"
-VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5", "VCL 0.6")  # each version keeps every spec of the one before valid
+VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5", "VCL 0.6", "VCL 0.7")  # each version keeps every spec of the one before valid
 TASK_KEYS = ["GOAL", "PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
              "ALLOW", "FIXTURE", "TEST"]
 BUILD_KEYS = ["GOAL", "NAME", "TARGET", "ENTRY", "MODULE", "FORM", "SIG", "FLOW", "FIXTURE", "TEST"]
@@ -83,6 +83,7 @@ class Fixture:
     rows: int
     rules: list    # [Rule]
     stale: int = 0
+    template: str = ""   # VCL 0.7 (D110): the data/templates/ workbook this sheet comes from; then rows, rules are unused
 
 
 @dataclass
@@ -125,7 +126,7 @@ class Form:
 @dataclass
 class Spec:
     kind: str = None    # "TASK", "BUILD", "QUESTION", or None if the header is unreadable
-    version: str = VERSION  # the version line: "VCL 0.1" to "VCL 0.6"
+    version: str = VERSION  # the version line: "VCL 0.1" to "VCL 0.7"
     line: int = 1       # line of the TASK / BUILD header (or of the # QUESTION: line)
     assumes: list = field(default_factory=list)   # [(line, text)]
     question: str = ""
@@ -235,6 +236,7 @@ def split_top(text, sep):
 
 FIXTURE_RE = re.compile(r"(?P<file>\S+)\s+sheet=(?P<sheet>\S+)\s+cols=(?P<cols>.+?)\s+rows=(?P<rows>\S+)"
                         r"(?:\s+stale=(?P<stale>\S+))?(?:\s+data=(?P<data>.*))?")
+TEMPLATE_RE = re.compile(r"(?P<file>\S+)\s+template=(?P<name>\S+)")
 FOLDER_RE = re.compile(r"(?P<file>\S+)\s+folder=(?P<folder>\S+)(?:\s+files=(?P<files>(?:\"(?:[^\"]|\"\")*\"|[^\s\"])+))?"
                        r"(?:\s+locked=(?P<locked>\S+))?")
 FILE_ENTRY_RE = re.compile(r"(?P<path>[^:\"]+)(?::(?:(?P<size>\d+)|(?P<text>\"(?:[^\"]|\"\")*\")))?")
@@ -399,6 +401,9 @@ def _fixture(spec, n, value):
     if " folder=" in value and " sheet=" not in value:
         _folder_fixture(spec, n, value)
         return
+    if " template=" in value and " sheet=" not in value:
+        _template_fixture(spec, n, value)
+        return
     m = FIXTURE_RE.fullmatch(value)
     if not m:
         missing = [part for part in ("sheet=", "cols=", "rows=") if part not in value]
@@ -431,6 +436,26 @@ def _fixture(spec, n, value):
             if rule:
                 rules.append(rule)
     spec.fixtures.append(Fixture(n, m["file"], m["sheet"], headers, rows, rules, stale))
+
+
+def _template_fixture(spec, n, value):
+    """VCL 0.7 (D110): <file>.xlsx template=<name>, one Fixture per sheet of data/templates/<name>.xlsx, with the
+    sheet's row-1 cells as its headers (so [Header] references and the TEST checks see them)."""
+    from vcl_fixtures import col_letter
+    from vcl_template import TemplateError, load_template
+    m = TEMPLATE_RE.fullmatch(value)
+    if not m:
+        spec.error(n, coded("a template FIXTURE must look like: <name>.xlsx template=<template name>", "V332"))
+        return
+    try:
+        sheets = load_template(m["name"])
+    except TemplateError as exc:
+        spec.error(n, str(exc))
+        return
+    for name, sh in sheets.items():
+        headers = [(col_letter(c), str(v.text if hasattr(v, "text") else v).strip())
+                   for (r, c), v in sorted(sh.cells.items()) if r == 1 and str(getattr(v, "text", v)).strip()]
+        spec.fixtures.append(Fixture(n, m["file"], name, headers, max(sh.max_row() - 1, 0), [], 0, m["name"]))
 
 
 def _folder_fixture(spec, n, value):

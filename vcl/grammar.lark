@@ -36,6 +36,7 @@ err_value: ERR_WORD
 allow_value: ALLOW_WORD+
 fixture_value: FILENAME "sheet=" NAME "cols=" col_list "rows=" INT stale_opt? ("data=" data_list)?
              | FILENAME "folder=" NAME folder_files? folder_locked? -> folder_fixture   // VCL 0.3
+             | FILENAME "template=" NAME -> template_fixture   // VCL 0.7: a look-alike in data/templates/ (D110)
 stale_opt: "stale=" INT
 test_value: "fixture=" FILENAME "call=" call_target "(" [call_arg ("," call_arg)*] ")" ("runs=" INT)? "assert=" assertion
 

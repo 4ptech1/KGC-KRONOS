@@ -26,7 +26,7 @@ import semantics as S  # noqa: E402
 import vba_sim as V  # noqa: E402
 from errcodes import coded  # noqa: E402
 from vcl_codegen import assemble, compile_build, compile_text  # noqa: E402
-from vcl_fixtures import SANDBOX, build_folders, build_workbooks  # noqa: E402
+from vcl_fixtures import SANDBOX, Formula, build_folders, build_workbooks  # noqa: E402
 from vcl_interp import entry_of, files_of, run_tests, texts_of  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 
@@ -92,7 +92,12 @@ def sim_book(fixture, sheets):
     for name, sh in sheets.items():
         ws = book.add_sheet(name)
         for rc, v in sh.cells.items():
-            ws.cells[rc] = to_sim(v)
+            if isinstance(v, Formula):   # a template's formula (D110): its text, and the value Excel saved
+                ws.formulas[rc] = v.text
+                if v.saved is not None:
+                    ws.cells[rc] = to_sim(v.saved)
+            else:
+                ws.cells[rc] = to_sim(v)
         for rc, f in sh.fills.items():
             ws.fills[rc] = colour_to_sim(f)
         ws.formats.update(sh.formats)

@@ -116,6 +116,8 @@ DECISIONS.md, `dist/forge_module.bas`; and `vclc sim` must still prove every spe
   formulas; styles untouched), so pictures, print areas, merged cells, data validation and page setup survive.
   Fall back to today's openpyxl copy, with today's warnings, only when rows or sheets move. Test: the look-alike WPS
   with its picture comes back identical except the changed cells.
+- **4a+. The templates:** KRONOS.exe and Offline bundle nothing from `data/` today, so a template FIXTURE (VCL 0.7
+  part 3a) is refused there; ship `data/templates/` with the toolchain (D110).
 - **4b. Two files:** "Workbook to fill" and "Workbook to read from"; each Workbook ARG is bound to one upload.
 - **4c. Word:** upload a template .docx (up to 2 MB) and a workbook, run a DOCUMENT recipe, download the filled
   .docx. Values come from the workbook's last values saved by Excel: a workbook KRONOS just changed must be opened and

@@ -30,6 +30,7 @@ SITES = {
     "vcl_parse.py": ("G", {}, {"problems"}, {}),
     "vcl_types.py": ("T", {"err": 1}, set(), {}),
     "vcl_fixtures.py": ("X", {"ValueError": 0}, set(), {}),
+    "vcl_template.py": ("X", {"TemplateError": 0}, set(), {}),
     "vcl_interp.py": ("R", {"VclError": 0}, {"found", "failed"}, {}),
     "kronos_engine.py": ("K", {}, set(), {}),
 }

@@ -445,6 +445,10 @@
  "V329": "modMain.RunHeadless has PRE and the fixture has another sheet, but no wrong-sheet TEST expects {want} (rule 5)",
  "V330": "{full} uses SET_FORMULA and {other[0]} uses {other[1]}: a BUILD may not do both, because Excel rewrites formula references when rows move, which a TEST can't prove (D43)",
  "V331": "{full} uses FILTER and {other} uses SORT: a BUILD may not do both, because how Excel sorts rows that FILTER hid can't be proven by a TEST (D42)",
+ "V332": "a template FIXTURE must look like: <name>.xlsx template=<template name>",
+ "V333": "template FIXTUREs are VCL 0.7: start the spec with 'VCL 0.7' to use them",
+ "V334": "{fx.file} has two template FIXTURE lines: one template makes the whole workbook",
+ "V335": "{fx.file} is made from a template, so it can't also have a sheet= FIXTURE line",
  "X001": "reldates() boundary values are whole numbers of days, got {value}",
  "X002": "dates() boundary values are yyyy-mm-dd dates, got {value}",
  "X003": "{kind}() boundary values are numbers, got {value}",
@@ -463,5 +467,13 @@
  "X016": "fixture row {row_no} makes a VBA line of {len(line)} characters (limit {MAX_LINE})",
  "X017": "FIXTURE {file}: {path} is too long to build below an Excel sandbox root of up to {EXCEL_SANDBOX_MAX} characters (limit {limit})",
  "X018": "FIXTURE {file} folder {folder}: {path} has {size} bytes; a dummy file may have at most {MAX_SANDBOX_FILE}",
- "X019": "fixture {file} is defined differently in {seen[file][0]} and {spec_name}"
+ "X019": "fixture {file} is defined differently in {seen[file][0]} and {spec_name}",
+ "X020": "template {template}: a VBA line of {len(line)} characters (limit {MAX_LINE})",
+ "X021": "template={name}: a template name is letters, digits and _",
+ "X022": "{name}: not an .xlsx workbook",
+ "X023": "{name}: not an .xlsx workbook",
+ "X024": "{name}: it links to another workbook, which a practice workbook can't hold",
+ "X025": "{where} holds an error value ({raw}): a practice workbook can't",
+ "X026": "{where}: a {f.get('t')} formula, which a practice workbook can't hold: write the formula in each cell",
+ "X027": "template={name}: there is no data/templates/{name}.xlsx"
 }
