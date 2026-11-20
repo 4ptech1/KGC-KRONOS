@@ -20,6 +20,9 @@ env/
 !docs/demo/NCR_Register_Demo*.xlsx
 # ... and the real KGC samples Boss published on 20 Nov 2026 (D105, D106), listed with their SHA-256 in samples/kgc/README.md
 !samples/kgc/*.xlsx
+# ... and the invented look-alike KGC templates, made by data/templates/make_templates.py and checked by
+# tests/test_templates.py (D108)
+!data/templates/*.xlsx
 
 # Run logs
 logs/*.log
