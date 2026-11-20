@@ -344,6 +344,8 @@ message, `{...}` stands for the part that varies.
 | V333 | error | template FIXTUREs are VCL 0.7: start the spec with 'VCL 0.7' to use them | validator.py |
 | V334 | error | {fx.file} has two template FIXTURE lines: one template makes the whole workbook | validator.py |
 | V335 | error | {fx.file} is made from a template, so it can't also have a sheet= FIXTURE line | validator.py |
+| V336 | error | {name} is VCL 0.7: start the spec with 'VCL 0.7' to use it | validator.py |
+| V337 | error | {name} needs a whole number from -15 to 15, written in place, as its second argument (the digits) | validator.py |
 
 ## G: grammar
 

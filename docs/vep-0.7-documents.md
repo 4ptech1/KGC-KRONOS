@@ -14,7 +14,7 @@ Orchestrator prompt, so Boss pastes it once.
 | --- | --- | --- |
 | 3a | `FIXTURE <file> template=<name>`: a practice workbook from a template, with formulas and their saved values, merged cells and number formats | everywhere |
 | 3b | merged cells: writing inside a merged range, `MERGE`, the `MERGED` assertion | everywhere |
-| 3c | `ROUND`, `ROUNDUP`, `PI`, `MIN`, `MAX` as value functions; `TEXT` stays refused in SET_FORMULA | everywhere |
+| 3c | `ROUND`, `ROUNDUP`, `MIN`, `MAX` as value functions; `TEXT` stays refused in SET_FORMULA | everywhere |
 | 3d | two workbooks: `TEST ... read=<file>`, a read-only Workbook argument whose formulas give their saved values | KRONOS Offline only |
 | 3e | `AI_TEXT("...")`: text the AI wrote, listed for a person to check | everywhere |
 | 3f | `DOCUMENT`, the Word kind: fields, repeated rows, columns and sections, optional sections | KRONOS Offline only |
@@ -71,12 +71,13 @@ The rules of the survey (section 6) that VCL can't compute today:
 | --- | --- |
 | `ROUND(<x>, <n>)` | x rounded to n digits, a half away from zero, n from -15 to 15 written in place; `ROUND(1234.5, -3)` is 1000 |
 | `ROUNDUP(<x>, <n>)` | x rounded away from zero to n digits; `ROUNDUP(288364, -3)` is 289000 (the estimate's selling price) |
-| `PI()` | 3.14159265358979 |
 | `MIN(<a>, <b>)`, `MAX(<a>, <b>)` | the smaller or larger of two numbers |
 
-Numbers only, guarded like any calculation (rule 15). Excel rounds the decimal it shows, not the binary double, so
+`PI()` was planned and left out (D111): the weight formulas that use it are Excel formulas already (SET_FORMULA
+allows PI), and no job computes a weight in a recipe. Numbers only, guarded like any calculation (rule 15). Excel rounds the decimal it shows, not the binary double, so
 `ROUND(2.675, 2)` is 2.68: `semantics.py` rounds the value's 15-digit decimal form, and ForgeLib calls Excel's own
-`WorksheetFunction.Round` and `RoundUp`. `TEXT` stays off the SET_FORMULA allowlist: the WPS's `TEXT(R33,"0.00")`
+`WorksheetFunction.Round` and `RoundUp` (the simulator gives them `semantics.py`'s meaning). The digits are a whole
+number from -15 to 15 written in place. `TEXT` stays off the SET_FORMULA allowlist: the WPS's `TEXT(R33,"0.00")`
 formulas are already in the template, and a recipe that needs a range as text builds it with `&` and `ROUND`.
 
 ## 3d. Two workbooks (KRONOS Offline only)

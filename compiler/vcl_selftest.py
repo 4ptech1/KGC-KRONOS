@@ -41,6 +41,8 @@ CALLS = {
     "sheet_name_ok": "ForgeSheetNameOk({0})",
     "text_ok": "ForgeIsTextOk({0})", "file_text": "SelfTestFileText({0})",
     "order": "ForgeCompare({0}, {1})",
+    "round_half": "ForgeRound({0}, {1})", "round_up": "ForgeRoundUp({0}, {1})",
+    "smaller": "ForgeMin({0}, {1})", "larger": "ForgeMax({0}, {1})",
 }
 XL_ERRORS = {"#N/A": "xlErrNA", "#DIV/0!": "xlErrDiv0", "#VALUE!": "xlErrValue", "#REF!": "xlErrRef",
              "#NAME?": "xlErrName", "#NUM!": "xlErrNum", "#NULL!": "xlErrNull"}

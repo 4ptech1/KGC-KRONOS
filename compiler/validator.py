@@ -96,6 +96,8 @@ VALUE_FUNCS = {
     "SHEET_EXISTS": (2, 2, {}),
     # VCL 0.5 (docs/vep-0.5-build.md, Phase 4)
     "ROW_OF": (1, 1, {}),
+    # VCL 0.7 (docs/vep-0.7-documents.md, part 3c)
+    "ROUND": (2, 2, {}), "ROUNDUP": (2, 2, {}), "MIN": (2, 2, {}), "MAX": (2, 2, {}),
 }
 VCL_02_FUNCS = {"SAME", "CLEAN_TEXT", "IS_ERROR", "PARSE_DATE", "IIF", "MOD"}
 VCL_02_OPS = {"SKIP_IF", "EXIT_LOOP_IF", "WRITE_ROW"}
@@ -103,6 +105,8 @@ VCL_03_FUNCS = {"SAFE_NAME", "PATH_JOIN", "FOLDER_EXISTS"}
 VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
 VCL_04_FUNCS = {"SHEET_EXISTS"}
 VCL_05_FUNCS = {"ROW_OF"}   # D55
+VCL_07_FUNCS = {"ROUND", "ROUNDUP", "MIN", "MAX"}   # D111
+DIGITS_SECOND = {"ROUND", "ROUNDUP"}   # their second argument: a whole number from -15 to 15, written in place
 VCL_04_OPS = {"LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # D44, D45: S24, S25 and the path rules of VCL 0.3
 VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4, "VCL 0.5": 5, "VCL 0.6": 6, "VCL 0.7": 7}
 GOAL_LENGTH = (10, 200)   # VCL 0.6 (D61)
@@ -1243,6 +1247,15 @@ class TaskChecker:
             self.error(coded(f"{name} is VCL 0.4: start the spec with 'VCL 0.4' to use it", "V181"))
         if name in VCL_05_FUNCS and not self.at_least("VCL 0.5"):
             self.error(coded(f"{name} is VCL 0.5: start the spec with 'VCL 0.5' to use it", "V182"))
+        if name in VCL_07_FUNCS and not self.at_least("VCL 0.7"):
+            self.error(coded(f"{name} is VCL 0.7: start the spec with 'VCL 0.7' to use it", "V336"))
+        if name in DIGITS_SECOND:
+            positional_items = self.call_parts(call)[0]
+            if len(positional_items) == 2:
+                text = "".join(t.text for t in positional_items[1])
+                if not re.fullmatch(r"-?\d+", text) or not -15 <= int(text) <= 15:
+                    self.error(coded(f"{name} needs a whole number from -15 to 15, written in place, as its second "
+                                     "argument (the digits)", "V337"))
         fewest, most, allowed = VALUE_FUNCS[name]
         positional, options = self.call_parts(call)
         if len(positional) < fewest or (most is not None and len(positional) > most):

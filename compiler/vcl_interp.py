@@ -521,6 +521,12 @@ class Machine:
             if b == 0:
                 raise VclError(coded("division by zero", "R017"))
             return S.mod(a, b)
+        if name in ("ROUND", "ROUNDUP"):   # VCL 0.7 (S27)
+            x, digits = self.num(e(pos[0])), int(self.num(e(pos[1])))
+            return (S.round_up if name == "ROUNDUP" else S.round_half)(x, digits)
+        if name in ("MIN", "MAX"):   # VCL 0.7 (S28)
+            a, b = self.num(e(pos[0])), self.num(e(pos[1]))
+            return S.smaller(a, b) if name == "MIN" else S.larger(a, b)
         if name == "SAFE_NAME":
             return S.safe_name(e(pos[0]))
         if name == "PATH_JOIN":
@@ -1308,6 +1314,13 @@ def entry_of(spec):
     return spec, procs, spec["keys"]
 
 
+def test_number(v):
+    """A number a TEST passes: NUMBER, or neg_number for a negative one (-4), which the grammar allows (D111)."""
+    if isinstance(v, Tree) and v.data == "neg_number":
+        return -S.to_number(str(v.children[0]))
+    return S.to_number(str(v))
+
+
 def run_tests(text, today=None):
     """Run every TEST of a TASK spec, or of a VCL 0.5 BUILD through its modMain.RunHeadless (D49).
     today pins TODAY (default: the real date)."""
@@ -1361,7 +1374,7 @@ def run_tests(text, today=None):
             elif isinstance(v, Token) and v.type == "STRING":
                 bound[pname] = str(v)[1:-1]
             else:
-                bound[pname] = S.to_number(str(v))
+                bound[pname] = test_number(v)
         log = []
         result = None
         stopped_at_pre = True

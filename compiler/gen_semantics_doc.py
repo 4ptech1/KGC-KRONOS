@@ -27,12 +27,13 @@ NAMES = {"is_empty": "IS_EMPTY", "is_number": "IS_NUMBER", "is_date": "IS_DATE",
          "same_row_key": "DEDUPE keys (VCL 0.4)", "find": "FIND (revision 3, VEP 0.4)",
          "sheet_name_ok": "Sheet names for ADD_SHEET (VCL 0.4)", "list_files": "LIST_FILES (VCL 0.4)",
          "text_ok": "Text for READ_TEXT and WRITE_TEXT (VCL 0.4)", "file_text": "READ_TEXT (VCL 0.4)",
-         "order": "< > <= >= on workbook values (D94)"}
+         "order": "< > <= >= on workbook values (D94)", "round_half": "ROUND (VCL 0.7)",
+         "round_up": "ROUNDUP (VCL 0.7)", "smaller": "MIN (VCL 0.7)", "larger": "MAX (VCL 0.7)"}
 DECISION_FUNCS = ["is_empty", "trim", "is_number", "is_date", "is_error", "text_of", "equals",
                   "left", "header_key", "dict_key", "last_row", "same", "clean_text", "parse_date",
                   "iif", "mod", "needs_text_guard", "safe_name", "path_join", "file_name",
                   "same_row_key", "find", "sheet_name_ok", "list_files",
-                  "text_ok", "file_text", "order"]
+                  "text_ok", "file_text", "order", "round_half", "round_up", "smaller", "larger"]
 
 
 def show(v):

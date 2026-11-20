@@ -273,6 +273,14 @@ class Gen:
             return f"ForgeIif({e(0)}, {ac}, {bc})", ak if ak == bk else "raw"
         if name == "MOD":
             return f"ForgeMod({n(0)}, {n(1)})", "num"
+        if name == "ROUND":   # VCL 0.7 (D111): Excel's own worksheet functions
+            return f"ForgeRound({n(0)}, {n(1)})", "num"
+        if name == "ROUNDUP":
+            return f"ForgeRoundUp({n(0)}, {n(1)})", "num"
+        if name == "MIN":
+            return f"ForgeMin({n(0)}, {n(1)})", "num"
+        if name == "MAX":
+            return f"ForgeMax({n(0)}, {n(1)})", "num"
         if name == "SAFE_NAME":
             return f"ForgeSafeName({e(0)})", "text"
         if name == "PATH_JOIN":
