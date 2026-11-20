@@ -65,6 +65,17 @@ MAX_LINE = 1000      # VBA allows 1023 characters per line
 
 # ---------------------------------------------------------------- the data model
 
+@dataclass(frozen=True)
+class Formula:
+    """A formula cell: one SET_FORMULA wrote (D43), or one a template FIXTURE holds (D110). Its text as written ("="
+    first), in the style it was written, and, for a template's formula, the value Excel saved for it. The interpreter
+    can't calculate a formula, so reading one as a value stops the TEST (R009); FORMULA(...) checks its text. The saved
+    value takes no part in comparing two formulas."""
+    text: str
+    r1c1: bool = False
+    saved: object = field(default=None, compare=False)
+
+
 class Sheet:
     """One worksheet as the interpreter sees it: values, fills and number formats by (row, col), and
     the rows FILTER hid (VEP 0.4 Phase 5)."""
@@ -75,6 +86,7 @@ class Sheet:
         self.fills = {}    # (row, col) -> "#RRGGBB"
         self.formats = {}  # (row, col) -> number format
         self.hidden = set()   # row numbers
+        self.merged = []      # merged ranges, (row1, col1, row2, col2): a template FIXTURE's (D110)
         self.origins = None   # KRONOS Offline's upload (D87): (row, col) -> (sheet, row, col, keep_style) of the
         self.copy_of = None   # uploaded cell it came from, moved with the cells; None everywhere else. copy_of: the
                               # sheet COPY_SHEET copied this one from
@@ -99,6 +111,7 @@ class Sheet:
         s = Sheet(self.name)
         s.cells, s.fills, s.formats = dict(self.cells), dict(self.fills), dict(self.formats)
         s.hidden = set(self.hidden)
+        s.merged = list(self.merged)
         s.origins = None if self.origins is None else dict(self.origins)
         s.copy_of = self.copy_of
         return s
@@ -454,6 +467,12 @@ def build_workbooks(fixture_trees, today=None):
     for tree in fixture_trees:
         if tree.data == "folder_fixture":
             continue  # VCL 0.3 folders: the mock file system comes in router Phase 2
+        if tree.data == "template_fixture":   # VCL 0.7 (D110): every sheet of a look-alike template
+            from vcl_template import load_template
+            book = books.setdefault(str(tree.children[0]), {})
+            for name, sh in load_template(str(tree.children[1])).items():
+                book[name] = sh
+            continue
         fx = parse_fixture(tree)
         sheet = Sheet(fx.sheet)
         for c, (_, header) in enumerate(fx.headers, start=1):
@@ -554,6 +573,60 @@ def vba_for_file(file, fixtures):
             out += [f"Private Sub {proc_name(file, fx.sheet, part)}(ByVal ws As Worksheet)"]
             out += [_write_line("ws", n, row) for n, row in chunk]
             out += ["End Sub", ""]
+    return "\n".join(out)
+
+
+def _a1(r, c):
+    return f"{col_letter(c)}{r}"
+
+
+def vba_for_template(file, template):
+    """VCL 0.7 (D110): ForgeFixture_<file>(wb) builds a template FIXTURE's sheets in Excel, as the interpreter holds
+    them: values (text as exactly that text), then formulas, number formats, solid fills and merged ranges. Fonts,
+    borders, widths and pictures are not part of a practice workbook."""
+    from vcl_template import load_template
+    sheets = load_template(template)
+    out = [f"' FIXTURE {file}: made from data/templates/{template}.xlsx by compiler/vcl_fixtures.py.",
+           f"Public Sub {proc_name(file)}(ByVal wb As Workbook)"]
+    names = []
+    for n, name in enumerate(sheets, start=1):
+        names.append((name, f"{proc_name(file)}_S{n}"))
+        out.append(f"    {names[-1][1]} wb")
+    out += ["End Sub", ""]
+    for name, proc in names:
+        sh = sheets[name]
+        lines = []
+        for (r, c), v in sorted(sh.cells.items()):
+            if isinstance(v, Formula):
+                lines.append(f"    ws.Range({vba_text(_a1(r, c))}).Formula = {vba_text(v.text)}")
+            elif isinstance(v, str):
+                lines.append(f"    ws.Range({vba_text(_a1(r, c))}).Value = "
+                             f"{vba_text(chr(39) + v if needs_text_guard(v) else v)}")
+            elif isinstance(v, bool):
+                lines.append(f"    ws.Range({vba_text(_a1(r, c))}).Value = {'True' if v else 'False'}")
+            elif isinstance(v, float) and "e" in repr(v):   # Val reads "." and an exponent on every PC
+                lines.append(f"    ws.Range({vba_text(_a1(r, c))}).Value = Val(\"{repr(v).upper()}\")")
+            else:
+                lines.append(f"    ws.Range({vba_text(_a1(r, c))}).Value = {vba_literal(v)}")
+        for (r, c), fmt in sorted(sh.formats.items()):
+            lines.append(f"    ws.Range({vba_text(_a1(r, c))}).NumberFormat = {vba_text(fmt)}")
+        for (r, c), fill in sorted(sh.fills.items()):
+            h = fill.lstrip("#")
+            lines.append(f"    ws.Range({vba_text(_a1(r, c))}).Interior.Color = "
+                         f"RGB({int(h[0:2], 16)}, {int(h[2:4], 16)}, {int(h[4:6], 16)})")
+        for r1, c1, r2, c2 in sh.merged:
+            lines.append(f"    ws.Range({vba_text(_a1(r1, c1) + ':' + _a1(r2, c2))}).Merge")
+        chunks = [lines[i:i + ROWS_PER_PROC] for i in range(0, len(lines), ROWS_PER_PROC)] or [[]]
+        out += [f"Private Sub {proc}(ByVal wb As Workbook)", "    Dim ws As Worksheet",
+                f"    Set ws = FixtureSheet(wb, {vba_text(name)})"]
+        out += chunks[0]
+        out += [f"    {proc}_{part} ws" for part in range(2, len(chunks) + 1)]
+        out += ["End Sub", ""]
+        for part, chunk in enumerate(chunks[1:], start=2):
+            out += [f"Private Sub {proc}_{part}(ByVal ws As Worksheet)"] + chunk + ["End Sub", ""]
+    for line in out:
+        if len(line) > MAX_LINE:
+            raise ValueError(coded(f"template {template}: a VBA line of {len(line)} characters (limit {MAX_LINE})", "X020"))
     return "\n".join(out)
 
 
@@ -712,10 +785,12 @@ def fixtures_module(fixture_trees_by_spec):
     seen = {}
     parts = []
     for spec_name, trees in fixture_trees_by_spec:
-        fixtures = [parse_fixture(t) for t in trees if t.data != "folder_fixture"]
+        fixtures = [parse_fixture(t) for t in trees if t.data == "fixture_value"]
         folders = [t for t in trees if t.data == "folder_fixture"]
+        templates = {str(t.children[0]): str(t.children[1]) for t in trees if t.data == "template_fixture"}
         for file in dict.fromkeys([str(t.children[0]) for t in trees]):
-            mine = ([fx for fx in fixtures if fx.file == file],
+            mine = ([fx for fx in fixtures if fx.file == file] or ([("template", templates[file])] if file in templates
+                                                                    else []),
                     [parse_folder(t) for t in folders if str(t.children[0]) == file])
             if file in seen:
                 if seen[file][1] != mine:
@@ -723,7 +798,9 @@ def fixtures_module(fixture_trees_by_spec):
                 continue
             seen[file] = (spec_name, mine)
             parts.append(f"' ---- {spec_name}")
-            if mine[0]:
+            if file in templates:
+                parts.append(vba_for_template(file, templates[file]))
+            elif mine[0]:
                 parts.append(vba_for_file(file, mine[0]))
             if mine[1]:
                 parts.append(vba_for_folders(file, [t for t in folders if str(t.children[0]) == file]))

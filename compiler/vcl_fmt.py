@@ -29,7 +29,7 @@ from validator import validate_text  # noqa: E402
 
 KEY_WIDTH = 9
 # the `name=` words that start a field of a TEST or a FIXTURE line
-FIELDS = {"fixture=", "call=", "runs=", "assert=", "sheet=", "cols=", "rows=", "stale=", "data=", "folder=",
+FIELDS = {"fixture=", "call=", "runs=", "assert=", "sheet=", "cols=", "rows=", "stale=", "data=", "folder=", "template=",
           "files=", "locked="}
 NO_BEFORE = {"RPAR", "RSQB", "COMMA", "SEMICOLON", "BANG", "EQUAL", "COLON"}
 NO_AFTER = {"LPAR", "LSQB", "BANG", "EQUAL", "COLON", "MINUS"}   # MINUS is the unary minus (a binary one is ADD_OP)

@@ -19,7 +19,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "vcl"))
 import semantics as S  # noqa: E402
 from errcodes import coded  # noqa: E402
-from vcl_fixtures import (EXCEL_SANDBOX_MAX, MAX_FILE_PATH, MAX_FOLDER_PATH, SANDBOX, MockFS,  # noqa: E402
+from vcl_fixtures import (EXCEL_SANDBOX_MAX, Formula, MAX_FILE_PATH, MAX_FOLDER_PATH, SANDBOX, MockFS,  # noqa: E402
                           Sheet, build_folders, build_workbooks, col_number)
 from vcl_parse import parse  # noqa: E402
 
@@ -285,14 +285,6 @@ def copy_file(fs, src, dst):
         return "Locked"
     fs.add_file(dst, source["size"])
     return "Copied"
-
-
-@dataclass(frozen=True)
-class Formula:
-    """A cell SET_FORMULA wrote (D43): its formula text as written, in the style it was written. The
-    interpreter can't calculate it, so reading it as a value stops the TEST; FORMULA(...) checks it."""
-    text: str
-    r1c1: bool = False
 
 
 def value(sh, r, c):

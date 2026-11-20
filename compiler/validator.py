@@ -104,7 +104,7 @@ VCL_03_OPS = {"MAKE_FOLDER", "COPY_FILE"}
 VCL_04_FUNCS = {"SHEET_EXISTS"}
 VCL_05_FUNCS = {"ROW_OF"}   # D55
 VCL_04_OPS = {"LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # D44, D45: S24, S25 and the path rules of VCL 0.3
-VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4, "VCL 0.5": 5, "VCL 0.6": 6}
+VERSION_RANK = {"VCL 0.1": 1, "VCL 0.2": 2, "VCL 0.3": 3, "VCL 0.4": 4, "VCL 0.5": 5, "VCL 0.6": 6, "VCL 0.7": 7}
 GOAL_LENGTH = (10, 200)   # VCL 0.6 (D61)
 # MODIFIES (VCL 0.2): what each write op changes, and so which MODIFIES line it needs
 SHEET_FUNCS = {"CELL", "ROW_RANGE", "USED_RANGE", "RANGE"}
@@ -1625,10 +1625,28 @@ def check_folders(checker, folders, fixtures):
 
 def check_fixtures(checker, fixtures):
     seen = set()
+    template_files = {}   # file -> the line of its template FIXTURE (VCL 0.7, D110)
+    for fx in fixtures:
+        if fx.template:
+            template_files.setdefault(fx.file, fx.line)
+    reported = set()
     for fx in fixtures:
         line = fx.line
+        if line in reported:
+            continue   # a template FIXTURE line makes several sheets: its checks run once
+        if fx.template:
+            reported.add(line)
         if not FIXTURE_FILE.fullmatch(fx.file):
             checker.error(coded(f"fixture file {fx.file} must be named like snake_case_01.xlsx (rule 12)", "V245"), line)
+        if fx.template:   # a template's sheets are the template's own: their names and headers are not the spec's
+            if not checker.at_least("VCL 0.7"):
+                checker.error(coded("template FIXTUREs are VCL 0.7: start the spec with 'VCL 0.7' to use them", "V333"), line)
+            if template_files[fx.file] != line:
+                checker.error(coded(f"{fx.file} has two template FIXTURE lines: one template makes the whole workbook", "V334"),
+                              line)
+            continue
+        if fx.file in template_files:
+            checker.error(coded(f"{fx.file} is made from a template, so it can't also have a sheet= FIXTURE line", "V335"), line)
         if not SHEET_NAME.fullmatch(fx.sheet):
             checker.error(coded(f"fixture sheet name {fx.sheet} must be one word, so TESTs can pass it bare", "V246"), line)
         if (fx.file, fx.sheet) in seen:
@@ -2112,7 +2130,8 @@ def grammar_and_type_problems(text, known, sigs=None):
         return out
     tasks = [spec] if spec["kind"] == "TASK" else spec.get("tasks", []) if spec["kind"] == "BUILD" else []
     for k in spec.get("keys", []) + [k for t in tasks if t and t is not spec for k in t.get("keys", [])]:
-        if k["key"] == "FIXTURE" and k["line"] not in bad_lines and k["tree"].data != "folder_fixture":
+        if k["key"] == "FIXTURE" and k["line"] not in bad_lines and k["tree"].data not in ("folder_fixture",
+                                                                                             "template_fixture"):
             try:
                 fx = parse_fixture(k["tree"])
                 sheet_rows(fx)

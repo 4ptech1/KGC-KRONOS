@@ -96,7 +96,7 @@ def spec_procedure(name, text):
     trees = [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]
     sheets = {}
     for t in trees:
-        if t.data != "folder_fixture":
+        if t.data == "fixture_value":
             fx = parse_fixture(t)
             sheets.setdefault(fx.file, []).append(fx.sheet)
     folders = {str(t.children[0]) for t in trees if t.data == "folder_fixture"}
@@ -260,7 +260,7 @@ def pilot_module(specs, words=CLAUDE):
         trees = [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]
         for file in sorted(files):
             mine = [t for t in trees if str(t.children[0]) == file]
-            shape = ([parse_fixture(t) for t in mine if t.data != "folder_fixture"],
+            shape = ([parse_fixture(t) for t in mine if t.data == "fixture_value"],
                      [parse_folder(t) for t in mine if t.data == "folder_fixture"])
             if file in seen:
                 if seen[file] != shape:

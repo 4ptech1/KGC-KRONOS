@@ -340,6 +340,10 @@ message, `{...}` stands for the part that varies.
 | V329 | error | modMain.RunHeadless has PRE and the fixture has another sheet, but no wrong-sheet TEST expects {want} (rule 5) | validator.py |
 | V330 | error | {full} uses SET_FORMULA and {other[0]} uses {other[1]}: a BUILD may not do both, because Excel rewrites formula references when rows move, which a TEST can't prove (D43) | validator.py |
 | V331 | error | {full} uses FILTER and {other} uses SORT: a BUILD may not do both, because how Excel sorts rows that FILTER hid can't be proven by a TEST (D42) | validator.py |
+| V332 | error | a template FIXTURE must look like: <name>.xlsx template=<template name> | parser.py |
+| V333 | error | template FIXTUREs are VCL 0.7: start the spec with 'VCL 0.7' to use them | validator.py |
+| V334 | error | {fx.file} has two template FIXTURE lines: one template makes the whole workbook | validator.py |
+| V335 | error | {fx.file} is made from a template, so it can't also have a sheet= FIXTURE line | validator.py |
 
 ## G: grammar
 
@@ -434,6 +438,14 @@ message, `{...}` stands for the part that varies.
 | X017 | error | FIXTURE {file}: {path} is too long to build below an Excel sandbox root of up to {EXCEL_SANDBOX_MAX} characters (limit {limit}) | vcl_fixtures.py |
 | X018 | error | FIXTURE {file} folder {folder}: {path} has {size} bytes; a dummy file may have at most {MAX_SANDBOX_FILE} | vcl_fixtures.py |
 | X019 | error | fixture {file} is defined differently in {seen[file][0]} and {spec_name} | vcl_fixtures.py |
+| X020 | error | template {template}: a VBA line of {len(line)} characters (limit {MAX_LINE}) | vcl_fixtures.py |
+| X021 | error | template={name}: a template name is letters, digits and _ | vcl_template.py |
+| X022 | error | {name}: not an .xlsx workbook | vcl_template.py |
+| X023 | error | {name}: not an .xlsx workbook | vcl_template.py |
+| X024 | error | {name}: it links to another workbook, which a practice workbook can't hold | vcl_template.py |
+| X025 | error | {where} holds an error value ({raw}): a practice workbook can't | vcl_template.py |
+| X026 | error | {where}: a {f.get('t')} formula, which a practice workbook can't hold: write the formula in each cell | vcl_template.py |
+| X027 | error | template={name}: there is no data/templates/{name}.xlsx | vcl_template.py |
 
 ## R: TEST run
 
