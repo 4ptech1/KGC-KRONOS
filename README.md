@@ -410,3 +410,5 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   the internal Word estimation sheet): KRONOS will fill such files. The plan, for another session to implement, is
   `docs/kgc-documents-plan.md` (D105): publish the samples, survey them, look-alike templates, VCL 0.7 with Word
   documents and two workbooks, KRONOS Offline version 6, a corpus batch of document jobs, then the benchmark.
+  Phase 0 is done (D106): the 11 KGC samples, including 3 Word technical proposals and the WPS as PDFs, are in
+  `samples/kgc/` at Boss's request, unchanged and listed with their SHA-256; tests never read them.

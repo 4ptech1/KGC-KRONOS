@@ -1,7 +1,8 @@
 # KRONOS fills KGC's own documents (Excel and Word): the plan (D105)
 
 Status: **approved by Boss on 20 Nov 2026.** Written to be handed to another Claude Code session: read `CLAUDE.md`
-first, then this file, and start with Phase 0. Each phase is its own PR.
+first, then this file. **Phase 0 is done (D106):** all 11 samples are in `samples/kgc/`, so the next session needs no
+uploads; start with Phase 1. Each phase is its own PR.
 
 ## Context
 
@@ -14,7 +15,9 @@ different. They are estimation and welding documents:
 | `NEA_Enquiry-Summary-MKT.xlsx` | marketing's enquiry register | 1 sheet, 27 columns, one row per item, an enquiry's first cells merged over its item rows, formulas (Shell OD = ID + 2 x THK, bar to kg/cm2) |
 | `Estimation_Sheet_E-1604AB_Channel_FH.xlsx` | a cost estimate | 7 linked sheets: Inputs (rates), BOM-RM, Conversion, Hydrotest Options, Summary, Enq Summary (the register's columns plus prices), Assumptions; about 270 cross-sheet formulas (weights from dimensions, ROUNDUP of prices, totals) |
 | `KGC_Estimation_Sheet_NEA-28982_INTERNAL.docx` | the internal estimation sheet | Word, 11 tables: price summary, options, basis and assumptions, a preliminary ASME VIII-1 design check; header, footer, a logo |
-| `WPS_KGC-P104-191-101_R1.xlsx`, `WPS_KGC-P105-101-101_R1.xlsx` | Welding Procedure Specifications (ISO 15609-1, format QF/QA/31) | a 2-page form: 176 merged cells, 4 pictures (joint sketches), a print area, an "Actual / Qualified" pair of columns, and a heat-input check with formulas outside the print area |
+| `KGC_Estimation_Sheet_NEA-28983_INTERNAL.docx` | a second internal estimation sheet | the same Word form for a second enquiry |
+| `KGC_Technical_Proposal_NEA-28982_..._Rev0.docx`, `..._NEA-28983_..._NACE_Rev0.docx`, `Technical_Proposal-P-XXXX-XXXX-R0-Dt_20-Nov-2026.docx` | technical proposals (Part A) | Word: a cover table, annexures A to H (basis of offer, technical delivery conditions per item, inspection, scope and exclusions, technical queries, document schedule, terms, vendor list), header and footer with the proposal number and form number |
+| `WPS_KGC-P104-191-101_R1.xlsx`, `WPS_KGC-P105-101-101_R1.xlsx` (and the same two as `.pdf`) | Welding Procedure Specifications (ISO 15609-1, format QF/QA/31) | a 2-page form: 176 merged cells, 4 pictures (joint sketches), a print area, an "Actual / Qualified" pair of columns, and a heat-input check with formulas outside the print area |
 
 **Boss's answers (20 Nov 2026):**
 1. KRONOS should fill all of these: every Excel file and the Word files.
@@ -42,7 +45,7 @@ file back, proven by tests on look-alike practice files, with every AI-written t
 
 ## Phases (one PR each unless it says otherwise; CI green, merge with a merge commit, then the next)
 
-### Phase 0: publish the samples (D105)
+### Phase 0: publish the samples (D105) - done (D106)
 - Read `Samples.rar` in full first (install a RAR reader, `unar` or `7z`, in the container only; extract into the
   scratchpad, never inside the repo; read every file with `python -I`). Publish only what has been read.
 - Commit the real files to `samples/kgc/` with a `README.md`: what each is, that Boss published them on
@@ -66,7 +69,7 @@ file back, proven by tests on look-alike practice files, with every AI-written t
 ### Phase 2: look-alike templates (synthetic, for tests)
 - `data/templates/`: invented copies with the same layout as each sample: the WPS form (merged cells, a sketch
   picture, print area, the heat-input block), the 7-sheet estimation workbook with its formulas, the enquiry
-  register with merged enquiry blocks, and the Word estimation template with `{{field}}` placeholders and one
+  register with merged enquiry blocks, the Word estimation template and a Word technical proposal template with `{{field}}` placeholders and one
   repeating row per table. Invented names, numbers and prices only.
 - Made by scripts beside them (the `docs/demo/` pattern), with a test that the files equal what the scripts make
   today (as `tests/test_demo.py`).

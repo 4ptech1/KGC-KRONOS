@@ -58,9 +58,10 @@ and their proven specs, each with its VBA.
   never goes into the repo or into this Claude Code session, and what he copies from it into an AI
   chat is his choice. Permitted KGC samples (D101, Boss, 19 Nov 2026) may be read in a Claude Code session to learn
   the shape of the registers; nothing from them goes into the repo, its tests, specs, corpus or docs, and recipes
-  modelled on them use invented values. **D105 (Boss, 20 Nov 2026):** the KGC samples themselves are to be published
-  in `samples/kgc/` (Phase 0 of `docs/kgc-documents-plan.md`), the one exception to the synthetic-only rule; specs,
-  TESTs, FIXTUREs, the corpus and unit tests still use invented look-alikes only.
+  modelled on them use invented values. **D105, D106 (Boss, 20 Nov 2026):** the KGC samples themselves are published
+  in `samples/kgc/` (11 files, listed with their SHA-256 in its README), the one exception to the synthetic-only rule;
+  no other real file joins them without Boss's word, and specs, TESTs, FIXTUREs, the corpus and unit tests still use
+  invented look-alikes only (`tests/test_samples.py`).
   From March 2027 the company storage is the new PC's 300 GB, reserved for KRONOS (D91,
   `docs/kronos-storage-plan.md`): real data only under `KRONOS\work` (and what is trained on it), models trained
   on real data never leave that PC, and KRONOS never deletes real records.
@@ -102,7 +103,7 @@ and their proven specs, each with its VBA.
 - `docs/kronos-app.md`: the KGC KRONOS desktop app (item 5, D68 to D71).
 - `docs/ai-vba-plan.md`: our model writes the VBA from a proven recipe, and the VBA simulator proves it (item 7, D90).
 - `docs/kgc-documents-plan.md`: KRONOS fills KGC's own Excel and Word documents (WPS, estimation, enquiry register;
-  D105), the plan another session implements, Phase 0 first.
+  D105), the plan another session implements; Phase 0, publishing the samples in `samples/kgc/`, is done (D106).
 - `docs/kronos-storage-plan.md`: the new PC's 300 GB, KRONOS's home from March 2027: the layout, budgets, rules
   and monthly report (item 8, D91; the reference files follow it, D92).
 
