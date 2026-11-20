@@ -613,7 +613,7 @@ class RealSpecs(unittest.TestCase):
         taught = validator.VERSION_RANK[re.match(r"# (VCL \d+\.\d+)", spec).group(1)]
         newer = {}
         for attr in dir(validator):
-            found = re.fullmatch(r"VCL_0(\d)_(FUNCS|OPS)", attr)
+            found = re.fullmatch(r"VCL_0(\d)_(FUNCS|OPS|ASSERTS)", attr)
             if found and int(found.group(1)) > taught:
                 for name in getattr(validator, attr):
                     newer[name] = int(found.group(1))

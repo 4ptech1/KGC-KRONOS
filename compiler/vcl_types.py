@@ -64,6 +64,7 @@ FUNCS = {
     "ROUND": (["Num!", "Num"], "Num"), "ROUNDUP": (["Num!", "Num"], "Num"),
     "MIN": (["Num!", "Num!"], "Num"), "MAX": (["Num!", "Num!"], "Num"),
     "AI_TEXT": (["Text"], "Text"),   # D112: text the AI wrote
+    "BLOCK": (["Sheet", "Num", "Num", "Num", "Num"], "Range"),   # D113: rows and columns from row1, col1 to row2, col2
 }
 FILE_OPS = {"MAKE_FOLDER", "COPY_FILE", "LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # paths by shape (T4)
 ONE_PATH = {"LIST_FILES", "READ_TEXT", "WRITE_TEXT"}   # a path, then something that isn't one

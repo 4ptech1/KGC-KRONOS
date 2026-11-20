@@ -102,6 +102,7 @@ def sim_book(fixture, sheets):
             ws.fills[rc] = colour_to_sim(f)
         ws.formats.update(sh.formats)
         ws.hidden = set(sh.hidden)
+        ws.merged = list(sh.merged)
     return book
 
 
@@ -216,6 +217,10 @@ def check_text(text, name="spec", today=None, module=None):
         if [tuple(f) for f in want.texts] != got_texts:
             out.differences.append(coded(f"{where}: the file texts differ: VBA has {got_texts!r}, "
                                          f"the interpreter {[tuple(f) for f in want.texts]!r}"))
+        got_merged = {ws.name: sorted(ws.merged) for ws in book.sheets if ws.merged}
+        if {k: [tuple(m) for m in v] for k, v in want.merged.items()} != got_merged:
+            out.differences.append(coded(f"{where}: the merged ranges differ: VBA has {got_merged!r}, "
+                                         f"the interpreter {want.merged!r}"))
         got = state_of(book)
         for sheet in sorted(set(want.state) | set(got)):
             if sheet not in got or sheet not in want.state:
