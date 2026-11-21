@@ -102,7 +102,7 @@ Boss's working policy (from `CLAUDE.md`):
 - **Synthetic fixtures only.** Every TEST names a FIXTURE file; `fixture=target` is banned, and
   nothing generated ever touches real workbooks or real folders, except the copy KRONOS Offline
   makes of a workbook Boss uploads (D87); no TEST ever uses one.
-- **No model training or local-model work** until the new PC arrives in March 2027.
+- **No model training or local-model work** until the new PC arrives in March 2027 (writing the `train/` code is allowed, D124; no model is downloaded or run).
 - **Original model and context data (D25, standing rule; its weights rule lifted by D102).** Since D102
   (Boss, 19 Nov 2026) the model may start from a small open-weight model (Apache 2.0 or MIT, at most about
   7 billion parameters, tuned with LoRA, offline on the new PC), built beside one trained from zero (at most
@@ -724,6 +724,11 @@ benchmark (step 7). Phases 0 (D106), 1 (the survey, `docs/kgc-documents.md`, D10
 - **D24:** Boss's weld-log spec is task_11, unchanged. The router spec becomes task_12.
 - **D25:** original model and context data: the model learns from in-house data only. **Changed by D102:** its
   starting weights may be a small open model's; see D102.
+- **D128:** the QLoRA tuning script and the 4-bit export (`train/qlora_train.py`, `train/export_model.py`): code only, never run; a dry run unless `--go`; the first run in March is `--smoke`.
+- **D127:** VCL's grammar as a GBNF grammar for llama.cpp (`train/vcl.gbnf`, made by `train/grammar_gbnf.py` from `vcl/grammar.lark` and the parser's key order): the model's reply can only be text shaped like a canonical VCL recipe.
+- **D126:** the training kit's part 1: `python train/make_dataset.py` makes the chat dataset (write and repair examples, split by pair, held-out items guarded) from the proven pairs and `vclc datagen`; `train/` is code only.
+- **D125:** the gaps the dry run of KRONOS Offline version 6 found on the real samples (a formula written over without a warning; the look-alike WPS rows; a Word marker in a table cell; tables counted by position) are recorded in `docs/known-gaps.md`, not fixed.
+- **D124:** candidate B in detail: Qwen2.5-Coder 7B or 1.5B in 4-bit, kept to KRONOS's job by LoRA, grammar-locked output and a short prompt; an optional Codex meaning check (MATCH or MISMATCH) on a proven recipe; Codex stays the writer until the benchmark passes (`docs/ai-plan.md`).
 - **D31:** the model writes VCL; the compiler writes the VBA (`docs/ai-plan.md`). **Changed by D90:** the model may
   also write the VBA from a proven recipe, with its context in VCL, used only when a VBA simulator proves it against the
   recipe's TESTs; the compiler's VBA is the fallback (`docs/ai-vba-plan.md`).
@@ -3430,6 +3435,11 @@ after the last phase, so Boss updates the Orchestrator once.
 | D121 | 21 Nov 2026 | **KRONOS Offline version 6, part 6d: Word on the page.** A DOCUMENT recipe now runs on the page. The Save step shows a "Fill a Word file" card: the Word template (.docx, up to 2 MB; an old .doc is refused with the way to save it as .docx), a box for each argument of the recipe, the workbook it reads (the one under "Your workbook", used as Excel last saved it), and the AI's text to read; "Fill the Word file" fills a copy of the template in the browser (`kronos_book.fill_document`, `kronos_web.fill_document`, the worker's `fill` job) and the page offers `<template> (KRONOS yyyy-mm-dd hh-mm).docx` to download, with what each field says, the sections it repeated, and the warnings to read first. A formula with no saved value stops the fill in words, never guessed; the template and the workbook are never changed. A DOCUMENT changes no workbook, so it has no "Make the changes on a copy" step. **A bug found by the page test, and the guard:** the worker kept a list of the jobs it accepts and silently dropped any other, so the first version's `fill` job was sent and never answered (the page showed "Checking the recipe" for ever, in every browser). `fill` is added to the list, and `tests/test_offline.py` now checks that every job the worker has a branch for is on the list and every job the page sends is accepted. **Also in this part:** the Windows PowerShell CI job passed every check of the page and then failed on `taskkill` of a launcher child that had already ended (exit 128 became the step's); the step now runs it through `cmd`, resets the exit code, and checks instead that the server is no longer answering. | Word is the other half of what Boss's documents need; one tested list of jobs keeps a new job from being dropped quietly again. |
 | D122 | 21 Nov 2026 | **KRONOS Offline version 6, part 6e: Review, the guide, the version.** (1) `kronos_engine.summary` gets `fills`: for a DOCUMENT its fields, repeated rows, columns and sections; for a workbook recipe the cells it writes by a literal A1 address in SET_VALUE, SET_FORMULA or FORMAT (a long list is cut at 30 with a count); a DOCUMENT's `changes` now says "nothing in any workbook: it fills a copy of your Word template". (2) The Review step shows "What it fills" and, when the recipe has AI_TEXT, a list "Written by the AI, not proven: check it" (D112), so the person reads the AI's own words before Save. (3) `docs/KRONOS_Offline_Guide.docx` (validated): in short, the four steps, what a copy keeps now, new sections 7 (a form from another workbook) and 8 (a Word file, and how to mark a Word file up as a template with {{Name}}, {{BEGIN Name}} and {{END Name}}), the version 6 table and two answers. (4) The version row 6 of `docs/kronos-offline.md`, the release `kronos-offline-v6`, and the exact clicks for the VCL 0.7 prompt. **My conservative choices:** a recipe that writes cells in a loop shows no list (only literal addresses are shown, never guessed); nothing in KRONOS.exe changes. | The person must see what a recipe will touch, and which words nobody proved, before they use it. |
 | D123 | 21 Nov 2026 | **KRONOS Offline version 6 is published: the release `kronos-offline-v6` (main `95bf184`).** Built by `build-offline.yml` from main with "release" ticked: the zip, its files and line endings, the browser engine against normal Python, the page in Chromium, Chromium 109 and Firefox 115, and on Windows the launcher's PowerShell server and the page through it all passed. SHA-256 `d4e1fa22d068c23dbdb71cafa728f3503e9083c476a25ba50f02deaf6d1212b7` (in `docs/kronos-offline.md`). The zip was downloaded from the release with no sign-in and every offline test passed against it with skipping forbidden. **My conservative choice:** the VCL 0.7 prompt is handed to Boss only now, with a copy that can run what it writes (D116, D117); until he has version 6 he pastes nothing. KRONOS.exe is unchanged and still refuses a recipe only KRONOS Offline runs. | The prompt and the copy that runs its recipes go out together. |
+| D124 | 21 Nov 2026 | **Stage C in detail: candidate B and the Codex meaning check (Boss: "trim, translate, etc. an open source AI model for KRONOS so that it is capable of translating user request to vcl and asking codex to recheck if vcl is correct"; `docs/ai-plan.md`).** Boss's answers: "trim" means shrink the file (a small coder model of 1.5B to 7B in 4-bit, about 5 GB), not cut a big model down; tune it for mechanical engineering and welding and leave out what KRONOS doesn't use; its job is English to VCL only; Codex rechecks the meaning of a proven recipe, as an option; prepare now, train in March 2027. **My recommendation, now the plan:** (1) Qwen2.5-Coder 7B and 1.5B Instruct as the candidates, each file's licence, model card and SHA-256 checked in March (D102); (2) the model is kept to KRONOS's job by LoRA tuning on our proven pairs, grammar-locked output from `vcl/grammar.lark`, and a short fixed prompt, not by cutting knowledge out, which can't be done cleanly; (3) welding and engineering words come from an in-house glossary (`data/domain/glossary.md`, invented examples) and shop-language requests paired with proven recipes, no downloaded datasets (D25), `samples/kgc/` never trained on (D106); (4) the meaning check runs only on a recipe the toolchain has proven, answers MATCH or MISMATCH with reasons in a fixed format, never lets an unproven recipe through and never changes a recipe by itself, sends only the request and the recipe (never a file, D69), and KRONOS works without it; in KRONOS Offline it is a text to copy and a box to paste (version 7); (5) the benchmark also scores the checker on the contrast examples (D103). **My conservative choices:** the check is optional; Codex stays the writer until the model passes the benchmark; `train/` may now be written as code only before March (the export, the QLoRA script, the grammar conversion, the 4-bit export), tested without loading any model, while no model is downloaded or run and no training starts before the new PC arrives (CLAUDE.md's rule stands). Updated: `docs/ai-plan.md`, CLAUDE.md, the context file. | The model should write like KGC's own shop and its meaning should be checked by a second reader, while the toolchain stays the judge (D31, D90). |
+| D125 | 21 Nov 2026 | **The gaps found by the dry run of KRONOS Offline version 6 on the real samples are recorded, not fixed (Boss: "record and save the warning and the gaps and work on them later"; `docs/known-gaps.md`).** The warning: a recipe that writes over a formula in the uploaded workbook gives no warning. The gaps: the look-alike WPS form's second page sits higher than the real forms' and the real forms' rows differ; a Word section marker inside a table cell is accepted by the check and refused by the fill with a message that doesn't say what to change; a Word recipe counts tables by position, so a recipe proven on the look-alike fits a real proposal only if its tables are in the same order. **My conservative choices:** the order is the warning, the table marker, the second look-alike, then a VEP for naming tables, which Boss reads first, because it changes VCL; the corpus batch of document jobs (Phase 5) waits for the last two; nothing is fixed until Boss says go, and version 6 as published is unchanged. | Boss chose to build the model first and come back to these. |
+| D126 | 21 Nov 2026 | **Model kit part 1: the training dataset export (`train/prompts.py`, `train/make_dataset.py`; Boss: "start building the model"; `docs/ai-plan.md` Stage C, D124).** `python train/make_dataset.py` writes `train.jsonl`, `val.jsonl` and `manifest.json` into the git-ignored `dist/train/` from `data/verified` and `vclc datagen`: `write` examples (the request and each of its 3 paraphrases to the proven recipe) and `repair` examples (the request, a recipe that did not pass and the toolchain's own messages to the proven recipe), as chat messages with a short fixed prompt of the model's own (`train/prompts.py`), which KRONOS's model adapter will reuse in March so the text it runs with is the text it was trained on. **My conservative choices:** the model's reply is the bare recipe, no code fence, since the grammar-locked generator allows nothing else; a repair is one turn (request, failed recipe, messages), so the loss is on the recipe alone; every real failed try is kept and mutant repairs are capped at 10 per pair (`--repairs-per-pair`) so 4,432 near-identical repairs don't drown 540 writing examples; the split is by pair from a hash of the id, a tenth to validation; the export stops if any held-out id, request or recipe turns up (D59) or a repair names a pair that is not in `data/verified`; the contrast examples are left out (they score the meaning check); lengths are counted in characters, since no tokenizer is loaded before March; the corpus is VCL 0.6 and the prompt names no version, so the migration to 0.7 can come later without retraining the prompt; `tests/test_samples.py` now also scans `train/` for the real samples. Nothing downloads, loads or runs a model. | The dataset is the part of the model that can be built and proven now; every later piece (grammar, QLoRA, 4-bit) reads it. |
+| D127 | 21 Nov 2026 | **Model kit part 2: VCL's grammar for the offline runner (`train/grammar_gbnf.py`, `train/gbnf_check.py`, `train/vcl.gbnf`; Boss: "the grammar conversion, which turns vcl/grammar.lark into the runner's grammar so the model can only write text that parses as VCL").** `python train/grammar_gbnf.py` reads `vcl/grammar.lark` with its own small reader (the EBNF is kept as written, so no left recursion appears, which GBNF forbids; a lark regex terminal is translated, its look-ahead dropped, a negated class never runs over a line end) and takes the file's shape from `compiler/vcl_parse.py` (the versions, the TASK, BUILD and DOCUMENT key orders, `START`), then writes `train/vcl.gbnf` for llama.cpp's `--grammar-file`; a test keeps the committed file current and the converter stops if the parser has a key or the grammar a statement kind it doesn't know. `train/gbnf_check.py` is an independent reader of the GBNF text, so the output is tested with no runner and no model. **Result:** it accepts all 154 VCL 0.6 and 0.7 recipes in the repo (135 corpus pairs, 15 held-out items, 4 examples); rejects 15 hand-made breakages (a missing bracket, keys out of order, no ERR or TEST, an OP too deep or too shallow, a code fence, talk before the recipe, a missing final newline); gives the real parser's verdict on about 98% of 23,000 mutated lines (the rest: only one space between tokens is allowed, and two words with no space between them are accepted, which the validator catches; so is CASE after CASE_ELSE, V115). **My conservative choices:** the grammar is the model's canonical form (`vclc fmt`'s: keys padded to column 9, steps indented 2 spaces a level), because KRONOS runs `vclc fmt` on the reply anyway and the model is tuned on canonical text; it is slightly stricter than the parser where the validator is (GOAL of 10 to 200 printable characters, a TASK needs PROC, KIND, MODULE, an OP, ERR, FIXTURE and TEST lines; a block opener needs a body; CASE only under SELECT_CASE; a BUILD repeats its own version in every TASK); steps nest at most 10 levels (the corpus uses 6); only VCL 0.6 and 0.7 are written; a `# QUESTION:` reply is not allowed (the model is trained to write recipes only; `questions=True` allows it); the grammar names no op or option (the validator's catalogue does); where a rule can't be said in GBNF the grammar is looser, never stricter, than lark. | A small model's commonest failures are unbalanced brackets, wrong key order and wrong indentation; the grammar removes them before the validator sees the reply. |
+| D128 | 21 Nov 2026 | **Model kit part 3: the QLoRA tuning script and the 4-bit export (`train/qlora_train.py`, `train/export_model.py`, `train/requirements-train.txt`; Boss: "the QLoRA tuning script and the 4-bit export right away").** `qlora_train.py` checks the dataset (its files match the manifest's SHA-256, its prompt is `train/prompts.py`'s today, no held-out id), refuses an output inside the repo and a drive that would fall below its 30 GB reserve, loads the base model in 4-bit (NF4, double quantisation), adds LoRA (r=16, alpha=32, every linear layer) and trains with the model's own chat template with the loss on the recipe only; it writes `adapter/`, the tokenizer and `run.json` (settings, dataset hashes, library versions, losses). `export_model.py` merges the adapter into the 16-bit base, makes a GGUF with llama.cpp's `convert_hf_to_gguf.py`, stores it with `llama-quantize` (Q4_K_M by default, about 4.5 GB for 7 billion parameters), copies `vcl.gbnf` beside it and writes `model.json`: the base model's name, version, licence, model card and the SHA-256 of every base file (D102), the run's record, the dataset's, prompt's, grammar's and model file's SHA-256, and whether it was tuned on real data (then it never leaves the PC, D91). **Never run:** both are code only and have not loaded a model; what can be tested without one is (the dataset checks, the loss mask on a stand-in tokenizer, the guards, the plan, the commands as lists, the whole export with stand-in commands, and that importing them loads no model library). **My conservative choices:** both do nothing but plan and check unless `--go` is given; the first run in March is `--smoke` (24 examples, 10 steps); an example longer than `--max-seq-len` (8192 tokens by default, for a 24 GB card; about 2 to 8% of the 1,935 examples are that long) is skipped and counted, never cut, since a cut recipe teaches the wrong ending; a repair is one turn, so the loss never falls on the broken recipe; the adapter must have been tuned from the base it is merged into; the libraries are listed unpinned in `requirements-train.txt` and pinned with their hashes on the new PC from the offline mirror (they can't be checked from the cloud); llama.cpp (MIT) is built on the new PC with IT's approval and is not part of the repo. | The kit is ready to run on day one in March, and every step that can fail without a card has already been tried. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -5242,7 +5252,8 @@ and their proven specs, each with its VBA.
 - Synthetic fixtures only: every TEST uses a named FIXTURE file. `fixture=target` is banned
   until March 2027, and nothing we generate ever touches real workbooks, except the copy KRONOS
   Offline makes of a workbook Boss uploads (D87); no TEST ever uses one.
-- No model training or local-model work until the new PC arrives in March 2027.
+- No model training or local-model work until the new PC arrives in March 2027 (writing the `train/` code is allowed, D124;
+  no model is downloaded or run).
 - **Original model and context data (D25, standing rule; its weights rule lifted by D102).** Since D102 (Boss,
   19 Nov 2026) the model may start from a small open-weight model (Apache 2.0 or MIT licence, at most about 7 billion
   parameters, tuned with LoRA, run offline on the new PC), built beside our own model trained from zero (at most about
@@ -5278,6 +5289,7 @@ and their proven specs, each with its VBA.
 - `docs/ai-vba-plan.md`: our model writes the VBA from a proven recipe, and the VBA simulator proves it (item 7, D90).
 - `docs/kgc-documents-plan.md`: KRONOS fills KGC's own Excel and Word documents (WPS, estimation, enquiry register;
   D105), the plan another session implements; Phase 0, publishing the samples in `samples/kgc/`, is done (D106).
+- `docs/known-gaps.md`: what the dry run of KRONOS Offline version 6 on the real samples found, to fix later (D125).
 - `docs/kronos-storage-plan.md`: the new PC's 300 GB, KRONOS's home from March 2027: the layout, budgets, rules
   and monthly report (item 8, D91; the reference files follow it, D92).
 
@@ -5328,7 +5340,10 @@ packaging/           kronos.spec: the PyInstaller spec for KRONOS.exe (D79); the
                      three servers, licences/), offline_pins.json (the downloads, by SHA-256) and web/; its CI is
                      build-offline.yml, its test tools are in offline_test/
 web/                 KRONOS Offline's page: index.html, styles.css, app.js, worker.js (Pyodide), logo.svg (D86)
-(train/ and model/ arrive in March 2027, as code only; the prepared datasets, the checkpoints and the weights stay
+train/               code only, no model loaded or downloaded (D124): prompts.py, make_dataset.py (the chat dataset from data/verified
+                     and `vclc datagen`, into the git-ignored dist/train), grammar_gbnf.py + vcl.gbnf (VCL's grammar for llama.cpp, D127),
+                     gbnf_check.py, qlora_train.py and export_model.py (the tuning run and the 4-bit export, never run, D128)
+(model/ arrives in March 2027; the prepared datasets, the checkpoints and the weights stay
  on the new PC's 300 GB, in KRONOS\train and KRONOS\models: weights never go into the repo, D91)
 ```
 
@@ -5415,6 +5430,10 @@ label.
 Known: task_04 is bigger than a TASK should be: 48 OP lines (the validator warns above 40) and 107
 lines of VBA (rule 9: about 60); accepted for now, revisit in March.
 
+Known gaps of KRONOS Offline version 6 on the real samples (21 Nov 2026, D125, `docs/known-gaps.md`): a recipe that writes over a
+formula gives no warning; the look-alike WPS form doesn't match the real forms' rows; a Word marker inside a table cell is
+accepted by the check and refused by the fill; a Word recipe counts tables by position. Recorded, not fixed: Boss will say go.
+
 **Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
 paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98
 to D100); 6 the data generator (done, D103, D104: `vclc datagen` and 405 paraphrases). **Next: KGC's own documents (D105,
@@ -5428,6 +5447,14 @@ release `kronos-offline-v6`, D123) are done. **Next: Phase 5** (corpus batch 9, 
 step 7, the benchmark. Then 8 KRONOS Offline version 7 (the old version 6 scope: History, the practice-run check, the
 corpus suggestion, Help), 9 storage S1, 10 the VCL memory and the day-one kit. For Boss: with version 6 in hand, paste
 the updated prompt (VCL 0.7; D94, D97, D116) into the Orchestrator Project.
+
+**The model kit (Boss, 21 Nov 2026; `docs/ai-plan.md` "Stage C in detail", `train/README.md`, D124 to D128):** the plan for the open
+model is written (a small coder model in 4-bit, kept to KRONOS's job by LoRA, a grammar lock and a short prompt; an optional Codex
+meaning check on a proven recipe), and its code before March is done: the chat dataset (`train/make_dataset.py`: 1,935 examples,
+split by pair, held-out items guarded), VCL's grammar for the offline runner (`train/vcl.gbnf`: accepts all 154 recipes), the QLoRA
+tuning script and the 4-bit export (written and tested without a model, never run; a dry run unless `--go`; the first run in March
+is `--smoke`). Still to do before March: the benchmark (step 7), the Codex meaning check in KRONOS.exe and in KRONOS Offline version 7,
+and the in-house glossary. The gaps in `docs/known-gaps.md` (D125) wait for Boss's go.
 
 Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
 1. The Job-Pack Router MVP, `docs/vep-0.3-file-ops.md` (approved by Boss): sandbox only, COPY_FILE
@@ -5863,6 +5890,64 @@ even if the model takes longer than planned.
 models in `KRONOS\models`, each with a budget. The budgets assume candidate A of up to about 350 million
 parameters and candidate B of up to about 7 billion (D102: its base models in `KRONOS\models\base`), and are resized in March to the PC's graphics card; a run never starts if it would eat
 into the 30 GB kept free.
+
+##### Stage C in detail: candidate B and the meaning check (D124)
+
+Boss, 21 Nov 2026: "trim, translate, etc. an open source AI model for KRONOS so that it is capable of translating user
+request to VCL and asking Codex to recheck if VCL is correct." His answers: shrink the file, not a big model cut down;
+tune it for mechanical engineering and welding work, without what KRONOS doesn't need; its job is English to VCL; Codex
+checks the meaning, as an option; prepare now, train in March 2027.
+
+**The base model.** Qwen2.5-Coder-7B-Instruct is the main candidate and Qwen2.5-Coder-1.5B-Instruct the fast one; the
+benchmark picks. Both are Apache 2.0 today; not every size in that family is, so each file's licence, model card and
+SHA-256 are checked and written down in March (D102). They are downloaded once onto the new PC with IT's approval, into
+`KRONOS\models\base`, and run offline; never into the repo or a Claude Code session.
+
+**"Trim" means a small file, not a cut model.** Knowledge can't be cut out of a model cleanly, and what KRONOS never
+uses costs nothing when it runs beyond the file's size. The model is kept to KRONOS's job in three ways:
+1. LoRA tuning (QLoRA on one graphics card) on our proven pairs, so its habits become KRONOS's;
+2. grammar-locked output: `vcl/grammar.lark` is turned into the runner's grammar, so the model can only write text
+   that parses as VCL, never chat, VBA or anything else;
+3. a short fixed prompt.
+The tuned model is stored in 4-bit (about 5 GB for 7B, about 1 GB for 1.5B) and run with an offline runner such as
+llama.cpp (MIT licence), which IT approves in March.
+
+**Mechanical engineering and welding.** The base model already knows the common words (WPS, PQR, NDE, RT, UT, ASME IX,
+hydrotest). KGC's own shop words come from an in-house glossary, `data/domain/glossary.md`: Claude writes it from Boss's
+words, with invented examples only. Requests written in shop language, each paired with a proven recipe, are checked
+the way the paraphrases are (D104). No downloaded welding or engineering datasets (D25). The samples in `samples/kgc/`
+are never trained on (D106). From March, Boss's real proven runs join the data on the new PC (D91).
+
+**The meaning check.** The toolchain proves a recipe parses, type-checks, passes its TESTs and touches only what it
+says. It can't prove the recipe does what the person meant. So, as an option, after the proof KRONOS asks Codex: here
+is the request, here is the proven recipe and what it changes; do they match? Codex answers in a fixed format, MATCH
+or MISMATCH with its reasons, and Review shows the answer. Rules:
+- It runs only on a recipe the toolchain has already proven. A MATCH never lets an unproven recipe through, and a
+  MISMATCH never changes a recipe by itself: the person decides, or sends it back for a new try.
+- It sends what already goes to Codex, the request and a recipe, and never a file (D69).
+- KRONOS works without it: no Codex, no check, and Review says so.
+- In KRONOS.exe it is a call through the Codex CLI, as the writing step is. In KRONOS Offline it is a text to copy
+  into the AI chat and a box to paste the answer (version 7).
+- Today Codex checks recipes Codex wrote. From March it checks our model's.
+
+**The checker is scored too.** The data generator's contrast examples (D103) are recipes that are valid but mean the
+wrong thing. The benchmark counts how many of them Codex's check catches, and how often it wrongly says MISMATCH to a
+right recipe. That tells us how far a MATCH can be trusted.
+
+**Before March, in the cloud (one PR each; nothing is downloaded and no model is run):**
+1. this design;
+2. the benchmark, `vclc bench` (Stage A Phase 8, Boss's step 7), with today's Codex as the baseline, then the
+   checker's score;
+3. the meaning check in KRONOS.exe (`kronos_engine.py`, `kronos_ai.py`, Review in `app/`), tested with the fake AI;
+4. the meaning check in KRONOS Offline, as part of version 7;
+5. the glossary and the shop-language requests;
+6. the training kit in `train/` (`train/README.md`), as code only. Done: the dataset export (D126), the grammar
+   conversion (D127: `train/vcl.gbnf`, a GBNF grammar made from `vcl/grammar.lark`, accepted by every recipe in the repo
+   and read back by an independent checker), the QLoRA script and the 4-bit export (D128: written and tested as far as
+   possible without a card, never run). The first run in March is the script's `--smoke` option.
+
+**In March, on the new PC:** download the base models (IT), tune them, score them beside candidate A on the benchmark,
+and use the best only once it passes. Until then, and whenever it fails, Codex stays the writer.
 
 ##### What doesn't change
 

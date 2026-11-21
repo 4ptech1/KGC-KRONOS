@@ -417,3 +417,9 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   Word) and KRONOS Offline version 6, published as the release `kronos-offline-v6`: a copy that keeps pictures and merged
   cells, a second workbook to read from, Word files filled from a template, and Review that lists the AI's own words. The
   0.7 prompt is pasted only with version 6. Next: a corpus batch of document jobs, then the benchmark.
+- **2026-11-21:** The model kit (D124 to D128, `docs/ai-plan.md` "Stage C in detail", `train/README.md`): the plan for the
+  small open model that will write VCL from March 2027 (kept to KRONOS's job by LoRA tuning, a grammar lock and a short
+  prompt; Codex rechecks the meaning as an option), and its code, with no model loaded or downloaded: the chat dataset
+  (1,935 examples, held-out items guarded), VCL's grammar for the offline runner (accepts all 154 recipes in the repo), the
+  QLoRA tuning script and the 4-bit export (written, never run). The gaps the dry run of version 6 found on the real samples
+  are recorded in `docs/known-gaps.md` (D125) and wait for Boss's go.
