@@ -165,3 +165,12 @@ td.num, th.num { text-align: right; }
   margin: 12px 0 0 0; }
 
 .about { margin-top: 28px; font-size: 12px; color: var(--muted); }
+
+/* the recipe finder (D129) */
+.found { padding: 12px 0; border-bottom: 1px solid var(--soft-edge); }
+.found h2 { margin: 0 0 4px 0; font-size: 15px; }
+.found .why { margin: 4px 0; color: var(--muted); }
+.found pre { max-height: 260px; overflow: auto; background: var(--sand); padding: 10px; border-radius: var(--radius); font-size: 12px; }
+.rename-row { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; }
+.rename-row .small-muted { color: var(--muted); font-size: 12px; }
+.rename-row input { width: 18px; height: 18px; margin-top: 2px; }

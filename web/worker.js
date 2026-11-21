@@ -73,7 +73,7 @@ const started = start().catch((error) => {
   postMessage({ type: 'error', id: 0, fatal: true, message: failed.message, details: failed.details })
 })
 
-const JOBS = ['words', 'reset', 'wizard', 'describe', 'recipes', 'arguments', 'apply', 'check', 'fill']
+const JOBS = ['words', 'reset', 'wizard', 'describe', 'recipes', 'arguments', 'apply', 'check', 'fill', 'find', 'adapt']
 
 self.onmessage = async (event) => {
   const job = event.data
@@ -102,6 +102,11 @@ self.onmessage = async (event) => {
       answer(kronos.arguments(job.text))
     } else if (job.type === 'check') {
       answer(kronos.check(job.text, job.today || null, step))
+    } else if (job.type === 'find') {   // D129: the recipe finder
+      answer(kronos.find(job.request, JSON.stringify(job.headings || {})))
+    } else if (job.type === 'adapt') {
+      answer(job.propose ? kronos.propose(job.id, JSON.stringify(job.headings || {}))
+        : kronos.adapt(job.id, JSON.stringify(job.headings || {}), JSON.stringify(job.accepted || []), job.today || null))
     } else if (job.type === 'fill') {   // D121: a DOCUMENT recipe on the person's Word template
       const result = kronos.fill_document(job.text, new Uint8Array(job.template), job.templateName, JSON.stringify(job.args || {}),
         job.today || null, job.book ? new Uint8Array(job.book.data) : null, job.book ? job.book.name : '', step)

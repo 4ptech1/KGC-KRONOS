@@ -133,7 +133,8 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      wizard: KRONOS.exe's Run with copy and paste for the AI, D89), kronos_words.py (EXAMPLE, TIPS, NEVER),
                      vba_sim.py (the VBA simulator: runs generated VBA without Excel, D90, D98), vba_check.py (the
                      compiled VBA of every TEST in the simulator against the interpreter, D99),
-                     vcl_datagen.py (`vclc datagen`: repairs and contrast examples from the pairs, D103)
+                     vcl_datagen.py (`vclc datagen`: repairs and contrast examples from the pairs, D103),
+                     kronos_finder.py (the recipe finder: data/library.json, search and adapt, D129)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
                      forge_pilot.bas are committed (builds/<NAME>.bas: one module per BUILD)
@@ -141,6 +142,7 @@ templates/           one .bas template per op pattern (later)
 harness/             Excel batch runner (deferred: PR #4)
 batches/             generated batch modules (later)
 data/                verified/ (the proven request and spec pairs, D64), repair/, eval/ (held out), results/,
+                     library.json (the finder's library, built from verified/ and docs/demo, D129),
                      templates/ (invented look-alike KGC documents, D108)
 library/             approved .bas, .cls, .frm files
 tests/               unit tests for the Python tools

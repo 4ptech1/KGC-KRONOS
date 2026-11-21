@@ -39,6 +39,13 @@ The wizard (D89, compiler/kronos_wizard.py): KRONOS.exe's engine with copy and p
     kronos_web.fill_document(text, template, template_name, args_json, today=None, book_data=None, book_name="",
                              step=None)
         # (JSON text, the filled .docx's bytes or b""): a DOCUMENT recipe on the person's Word template (D121)
+
+The recipe finder (D129, compiler/kronos_finder.py): the proven recipes closest to a request, adapted to a workbook.
+
+    kronos_web.find(request, headings_json)                 # {"ok", "results": [...], "weak"}; headings: {sheet: [...]}
+    kronos_web.propose(id, headings_json)                   # {"ok", "renames", "missing", "sheet_map"} for that recipe
+    kronos_web.adapt(id, headings_json, accepted_json, today=None)
+                                                            # {"ok", "id", "text", "renames", "missing", "message"}
 """
 import datetime
 import json
@@ -217,3 +224,43 @@ def fill_document(text, template, template_name, args_json, today=None, book_dat
     except book.BookError as ex:
         return canonical({"ok": False, "message": str(ex)}), b""
     return canonical(result), out or b""
+
+
+# ---------- the recipe finder (D129) ----------
+
+def _headings(headings_json):
+    value = json.loads(headings_json) if isinstance(headings_json, str) and headings_json else headings_json
+    return {str(k): [str(h) for h in v if str(h).strip()] for k, v in (value or {}).items()}
+
+
+def find(request, headings_json=None):
+    """The closest proven recipes in KRONOS's library (canonical JSON text). weak: even the best matches few of the
+    request's words, so the page says nothing in the library matches well."""
+    import kronos_finder as kf
+    results = kf.search(str(request), _headings(headings_json) or None)
+    return canonical({"ok": True, "results": results, "weak": not results or results[0]["strength"] < kf.WEAK})
+
+
+def propose(item_id, headings_json=None):
+    """The column renames the finder would make for one library recipe on this workbook (canonical JSON text)."""
+    import kronos_finder as kf
+    try:
+        plan = kf.proposal(kf.entry(str(item_id))["spec"], _headings(headings_json))
+    except kf.FinderError as ex:
+        return canonical({"ok": False, "message": str(ex)})
+    return canonical({"ok": True, **plan})
+
+
+def adapt(item_id, headings_json=None, accepted_json=None, today=None):
+    """The library recipe with the renames the person ticked, proven again (canonical JSON text). text is the recipe
+    to hand to the wizard; when the renamed recipe isn't proven, ok is false and text is the original."""
+    import kronos_finder as kf
+    if isinstance(today, str) and today:
+        today = datetime.date.fromisoformat(today)
+    accepted = json.loads(accepted_json) if isinstance(accepted_json, str) and accepted_json else accepted_json
+    try:
+        spec = kf.entry(str(item_id))["spec"]
+    except kf.FinderError as ex:
+        return canonical({"ok": False, "id": str(item_id), "text": "", "message": str(ex), "renames": [], "missing": []})
+    out = kf.adapt(spec, _headings(headings_json), accepted, today or None)
+    return canonical({"id": str(item_id), **out})
