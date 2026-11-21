@@ -412,3 +412,8 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   documents and two workbooks, KRONOS Offline version 6, a corpus batch of document jobs, then the benchmark.
   Phase 0 is done (D106): the 11 KGC samples, including 3 Word technical proposals and the WPS as PDFs, are in
   `samples/kgc/` at Boss's request, unchanged and listed with their SHA-256; tests never read them.
+- **2026-11-21:** KRONOS fills KGC's own documents (plan Phases 1 to 4, D107 to D123): the survey of the samples, invented
+  look-alike templates, VCL 0.7 (template FIXTUREs, merged cells, ROUND and ROUNDUP, AI_TEXT, two workbooks, DOCUMENT for
+  Word) and KRONOS Offline version 6, published as the release `kronos-offline-v6`: a copy that keeps pictures and merged
+  cells, a second workbook to read from, Word files filled from a template, and Review that lists the AI's own words. The
+  0.7 prompt is pasted only with version 6. Next: a corpus batch of document jobs, then the benchmark.
