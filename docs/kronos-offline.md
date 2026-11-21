@@ -410,6 +410,11 @@ Orchestrator project. One PR each:
   recipe fills (cells, or the template's fields and sections). `docs/KRONOS_Offline_Guide.docx` gains the new steps and
   how Boss turns his own Word file into a template (type `{{Client}}` where the client's name goes). The version row,
   then the release `kronos-offline-v6`, and the exact clicks for the 0.7 prompt.
+  **Done (D122):** `engine.summary` now says `fills` (a DOCUMENT's fields and repeated parts; for a workbook recipe the cells it
+  writes by a literal address, at most 30 and then a count) and a DOCUMENT's `changes` says it changes no workbook; Review shows
+  "What it fills" and, when the recipe has AI_TEXT, "Written by the AI, not proven: check it" with each sentence; the
+  guide has the new sections 7 (a form from another workbook) and 8 (a Word file, and how to mark a template up), and
+  the version row 6.
 
 **Phase 3, the rest (version 7 since D117):** History (past runs kept in this browser on this PC in IndexedDB, every read and write in
 try/catch, newest first, with "Download the run record", like the runs folder KRONOS keeps; say plainly that clearing
@@ -438,6 +443,7 @@ Boss's whole brief, word for word, with BlueForce's original four files, is in t
 | 3 | 16-11-2026 | `10fbdf0` | **Upload (D87):** choose a workbook (.xlsx or .xlsm) on the page, copy a description of it for the AI, and, once a recipe is PROVEN, make its changes on a copy and download it, with a warning for whatever a copy can't keep. openpyxl 3.1.5 and et_xmlfile 2.0.0 join the zip. |
 | 4 | 16-11-2026 | `4c119eb` | **The wizard (D89):** 1 Ask, 2 Questions, 3 Review, 4 Save, as KRONOS.exe has them, with the AI step done by copy and paste (the message for the claude.ai Orchestrator, or with the instructions for ChatGPT or a new chat). **Recipe files:** open a .vcl, .txt, .md or Word .docx file, choose one, some or all of its recipes, and they are checked straight away. Several recipes run one after another on one copy of the workbook. The .bas and its practice run download from Save. |
 | 5 | 17-11-2026 | `62d66d4` | **Cancel, made sure (D89):** "Try the practice example" shows the working panel the moment it is clicked (its file can wait behind Python's own downloads, and version 4's panel then came too late to Cancel); Cancel before the file arrives stops it, says so where Boss is, and, when it comes before KRONOS's words, loads them again (in version 4 the tips, the "never does" list and the Orchestrator line then stayed empty). Found by a CI run of version 4's page test. |
+| 6 | 21-11-2026 | `270f394` | **KGC's own documents (D117 to D122):** **a copy that keeps everything** (when no row and no sheet moves, only the changed cells are written into your file itself, so pictures, print areas, merged cells and notes stay), **two workbooks** (a recipe that reads a second workbook asks for "Workbook to read from", read as Excel last saved it and never changed), **Word** (choose a .docx template and fill it from the workbook; fields, repeated rows, columns and sections, prices as 2,89,000; a formula with no saved value stops the fill), **the AI's text marked** (Review lists every sentence the AI wrote, "not proven: check it", and what each recipe fills). Recipes for VCL 0.7 now run here; KRONOS.exe is unchanged. The old version 6 scope (History, the practice-run check, the corpus suggestion, Help) is now version 7. |
 
 Each copy is the release `kronos-offline-v<N>`, and its SHA-256 is on its release page and in the `.sha256.txt`
 beside the zip:

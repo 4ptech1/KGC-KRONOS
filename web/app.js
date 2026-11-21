@@ -667,6 +667,16 @@
       card.appendChild(el('h2', {}, 'What it changes'))
       card.appendChild(el('ul', { class: 'plain-list' }, (summary.changes.length ? summary.changes : ['nothing in the workbook'])
         .map((s) => el('li', {}, s))))
+      if (summary.fills && summary.fills.length) {
+        card.appendChild(el('h2', {}, 'What it fills'))
+        card.appendChild(el('ul', { class: 'plain-list fills' }, summary.fills.map((s) => el('li', {}, s))))
+      }
+      if (best.ai_texts && best.ai_texts.length) {
+        card.appendChild(el('h2', {}, 'Written by the AI, not proven: check it'))
+        card.appendChild(el('p', { class: 'details' }, 'The tests cannot tell whether these words are right. Read them, and ' +
+          'correct them in your file if they are not.'))
+        card.appendChild(el('ul', { class: 'plain-list ai-texts' }, best.ai_texts.map((a) => el('li', {}, a.text))))
+      }
       card.appendChild(el('h2', {}, 'What it never does'))
       card.appendChild(el('ul', { class: 'plain-list' }, (state.words ? state.words.never : []).map((s) => el('li', {}, s))))
       card.appendChild(el('h2', {}, 'How it was tested'))
