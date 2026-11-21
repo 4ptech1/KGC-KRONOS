@@ -715,13 +715,18 @@
     const skipped = state.shown.length - ids.length
     if (skipped) list.appendChild(el('p', { class: 'details muted' }, `${skipped} recipe${skipped === 1 ? ' is' : 's are'} not ` +
       'PROVEN and not offered here.'))
-    renderApply(ids)
+    renderApply(ids.filter((id) => !state.views[id].best.offline_only))   // D118: those have their own step
   }
 
   function saveSection(id) {
     const view = state.views[id]
     const card = el('section', { class: 'card save', id: `save-${id}` })
     card.appendChild(el('h1', {}, view.best.title))
+    if (view.best.offline_only) {   // D118: a DOCUMENT or a recipe that reads a second workbook makes no macro
+      card.appendChild(el('p', { class: 'details offline-only' }, 'This recipe runs in KRONOS Offline only, so there ' +
+        'is no macro to download: use it on your files on this page.'))
+      return card
+    }
     const fields = el('div', { class: 'fields' })
     const inputs = {}
     if (view.starter && view.starter.length) {

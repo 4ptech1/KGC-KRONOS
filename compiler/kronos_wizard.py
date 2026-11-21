@@ -76,7 +76,7 @@ class Wizard:
     def ask(self, id, request, book=None, step=None):
         if len(request.strip()) < MIN_REQUEST:
             raise WizardError("Write a little more: say which sheet, which columns, and what should change.")
-        run = engine.Run(request_text(request, book), PasteAI(), self.data, self.today, progress=_progress(step))
+        run = engine.Run(request_text(request, book), PasteAI(), self.data, self.today, progress=_progress(step), offline=True)
         self.runs[id] = run
         run.start()
         return self.view(id)
@@ -85,7 +85,7 @@ class Wizard:
         if not text.strip():
             raise WizardError("The recipe is empty.")
         where = f" from {file}" if file else ""
-        run = engine.Run(f"A recipe{where}: {title_of(text)}", PasteAI(), self.data, self.today, progress=_progress(step))
+        run = engine.Run(f"A recipe{where}: {title_of(text)}", PasteAI(), self.data, self.today, progress=_progress(step), offline=True)
         self.runs[id] = run
         run.recheck(text)
         return self.view(id)
@@ -142,6 +142,8 @@ class Wizard:
         run = self._run(id)
         if run.proven() is None:
             raise WizardError("Only a proven recipe can be saved.")
+        if run.proven().proof.offline_only:   # D118
+            raise WizardError(engine.OFFLINE_SAVE)
         needs = run.starter_args() or []
         clean = {}
         for name, typ in needs:
@@ -186,6 +188,8 @@ class Wizard:
         if proof is not None:
             out["best"] = {"number": best.number, "proven": proof.ok, "kind": proof.kind, "name": proof.name,
                            "title": title_of(proof.spec), "spec": proof.spec, "summary": engine.summary(proof),
+                           "offline_only": proof.offline_only,   # D118: no .bas; filled or changed in the page
+                           "ai_texts": [{"line": n, "text": t} for n, t in proof.ai_texts],   # D112
                            "tests": engine.test_rows(proof), "problems": engine.feedback(proof),
                            "findings": [{"stage": f.stage, "line": f.line, "severity": f.severity,
                                          "message": str(f.message), "code": f.code} for f in proof.findings]}
