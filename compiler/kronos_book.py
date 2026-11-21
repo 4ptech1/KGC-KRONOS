@@ -289,7 +289,7 @@ def arguments(text):
     spec, problems = parse(text)
     if problems or not spec:
         raise BookError("The recipe doesn't parse.")
-    entry, _, keys = entry_of(spec)
+    entry, _, keys = (spec, {}, spec["keys"]) if spec["kind"] == "DOCUMENT" else entry_of(spec)   # D121: a DOCUMENT too
     values = _call_values(keys)
     reads = read_params(entry, keys)
     return [{"name": n, "type": t, "default": values[i] if i < len(values) else "", "reads": n in reads}
@@ -818,3 +818,83 @@ def apply_many_proven(texts, data, name, args_list, today=None, step=None, read=
             "warnings": _warnings(loaded, model, status, out, patched), "kept_everything": patched,
             "result": None if result is None else S.text_of(result), "messages": messages,
             "steps": steps, "stem": stem, "ext": ext, "read_name": reading.name if reading else ""}, out
+
+
+# ---------------------------------------------------------------- filling a Word template (D121)
+
+def _docx_problem(name):
+    lower = (name or "").lower()
+    if lower.endswith(".doc"):
+        return "This is an old .doc file. In Word choose File, Save As, and save it as .docx; then choose that."
+    if not lower.endswith(".docx"):
+        return "KRONOS fills Word templates saved as .docx."
+    return ""
+
+
+def fill_document(text, template, template_name, args, today=None, book=None, step=None):
+    """Prove a DOCUMENT recipe as KRONOS Offline proves it (D118), then fill the person's Word template with it.
+    Returns (result, bytes of the filled .docx or None). book: (bytes, name) of the workbook it reads, or None."""
+    from kronos_engine import prove
+    if isinstance(today, str):
+        today = dt.date.fromisoformat(today)
+    proof = prove(text, today, step=step, offline=True)
+    if not proof.ok:
+        return _refused("This recipe isn't proven, so KRONOS won't fill your template with it."), None
+    if proof.kind != "DOCUMENT":
+        return _refused("This recipe changes a workbook; it fills no Word document."), None
+    return fill_document_proven(text, template, template_name, args, today, book, step)
+
+
+def fill_document_proven(text, template, template_name, args, today=None, book=None, step=None):
+    """fill_document() for a DOCUMENT that has already been proven. The workbook is only read, as Excel last saved it,
+    so a formula with no saved value stops the fill in words; neither file is ever changed."""
+    from vcl_docx import DocxError, fill
+    from vcl_interp import doc_plan
+    step = step or (lambda stage: None)
+    if isinstance(today, str):
+        today = dt.date.fromisoformat(today)
+    spec, problems = parse(text)
+    if problems or not spec:
+        return _refused("The recipe doesn't parse."), None
+    if spec["kind"] != "DOCUMENT":
+        return _refused("This recipe changes a workbook; it fills no Word document."), None
+    if _docx_problem(template_name):
+        return _refused(_docx_problem(template_name)), None
+    books = [n for n, t in params_of(spec) if t == "Workbook"]
+    reading = None
+    try:
+        if books:
+            if book is None:
+                return _refused(f"This recipe reads a workbook ({books[0]}): choose it under \"Your workbook\" "
+                                "first."), None
+            step("reading")
+            reading = ReadBook(book[0], book[1])
+        read_book = reading.book() if reading else Book({})
+        bound = _bind(spec, args or {}, read_book, set(books), read_book)
+    except BookError as ex:
+        return _refused(str(ex)), None
+    log = []
+    step("filling")
+    machine = Machine({"keys": []}, bound, log, today or dt.date.today(), book=read_book)
+    try:
+        filled, report = fill(bytes(template), doc_plan(spec, machine))
+    except (VclError, DocxError) as ex:
+        return _refused(f"The template could not be filled: {ex}"), None
+    except (AttributeError, TypeError, ValueError, KeyError, IndexError) as ex:   # a template the recipe doesn't fit
+        return _refused(f"The template doesn't fit the recipe, so nothing was filled ({type(ex).__name__}: {ex})."), None
+    if log:
+        return _refused("The recipe stopped with an error, so nothing was filled: "
+                        + "; ".join(str(m) for _, _, m in log[:3])), None
+    if reading is not None and not _unchanged(read_book, reading):   # never: a DOCUMENT changes no workbook
+        return _refused("The recipe changed the workbook it reads, so nothing was filled."), None
+    warnings_ = []
+    if report.left_over:
+        warnings_.append({"kind": "check", "text": f"{plural(report.left_over, 'field')} in the template "
+                          f"{'was' if report.left_over == 1 else 'were'} not filled: look for {{{{ in the document."})
+    from validator import ai_texts
+    stem = (template_name or "document.docx").rpartition(".")[0] or "document"
+    return {"ok": True, "message": "The template is filled in a new Word file; your template is untouched.",
+            "fields": [{"name": n, "text": t} for n, t in report.fields.items()],
+            "sections": dict(report.sections), "tables": len(report.tables), "left_over": report.left_over,
+            "ai_texts": [{"line": n, "text": t} for n, t in ai_texts(text)], "warnings": warnings_,
+            "read_name": reading.name if reading else "", "stem": stem, "ext": "docx"}, filled

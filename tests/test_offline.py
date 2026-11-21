@@ -1026,6 +1026,50 @@ class InTheBrowser(unittest.TestCase):
                 self.assertEqual(zip_parts(Path(download.value.path()).read_bytes()), zip_parts(want_copy))   # (its zlib differs)
                 self.finish()
 
+    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+    def test_a_word_template_filled_from_a_workbook(self):   # D121
+        import kronos_book
+        recipe = (ROOT / "tests" / "data" / "doc_estimate.vcl").read_bytes()
+        template = (ROOT / "data" / "templates" / "estimate_template.docx").read_bytes()
+        book = (ROOT / "data" / "templates" / "estimation.xlsx").read_bytes()
+        want, want_doc = kronos_book.fill_document(recipe.decode("utf-8"), template, "Estimate.docx",
+                                                   {"estNo": "EST-9001", "onDate": "20 Nov 2026"}, TODAY,
+                                                   book=(book, "E-9100.xlsx"))
+        for name, start in page_servers():
+            with self.subTest(server=name), start():
+                page = self.go_ready(name)
+                page.set_input_files("#book-file", files={"name": "E-9100.xlsx", "mimeType": XLSX, "buffer": book})
+                page.wait_for_selector("#book-info:not([hidden])", timeout=120000)
+                page.set_input_files("#recipe-file", files={"name": "doc_estimate.vcl", "mimeType": "text/plain",
+                                                            "buffer": recipe})
+                self.assertEqual(self.review_banners(page), ["PROVEN It passed every check and 2 of 2 practice tests."])
+                page.check("#review-list input[type=checkbox]")
+                page.click("#go-save")
+                page.wait_for_selector("#doc-list .doc .fill", timeout=120000)
+                self.assertTrue(page.is_hidden("#apply-card"))   # a DOCUMENT changes no workbook
+                self.assertIn("Ex-works, packing included", page.text_content("#doc-list .ai-texts"))
+                self.assertIn("E-9100.xlsx, as Excel last saved it", page.text_content("#doc-list"))
+                page.click("#doc-list .fill")
+                self.assertEqual(page.text_content("#doc-list .note"), "Choose the Word template first.")
+                with page.expect_file_chooser() as chooser:
+                    page.click("#doc-list .choose-template")
+                chooser.value.set_files(files=[{"name": "Estimate.docx", "mimeType": "application/vnd.openxmlformats-"
+                                                "officedocument.wordprocessingml.document", "buffer": template}])
+                page.wait_for_function("document.querySelector('#doc-list .template-name') && document.querySelector("
+                                       "'#doc-list .template-name').textContent.indexOf('Estimate.docx') === 0", timeout=60000)
+                page.click("#doc-list .fill")
+                page.wait_for_function("document.querySelector('#doc-list .banner') || !document.querySelector('#doc-list "
+                                       ".note').hidden", timeout=180000)
+                self.assertEqual(page.text_content("#doc-list .note"), "")
+                self.assertEqual(json.loads(page.evaluate("window.kronosLastFilled")), want)   # exactly normal Python's answer
+                self.assertIn("WORD FILE READY", page.text_content("#doc-list .banner"))
+                self.shot(page, "word")
+                with page.expect_download() as download:
+                    page.click("#doc-list .download-doc")
+                self.assertTrue(download.value.suggested_filename.startswith("Estimate (KRONOS "))
+                self.assertEqual(zip_parts(Path(download.value.path()).read_bytes()), zip_parts(want_doc))
+                self.finish()
+
     def test_one_recipe_files_are_checked_straight_away(self):   # D89
         for name, start in page_servers():
             with self.subTest(server=name), start():

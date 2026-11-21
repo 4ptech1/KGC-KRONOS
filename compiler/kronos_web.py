@@ -36,6 +36,9 @@ The wizard (D89, compiler/kronos_wizard.py): KRONOS.exe's engine with copy and p
                                   read_name="")
         # several recipes, one after another, on one copy of the workbook (kronos_book.apply_many); read_data is
         # the workbook a recipe only reads (D120)
+    kronos_web.fill_document(text, template, template_name, args_json, today=None, book_data=None, book_name="",
+                             step=None)
+        # (JSON text, the filled .docx's bytes or b""): a DOCUMENT recipe on the person's Word template (D121)
 """
 import datetime
 import json
@@ -198,6 +201,19 @@ def apply_changes_many(texts_json, data, name, args_list_json, today=None, step=
     read = (_bytes(read_data), str(read_name)) if read_data is not None else None
     try:
         result, out = book.apply_many(texts, _bytes(data), str(name), args_list, today, step, read)
+    except book.BookError as ex:
+        return canonical({"ok": False, "message": str(ex)}), b""
+    return canonical(result), out or b""
+
+
+def fill_document(text, template, template_name, args_json, today=None, book_data=None, book_name="", step=None):
+    """Fill the person's Word template with a DOCUMENT recipe (D121): (canonical JSON text, the new .docx's bytes or b"").
+    book_data, book_name: the workbook the recipe reads, or None. Neither file is changed."""
+    book = _book()
+    args = json.loads(args_json) if isinstance(args_json, str) else dict(args_json or {})
+    read = (_bytes(book_data), str(book_name)) if book_data is not None else None
+    try:
+        result, out = book.fill_document(text, _bytes(template), str(template_name), args, today, read, step)
     except book.BookError as ex:
         return canonical({"ok": False, "message": str(ex)}), b""
     return canonical(result), out or b""
