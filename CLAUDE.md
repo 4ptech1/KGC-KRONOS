@@ -248,10 +248,12 @@ to D100); 6 the data generator (done, D103, D104: `vclc datagen` and 405 paraphr
 Word estimation sheet and technical proposals; Phase 0 (the samples, D106) and Phase 1 (the survey, `docs/kgc-documents.md`,
 D107), Phase 2 (the look-alike templates, `data/templates/`, D108) and Phase 3 (VCL 0.7: the VEP D109, template
 FIXTUREs D110, ROUND/ROUNDUP/MIN/MAX D111, AI_TEXT D112, merged cells D113, two workbooks D114, DOCUMENT for Word D115,
-and the switch of spec.md and the prompt D116) are done; Boss pastes the 0.7 prompt only once KRONOS Offline version 6
-(Phase 4) is out, since version 5 refuses a recipe that starts with `VCL 0.7`. Next: Phase 4. Its Phase 4 is KRONOS Offline version 6 and its Phase 6 is step 7, the benchmark. Then 8 KRONOS Offline
-version 7 (the old version 6 scope), 9 storage S1, 10 the VCL memory and the
-day-one kit. For Boss: paste the updated prompt (D94, D97) into the Orchestrator Project.
+and the switch of spec.md and the prompt D116) and Phase 4 (KRONOS Offline version 6: the design D117, the engine D118,
+a copy that keeps everything D119, two workbooks D120, Word on the page D121, Review and the guide D122, published as the
+release `kronos-offline-v6`, D123) are done. **Next: Phase 5** (corpus batch 9, about 20 document jobs) **and Phase 6**,
+step 7, the benchmark. Then 8 KRONOS Offline version 7 (the old version 6 scope: History, the practice-run check, the
+corpus suggestion, Help), 9 storage S1, 10 the VCL memory and the day-one kit. For Boss: with version 6 in hand, paste
+the updated prompt (VCL 0.7; D94, D97, D116) into the Orchestrator Project.
 
 Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
 1. The Job-Pack Router MVP, `docs/vep-0.3-file-ops.md` (approved by Boss): sandbox only, COPY_FILE
@@ -403,8 +405,12 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    is handed. Not proven until he tries it: the copy and paste with his real AI chats, his own recipe files, the work PC.
    Version 5 (the same day) only makes Cancel sure: the practice example's panel shows at once, and Cancel before KRONOS's
    words arrive loads them again. It is published as the release `kronos-offline-v5` (main `62d66d4`; SHA-256 `79fdb69c…`),
-   the copy Boss is handed. Boss tried it on the work PC on 18 Nov 2026: it works (D101). Next (Boss's step 8): Phase 3,
-   History, the practice-run check, the corpus suggestion and Help, as version 6, with the prompt of D94 and D97.
+   the copy Boss is handed. Boss tried it on the work PC on 18 Nov 2026: it works (D101). **Version 6 (D117 to D123, 21 Nov 2026):
+   KGC's own documents.** A copy that keeps everything (only the changed cells are written into the file when no row or sheet
+   moves), two workbooks ("Workbook to read from"), Word files filled from a template and a workbook, Review that says what a
+   recipe fills and lists the AI's own text, and recipes for VCL 0.7. Published as the release `kronos-offline-v6` (main
+   `95bf184`; SHA-256 `d4e1fa22…`), the copy Boss is handed; not proven until he tries it: his own Word files and workbooks.
+   The old version 6 scope (Phase 3: History, the practice-run check, the corpus suggestion, Help) is version 7.
 7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026; `docs/ai-vba-plan.md`, D90). Phase 0, the design,
    is done. Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes (Boss: "Complete 5", 19 Nov 2026), is
    in three parts: part 1, the language core, is done (D98: the ForgeLib self-test's 241 cases pass in it, and planted
