@@ -358,10 +358,41 @@ How version 4 does it (D89):
 - **Cancel** stops the browser's Python as before; the page then starts a fresh one and rebuilds every request from the
   actions it kept (`Wizard.restore`), so nothing pasted is lost.
 - Still Phase 3: History, the practice-run check, the corpus suggestion and Help.
-- Boss tried version 5 on the work PC on 18 Nov 2026: it works (D101). Phase 3 comes as version 6 (Boss's step 8), with
-  the prompt of D94 and D97.
+- Boss tried version 5 on the work PC on 18 Nov 2026: it works (D101). Phase 3 comes as version 7 (D117): version 6 is
+  Phase 4, KGC's own documents.
 
-**Phase 3, the rest:** History (past runs kept in this browser on this PC in IndexedDB, every read and write in
+**Phase 4, KGC's own documents (version 6, D117)** (`docs/kgc-documents-plan.md` Phase 4; Boss: "Go Phase 4",
+21-11-2026). Version 6 runs VCL 0.7 recipes (D109 to D116), and with it Boss pastes the 0.7 prompt into his
+Orchestrator project. One PR each:
+
+- **6a, the engine.** A recipe that is KRONOS Offline only (a DOCUMENT, or a TEST with `read=`) is proven without VBA
+  when the page proves it (`kronos_engine.prove(..., offline=True)`, through the wizard's runs): its checks and TESTs
+  must pass, and Save offers no .bas for it. KRONOS.exe keeps refusing such a recipe at the build, with D114's and
+  D115's words. The look-alike templates (`data/templates/*.xlsx` and `*.docx`) ship with the toolchain in KRONOS.exe
+  and in the zip, the one part of `data/` that does (a test keeps it to that folder), so a recipe whose TESTs use a
+  template FIXTURE is proven in the browser too. A workbook a recipe only reads (the `read=` one, or a DOCUMENT's) is
+  loaded with Excel's saved values: `vcl_template.load(..., reading=True)` also takes shared formulas and error values,
+  which a template refuses.
+- **6b, a copy that keeps everything.** When no row or sheet moves (no DELETE_ROW, INSERT_ROW, SORT, DEDUPE,
+  ADD_SHEET or COPY_SHEET), `kronos_book` writes only the changed cells into the uploaded file's own XML: values,
+  formulas, fills and number formats (a new cell style beside the cell's own), hidden rows; every other part of the
+  file stays byte for byte, so pictures, print areas, page setup, merged cells, data validation, notes and charts all
+  survive. Excel recalculates on opening (`fullCalcOnLoad`), and a changed formula drops the calculation chain, which
+  Excel rebuilds. Otherwise, or for a cell the writer can't patch (a shared formula's first cell), today's openpyxl
+  copy, with today's warnings. An uploaded workbook's merged ranges reach the interpreter, so D113's rules hold there.
+- **6c, two workbooks.** "Workbook to fill" and "Workbook to read from": a recipe with a `read=` TEST asks for both, and
+  its read Workbook argument is bound to the second, which is never changed.
+- **6d, Word.** For a DOCUMENT: "Choose the Word template" (.docx, up to 2 MB, with `{{fields}}` as the guide says)
+  and, when it takes a Workbook, the workbook; "Fill the Word file" proves the recipe, fills the template from the
+  workbook's last values saved by Excel and downloads `<template> (KRONOS yyyy-mm-dd hh-mm).docx`. A formula with no
+  saved value stops the fill ("open it in Excel and save it"), never guessed; a workbook KRONOS just changed must be
+  opened and saved in Excel first.
+- **6e, Review and the guide.** Review lists every AI_TEXT ("written by the AI, not proven: check it") and what each
+  recipe fills (cells, or the template's fields and sections). `docs/KRONOS_Offline_Guide.docx` gains the new steps and
+  how Boss turns his own Word file into a template (type `{{Client}}` where the client's name goes). The version row,
+  then the release `kronos-offline-v6`, and the exact clicks for the 0.7 prompt.
+
+**Phase 3, the rest (version 7 since D117):** History (past runs kept in this browser on this PC in IndexedDB, every read and write in
 try/catch, newest first, with "Download the run record", like the runs folder KRONOS keeps; say plainly that clearing
 the browser's data removes them); the practice run (download its module, and a box to paste Excel's result back for
 `vcl_pilot.check`, with the verdict); "Suggest for the corpus" (D70: downloads the candidate file for Boss to send to
