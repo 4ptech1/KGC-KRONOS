@@ -68,7 +68,8 @@ def tokens_of(key, value):
 
 
 def is_field(token):
-    return str(token) in FIELDS and token.type.startswith("__ANON")
+    return (str(token) in FIELDS and token.type.startswith("__ANON")) or token.type in ("TABLE_EQ", "MATCH_EQ") \
+        or (str(token) == "from=" and token.type.startswith("__ANON"))   # a DOCUMENT's REPEAT (D115)
 
 
 def gap(prev, nxt, mode):
@@ -96,6 +97,9 @@ def format_value(key, value):
     mode = "fixture" if key == "FIXTURE" else "other"
     out = []
     for i, token in enumerate(tokens):
+        if key == "FIELD" and i in (1, 2):   # FIELD <Name> = <expr> (D115): token 1 is the "="
+            out.append(" = " if i == 1 else str(token))
+            continue
         if i:
             out.append(gap(tokens[i - 1], token, mode))
         out.append(str(token))
@@ -131,7 +135,7 @@ def format_text(text):
         line = raw.strip()
         if not line:
             continue
-        if line == "---" or line in ("TASK", "BUILD") or re.fullmatch(r"VCL 0\.\d", line):
+        if line == "---" or line in ("TASK", "BUILD", "DOCUMENT") or re.fullmatch(r"VCL 0\.\d", line):
             out.append(line)
         elif line.startswith("# QUESTION:"):
             out.append("# QUESTION: " + line[len("# QUESTION:"):].strip())
@@ -160,7 +164,7 @@ def key_lines(text):
     """(key, tokens) of every key line, GOAL as its words."""
     for raw in text.split("\n"):
         line = raw.strip()
-        if not line or line in ("---", "TASK", "BUILD") or line.startswith("#") or re.fullmatch(r"VCL 0\.\d", line):
+        if not line or line in ("---", "TASK", "BUILD", "DOCUMENT") or line.startswith("#") or re.fullmatch(r"VCL 0\.\d", line):
             continue
         key, value = split_key(line)
         yield key, value.split() if key == "GOAL" else [(t.type, str(t)) for t in tokens_of(key, value)]

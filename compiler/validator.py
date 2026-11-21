@@ -2167,7 +2167,7 @@ def ai_texts(text):
     spec, problems = grammar_parse(text)
     if problems or not spec:
         return []
-    tasks = [spec] if spec["kind"] == "TASK" else spec.get("tasks", [])
+    tasks = [spec] if spec["kind"] in ("TASK", "DOCUMENT") else spec.get("tasks", [])
     out = []
     for task in tasks:
         for k in (task or {}).get("keys", []):
@@ -2220,6 +2220,9 @@ def validate_text(text):
     if spec.kind in ("TASK", "BUILD"):
         sigs = {f"{s.module}.{s.proc}": ([(d.name, d.type) for d in s.params], s.ret) for s in spec.sigs}
         problems = _sorted_unique(problems + grammar_and_type_problems(text, problems, sigs))
+    elif spec.kind == "DOCUMENT":   # VCL 0.7 (D115)
+        from vcl_document import check_document
+        problems = _sorted_unique(problems + check_document(text, spec))
     return problems
 
 

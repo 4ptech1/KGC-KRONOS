@@ -33,6 +33,9 @@ OFFLINE_ONLY = ("KRONOS Offline only: this recipe reads a second workbook (a TES
                 "a second workbook until March 2027 (D36, D114), so no VBA is made for it")
 
 
+DOCUMENT_ONLY = "a DOCUMENT is filled by KRONOS Offline, not by a macro: no VBA is made for it (D115)"
+
+
 class CompileError(Exception):
     pass
 
@@ -669,6 +672,8 @@ def compile_text(text, source_name=""):
     spec, problems = parse(text)
     if problems:
         raise CompileError(f"spec doesn't parse: {problems[:3]}")
+    if spec["kind"] == "DOCUMENT":   # VCL 0.7 (D115)
+        raise CompileError(DOCUMENT_ONLY)
     if spec["kind"] != "TASK":
         raise CompileError("only TASK specs can be compiled by the MVP compiler")
     if any(k.get("read") for k in spec["keys"]):   # VCL 0.7 (D114)

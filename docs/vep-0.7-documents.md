@@ -159,12 +159,19 @@ TEST     fixture=est_01.xlsx call=FillEstimateSheet(est_01.xlsx, "EST-9001") ass
   template.
 - **Values from a workbook** are what it holds as Excel last saved it: a formula cell gives its saved value (3d's rule,
   since a DOCUMENT changes no workbook); a formula with no saved value stops the TEST.
+- **TESTs** pass no `runs=` and no `read=` (a DOCUMENT is filled once and reads every workbook it is given); at
+  least one checks `ERROR_COUNT = 0`; a DOCUMENT with no workbook (Boss's typed-values route) still names a small
+  FIXTURE file for its TESTs.
 - **TEST assertions** read the filled document: `FIELD_TEXT(<Name>)` (the text a FIELD wrote), `TABLE_ROWS(<t>)`,
   `TABLE_COLS(<t>)`, `TABLE_CELL(<t>, <row>, <col>)` (tables of the filled document, counted in its order),
   `SECTION_COUNT(<section>)`, `TEXT_HAS("<text>")` (1 when the document's text holds it), and `LEFT_OVER` (the `{{`
   left in the document: always checked to be 0, so a TEST also proves every field was filled). Each TEST also proves
   every workbook unchanged.
 - **The compiler refuses DOCUMENT** with "a DOCUMENT is filled by KRONOS Offline, not by a macro" (no VBA).
+- **Built (D115):** `compiler/vcl_docx.py` fills, `compiler/vcl_document.py` checks, `vcl_interp.run_document_tests`
+  runs the TESTs; a FIELD is written `FIELD    <Name> = <expr>`; the order of filling is sections (with their
+  matched repeats), then rows and columns, then KEEP; `vclc mutate` mutates a DOCUMENT's FIELD, REPEAT and KEEP
+  lines and compares the filled documents.
 
 ## Error codes
 

@@ -181,6 +181,19 @@ def load(data, name="template"):
     return books
 
 
+DOCX_NAME = re.compile(r"[A-Za-z0-9_]{1,60}\.docx")
+
+
+def load_docx_template(name):
+    """The Word template data/templates/<name>.docx (a DOCUMENT's TEMPLATE, D115) -> its bytes."""
+    if not DOCX_NAME.fullmatch(name or ""):
+        raise TemplateError(coded(f"TEMPLATE {name!r}: a Word template is named like estimate_template.docx", "X028"))
+    path = TEMPLATES / name
+    if not path.is_file():
+        raise TemplateError(coded(f"TEMPLATE {name}: there is no data/templates/{name}", "X029"))
+    return path.read_bytes()
+
+
 def load_template(name):
     """The template data/templates/<name>.xlsx -> {sheet name: Sheet}."""
     path = template_path(name)

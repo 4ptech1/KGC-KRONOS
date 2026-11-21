@@ -18,6 +18,7 @@ VERSIONS = ("VCL 0.1", "VCL 0.2", "VCL 0.3", "VCL 0.4", "VCL 0.5", "VCL 0.6", "V
 TASK_KEYS = ["GOAL", "PROC", "KIND", "MODULE", "ARGS", "RET", "VAR", "PRE", "MODIFIES", "OP", "PERF", "ERR",
              "ALLOW", "FIXTURE", "TEST"]
 BUILD_KEYS = ["GOAL", "NAME", "TARGET", "ENTRY", "MODULE", "FORM", "SIG", "FLOW", "FIXTURE", "TEST"]
+DOC_KEYS = ["GOAL", "NAME", "TEMPLATE", "ARGS", "FIELD", "REPEAT", "KEEP", "FIXTURE", "TEST"]   # VCL 0.7 (D115)
 
 
 @dataclass
@@ -283,12 +284,14 @@ def _parse(spec, lines):
     else:
         spec.error(body[0][0], coded("the first line must be " + ", ".join(f"'{v}'" for v in VERSIONS[:-1])
                    + f" or '{VERSIONS[-1]}'", "V007"))
-    if len(body) < 2 or body[1][1] not in ("TASK", "BUILD"):
+    if len(body) < 2 or body[1][1] not in ("TASK", "BUILD", "DOCUMENT"):
         spec.error(body[1][0] if len(body) > 1 else body[0][0], coded("the second line must be TASK or BUILD", "V008"))
         return
     spec.kind, spec.line = body[1][1], body[1][0]
     if spec.kind == "TASK":
         _parse_keys(spec, body[2:], TASK_KEYS)
+    elif spec.kind == "DOCUMENT":   # VCL 0.7 (D115): checked by vcl_document.py
+        _parse_keys(spec, body[2:], DOC_KEYS)
     else:
         _parse_build(spec, body[2:])
 

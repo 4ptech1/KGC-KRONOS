@@ -3316,6 +3316,7 @@ after the last phase, so Boss updates the Orchestrator once.
 | D112 | 20 Nov 2026 | **VCL 0.7 part 3e: AI_TEXT.** `AI_TEXT("<text>")` is a text value meaning its quoted text, in the interpreter and in VBA; it marks words the AI wrote (a remark, an assumption, a query) that no TEST can prove right. Its argument is one quoted text written in place (an expression is refused), VCL 0.7 only. `validator.ai_texts(text)` lists every one with its line; `vclc check` prints them as notes ("written by the AI, not proven: check it"), never as problems, and KRONOS's proof carries them (`Proof.ai_texts`) for Review and Save (plan Phase 4d). It has no conformance case: it has no meaning beyond its text. **Fixed on the way:** the compiler wrote text beyond ASCII straight into the VBA, which the linter (rightly) refuses because the VBA editor can't hold it; KGC's forms are full of ° and –, so the compiler now writes such text as `ChrW(...)` pieces, as the fixture builder already did. `tests/data/ai_text_wps.vcl` writes two remarks on the WPS look-alike: proven in every stage, 9 of 9 mutants caught. | What can't be proven is shown, not hidden; the compiler change makes every non-ASCII text compile, not only AI_TEXT's. |
 | D113 | 20 Nov 2026 | **VCL 0.7 part 3b: merged cells.** The model keeps each sheet's merged ranges (a template's, D110). A value written inside a merged range must go to its top-left cell: SET_VALUE, WRITE_ROW, COPY_ROW, WRITE_ARRAY, SET_FORMULA and CLEAR of contents elsewhere in it stop the run before anything is written (FORMAT and CLEAR of formats may touch any cell). INSERT_ROW, DELETE_ROW, SORT, DEDUPE and FILTER stop on a sheet with merged cells, since Excel would cut a merged block. `MERGE(<range>)` merges two or more cells, with the whole sheet in MODIFIES: the same block again changes nothing, so a re-run is safe; an overlap with another merged range, a value outside the top-left cell (Excel would drop it) or a single cell stops the run. `MERGED(<Sheet>!<range>)` is a TEST assertion (1 or 0). **Added beyond the VEP:** `BLOCK($ws, row1, col1, row2, col2)`, a block between two corners known only at run time, because RANGE takes only a quoted A1 text and the register's MERGE needs the new enquiry's rows. In VBA, ForgeLib's `ForgeMergeCheck` (in ForgeSetValue, ForgeWriteRow, ForgeCopyRow, ForgeWriteArray, ForgeSetFormula and before CLEAR), `ForgeNoMerges` (in the row ops) and `ForgeMerge` raise the same errors; the simulator models MergeCells (False, True or Null, as Excel), MergeArea and Merge, and `vclc sim` now also compares the merged ranges. The simulator caught one real difference while this was built: VBA's WRITE_ROW wrote its first cell before refusing the second, so ForgeWriteRow and ForgeCopyRow now check the whole row first. `tests/data/merge_register.vcl` adds an enquiry with two items to the register look-alike and merges columns A to I over them: proven in every stage; its 6 surviving mutants are equivalent on the template's fixed data (column K ends where column J does, the enquiry is found from any start row). | Excel's silent behaviours with merged cells (values dropped or hidden, blocks cut) become refusals, the same in the interpreter and in the macro. |
 | D114 | 20 Nov 2026 | **VCL 0.7 part 3d: two workbooks (`TEST fixture=<file> read=<other file> ...`).** A TEST may open a second FIXTURE workbook read-only; in its call, that file's name is the Workbook argument it binds (bare sheet names still mean the test workbook). No MODIFIES line may name the read workbook's argument (writes already go only through `$sheet` arguments, rule 20), each TEST checks it unchanged, and, because nothing can change it, its formula cells give the value Excel saved (a formula with no saved value stops the run: "open the workbook in Excel and save it"), the one exception to R009. The parser keeps `read=` beside the TEST's tree, so every reader of a TEST's parts is unchanged. **KRONOS Offline only:** the validator says so once per spec (a warning), the compiler refuses such a spec with that message (so `vclc build`, KRONOS.exe and the corpus's VBA never get one), and `vclc sim` lists it as skipped, never proven. Until plan Phase 4b teaches KRONOS Offline to prove such a recipe without making VBA, its proof stops at the build with that message. **A second WPS look-alike:** `data/templates/wps_form_b.xlsx` (other numbers, PQR values and IDs, every run inside its limits; LibreOffice agrees with its 27 saved values), so a TEST can tell a copied value from one already there; KGC's own samples are two WPS on one form too. `tests/data/wps_from_wps.vcl` fills the new WPS's PQR number and run table from the old one and counts the old runs whose saved T value is OK: its TESTs pass, 19 of 20 mutants are caught (the survivor loops one row further, onto a row empty in both forms). | Boss's answer (D107): a new WPS is made from an existing WPS; reading the saved values of a workbook nothing can change is exactly what Excel would show. |
+| D115 | 20 Nov 2026 | **VCL 0.7 part 3f: DOCUMENT, the Word kind (KRONOS Offline only).** A third spec kind: `VCL 0.7`, `DOCUMENT`, then GOAL, NAME, TEMPLATE (a .docx in `data/templates/`), ARGS (Workbook, String, Long, Double, Boolean, Date), `FIELD <Name> = <expr>`, `REPEAT row|column table=<n> ...` or `REPEAT section <Name> ...` with `from=` a range or rows written in place (`[[...], [...]]`, Boss's typed-values route, D107) and `<Name>=<column>` binds, `match=<column>=<section field>` for a repeat inside a repeated section, `KEEP <section> IF <condition>`, FIXTURE and TEST. `compiler/vcl_docx.py` fills the template with the standard library: a field is replaced inside the run where its `{{` starts, after the paragraph's runs are read together, so the run's formatting stays (a field Word split over two runs is filled too); fields in headers and footers; a repeated row, column or section; the template's own namespaces are declared again after writing (Word reads the prefixes in mc:Ignorable); every other part of the file is copied byte for byte. Filling goes sections (and their matched repeats), then rows and columns, then KEEP, so a table in an optional section is filled before the section may go. `compiler/vcl_document.py` checks a DOCUMENT against its template: every `{{field}}` filled exactly once, every section repeated or kept, table numbers that exist, a repeat inside a repeated section matched to its row and none outside, expressions with known functions and declared arguments only (no variables), NUMBER_TEXT and DATE_TEXT formats from their lists, TEST assertions on the filled document only (FIELD_TEXT, TABLE_ROWS, TABLE_COLS, TABLE_CELL, SECTION_COUNT, TEXT_HAS, LEFT_OVER), one TEST with ERROR_COUNT = 0. The interpreter fills the document for each TEST from read-only workbooks (a formula gives its saved value, D114's rule), checks LEFT_OVER = 0 and that no workbook changed; a value that isn't a number where one is needed stops the fill (a DOCUMENT has no IF to guard it), never guessed. `NUMBER_TEXT(<x>, "<format>")` (0, 0.0, 0.00, #,##0, #,##0.00 and the Indian #,##,##0 and #,##,##0.00, rounded as ROUND) and `DATE_TEXT(<date>, "dd Mmm yyyy" | "dd.mm.yyyy" | "dd/mm/yyyy")` are a DOCUMENT's own functions (S29, 12 conformance cases, kept out of the Excel self-test, which still has 258; `tests/test_selftest.py` pins that set). The compiler refuses a DOCUMENT, `vclc sim` skips it, KRONOS's proof stops at the build with that message until plan Phase 4c; `vclc mutate` now mutates a DOCUMENT's FIELD, REPEAT and KEEP lines and compares the filled documents. `tests/data/doc_estimate.vcl` (the estimation sheet from the estimation workbook: a repeated row, a section from a sheet range, a repeated column, a section per item; 141 of 148 mutants caught, the 7 survivors read the same enquiry, client or end user from the other item row) and `tests/data/doc_proposal.vcl` (the proposal from typed values: a section per item with its own nozzle rows, the optional NACE section; 96 of 96) pass; the filled estimation sheet was opened in LibreOffice and looks right (header, logo, footer, Indian grouping). **Template fix found that way:** two tables with nothing between them show as one in Word, so the estimation template has an empty paragraph before its sign-off table and at its end. | Boss's answer (D105): KRONOS Offline makes the Word file in the browser, with no macro; checking the spec against its own template makes a missing or misspelt field a validator error instead of a `{{` left in Boss's document. |
 
 ## Appendix E: the meaning of the value functions (`docs/vcl-semantics.md`)
 
@@ -3360,6 +3361,8 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | S27 (VCL 0.7) | `round_up` | ROUNDUP(x, n) as Excel's worksheet ROUNDUP: away from zero to n digits, on the same 15-digit decimal: ROUNDUP(288364, -3) is 289000 (the estimate's selling price), ROUNDUP(-1.21, 1) is -1.3. |
 | S28 (VCL 0.7) | `smaller` | MIN(a, b), the smaller of two numbers (MAX, larger(), the larger); numbers only, guarded like any calculation. Two numbers that are equal give that number. |
 | S28 (VCL 0.7) | `larger` | MAX(a, b), the larger of two numbers. |
+| S29 (VCL 0.7, a DOCUMENT's) | `number_text` | a number as text in one of NUMBER_FORMATS, rounded as ROUND does (a half away from zero, on the 15-digit decimal). "#,##0" groups thousands (1,234,567); the Indian "#,##,##0" groups the last three digits, then twos (12,34,567), as KGC's estimates write prices (2,89,000). A minus sign goes first. |
+| S29 (VCL 0.7, a DOCUMENT's) | `date_text` | a real date as text, "dd Mmm yyyy" (20 Nov 2026), "dd.mm.yyyy" or "dd/mm/yyyy", the same on every PC (English month names). Anything that is not a real date gives "" (guard with IS_DATE). |
 
 #### Conformance cases
 
@@ -3615,6 +3618,28 @@ In the tables, ⍽ is a non-breaking space (character 160).
 | --- | --- | --- |
 | 3, 7 | 7 | the larger |
 | 2.5, 2.25 | 2.5 | decimals |
+
+##### NUMBER_TEXT (VCL 0.7, DOCUMENT)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| 289000, "#,##,##0" | "2,89,000" | Indian grouping, as KGC's estimates write prices |
+| 2440000, "#,##,##0" | "24,40,000" | lakhs: groups of two above the thousands |
+| 12345678, "#,##,##0.00" | "1,23,45,678.00" | crores, with two decimals |
+| 999, "#,##,##0" | "999" | below a thousand: no comma |
+| -1500, "#,##,##0" | "-1,500" | the minus sign goes first |
+| 1234567.891, "#,##0.00" | "1,234,567.89" | thousands grouping, rounded as ROUND |
+| 2.675, "0.00" | "2.68" | the 15-digit decimal, half away from zero |
+| 0.4, "0" | "0" | rounded to a whole number |
+
+##### DATE_TEXT (VCL 0.7, DOCUMENT)
+
+| Input | Result | Why |
+| --- | --- | --- |
+| date 2026-10-15, "dd Mmm yyyy" | "15 Oct 2026" | English month names on every PC |
+| date 2026-10-15, "dd.mm.yyyy" | "15.10.2026" | as the enquiry register writes dates |
+| date 2026-10-15, "dd/mm/yyyy" | "15/10/2026" | slashes |
+| "15/10/2026", "dd/mm/yyyy" | "" | text is not a date: guard with IS_DATE |
 
 ##### Text written by SET_VALUE, WRITE_ROW and COPY_ROW (VCL 0.2)
 
@@ -6053,12 +6078,19 @@ TEST     fixture=est_01.xlsx call=FillEstimateSheet(est_01.xlsx, "EST-9001") ass
   template.
 - **Values from a workbook** are what it holds as Excel last saved it: a formula cell gives its saved value (3d's rule,
   since a DOCUMENT changes no workbook); a formula with no saved value stops the TEST.
+- **TESTs** pass no `runs=` and no `read=` (a DOCUMENT is filled once and reads every workbook it is given); at
+  least one checks `ERROR_COUNT = 0`; a DOCUMENT with no workbook (Boss's typed-values route) still names a small
+  FIXTURE file for its TESTs.
 - **TEST assertions** read the filled document: `FIELD_TEXT(<Name>)` (the text a FIELD wrote), `TABLE_ROWS(<t>)`,
   `TABLE_COLS(<t>)`, `TABLE_CELL(<t>, <row>, <col>)` (tables of the filled document, counted in its order),
   `SECTION_COUNT(<section>)`, `TEXT_HAS("<text>")` (1 when the document's text holds it), and `LEFT_OVER` (the `{{`
   left in the document: always checked to be 0, so a TEST also proves every field was filled). Each TEST also proves
   every workbook unchanged.
 - **The compiler refuses DOCUMENT** with "a DOCUMENT is filled by KRONOS Offline, not by a macro" (no VBA).
+- **Built (D115):** `compiler/vcl_docx.py` fills, `compiler/vcl_document.py` checks, `vcl_interp.run_document_tests`
+  runs the TESTs; a FIELD is written `FIELD    <Name> = <expr>`; the order of filling is sections (with their
+  matched repeats), then rows and columns, then KEEP; `vclc mutate` mutates a DOCUMENT's FIELD, REPEAT and KEEP
+  lines and compares the filled documents.
 
 ##### Error codes
 

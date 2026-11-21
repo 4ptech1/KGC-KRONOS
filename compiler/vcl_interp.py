@@ -579,6 +579,10 @@ class Machine:
             return S.mod(a, b)
         if name == "AI_TEXT":   # VCL 0.7 (D112): its text, nothing more
             return e(pos[0])
+        if name == "NUMBER_TEXT":   # VCL 0.7 (D115), a DOCUMENT's
+            return S.number_text(self.num(e(pos[0])), e(pos[1]))
+        if name == "DATE_TEXT":
+            return S.date_text(e(pos[0]), e(pos[1]))
         if name in ("ROUND", "ROUNDUP"):   # VCL 0.7 (S27)
             x, digits = self.num(e(pos[0])), int(self.num(e(pos[1])))
             return (S.round_up if name == "ROUNDUP" else S.round_half)(x, digits)
@@ -1321,6 +1325,7 @@ class TestResult:
     hidden: dict = field(default_factory=dict)   # sheet -> the rows hidden after the last run (D42)
     texts: list = field(default_factory=list)    # (path below the sandbox, text) of every text file (D45)
     merged: dict = field(default_factory=dict)   # sheet -> its merged ranges after the last run (D113)
+    document: bytes = None                       # a DOCUMENT's filled .docx (D115)
 
 
 def files_of(fs):
@@ -1401,12 +1406,157 @@ def test_number(v):
     return S.to_number(str(v))
 
 
+def check_assertions(asserter, assertion):
+    """The messages of a TEST's assertions that fail or can't be checked (none: every one holds)."""
+    failed = []
+    for cond in assertion.children:
+        try:
+            ok = asserter.ev(cond)
+        except (VclError, KeyError, TypeError) as ex:
+            failed.append(coded(f"ASSERT: {assertion_text(cond)} can't be checked: {ex}", "R050"))
+            continue
+        if not ok:
+            failed.append(coded(f"ASSERT: {assertion_text(cond)} is false{asserter.sides(cond)}", "R051"))
+    return failed
+
+
+# ---------------------------------------------------------------- DOCUMENT (VCL 0.7 part 3f, D115)
+
+class DocAsserter(Asserter):
+    """A DOCUMENT TEST's assertions, on the filled document's Report (vcl_docx.Report)."""
+
+    def __init__(self, report, errors):
+        super().__init__({}, {}, None, errors)
+        self.report = report
+
+    def ev(self, t):
+        if isinstance(t, Token) and str(t) == "LEFT_OVER":
+            return self.report.left_over
+        if isinstance(t, Tree) and t.data == "a_func":
+            name, args = str(t.children[0]), t.children[1:]
+            word = lambda i: str(args[i])   # noqa: E731  (a bare name: a field or a section)
+            if name == "FIELD_TEXT":
+                return self.report.fields.get(word(0), "")
+            if name == "SECTION_COUNT":
+                return self.report.sections.get(word(0), 0)
+            if name == "TEXT_HAS":
+                return 1 if S.text_of(super().ev(args[0])) in self.report.text else 0
+            if name in ("TABLE_ROWS", "TABLE_COLS", "TABLE_CELL"):
+                n = int(super().ev(args[0]))
+                if not 1 <= n <= len(self.report.tables):
+                    raise VclError(coded(f"the filled document has {len(self.report.tables)} tables, not {n}", "R060"))
+                table = self.report.tables[n - 1]
+                if name == "TABLE_ROWS":
+                    return len(table)
+                if name == "TABLE_COLS":
+                    return max((len(row) for row in table), default=0)
+                r, c = int(super().ev(args[1])), int(super().ev(args[2]))
+                if not 1 <= r <= len(table) or not 1 <= c <= len(table[r - 1]):
+                    raise VclError(coded(f"table {n} of the filled document has no cell ({r}, {c})", "R061"))
+                return table[r - 1][c - 1]
+        return super().ev(t)
+
+
+def doc_rows(machine, tree):
+    """A REPEAT's source as rows of texts: a range (each row of it, formulas as Excel saved them) or a list of rows
+    written in place ([[...], [...]])."""
+    if isinstance(tree, Tree) and tree.data == "list_lit":
+        rows = []
+        for row in tree.children:
+            items = row.children if isinstance(row, Tree) and row.data == "list_lit" else [row]
+            rows.append([S.text_of(machine.ev(x)) for x in items])
+        return rows
+    rng = machine.target(tree)
+    return [[S.text_of(value(rng.sheet, r, c)) for c in range(rng.c1, rng.c2 + 1)] for r in range(rng.r1, rng.r2 + 1)]
+
+
+def doc_plan(spec, machine):
+    """The interpreter's meaning of a DOCUMENT's FIELD, REPEAT and KEEP lines: a vcl_docx.Plan of texts."""
+    from vcl_docx import Plan, Repeat
+    plan = Plan()
+    for k in spec["keys"]:
+        t = k["tree"]
+        if k["key"] == "FIELD":
+            plan.fields[str(t.children[0])] = S.text_of(machine.ev(t.children[1]))
+        elif k["key"] == "REPEAT":
+            kind, target = str(t.children[0]), t.children[1]
+            target = int(target.children[1]) if len(target.children) == 2 else str(target.children[0])
+            source, rest = t.children[2], t.children[3:]
+            match = None
+            if rest and isinstance(rest[0], Tree) and rest[0].data == "match_opt":
+                match = (int(rest[0].children[1]), str(rest[0].children[2]))
+                rest = rest[1:]
+            binds = {str(b.children[0]): int(b.children[1]) for b in rest}
+            plan.repeats.append(Repeat(kind, target, doc_rows(machine, source), binds, match))
+        elif k["key"] == "KEEP":
+            plan.keeps[str(t.children[0])] = bool(machine.ev(t.children[1]))
+    return plan
+
+
+def run_document_tests(spec, today):
+    """Each TEST of a DOCUMENT: build its workbooks (read-only: a DOCUMENT changes no workbook, so a formula gives its
+    saved value), fill the template, check the assertions on the filled document, LEFT_OVER = 0, and that no
+    workbook changed."""
+    from vcl_docx import DocxError, fill
+    from vcl_template import load_docx_template
+    template = next((str(k["tree"].children[0]) for k in spec["keys"] if k["key"] == "TEMPLATE"), "")
+    data = load_docx_template(template)
+    trees = [k["tree"] for k in spec["keys"] if k["key"] == "FIXTURE"]
+    books = build_workbooks(trees, today)
+    params = [str(p.children[0]) for kk in spec["keys"] if kk["key"] == "ARGS" for p in kk["tree"].children]
+    results = []
+    for k in spec["keys"]:
+        if k["key"] != "TEST":
+            continue
+        kids = k["tree"].children
+        fixture, call_vals = str(kids[0]), [v for v in kids[2:] if not (isinstance(v, Tree) and v.data == "assertion")]
+        assertion = kids[-1]
+        if fixture not in books:
+            raise VclError(coded(f"TEST uses fixture {fixture}, but no FIXTURE line builds it", "R062"))
+        book = {name: sh.snapshot() for name, sh in books[fixture].items()}
+        for sh in book.values():
+            sh.read_only = True
+        before = {name: sh.snapshot() for name, sh in book.items()}
+        bound = {}
+        for pname, v in zip(params, call_vals):
+            if isinstance(v, Token) and v.type == "FILENAME":
+                if str(v) != fixture:
+                    raise VclError(coded(f"TEST passes {v} for ${pname}, but its fixture is {fixture}", "R063"))
+                bound[pname] = Book(book)
+            elif isinstance(v, Token) and v.type == "STRING":
+                bound[pname] = str(v)[1:-1].replace('""', '"')
+            elif isinstance(v, Token) and v.type == "NAME" and str(v) in ("TRUE", "FALSE"):
+                bound[pname] = str(v) == "TRUE"
+            else:
+                bound[pname] = test_number(v)
+        log, failed = [], []
+        machine = Machine({"keys": []}, bound, log, today, book=Book(book))
+        try:
+            filled, report = fill(data, doc_plan(spec, machine))
+        except (VclError, DocxError, AttributeError, TypeError, ValueError) as ex:
+            log.append(("", 13, f"runtime error: {ex}"))
+            failed.append(coded(f"the document could not be filled: {ex}", "R064"))
+            results.append(TestResult(k["line"], False, None, len(log), failed, list(log)))
+            continue
+        failed += check_assertions(DocAsserter(report, len(log)), assertion)
+        if report.left_over:
+            failed.append(coded(f"the filled document still holds {report.left_over} {{{{ (a field nothing filled)", "R065"))
+        for name, sh in book.items():
+            old = before[name]
+            if (sh.cells, sh.fills, sh.formats) != (old.cells, old.fills, old.formats):
+                failed.append(coded(f"the workbook {fixture} changed on sheet {name}: a DOCUMENT changes no workbook", "R066"))
+        results.append(TestResult(k["line"], not failed, None, len(log), failed, list(log), document=filled))
+    return results
+
+
 def run_tests(text, today=None):
     """Run every TEST of a TASK spec, or of a VCL 0.5 BUILD through its modMain.RunHeadless (D49).
     today pins TODAY (default: the real date)."""
     spec, problems = parse(text)
     if problems or not spec:
         raise VclError(coded(f"spec doesn't parse: {problems[:3]}", "R043"))
+    if spec["kind"] == "DOCUMENT":   # VCL 0.7 (D115)
+        return run_document_tests(spec, today or dt.date.today())
     spec, procs, keys = entry_of(spec)
     today = today or dt.date.today()
     trees = [k["tree"] for k in keys if k["key"] == "FIXTURE"]
@@ -1475,15 +1625,7 @@ def run_tests(text, today=None):
             stopped_at_pre = stopped_at_pre and machine.pre_failed
             file_paths += machine.file_paths
         asserter = Asserter(book, before, result, len(log), fs, fs_before)
-        failed = []
-        for cond in assertion.children:
-            try:
-                ok = asserter.ev(cond)
-            except (VclError, KeyError, TypeError) as ex:
-                failed.append(coded(f"ASSERT: {assertion_text(cond)} can't be checked: {ex}", "R050"))
-                continue
-            if not ok:
-                failed.append(coded(f"ASSERT: {assertion_text(cond)} is false{asserter.sides(cond)}", "R051"))
+        failed = check_assertions(asserter, assertion)
         modifies = modifies_of(spec)
         if needs_unchanged_check(spec, modifies):
             sheet_args = {}
