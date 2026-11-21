@@ -68,7 +68,8 @@ and their proven specs, each with its VBA.
 - Synthetic fixtures only: every TEST uses a named FIXTURE file. `fixture=target` is banned
   until March 2027, and nothing we generate ever touches real workbooks, except the copy KRONOS
   Offline makes of a workbook Boss uploads (D87); no TEST ever uses one.
-- No model training or local-model work until the new PC arrives in March 2027.
+- No model training or local-model work until the new PC arrives in March 2027 (writing the `train/` code is allowed, D124;
+  no model is downloaded or run).
 - **Original model and context data (D25, standing rule; its weights rule lifted by D102).** Since D102 (Boss,
   19 Nov 2026) the model may start from a small open-weight model (Apache 2.0 or MIT licence, at most about 7 billion
   parameters, tuned with LoRA, run offline on the new PC), built beside our own model trained from zero (at most about
@@ -154,7 +155,8 @@ packaging/           kronos.spec: the PyInstaller spec for KRONOS.exe (D79); the
                      three servers, licences/), offline_pins.json (the downloads, by SHA-256) and web/; its CI is
                      build-offline.yml, its test tools are in offline_test/
 web/                 KRONOS Offline's page: index.html, styles.css, app.js, worker.js (Pyodide), logo.svg (D86)
-(train/ and model/ arrive in March 2027, as code only; the prepared datasets, the checkpoints and the weights stay
+(train/ is code only and may be written before March 2027 (D124): the dataset export, the QLoRA script, the grammar
+ conversion, the 4-bit export, tested without loading a model; the prepared datasets, the checkpoints and the weights stay
  on the new PC's 300 GB, in KRONOS\train and KRONOS\models: weights never go into the repo, D91)
 ```
 

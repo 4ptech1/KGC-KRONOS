@@ -122,6 +122,63 @@ models in `KRONOS\models`, each with a budget. The budgets assume candidate A of
 parameters and candidate B of up to about 7 billion (D102: its base models in `KRONOS\models\base`), and are resized in March to the PC's graphics card; a run never starts if it would eat
 into the 30 GB kept free.
 
+## Stage C in detail: candidate B and the meaning check (D124)
+
+Boss, 21 Nov 2026: "trim, translate, etc. an open source AI model for KRONOS so that it is capable of translating user
+request to VCL and asking Codex to recheck if VCL is correct." His answers: shrink the file, not a big model cut down;
+tune it for mechanical engineering and welding work, without what KRONOS doesn't need; its job is English to VCL; Codex
+checks the meaning, as an option; prepare now, train in March 2027.
+
+**The base model.** Qwen2.5-Coder-7B-Instruct is the main candidate and Qwen2.5-Coder-1.5B-Instruct the fast one; the
+benchmark picks. Both are Apache 2.0 today; not every size in that family is, so each file's licence, model card and
+SHA-256 are checked and written down in March (D102). They are downloaded once onto the new PC with IT's approval, into
+`KRONOS\models\base`, and run offline; never into the repo or a Claude Code session.
+
+**"Trim" means a small file, not a cut model.** Knowledge can't be cut out of a model cleanly, and what KRONOS never
+uses costs nothing when it runs beyond the file's size. The model is kept to KRONOS's job in three ways:
+1. LoRA tuning (QLoRA on one graphics card) on our proven pairs, so its habits become KRONOS's;
+2. grammar-locked output: `vcl/grammar.lark` is turned into the runner's grammar, so the model can only write text
+   that parses as VCL, never chat, VBA or anything else;
+3. a short fixed prompt.
+The tuned model is stored in 4-bit (about 5 GB for 7B, about 1 GB for 1.5B) and run with an offline runner such as
+llama.cpp (MIT licence), which IT approves in March.
+
+**Mechanical engineering and welding.** The base model already knows the common words (WPS, PQR, NDE, RT, UT, ASME IX,
+hydrotest). KGC's own shop words come from an in-house glossary, `data/domain/glossary.md`: Claude writes it from Boss's
+words, with invented examples only. Requests written in shop language, each paired with a proven recipe, are checked
+the way the paraphrases are (D104). No downloaded welding or engineering datasets (D25). The samples in `samples/kgc/`
+are never trained on (D106). From March, Boss's real proven runs join the data on the new PC (D91).
+
+**The meaning check.** The toolchain proves a recipe parses, type-checks, passes its TESTs and touches only what it
+says. It can't prove the recipe does what the person meant. So, as an option, after the proof KRONOS asks Codex: here
+is the request, here is the proven recipe and what it changes; do they match? Codex answers in a fixed format, MATCH
+or MISMATCH with its reasons, and Review shows the answer. Rules:
+- It runs only on a recipe the toolchain has already proven. A MATCH never lets an unproven recipe through, and a
+  MISMATCH never changes a recipe by itself: the person decides, or sends it back for a new try.
+- It sends what already goes to Codex, the request and a recipe, and never a file (D69).
+- KRONOS works without it: no Codex, no check, and Review says so.
+- In KRONOS.exe it is a call through the Codex CLI, as the writing step is. In KRONOS Offline it is a text to copy
+  into the AI chat and a box to paste the answer (version 7).
+- Today Codex checks recipes Codex wrote. From March it checks our model's.
+
+**The checker is scored too.** The data generator's contrast examples (D103) are recipes that are valid but mean the
+wrong thing. The benchmark counts how many of them Codex's check catches, and how often it wrongly says MISMATCH to a
+right recipe. That tells us how far a MATCH can be trusted.
+
+**Before March, in the cloud (one PR each; nothing is downloaded and no model is run):**
+1. this design;
+2. the benchmark, `vclc bench` (Stage A Phase 8, Boss's step 7), with today's Codex as the baseline, then the
+   checker's score;
+3. the meaning check in KRONOS.exe (`kronos_engine.py`, `kronos_ai.py`, Review in `app/`), tested with the fake AI;
+4. the meaning check in KRONOS Offline, as part of version 7;
+5. the glossary and the shop-language requests;
+6. the training kit in `train/`, as code only: the dataset export (chat format, from `data/verified`, `data/repair` and
+   the paraphrases; never `data/eval` or `samples/kgc`), the QLoRA script, the grammar conversion, the grammar-locked
+   generator and the 4-bit export. Its tests cover only the export and the grammar conversion.
+
+**In March, on the new PC:** download the base models (IT), tune them, score them beside candidate A on the benchmark,
+and use the best only once it passes. Until then, and whenever it fails, Codex stays the writer.
+
 ## What doesn't change
 
 - D25: everything the model learns from is ours; no outside data or retrieval. D70 only adds proven Codex specs to
