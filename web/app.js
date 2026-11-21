@@ -21,11 +21,14 @@
     opening: 'Reading the recipe file',
     running: 'Making the changes on a copy',
     writing: 'Writing the changed copy',
+    filling: 'Filling your Word template',
   }
   const MAX_BOOK = 25 * 1024 * 1024   // a bigger workbook may not fit in the browser's memory
   const MAX_RECIPE_FILE = 2 * 1024 * 1024
   const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   const XLSM = 'application/vnd.ms-excel.sheet.macroEnabled.12'
+  const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  const MAX_TEMPLATE = 2 * 1024 * 1024   // a Word template may be up to 2 MB (vcl_docx.TEMPLATE_LIMIT)
   const PROMPT_KEY = 'kronos.orchestratorPrompt'
   // For the tests only: ?today=YYYY-MM-DD pins the date the practice tests use, as `vclc --today` does.
   const pinned = /[?&]today=(\d{4}-\d{2}-\d{2})(&|$)/.exec(window.location.search)
@@ -152,6 +155,9 @@
     ticks: {},          // id -> the assumptions are ticked
     actions: [],        // what this page asked the wizard to do, to rebuild it after Cancel
     copy: null,         // the changed workbook ready to download
+    readBook: null,     // {name, bytes}: the workbook a recipe only reads (D120); never changed, never sent anywhere
+    templates: {},      // id -> {name, bytes}: the Word template a DOCUMENT recipe fills (D121)
+    filled: {},         // id -> {data, name}: the filled Word file ready to download
   }
   let runs = 0
   window.kronosViews = state.views
@@ -420,20 +426,20 @@
 
   // ---------- the workbook ----------
 
+  // What is wrong with a workbook file the person chose, in words, or '' when KRONOS can use it.
+  function bookProblem(file) {
+    const lower = file.name.toLowerCase()
+    if (/\.xls$/.test(lower)) return 'This is an old .xls workbook. In Excel choose File, Save As, and save it as .xlsx; then choose that.'
+    if (!/\.xls[xm]$/.test(lower)) return 'KRONOS works on Excel workbooks saved as .xlsx or .xlsm.'
+    if (file.size > MAX_BOOK) return `This workbook is ${size(file.size)}. KRONOS can work on files up to ${size(MAX_BOOK)}.`
+    return ''
+  }
+
   async function chooseBook(file) {
     say('book-note', '')
     if (!file) return
-    const lower = file.name.toLowerCase()
-    if (/\.xls$/.test(lower)) {
-      say('book-note', 'This is an old .xls workbook. In Excel choose File, Save As, and save it as .xlsx; then choose that.')
-      return
-    }
-    if (!/\.xls[xm]$/.test(lower)) {
-      say('book-note', 'KRONOS works on Excel workbooks saved as .xlsx or .xlsm.')
-      return
-    }
-    if (file.size > MAX_BOOK) {
-      say('book-note', `This workbook is ${size(file.size)}. KRONOS can work on files up to ${size(MAX_BOOK)}.`)
+    if (bookProblem(file)) {
+      say('book-note', bookProblem(file))
       return
     }
     let bytes
@@ -715,7 +721,8 @@
     const skipped = state.shown.length - ids.length
     if (skipped) list.appendChild(el('p', { class: 'details muted' }, `${skipped} recipe${skipped === 1 ? ' is' : 's are'} not ` +
       'PROVEN and not offered here.'))
-    renderApply(ids.filter((id) => !state.views[id].best.offline_only))   // D118: those have their own step
+    renderApply(ids.filter((id) => state.views[id].best.kind !== 'DOCUMENT'))   // D120: a DOCUMENT has its own card
+    renderDocs(ids.filter((id) => state.views[id].best.kind === 'DOCUMENT'))
   }
 
   function saveSection(id) {
@@ -820,16 +827,46 @@
           const chosen = names.filter((name) => name.toLowerCase() === String(arg.default).toLowerCase())[0]
           if (!chosen) input.appendChild(el('option', { value: '' }, 'Choose a sheet…'))
           names.forEach((name) => input.appendChild(el('option', { value: name, selected: name === chosen ? 'selected' : null }, name)))
+        } else if (arg.type === 'Workbook' && arg.reads) {   // D120: a second workbook, only read
+          const chosen = state.readBook ? `${state.readBook.name} (${size(state.readBook.bytes.byteLength)})` : 'none chosen yet'
+          const choose = el('button', { type: 'button', class: 'choose-read' },
+            state.readBook ? 'Choose another…' : 'Choose the workbook to read from…')
+          choose.addEventListener('click', () => $('read-file').click())
+          input = el('div', { class: 'static', 'data-recipe': id, 'data-arg': arg.name, 'data-reads': 'yes' },
+            [el('span', { class: 'read-name' }, chosen), ' ', choose])
         } else if (arg.type === 'Workbook') {
           input = el('div', { class: 'static', 'data-recipe': id, 'data-arg': arg.name }, 'the whole workbook')
         } else {
           input = el('input', { id: fid, class: 'box', type: 'text', 'data-recipe': id, 'data-arg': arg.name, value: arg.default })
         }
-        const label = arg.type === 'Worksheet' ? `Sheet for ${arg.name}` : (arg.type === 'Workbook' ? arg.name : `${arg.name} (${arg.type})`)
+        const label = arg.type === 'Worksheet' ? `Sheet for ${arg.name}`
+          : (arg.type === 'Workbook' ? (arg.reads ? `Workbook to read from (${arg.name})` : arg.name) : `${arg.name} (${arg.type})`)
         fields.appendChild(el('div', { class: 'field' }, [el('label', { for: fid }, label), input]))
       })
     })
+    if (ids.some((id) => applyArgs[id].ok && applyArgs[id].args.some((arg) => arg.reads))) {
+      fields.appendChild(el('p', { class: 'details muted' }, 'KRONOS only reads the workbook to read from, as Excel last ' +
+        'saved it. It is never changed, and it stays on this computer.'))
+    }
     $('apply').hidden = files
+  }
+
+  async function chooseReadBook(file) {   // D120
+    say('apply-note', '')
+    if (!file) return
+    if (bookProblem(file)) {
+      say('apply-note', bookProblem(file))
+      return
+    }
+    try {
+      state.readBook = { name: file.name, bytes: await file.arrayBuffer() }
+    } catch (error) {
+      say('apply-note', `KRONOS could not read the file (${error.message}).`)
+      return
+    }
+    state.copy = null
+    $('read-file').value = ''
+    renderSave()
   }
 
   async function apply() {
@@ -838,25 +875,189 @@
     const args = ids.map(() => ({}))
     let missing = null
     ;[].forEach.call($('apply-fields').querySelectorAll('[data-arg]'), (input) => {
-      if (input.tagName === 'DIV') return
+      if (input.tagName === 'DIV') {
+        if (input.getAttribute('data-reads') && !state.readBook) missing = 'the workbook to read from'
+        return
+      }
       const at = ids.indexOf(input.getAttribute('data-recipe'))
       args[at][input.getAttribute('data-arg')] = input.value
       if (input.tagName === 'SELECT' && !input.value) missing = input.getAttribute('data-arg')
     })
     if (missing) {
-      say('apply-note', `Choose a sheet for ${missing} first.`)
+      say('apply-note', missing === 'the workbook to read from' ? 'Choose the workbook to read from first.'
+        : `Choose a sheet for ${missing} first.`)
       return
     }
+    const reads = ids.some((id) => applyArgs[id].ok && applyArgs[id].args.some((arg) => arg.reads))
     $('applied').hidden = true
     state.copy = null
     try {
       const answer = await call({ type: 'apply', texts: ids.map((id) => state.views[id].best.spec), data: state.book.bytes.slice(0),
-        name: state.book.name, args, today: TODAY }, STEP_WORDS.checking)
+        name: state.book.name, args, today: TODAY,
+        read: reads ? { data: state.readBook.bytes.slice(0), name: state.readBook.name } : null }, STEP_WORDS.checking)
       window.kronosLastApplied = JSON.stringify(answer.json)
       showApplied(answer.json, answer.data)
     } catch (problem) {
       say('apply-note', problemText(problem))
     }
+  }
+
+  // ---------- filling a Word template (D121) ----------
+
+  let docFor = null   // the recipe whose template the person is choosing
+
+  async function renderDocs(ids) {
+    const list = clear($('doc-list'))
+    for (const id of ids) {
+      if (!applyArgs[id]) {
+        try {
+          applyArgs[id] = (await call({ type: 'arguments', text: state.views[id].best.spec })).json
+        } catch (problem) {
+          list.appendChild(el('p', { class: 'note' }, problemText(problem)))
+          return
+        }
+      }
+      list.appendChild(docCard(id))
+    }
+  }
+
+  function docCard(id) {
+    const view = state.views[id]
+    const args = applyArgs[id].ok ? applyArgs[id].args : []
+    const card = el('section', { class: 'card doc', id: `doc-${id}` })
+    card.appendChild(el('h1', {}, `Fill a Word file: ${view.best.title}`))
+    card.appendChild(el('p', { class: 'lead' }, 'KRONOS fills your Word template with this recipe and gives you a new Word ' +
+      'file. Your template and your workbook are not touched.'))
+    const fields = el('div', { class: 'fields' })
+    const template = state.templates[id]
+    const choose = el('button', { type: 'button', class: 'choose-template' },
+      template ? 'Choose another…' : 'Choose the Word template…')
+    choose.addEventListener('click', () => { docFor = id; $('doc-file').click() })
+    fields.appendChild(el('div', { class: 'field' }, [el('label', {}, 'Word template (.docx)'),
+      el('div', { class: 'static' }, [el('span', { class: 'template-name' },
+        template ? `${template.name} (${size(template.bytes.byteLength)})` : 'none chosen yet'), ' ', choose])]))
+    args.forEach((arg, i) => {
+      const fid = `doc-arg-${id}-${i}`
+      let input
+      if (arg.type === 'Workbook') {
+        input = el('div', { class: 'static', 'data-arg': arg.name, 'data-book': 'yes' },
+          state.book ? `${state.book.name}, as Excel last saved it` : 'choose it under "Your workbook" in step 1, Ask')
+      } else if (arg.type === 'Boolean') {
+        input = el('select', { id: fid, class: 'box', 'data-arg': arg.name })
+        ;['TRUE', 'FALSE'].forEach((v) => input.appendChild(el('option', {
+          value: v, selected: String(arg.default).toUpperCase() === v ? 'selected' : null }, v === 'TRUE' ? 'Yes (TRUE)' : 'No (FALSE)')))
+      } else {
+        input = el('input', { id: fid, class: 'box', type: 'text', 'data-arg': arg.name, value: arg.default })
+      }
+      const label = arg.type === 'Workbook' ? `Workbook (${arg.name})` : `${arg.name} (${arg.type})`
+      fields.appendChild(el('div', { class: 'field' }, [el('label', { for: fid }, label), input]))
+    })
+    card.appendChild(fields)
+    const texts = view.best.ai_texts || []
+    if (texts.length) {
+      card.appendChild(el('p', { class: 'details' }, el('strong', {}, 'Written by the AI, not proven: read these in the ' +
+        'Word file before you use it.')))
+      card.appendChild(el('ul', { class: 'plain-list ai-texts' }, texts.map((t) => el('li', {}, t.text))))
+    }
+    const fill = el('button', { type: 'button', class: 'fill' }, 'Fill the Word file')
+    fill.addEventListener('click', () => fillDocument(id))
+    card.appendChild(el('div', { class: 'buttons' }, fill))
+    card.appendChild(el('p', { class: 'note', id: `doc-note-${id}`, hidden: 'hidden' }))
+    card.appendChild(el('section', { class: 'result', id: `filled-${id}`, hidden: 'hidden', 'aria-live': 'polite' }))
+    return card
+  }
+
+  async function chooseTemplate(file) {
+    const id = docFor
+    $('doc-file').value = ''
+    if (!file || !id) return
+    say(`doc-note-${id}`, '')
+    const lower = file.name.toLowerCase()
+    if (/\.doc$/.test(lower)) {
+      say(`doc-note-${id}`, 'This is an old .doc file. In Word choose File, Save As, and save it as .docx; then choose that.')
+      return
+    }
+    if (!/\.docx$/.test(lower)) {
+      say(`doc-note-${id}`, 'KRONOS fills Word templates saved as .docx.')
+      return
+    }
+    if (file.size > MAX_TEMPLATE) {
+      say(`doc-note-${id}`, `This template is ${size(file.size)}. A template may be up to ${size(MAX_TEMPLATE)}.`)
+      return
+    }
+    try {
+      state.templates[id] = { name: file.name, bytes: await file.arrayBuffer() }
+    } catch (error) {
+      say(`doc-note-${id}`, `KRONOS could not read the file (${error.message}).`)
+      return
+    }
+    delete state.filled[id]
+    renderSave()
+  }
+
+  async function fillDocument(id) {
+    const card = $(`doc-${id}`)
+    say(`doc-note-${id}`, '')
+    const template = state.templates[id]
+    if (!template) {
+      say(`doc-note-${id}`, 'Choose the Word template first.')
+      return
+    }
+    const needsBook = !!card.querySelector('[data-book]')
+    if (needsBook && !state.book) {
+      say(`doc-note-${id}`, 'This recipe reads a workbook: choose it under "Your workbook" in step 1, Ask, first.')
+      return
+    }
+    const args = {}
+    ;[].forEach.call(card.querySelectorAll('input[data-arg], select[data-arg]'), (input) => {
+      args[input.getAttribute('data-arg')] = input.value
+    })
+    $(`filled-${id}`).hidden = true
+    delete state.filled[id]
+    try {
+      const answer = await call({ type: 'fill', text: state.views[id].best.spec, template: template.bytes.slice(0),
+        templateName: template.name, args, today: TODAY,
+        book: needsBook ? { data: state.book.bytes.slice(0), name: state.book.name } : null }, STEP_WORDS.checking)
+      window.kronosLastFilled = JSON.stringify(answer.json)
+      showFilled(id, answer.json, answer.data)
+    } catch (problem) {
+      say(`doc-note-${id}`, problemText(problem))
+    }
+  }
+
+  function showFilled(id, data, bytes) {
+    const into = clear($(`filled-${id}`))
+    into.hidden = false
+    if (!data.ok) {
+      into.appendChild(banner('not-proven', 'NOT FILLED', 'KRONOS made no Word file.', `filled-banner-${id}`))
+      into.appendChild(el('p', { class: 'details' }, data.message))
+      return
+    }
+    state.filled[id] = { data: bytes, name: `${data.stem} (KRONOS ${stamp()}).docx` }
+    into.appendChild(banner('proven', 'WORD FILE READY', data.message, `filled-banner-${id}`))
+    if (data.read_name) into.appendChild(el('p', { class: 'details' }, `It read ${data.read_name}, which is not changed.`))
+    const sections = Object.keys(data.sections).map((name) => `${name}: ${data.sections[name]}`)
+    into.appendChild(el('p', { class: 'details' }, `${data.fields.length} field${data.fields.length === 1 ? '' : 's'} filled` +
+      (sections.length ? `; repeated sections (${sections.join(', ')})` : '') + `; ${data.tables} tables.`))
+    into.appendChild(el('details', {}, [el('summary', {}, 'Show what each field says'),
+      table(['Field', 'Text'], ['col-where', ''], data.fields.map((f) => [f.name, f.text]))]))
+    let understand = null
+    if (data.warnings.length) {
+      const box = el('div', { class: 'warn' }, [el('p', {}, el('strong', {}, 'Before you download, please read:'))])
+      data.warnings.forEach((w) => box.appendChild(el('p', {}, [el('strong', {}, 'Check: '), w.text])))
+      into.appendChild(box)
+      understand = el('input', { type: 'checkbox', class: 'understand' })
+      into.appendChild(el('label', { class: 'checkline' }, [understand, 'I understand, and I want the Word file']))
+    }
+    const button = el('button', { type: 'button', class: 'download-doc' }, 'Download the Word file')
+    button.disabled = !!understand
+    if (understand) understand.addEventListener('change', () => { button.disabled = !understand.checked })
+    button.addEventListener('click', () => {
+      const filled = state.filled[id]
+      if (filled) download(filled.data, filled.name, DOCX)
+    })
+    into.appendChild(el('div', { class: 'buttons' }, button))
+    into.appendChild(el('p', { class: 'details muted' }, 'Open it in Word and read it through before you send it.'))
   }
 
   function stamp() {
@@ -885,6 +1086,7 @@
     }
     state.copy = { data: bytes, name: `${data.stem} (KRONOS ${stamp()}).${data.ext}`, type: data.ext === 'xlsm' ? XLSM : XLSX }
     into.appendChild(banner('proven', 'CHANGED COPY READY', data.message, 'applied-banner'))
+    if (data.read_name) into.appendChild(el('p', { class: 'details' }, `It read ${data.read_name}, which is not changed.`))
     if (data.steps.length > 1) {
       data.steps.forEach((step, n) => {
         into.appendChild(el('h2', {}, `${n + 1}. ${step.recipe}`))
@@ -935,6 +1137,9 @@
     state.ticks = {}
     state.messages = {}
     state.copy = null
+    state.readBook = null
+    state.templates = {}
+    state.filled = {}
     applyArgs = {}
     $('request').value = ''
     $('applied').hidden = true
@@ -957,6 +1162,8 @@
   $('browser').textContent = browserName()
   $('cancel').addEventListener('click', cancel)
   $('choose-book').addEventListener('click', () => $('book-file').click())
+  $('read-file').addEventListener('change', (event) => { chooseReadBook(event.target.files[0]) })
+  $('doc-file').addEventListener('change', (event) => { chooseTemplate(event.target.files[0]) })
   $('book-file').addEventListener('change', (event) => {
     const file = event.target.files && event.target.files[0]
     event.target.value = ''   // so that choosing the same file again still fires

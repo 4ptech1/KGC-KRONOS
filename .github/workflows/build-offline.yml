@@ -214,10 +214,16 @@ jobs:
             if ($missing -ne 404) { throw "a missing file gave $missing, not 404" }
             Say "a missing file: 404"
           } finally {
-            taskkill /T /F /PID $p.Id | Out-Null
+            # A child that has already ended "could not be terminated": taskkill then exits 128, and as the last native
+            # command its code became the step's. What matters is that the server stops, so that is checked instead.
+            cmd /c "taskkill /T /F /PID $($p.Id) >nul 2>&1"
+            $global:LASTEXITCODE = 0
             Start-Sleep -Seconds 2
+            $still = $false
+            try { Invoke-WebRequest -Uri "http://localhost:5181/" -UseBasicParsing -TimeoutSec 3 | Out-Null; $still = $true } catch { }
             "--- the black window said:"
             Get-Content $log
+            if ($still) { throw "the launcher's server is still running after taskkill" }
           }
           $said = Get-Content $log -Raw
           if ($said -notmatch "App folder:") { throw "the launcher did not use the PowerShell server" }

@@ -380,13 +380,32 @@ Orchestrator project. One PR each:
   survive. Excel recalculates on opening (`fullCalcOnLoad`), and a changed formula drops the calculation chain, which
   Excel rebuilds. Otherwise, or for a cell the writer can't patch (a shared formula's first cell), today's openpyxl
   copy, with today's warnings. An uploaded workbook's merged ranges reach the interpreter, so D113's rules hold there.
+  **Done (D119):** `compiler/kronos_patch.py`. The sheets that change and `workbook.xml` are written again with their
+  namespaces as they were (the sheet's own stays the default one); every cell, row and element the recipe left alone
+  is as it was, and every other part keeps its bytes. It also falls back to the full copy when it is not sure: a sheet
+  list or a cell that moved, an array formula or a shared formula's first cell among the changes, a cleared cell with
+  a note or link, a row or cell without its address. In the round trip of every recipe's TESTs, 304 of the 549 copies
+  come from it. `tests/test_keep_everything.py`: the WPS look-alike comes back with its pictures, print area and 97
+  merged ranges, and only its four written cells differ.
 - **6c, two workbooks.** "Workbook to fill" and "Workbook to read from": a recipe with a `read=` TEST asks for both, and
   its read Workbook argument is bound to the second, which is never changed.
+  **Done (D120):** the first upload stays "Your workbook", the one the copy is made of; the Save step's card asks for
+  "Workbook to read from (<argument>)" with its own button when a recipe reads one (`kronos_book.arguments` marks it
+  `reads`, by the first TEST with `read=`). `kronos_book.apply_many(..., read=(bytes, name))` reads it with
+  `vcl_template.load(..., reading=True)`, as Excel last saved it, binds it to that argument and never changes it; a
+  formula there with no saved value stops the run in words. Without it nothing is done ("choose it under Workbook to
+  read from"). `tests/test_read_upload.py`, and a page test: the new WPS filled from the old one, the page's answer
+  and copy exactly normal Python's.
 - **6d, Word.** For a DOCUMENT: "Choose the Word template" (.docx, up to 2 MB, with `{{fields}}` as the guide says)
   and, when it takes a Workbook, the workbook; "Fill the Word file" proves the recipe, fills the template from the
   workbook's last values saved by Excel and downloads `<template> (KRONOS yyyy-mm-dd hh-mm).docx`. A formula with no
   saved value stops the fill ("open it in Excel and save it"), never guessed; a workbook KRONOS just changed must be
   opened and saved in Excel first.
+  **Done (D121):** the Save step's "Fill a Word file" card (template, one box per argument, the workbook, the AI's text),
+  `kronos_book.fill_document`, `kronos_web.fill_document` and the worker's `fill` job; `tests/test_word_fill.py` and a page
+  test that fills the look-alike estimation sheet from the look-alike workbook, the page's answer and Word file exactly
+  normal Python's. The worker's list of accepted jobs lacked `fill`, so the page waited for ever; `tests/test_offline.py`
+  now guards that list.
 - **6e, Review and the guide.** Review lists every AI_TEXT ("written by the AI, not proven: check it") and what each
   recipe fills (cells, or the template's fields and sections). `docs/KRONOS_Offline_Guide.docx` gains the new steps and
   how Boss turns his own Word file into a template (type `{{Client}}` where the client's name goes). The version row,

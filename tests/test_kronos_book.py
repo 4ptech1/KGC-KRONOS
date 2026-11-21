@@ -286,13 +286,14 @@ class Copy(unittest.TestCase):
         (result, out), _ = self.apply(wb)
         self.assertTrue(any(w["kind"] == "load" for w in result["warnings"]))
 
-    def test_merged_cells_stay_and_a_warning_says_to_check_them(self):
+    def test_a_row_op_on_a_sheet_with_merged_cells_is_refused_as_the_macro_refuses_it(self):
+        # D113, D119: an uploaded sheet's merged ranges reach the interpreter, so deleting or sorting rows there stops,
+        # as ForgeNoMerges stops the macro (before D119 the copy was made with a warning to check them)
         wb = orders()
         wb["Orders"].merge_cells("H1:I1")
         (result, out), _ = self.apply(wb)
-        self.assertEqual([str(r) for r in openpyxl.load_workbook(io.BytesIO(out))["Orders"].merged_cells.ranges], ["H1:I1"])
-        moved = [w for w in result["warnings"] if w["kind"] == "moved"]
-        self.assertTrue(moved and "merged cells" in moved[0]["text"])
+        self.assertIsNone(out)
+        self.assertIn("merged cells", result["message"])
 
     def test_a_chart_is_kept_and_said_to_be_saved_again(self):
         wb = orders()
@@ -397,7 +398,7 @@ class Copy(unittest.TestCase):
         self.assertIn("doesn't match", result["message"])
 
     def test_arguments_come_with_a_default_from_the_first_test(self):
-        self.assertEqual(kb.arguments(EXAMPLE), [{"name": "ws", "type": "Worksheet", "default": "Orders"}])
+        self.assertEqual(kb.arguments(EXAMPLE), [{"name": "ws", "type": "Worksheet", "default": "Orders", "reads": False}])
 
     def test_describe_gives_the_ai_the_headings_and_a_sample(self):
         d = kb.describe(save(orders(30)), "orders.xlsx")

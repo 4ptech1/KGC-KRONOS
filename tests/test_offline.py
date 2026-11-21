@@ -74,7 +74,7 @@ def need(reason):
     raise unittest.SkipTest(reason)
 
 
-def orders_workbook(rows=24, merged=False):
+def orders_workbook(rows=24, filtered=False):
     """A synthetic orders workbook with a few styles, as bytes: what the upload tests give KRONOS."""
     import datetime
     import io
@@ -89,11 +89,19 @@ def orders_workbook(rows=24, merged=False):
     ws["C5"].font = Font(bold=True)
     ws.column_dimensions["C"].width = 33
     wb.create_sheet("Notes")["A1"] = "keep me"
-    if merged:
-        ws.merge_cells("H1:I1")   # Excel would adjust it when rows go; KRONOS says so
+    if filtered:   # Excel would adjust the filter when rows go; KRONOS says so (merged cells refuse a row op, D113, D119)
+        ws.auto_filter.ref = "A1:D25"
     out = io.BytesIO()
     wb.save(out)
     return out.getvalue()
+
+
+def zip_parts(data):
+    """{part: bytes} of a zip, unpacked: two zlibs can pack the same file into different bytes."""
+    import io
+    import zipfile
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        return {n: z.read(n) for n in z.namelist()}
 
 
 def workbook_state(data):
@@ -162,6 +170,16 @@ def unpacked():
 
 
 # ---------- always on ----------
+
+class TheWorker(unittest.TestCase):
+    def test_it_accepts_every_job_it_has_a_branch_for(self):   # D121: 'fill' was handled but never accepted, so the page waited forever
+        text = (ROOT / "web" / "worker.js").read_text(encoding="utf-8")
+        accepted = set(re.findall(r"'([a-z]+)'", re.search(r"const JOBS = \[(.*?)\]", text).group(1)))
+        handled = set(re.findall(r"job\.type === '([a-z]+)'", text))
+        self.assertEqual(handled - accepted, set())   # every branch can be reached
+        sent = set(re.findall(r"call\(\{ type: '([a-z]+)'", (ROOT / "web" / "app.js").read_text(encoding="utf-8")))
+        self.assertEqual(sent - accepted - {"apply"}, set())   # and everything the page sends is accepted ('apply' is the else branch)
+
 
 class Launcher(unittest.TestCase):
     def test_it_keeps_windows_line_endings(self):   # rule 3
@@ -982,6 +1000,86 @@ class InTheBrowser(unittest.TestCase):
                 self.assertEqual(workbook_state(Path(download.value.path()).read_bytes()), workbook_state(want_copy))
                 self.finish()
 
+    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+    def test_a_recipe_that_reads_a_second_workbook(self):   # D120
+        import kronos_book
+        recipe = (ROOT / "tests" / "data" / "wps_from_wps.vcl").read_bytes()
+        new = (ROOT / "data" / "templates" / "wps_form.xlsx").read_bytes()
+        old = (ROOT / "data" / "templates" / "wps_form_b.xlsx").read_bytes()
+        want, want_copy = kronos_book.apply_many([recipe.decode("utf-8")], new, "WPS-201.xlsx", [{"old": "", "ws": "WPS"}],
+                                                  TODAY, read=(old, "WPS-105.xlsx"))
+        for name, start in page_servers():
+            with self.subTest(server=name), start():
+                page = self.go_ready(name)
+                page.set_input_files("#book-file", files={"name": "WPS-201.xlsx", "mimeType": XLSX, "buffer": new})
+                page.wait_for_selector("#book-info:not([hidden])", timeout=120000)
+                page.set_input_files("#recipe-file", files={"name": "wps_from_wps.vcl", "mimeType": "text/plain",
+                                                            "buffer": recipe})
+                self.assertEqual(self.review_banners(page), ["PROVEN It passed every check and 2 of 2 practice tests."])
+                page.check("#review-list input[type=checkbox]")
+                page.click("#go-save")
+                page.wait_for_selector("#apply-card:not([hidden]) .choose-read", timeout=120000)
+                self.assertIn("no macro to download", page.text_content("#save-list"))
+                self.assertIn("Workbook to read from (old)", page.text_content("#apply-fields"))
+                page.click("#apply")
+                self.assertEqual(page.text_content("#apply-note"), "Choose the workbook to read from first.")
+                page.set_input_files("#read-file", files={"name": "WPS-105.xlsx", "mimeType": XLSX, "buffer": old})
+                page.wait_for_function("document.querySelector('#apply-fields .read-name') && document.querySelector("
+                                       "'#apply-fields .read-name').textContent.indexOf('WPS-105.xlsx') === 0", timeout=60000)
+                page.click("#apply")
+                page.wait_for_selector("#applied-banner", timeout=180000)
+                self.assertEqual(json.loads(page.evaluate("window.kronosLastApplied")), want)   # exactly normal Python's answer
+                self.assertIn("It read WPS-105.xlsx, which is not changed.", page.text_content("#applied"))
+                self.shot(page, "two-workbooks")
+                with page.expect_download() as download:
+                    page.click("#download")
+                self.assertEqual(zip_parts(Path(download.value.path()).read_bytes()), zip_parts(want_copy))   # (its zlib differs)
+                self.finish()
+
+    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+    def test_a_word_template_filled_from_a_workbook(self):   # D121
+        import kronos_book
+        recipe = (ROOT / "tests" / "data" / "doc_estimate.vcl").read_bytes()
+        template = (ROOT / "data" / "templates" / "estimate_template.docx").read_bytes()
+        book = (ROOT / "data" / "templates" / "estimation.xlsx").read_bytes()
+        want, want_doc = kronos_book.fill_document(recipe.decode("utf-8"), template, "Estimate.docx",
+                                                   {"estNo": "EST-9001", "onDate": "20 Nov 2026"}, TODAY,
+                                                   book=(book, "E-9100.xlsx"))
+        for name, start in page_servers():
+            with self.subTest(server=name), start():
+                page = self.go_ready(name)
+                page.set_input_files("#book-file", files={"name": "E-9100.xlsx", "mimeType": XLSX, "buffer": book})
+                page.wait_for_selector("#book-info:not([hidden])", timeout=120000)
+                page.set_input_files("#recipe-file", files={"name": "doc_estimate.vcl", "mimeType": "text/plain",
+                                                            "buffer": recipe})
+                self.assertEqual(self.review_banners(page), ["PROVEN It passed every check and 2 of 2 practice tests."])
+                page.check("#review-list input[type=checkbox]")
+                page.click("#go-save")
+                page.wait_for_selector("#doc-list .doc .fill", timeout=120000)
+                self.assertTrue(page.is_hidden("#apply-card"))   # a DOCUMENT changes no workbook
+                self.assertIn("Ex-works, packing included", page.text_content("#doc-list .ai-texts"))
+                self.assertIn("E-9100.xlsx, as Excel last saved it", page.text_content("#doc-list"))
+                page.click("#doc-list .fill")
+                self.assertEqual(page.text_content("#doc-list .note"), "Choose the Word template first.")
+                with page.expect_file_chooser() as chooser:
+                    page.click("#doc-list .choose-template")
+                chooser.value.set_files(files=[{"name": "Estimate.docx", "mimeType": "application/vnd.openxmlformats-"
+                                                "officedocument.wordprocessingml.document", "buffer": template}])
+                page.wait_for_function("document.querySelector('#doc-list .template-name') && document.querySelector("
+                                       "'#doc-list .template-name').textContent.indexOf('Estimate.docx') === 0", timeout=60000)
+                page.click("#doc-list .fill")
+                page.wait_for_function("document.querySelector('#doc-list .banner') || !document.querySelector('#doc-list "
+                                       ".note').hidden", timeout=180000)
+                self.assertEqual(page.text_content("#doc-list .note"), "")
+                self.assertEqual(json.loads(page.evaluate("window.kronosLastFilled")), want)   # exactly normal Python's answer
+                self.assertIn("WORD FILE READY", page.text_content("#doc-list .banner"))
+                self.shot(page, "word")
+                with page.expect_download() as download:
+                    page.click("#doc-list .download-doc")
+                self.assertTrue(download.value.suggested_filename.startswith("Estimate (KRONOS "))
+                self.assertEqual(zip_parts(Path(download.value.path()).read_bytes()), zip_parts(want_doc))
+                self.finish()
+
     def test_one_recipe_files_are_checked_straight_away(self):   # D89
         for name, start in page_servers():
             with self.subTest(server=name), start():
@@ -1003,7 +1101,7 @@ class InTheBrowser(unittest.TestCase):
 
     @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
     def test_what_a_copy_cannot_keep_must_be_ticked_before_the_download(self):   # D87
-        data = orders_workbook(merged=True)
+        data = orders_workbook(filtered=True)
         for name, start in page_servers():
             with self.subTest(server=name), start():
                 page = self.go_ready(name)
@@ -1017,7 +1115,7 @@ class InTheBrowser(unittest.TestCase):
                 self.assertEqual(page.input_value("#apply-fields select"), "Orders")
                 page.click("#apply")
                 page.wait_for_selector("#applied-banner", timeout=180000)
-                self.assertIn("merged cells", page.text_content("#warnings"))
+                self.assertIn("the filter", page.text_content("#warnings"))
                 self.assertTrue(page.is_disabled("#download"))
                 page.check("#understand")
                 self.assertTrue(page.is_enabled("#download"))

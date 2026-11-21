@@ -32,8 +32,13 @@ The wizard (D89, compiler/kronos_wizard.py): KRONOS.exe's engine with copy and p
     kronos_web.wizard_call(action, id, args_json, step=None)
         # action: ask, recipe, message, paste, answer, problems, save, view, restore -> {"ok", ...}
     kronos_web.words()                                      # EXAMPLE, TIPS, NEVER and the prompt's SHA-256
-    kronos_web.apply_changes_many(texts_json, data, name, args_list_json, today=None, step=None)
-        # several recipes, one after another, on one copy of the workbook (kronos_book.apply_many)
+    kronos_web.apply_changes_many(texts_json, data, name, args_list_json, today=None, step=None, read_data=None,
+                                  read_name="")
+        # several recipes, one after another, on one copy of the workbook (kronos_book.apply_many); read_data is
+        # the workbook a recipe only reads (D120)
+    kronos_web.fill_document(text, template, template_name, args_json, today=None, book_data=None, book_name="",
+                             step=None)
+        # (JSON text, the filled .docx's bytes or b""): a DOCUMENT recipe on the person's Word template (D121)
 """
 import datetime
 import json
@@ -187,13 +192,28 @@ def words():
                       "prompt": prompt.decode("utf-8"), "prompt_sha256": hashlib.sha256(prompt).hexdigest()})
 
 
-def apply_changes_many(texts_json, data, name, args_list_json, today=None, step=None):
-    """Several recipes, one after another, on one copy of the uploaded workbook: (canonical JSON, the copy's bytes or b"")."""
+def apply_changes_many(texts_json, data, name, args_list_json, today=None, step=None, read_data=None, read_name=""):
+    """Several recipes, one after another, on one copy of the uploaded workbook: (canonical JSON, the copy's bytes or b"").
+    read_data, read_name: the workbook a recipe only reads (D120), or None; it is never changed or written."""
     book = _book()
     texts = json.loads(texts_json) if isinstance(texts_json, str) else list(texts_json)
     args_list = json.loads(args_list_json) if isinstance(args_list_json, str) else list(args_list_json or [])
+    read = (_bytes(read_data), str(read_name)) if read_data is not None else None
     try:
-        result, out = book.apply_many(texts, _bytes(data), str(name), args_list, today, step)
+        result, out = book.apply_many(texts, _bytes(data), str(name), args_list, today, step, read)
+    except book.BookError as ex:
+        return canonical({"ok": False, "message": str(ex)}), b""
+    return canonical(result), out or b""
+
+
+def fill_document(text, template, template_name, args_json, today=None, book_data=None, book_name="", step=None):
+    """Fill the person's Word template with a DOCUMENT recipe (D121): (canonical JSON text, the new .docx's bytes or b"").
+    book_data, book_name: the workbook the recipe reads, or None. Neither file is changed."""
+    book = _book()
+    args = json.loads(args_json) if isinstance(args_json, str) else dict(args_json or {})
+    read = (_bytes(book_data), str(book_name)) if book_data is not None else None
+    try:
+        result, out = book.fill_document(text, _bytes(template), str(template_name), args, today, read, step)
     except book.BookError as ex:
         return canonical({"ok": False, "message": str(ex)}), b""
     return canonical(result), out or b""

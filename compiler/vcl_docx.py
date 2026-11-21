@@ -404,4 +404,25 @@ def _write(root, original):
     have = set(re.findall(r'xmlns:([A-Za-z_][\w.-]*)="', text[:text.find(">")]))
     extra = "".join(f' xmlns:{p}="{u}"' for p, u in declared.items() if p not in have)
     text = text[:m.end()] + extra + text[m.end():]
+    text = _keep_default_namespace(text, original)
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + text).encode("utf-8")
+
+
+def _keep_default_namespace(text, original):
+    """The original's default namespace (xmlns="..."; a sheet's, a rels part's) stays the default one: ElementTree
+    would give it a prefix of its own (ns0:), which Excel may not read. Only tag names carry it ("<" in text is &lt;)."""
+    head = re.search(rb"<[A-Za-z_][\w.:-]*\s[^>]*>", original[original.find(b"<", original.find(b"?>") + 2
+                                                                         if b"?>" in original else 0):])
+    uri = re.search(r'\sxmlns="([^"]+)"', head.group(0).decode("utf-8")) if head else None
+    root_tag = text[:text.find(">")]
+    used = re.search(r'\sxmlns:([A-Za-z_][\w.-]*)="' + re.escape(uri.group(1)) + '"', root_tag) if uri else None
+    if not used or used.group(1) in _declarations(original):
+        return text
+    prefix = used.group(1)
+    text = text.replace(f' xmlns:{prefix}="{uri.group(1)}"', "", 1)
+    text = re.sub(r"(</?)" + re.escape(prefix) + ":", r"\1", text)
+    m = re.match(r"<[A-Za-z_][\w.:-]*", text)   # first, as in the original: the same text whichever prefix ET chose
+    return text[:m.end()] + f' xmlns="{uri.group(1)}"' + text[m.end():]
+
+
+xml_parse, xml_write = _parse, _write   # also kronos_patch's: an XML part read and written back with its namespaces

@@ -12,7 +12,9 @@
 //   {type: 'describe', data, name}                    an uploaded workbook, described (D87)
 //   {type: 'recipes', data, name}                     the recipes in a file (kronos_web.read_recipe_file, D89)
 //   {type: 'arguments', text}                         a recipe's arguments
-//   {type: 'apply', texts, data, name, args, today}   recipes made on one copy of the workbook (apply_changes_many)
+//   {type: 'apply', texts, data, name, args, today, read}   recipes made on one copy of the workbook (apply_changes_many);
+//                                     read: {data, name} of the workbook a recipe only reads (D120), or null
+//   {type: 'fill', text, template, templateName, args, today, book}   a DOCUMENT fills a Word template (fill_document, D121)
 //   {type: 'check', text, today}                      check one recipe (kronos_web.check)
 // While working it sends {type: 'step', id, name}; before that, {type: 'status', text, short} and {type: 'ready', ...}.
 
@@ -71,7 +73,7 @@ const started = start().catch((error) => {
   postMessage({ type: 'error', id: 0, fatal: true, message: failed.message, details: failed.details })
 })
 
-const JOBS = ['words', 'reset', 'wizard', 'describe', 'recipes', 'arguments', 'apply', 'check']
+const JOBS = ['words', 'reset', 'wizard', 'describe', 'recipes', 'arguments', 'apply', 'check', 'fill']
 
 self.onmessage = async (event) => {
   const job = event.data
@@ -100,9 +102,17 @@ self.onmessage = async (event) => {
       answer(kronos.arguments(job.text))
     } else if (job.type === 'check') {
       answer(kronos.check(job.text, job.today || null, step))
+    } else if (job.type === 'fill') {   // D121: a DOCUMENT recipe on the person's Word template
+      const result = kronos.fill_document(job.text, new Uint8Array(job.template), job.templateName, JSON.stringify(job.args || {}),
+        job.today || null, job.book ? new Uint8Array(job.book.data) : null, job.book ? job.book.name : '', step)
+      const parts = result.toJs()
+      result.destroy()
+      const data = parts[1].buffer.slice(parts[1].byteOffset, parts[1].byteOffset + parts[1].byteLength)
+      postMessage({ type: 'answer', id: job.id, json: parts[0], data }, [data])
     } else {
       const result = kronos.apply_changes_many(JSON.stringify(job.texts), new Uint8Array(job.data), job.name,
-        JSON.stringify(job.args || []), job.today || null, step)
+        JSON.stringify(job.args || []), job.today || null, step,
+        job.read ? new Uint8Array(job.read.data) : null, job.read ? job.read.name : '')
       const parts = result.toJs()   // [the answer's JSON text, the copy's bytes]
       result.destroy()
       const data = parts[1].buffer.slice(parts[1].byteOffset, parts[1].byteOffset + parts[1].byteLength)
