@@ -27,15 +27,17 @@ def name_of(path):
 
 class EverySpec(unittest.TestCase):
     def test_the_vba_ends_where_the_interpreter_does(self):
-        proven, skipped = 0, 0
+        proven, skipped = 0, []
         for path in SPECS:
             with self.subTest(spec=name_of(path)):
                 out = vba_check.check_text(path.read_text(encoding="utf-8"), name_of(path), TODAY)
                 self.assertEqual(out.differences, [])
                 proven += out.proven
-                skipped += out.skipped is not None
+                if out.skipped is not None:
+                    skipped.append(path.name)
         self.assertGreaterEqual(proven, 165)   # every spec, example and corpus pair with TESTs on 19 Nov 2026
-        self.assertEqual(skipped, 1)            # vcl/examples/build_example.vcl, which doesn't parse on purpose
+        # build_example.vcl doesn't parse on purpose; Example 5 is a DOCUMENT, which makes no VBA (D115)
+        self.assertEqual(sorted(skipped), ["build_example.vcl", "example5_document.vcl"])
 
 
 class PlantedBugs(unittest.TestCase):

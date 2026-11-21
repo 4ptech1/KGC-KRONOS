@@ -198,7 +198,7 @@ def read_recipes(data, name):
         return out
     out["recipes"] = find_recipes(text)
     if not out["recipes"]:
-        out["message"] = ("KRONOS found no recipe in this file. A recipe starts with a line such as VCL 0.6, or sits in a "
+        out["message"] = ("KRONOS found no recipe in this file. A recipe starts with a line such as VCL 0.7, or sits in a "
                           "```vcl block.")
         return out
     out["ok"] = True

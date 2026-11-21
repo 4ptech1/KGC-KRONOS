@@ -482,6 +482,10 @@ class UnderPyodide(unittest.TestCase):
         for name, text in texts.items():
             steps = []
             want = kronos_web.check(text, TODAY, steps.append)
+            if name == "example5_document.vcl":   # D110, D116: the page has no data/templates until plan Phase 4
+                with self.subTest(case=name):
+                    self.assertIn("there is no data/templates/proposal_template.docx", out["answers"][name]["json"])
+                continue
             with self.subTest(case=name):
                 self.assertEqual(out["answers"][name]["json"], want)   # validator messages, TESTs and the .bas
                 self.assertEqual(out["answers"][name]["steps"], steps)
