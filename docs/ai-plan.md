@@ -172,7 +172,7 @@ right recipe. That tells us how far a MATCH can be trusted.
 3. the meaning check in KRONOS.exe (`kronos_engine.py`, `kronos_ai.py`, Review in `app/`), tested with the fake AI;
 4. the meaning check in KRONOS Offline, as part of version 7;
 5. the glossary and the shop-language requests;
-6. the training kit in `train/`, as code only: the dataset export (chat format, from `data/verified`, `data/repair` and
+6. the training kit in `train/` (`train/README.md`; part 1, the dataset export, is done, D126), as code only: the dataset export (chat format, from `data/verified`, `data/repair` and
    the paraphrases; never `data/eval` or `samples/kgc`), the QLoRA script, the grammar conversion, the grammar-locked
    generator and the 4-bit export. Its tests cover only the export and the grammar conversion.
 

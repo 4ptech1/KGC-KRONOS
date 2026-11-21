@@ -31,7 +31,7 @@ class TheSamplesFolder(unittest.TestCase):
     def test_nothing_that_is_tested_or_trained_on_reads_them(self):
         # docs and decision records may name the folder; code, specs, tests and data may not use it
         allowed = {Path(__file__).resolve()}
-        places = [ROOT / d for d in ("compiler", "vcl", "specs", "data", "app", "web", "vba", "packaging", "tests")]
+        places = [ROOT / d for d in ("compiler", "vcl", "specs", "data", "app", "web", "vba", "packaging", "tests", "train")]
         for place in places:
             for path in place.rglob("*"):
                 if path.is_file() and path.resolve() not in allowed and path.suffix in (

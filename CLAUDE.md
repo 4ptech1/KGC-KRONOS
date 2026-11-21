@@ -156,8 +156,9 @@ packaging/           kronos.spec: the PyInstaller spec for KRONOS.exe (D79); the
                      three servers, licences/), offline_pins.json (the downloads, by SHA-256) and web/; its CI is
                      build-offline.yml, its test tools are in offline_test/
 web/                 KRONOS Offline's page: index.html, styles.css, app.js, worker.js (Pyodide), logo.svg (D86)
-(train/ is code only and may be written before March 2027 (D124): the dataset export, the QLoRA script, the grammar
- conversion, the 4-bit export, tested without loading a model; the prepared datasets, the checkpoints and the weights stay
+train/               code only, no model loaded or downloaded (D124): prompts.py, make_dataset.py (the chat dataset from data/verified
+                     and `vclc datagen`, into the git-ignored dist/train), then the grammar conversion, the QLoRA script, the 4-bit export
+(model/ arrives in March 2027; the prepared datasets, the checkpoints and the weights stay
  on the new PC's 300 GB, in KRONOS\train and KRONOS\models: weights never go into the repo, D91)
 ```
 
