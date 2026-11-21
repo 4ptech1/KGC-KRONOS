@@ -39,6 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 sys.path.insert(0, str(ROOT / "packaging"))
 import build_offline as B  # noqa: E402
+import kronos_finder  # noqa: E402
 import kronos_web  # noqa: E402
 try:
     import openpyxl  # noqa: E402
@@ -1001,6 +1002,56 @@ class InTheBrowser(unittest.TestCase):
                 with page.expect_download() as download:
                     page.click("#download")
                 self.assertEqual(workbook_state(Path(download.value.path()).read_bytes()), workbook_state(want_copy))
+                self.finish()
+
+    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+    def test_the_recipe_finder_finds_adapts_and_makes_the_copy(self):   # D129
+        import io
+        import kronos_book
+        book = (ROOT / "docs" / "demo" / "NCR_Register_Demo.xlsx").read_bytes()
+        wb = openpyxl.load_workbook(io.BytesIO(book))
+        for cell in wb["NCR Register"][1]:   # two columns spelt another way: KRONOS must offer to rename them
+            cell.value = {"NCR No": "NCR Number", "Status": "status"}.get(cell.value, cell.value)
+        out = io.BytesIO()
+        wb.save(out)
+        other = out.getvalue()
+        for name, start in page_servers():
+            with self.subTest(server=name), start():
+                page = self.go_ready(name)
+                page.click("#find-recipe")
+                self.assertIn("Describe the job", page.text_content("#find-note"))
+                page.fill("#request", "make me a cup of tea")
+                page.click("#find-recipe")
+                page.wait_for_function("document.getElementById('find-note').textContent.indexOf('Nothing in the library') >= 0",
+                                       timeout=120000)
+                page.set_input_files("#book-file", files={"name": "NCRs.xlsx", "mimeType": XLSX, "buffer": other})
+                page.wait_for_selector("#book-info:not([hidden])", timeout=120000)
+                page.fill("#request", "highlight the open major NCRs")
+                page.click("#find-recipe")
+                page.wait_for_selector("#find-results .found", timeout=120000)
+                self.assertLessEqual(page.locator("#find-results .found").count(), 5)
+                self.assertIn("Colour every NCR", page.text_content("#find-results .found"))
+                self.shot(page, "found")
+                page.click("#find-results .found .use-recipe")
+                page.wait_for_selector(".rename-row", timeout=120000)
+                self.assertEqual(page.locator(".rename-row").count(), 2)
+                self.assertIn("NCR No", page.text_content("#find-results"))
+                self.shot(page, "renames")
+                page.click("#find-results .check-found")
+                self.assertEqual(self.review_banners(page), ["PROVEN It passed every check and 3 of 3 practice tests."])
+                self.assertIn("From KRONOS's library (demo-1)", page.text_content(".library-note"))
+                self.assertIn("2 column names changed", page.text_content(".library-note"))
+                page.check("#review-list input[type=checkbox]")
+                page.click("#go-save")
+                page.wait_for_selector("#apply-card:not([hidden]) select", timeout=120000)
+                page.select_option("#apply-fields select", "NCR Register")
+                page.click("#apply")
+                page.wait_for_selector("#applied-banner", timeout=180000)
+                applied = json.loads(page.evaluate("window.kronosLastApplied"))
+                want, _ = kronos_book.apply_many([kronos_finder.entry("demo-1")["spec"]], book, "NCR_Register_Demo.xlsx",
+                                                 [{"ws": "NCR Register"}], TODAY)
+                self.assertEqual(applied["result"], want["result"])   # the same 15 NCRs as on the original spelling
+                self.shot(page, "found-copy")
                 self.finish()
 
     @unittest.skipIf(openpyxl is None, "openpyxl is not installed")

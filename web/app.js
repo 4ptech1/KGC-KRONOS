@@ -158,6 +158,7 @@
     readBook: null,     // {name, bytes}: the workbook a recipe only reads (D120); never changed, never sent anywhere
     templates: {},      // id -> {name, bytes}: the Word template a DOCUMENT recipe fills (D121)
     filled: {},         // id -> {data, name}: the filled Word file ready to download
+    library: {},        // id -> what the recipe finder did for that recipe (D129): shown on Review
   }
   let runs = 0
   window.kronosViews = state.views
@@ -587,6 +588,111 @@
     await checkRecipes([{ title: 'The practice example', text }], 'the practice example')
   }
 
+  // ---------- the recipe finder (D129) ----------
+
+  // The person's workbook headings, {sheet: [headings]}: all the finder reads of it (never a row of data).
+  function bookHeadings() {
+    const out = {}
+    if (state.book && state.book.info) {
+      state.book.info.sheets.forEach((sheet) => { out[sheet.name] = sheet.headings.filter((h) => h && h !== '(blank)') })
+    }
+    return out
+  }
+
+  async function findRecipes() {
+    say('find-note', '')
+    clear($('find-results')).hidden = true
+    const request = $('request').value.trim()
+    if (!request) {
+      say('find-note', 'Describe the job in the box above first, then click Find a proven recipe.')
+      return
+    }
+    try {
+      const answer = await call({ type: 'find', request, headings: bookHeadings() }, 'Looking through the library')
+      showFound(answer.json)
+    } catch (problem) {
+      say('find-note', problemText(problem))
+    }
+  }
+
+  function showFound(found) {
+    const box = clear($('find-results'))
+    if (!found.results.length) {
+      say('find-note', 'Nothing in the library is close to this. Write the message for the AI above, or open a recipe file.')
+      return
+    }
+    say('find-note', found.weak ? 'Nothing in the library matches this well; these are the closest. Read each one before you use it.'
+      : 'These are the closest proven recipes. Read what each one does: the closest is not always the right one.')
+    box.hidden = false
+    found.results.forEach((r) => {
+      const card = el('div', { class: 'found', id: `found-${r.id}` })
+      card.appendChild(el('h2', {}, r.goal || r.id))
+      const why = [`Matched: ${r.matched.join(', ')}.`]
+      if (r.fit.total) why.push(`Reads ${r.fit.found} of ${r.fit.total} columns that your workbook has.`)
+      card.appendChild(el('p', { class: 'why' }, why.join(' ')))
+      if (r.changes.length) card.appendChild(el('ul', { class: 'plain-list' }, r.changes.map((c) => el('li', {}, c))))
+      const use = el('button', { type: 'button', class: 'use-recipe' }, 'Use this recipe')
+      use.addEventListener('click', () => useFound(r, card, use))
+      card.appendChild(el('div', { class: 'buttons' }, use))
+      card.appendChild(el('div', { class: 'adapt-area', id: `adapt-${r.id}` }))
+      box.appendChild(card)
+    })
+  }
+
+  // Use this recipe: with a workbook, show the column renames to tick, then check the recipe; without one, check it as it is.
+  async function useFound(r, card, button) {
+    const area = clear($(`adapt-${r.id}`))
+    try {
+      if (!state.book || !state.book.info) {
+        await checkFound(r, [], area)
+        return
+      }
+      button.disabled = true
+      const answer = await call({ type: 'adapt', id: r.id, propose: true, headings: bookHeadings() }, 'Matching its columns to your workbook')
+      button.disabled = false
+      const plan = answer.json
+      if (!plan.ok) throw { message: plan.message, plain: true }
+      if (!plan.renames.length && !plan.missing.length) {
+        await checkFound(r, [], area)
+        return
+      }
+      const boxes = plan.renames.map((rename, i) => {
+        const tick = el('input', { type: 'checkbox', id: `rename-${r.id}-${i}` })
+        tick.checked = true
+        area.appendChild(el('label', { class: 'rename-row', for: tick.id }, [tick,
+          el('span', {}, [`${rename.sheet}: "${rename.old}" becomes "${rename.new}"`, el('br'),
+            el('span', { class: 'small-muted' }, rename.why)])]))
+        return { tick, old: rename.old }
+      })
+      if (plan.missing.length) {
+        area.appendChild(el('p', { class: 'details' }, 'KRONOS can\'t match these, so it leaves them. If your workbook has them under another name, change the recipe by hand after Review:'))
+        area.appendChild(el('ul', { class: 'plain-list' }, plan.missing.map((m) => el('li', {}, `"${m.old}": ${m.why}`))))
+      }
+      const check = el('button', { type: 'button', class: 'check-found' }, 'Check this recipe')
+      check.addEventListener('click', () => checkFound(r, boxes.filter((b) => b.tick.checked).map((b) => b.old), area))
+      area.appendChild(el('div', { class: 'buttons' }, check))
+    } catch (problem) {
+      button.disabled = false
+      say('find-note', problemText(problem))
+    }
+  }
+
+  async function checkFound(r, accepted, area) {
+    try {
+      const answer = await call({ type: 'adapt', id: r.id, headings: bookHeadings(), accepted, today: TODAY }, 'Changing its column names')
+      const done = answer.json
+      if (!done.text) throw { message: done.message, plain: true }
+      const id = newId('f')
+      await wizard('recipe', id, [done.text, `KRONOS's library, ${r.id}`], STEP_WORDS.checking)
+      state.library[id] = `From KRONOS's library (${r.id}). ${done.message}` +
+        (done.missing && done.missing.length ? ` Not matched, left as they are: ${done.missing.map((m) => `"${m.old}"`).join(', ')}.` : '')
+      state.shown = [id]
+      go('review')
+    } catch (problem) {
+      say('find-note', problemText(problem))
+    }
+  }
+
   // ---------- 2 Questions ----------
 
   function renderQuestion() {
@@ -649,6 +755,7 @@
     } else {
       card.appendChild(banner('not-proven', 'NOT PROVEN', view.note || 'The recipe did not pass its checks.', `banner-${id}`))
     }
+    if (state.library[id]) card.appendChild(el('p', { class: 'details library-note', id: `library-${id}` }, state.library[id]))
     if (best) {
       const summary = best.summary
       card.appendChild(el('h2', {}, 'What it does'))
@@ -1180,6 +1287,7 @@
     chooseBook(file)
   })
   $('remove-book').addEventListener('click', removeBook)
+  $('find-recipe').addEventListener('click', findRecipes)
   $('choose-recipes').addEventListener('click', () => $('recipe-file').click())
   $('recipe-file').addEventListener('change', (event) => {
     const file = event.target.files && event.target.files[0]

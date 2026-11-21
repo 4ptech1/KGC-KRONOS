@@ -116,12 +116,15 @@ def norm_heading(text):
 # ---------------------------------------------------------------- the library
 
 def reads_of(spec_text):
-    """[{sheet, headers}] of the sheets a recipe reads: its FIXTURE sheets that have data rows (a sheet that starts empty is
-    one it writes), each sheet once, the headers in the order given. Template FIXTUREs give no headers in the text."""
+    """[{sheet, headers}] of the sheets a recipe reads: the FIXTURE sheets its first TEST passes to the macro (a practice
+    sheet nothing is passed, like a Notes sheet, is not the person's), that have data rows (a sheet that starts empty is
+    one it writes), each once, the headers in the order given. Template FIXTUREs give no headers in the text."""
+    from kronos_engine import sheet_hints
     from parser import parse_spec
+    passed = set(sheet_hints(spec_text).values())
     seen = {}
     for fx in parse_spec(spec_text).fixtures:
-        if not fx.headers or getattr(fx, "rows", 0) == 0:
+        if not fx.headers or getattr(fx, "rows", 0) == 0 or (passed and fx.sheet not in passed):
             continue
         entry = seen.setdefault(fx.sheet, [])
         for _, header in fx.headers:
