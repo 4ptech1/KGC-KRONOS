@@ -73,7 +73,7 @@ const started = start().catch((error) => {
   postMessage({ type: 'error', id: 0, fatal: true, message: failed.message, details: failed.details })
 })
 
-const JOBS = ['words', 'reset', 'wizard', 'describe', 'recipes', 'arguments', 'apply', 'check']
+const JOBS = ['words', 'reset', 'wizard', 'describe', 'recipes', 'arguments', 'apply', 'check', 'fill']
 
 self.onmessage = async (event) => {
   const job = event.data

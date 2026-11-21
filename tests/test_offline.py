@@ -171,6 +171,16 @@ def unpacked():
 
 # ---------- always on ----------
 
+class TheWorker(unittest.TestCase):
+    def test_it_accepts_every_job_it_has_a_branch_for(self):   # D121: 'fill' was handled but never accepted, so the page waited forever
+        text = (ROOT / "web" / "worker.js").read_text(encoding="utf-8")
+        accepted = set(re.findall(r"'([a-z]+)'", re.search(r"const JOBS = \[(.*?)\]", text).group(1)))
+        handled = set(re.findall(r"job\.type === '([a-z]+)'", text))
+        self.assertEqual(handled - accepted, set())   # every branch can be reached
+        sent = set(re.findall(r"call\(\{ type: '([a-z]+)'", (ROOT / "web" / "app.js").read_text(encoding="utf-8")))
+        self.assertEqual(sent - accepted - {"apply"}, set())   # and everything the page sends is accepted ('apply' is the else branch)
+
+
 class Launcher(unittest.TestCase):
     def test_it_keeps_windows_line_endings(self):   # rule 3
         data = LAUNCHER.read_bytes()
