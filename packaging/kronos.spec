@@ -14,7 +14,8 @@ a = Analysis(   # noqa: F821
            (str(root / "vcl" / "orchestrator_prompt.txt"), "vcl"),
            (str(root / "vcl" / "examples" / "example1_rev3.vcl"), "vcl/examples"),   # the --self-test's recipe
            (str(root / "vba" / "ForgeLib.bas"), "vba"),
-           (str(root / "data" / "templates"), "data/templates")],   # the look-alike templates (D110, D118)
+           (str(root / "data" / "templates"), "data/templates"),   # the look-alike templates (D110, D118)
+           (str(root / "data" / "library.json"), "data")],   # the recipe finder's library (D129)
     hiddenimports=[],
     excludes=["tests", "unittest", "pydoc", "doctest"],
 )

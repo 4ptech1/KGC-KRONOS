@@ -316,11 +316,14 @@ class Toolchain(unittest.TestCase):
         self.assertEqual(set(B.spec_data_files()) - set(files), set())
         for name in files:
             self.assertTrue((ROOT / name).is_file(), name)
-            if name.startswith("data/templates/"):   # the look-alike templates are the one part of data/ (D118)
+            if name.startswith("data/templates/"):   # the look-alike templates are one part of data/ (D118)
                 self.assertRegex(name, r"^data/templates/[a-z0-9_]+\.(xlsx|docx)$")
+                continue
+            if name == "data/library.json":   # and the recipe finder's library, the proven recipes only (D129)
                 continue
             self.assertFalse(name.startswith(("tests/", "data/", "specs/")), name)
         self.assertTrue(any(n.endswith(".docx") for n in files) and any(n.endswith(".xlsx") for n in files))
+        self.assertIn("data/library.json", files)
 
     def test_the_version_list_is_in_order(self):
         rows = B.versions()
