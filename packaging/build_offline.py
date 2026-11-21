@@ -74,10 +74,22 @@ def latest_version(doc=DOC):
     return versions(doc)[-1][0]
 
 
+TEMPLATE_KINDS = (".xlsx", ".docx")   # what the bundled data/templates folder gives the page (D118)
+
+
 def spec_data_files():
-    """The data files packaging/kronos.spec bundles into KRONOS.exe, as repo paths: the browser gets the same ones."""
+    """The data files packaging/kronos.spec bundles into KRONOS.exe, as repo paths: the browser gets the same ones.
+    The bundled folder data/templates gives its look-alike templates, not the script that makes them."""
     found = re.findall(r'\(str\(root((?: / "[^"]+")+)\), "[^"]+"\)', SPEC.read_text(encoding="utf-8"))
-    return sorted("/".join(re.findall(r'"([^"]+)"', part)) for part in found)
+    out = []
+    for part in found:
+        name = "/".join(re.findall(r'"([^"]+)"', part))
+        if (ROOT / name).is_dir():
+            out += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT / name).iterdir())
+                    if p.is_file() and p.suffix in TEMPLATE_KINDS]
+        else:
+            out.append(name)
+    return sorted(out)
 
 
 def toolchain_files():

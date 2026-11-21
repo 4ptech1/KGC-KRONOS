@@ -19,11 +19,11 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from errcodes import coded
+from resources import ROOT
+from semantics import XlError
 from vcl_fixtures import Formula, Sheet, col_number
 
-# The repo checkout's templates. KRONOS.exe and KRONOS Offline don't bundle data/ (nothing from data/ ships, D86), so
-# there a template FIXTURE is refused with "there is no data/templates/..." until plan Phase 4 ships the templates.
-TEMPLATES = Path(__file__).resolve().parent.parent / "data" / "templates"
+TEMPLATES = ROOT / "data" / "templates"   # KRONOS.exe and KRONOS Offline ship this folder too (D118)
 NAME = re.compile(r"[A-Za-z0-9_]{1,60}")
 M = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
@@ -114,15 +114,18 @@ def _sheet_parts(z):
     return out
 
 
-def load(data, name="template"):
-    """An .xlsx template's bytes -> {sheet name: Sheet}, in the workbook's order."""
+def load(data, name="template", reading=False):
+    """An .xlsx template's bytes -> {sheet name: Sheet}, in the workbook's order.
+    reading=True (D118): a workbook a recipe only reads (a TEST's read= one, a DOCUMENT's), as Excel last saved it.
+    Every formula then keeps its saved value whatever kind it is (shared, array), an error value is read as one, and a
+    link to another workbook is no reason to refuse: only the saved values are read."""
     if not zipfile.is_zipfile(io.BytesIO(data)):
         raise TemplateError(coded(f"{name}: not an .xlsx workbook", "X022"))
     with zipfile.ZipFile(io.BytesIO(data)) as z:
         names = z.namelist()
         if "xl/workbook.xml" not in names:
             raise TemplateError(coded(f"{name}: not an .xlsx workbook", "X023"))
-        if any(n.startswith("xl/externalLinks/") for n in names):
+        if not reading and any(n.startswith("xl/externalLinks/") for n in names):
             raise TemplateError(coded(f"{name}: it links to another workbook, which a practice workbook can't hold", "X024"))
         shared = []
         if "xl/sharedStrings.xml" in names:
@@ -146,6 +149,9 @@ def load(data, name="template"):
                 v = c.find(M + "v")
                 raw = v.text if v is not None else None
                 where = f"{name} {title}!{ref}"
+                if kind == "e" and reading:
+                    sh.cells[(r, col)] = XlError(raw)
+                    continue
                 if kind == "e":
                     raise TemplateError(coded(f"{where} holds an error value ({raw}): a practice workbook can't", "X025"))
                 if kind == "s":
@@ -166,7 +172,7 @@ def load(data, name="template"):
                         is_date = num_id in DATE_IDS or (num_id >= 164 and is_date_format(code))
                         value = _serial_to_model(float(raw)) if is_date else number
                 if f is not None:
-                    if f.get("t") in ("shared", "array", "dataTable"):
+                    if f.get("t") in ("shared", "array", "dataTable") and not reading:
                         raise TemplateError(coded(f"{where}: a {f.get('t')} formula, which a practice workbook "
                                                   "can't hold: write the formula in each cell", "X026"))
                     sh.cells[(r, col)] = Formula("=" + (f.text or ""), saved=value)

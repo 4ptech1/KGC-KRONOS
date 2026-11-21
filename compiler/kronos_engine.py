@@ -164,6 +164,7 @@ class Proof:
     canonical: object = None      # the spec as `vclc fmt` writes it (None if it can't)
     strength: object = None       # (caught, total) deliberate bugs, with mutation=True
     ai_texts: list = field(default_factory=list)   # [(line, text)] the AI wrote, for a person to check (D112)
+    offline_only: bool = False    # proven without VBA: a DOCUMENT or a read= recipe, proven by KRONOS Offline (D118)
     seconds: dict = field(default_factory=dict)
 
     @property
@@ -180,7 +181,8 @@ class Proof:
 
     @property
     def ok(self):
-        return bool(self.kind and self.tests and self.module and not self.errors and not self.failing)
+        return bool(self.kind and self.tests and (self.module or self.offline_only) and not self.errors
+                    and not self.failing)
 
     def distance(self):
         """How far from proven: the stage that failed (check 3, test 2, build or lint 1), then how many
@@ -194,9 +196,21 @@ def module_title(name):
     return f"KGC KRONOS module: {name}"
 
 
-def prove(text, today=None, mutation=False, step=None):
+OFFLINE_SAVE = ("This recipe runs in KRONOS Offline only, so there is no macro to save: use it on your files there "
+                "(a Word file is filled, or a workbook is changed from another one).")
+
+
+def offline_only_spec(spec):
+    """True for a recipe only KRONOS Offline runs: a DOCUMENT (D115), or one whose TEST reads a second workbook
+    (read=, D114). The compiler makes no VBA for it."""
+    return spec["kind"] == "DOCUMENT" or any(k.get("read") for k in spec.get("keys", []))
+
+
+def prove(text, today=None, mutation=False, step=None, offline=False):
     """Check, test, build and lint one spec, in that order, stopping at the first stage that fails.
-    step(name) is told each stage as it starts: checking, testing, building, measuring."""
+    step(name) is told each stage as it starts: checking, testing, building, measuring.
+    offline=True (KRONOS Offline, D118): a recipe only it runs (offline_only_spec) is proven by its checks and TESTs,
+    with no VBA; KRONOS.exe (offline=False) refuses it at the build, as the compiler does."""
     step = step or (lambda name: None)
     proof = Proof(normalize(text))
     if is_question(proof.spec):
@@ -229,6 +243,10 @@ def prove(text, today=None, mutation=False, step=None):
                    for r in results]
     proof.seconds["test"] = round(time.perf_counter() - clock, 3)
     if proof.failing or not proof.tests:
+        return proof
+    if offline and offline_only_spec(spec):   # D118: no VBA for it, so nothing to build
+        proof.offline_only = True
+        proof.name = next((str(k["tree"].children[0]) for k in spec["keys"] if k["key"] in ("NAME", "PROC")), "")
         return proof
     step("building")
     clock = time.perf_counter()
@@ -466,11 +484,12 @@ class Run:
     measuring, and tried (with the try's result in words). cancel() may be called from another thread.
     """
 
-    def __init__(self, request, ai, data, today=None, mutation=False, now=None, progress=None):
+    def __init__(self, request, ai, data, today=None, mutation=False, now=None, progress=None, offline=False):
         self.request = request.strip()
         if not self.request:
             raise ValueError("the request is empty")
         self.ai, self.today, self.mutation = ai, today, mutation
+        self.offline = offline   # KRONOS Offline's runs prove its own recipes without VBA (D118)
         self.progress = progress or (lambda kind, info: None)
         self.started = now or datetime.datetime.now()
         self.folder = self._new_folder(data_folder(data) / "runs")
@@ -601,7 +620,7 @@ class Run:
                 self.question = reply.text
                 return self._stop("question")
             step = lambda name: self.progress(name, {})   # noqa: E731
-            proof = prove(reply.text, self.today, self.mutation, step) if reply.kind == "spec" else None
+            proof = prove(reply.text, self.today, self.mutation, step, self.offline) if reply.kind == "spec" else None
             attempt = self._attempt("ai", reply, proof)
             self.progress("tried", {"try": self.turn_tries, "result": plain_result(attempt),
                                     "proven": proof is not None and proof.ok})
@@ -618,7 +637,7 @@ class Run:
         if not text.strip():
             raise ValueError("the spec is empty")
         self._new_turn()
-        proof = prove(text, self.today, self.mutation, lambda name: self.progress(name, {}))
+        proof = prove(text, self.today, self.mutation, lambda name: self.progress(name, {}), self.offline)
         self._attempt("person", None, proof)
         self.question = ""   # an edited spec answers any question still open
         return self._stop("proven" if proof.ok else "not_proven", "" if proof.ok else "the edited spec is not proven")
@@ -657,6 +676,8 @@ class Run:
         attempt = self.proven()
         if attempt is None:
             raise ValueError("no proven spec yet")
+        if attempt.proof.offline_only:   # no macro at all (D118)
+            return None
         return None if attempt.proof.kind == "BUILD" else starter_args(attempt.proof.spec)
 
     def save_module(self, values=None, starter=True, dest=None, practice=True):
@@ -667,6 +688,8 @@ class Run:
         attempt = self.proven()
         if attempt is None:
             raise ValueError("no proven spec yet")
+        if attempt.proof.offline_only:
+            raise ValueError(OFFLINE_SAVE)
         proof, values = attempt.proof, dict(values or {})
         procedures, macro = list(proof.procedures), "Run"
         needs = self.starter_args()

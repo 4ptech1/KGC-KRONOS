@@ -52,21 +52,22 @@ def result(text, today=None, step=None):
         today = datetime.date.fromisoformat(today)
     reply = read_reply(text)
     out = {"reply": reply.kind, "question": "", "proven": False, "kind": "", "name": "", "findings": [], "tests": [],
-           "problems": [], "module": "", "bas": ""}
+           "problems": [], "module": "", "bas": "", "offline_only": False}
     if reply.kind == "question":
         out.update(question=reply.text, words="the AI asked a question instead of writing a recipe")
         return out
     if reply.kind == "none":
         out.update(problems=[f"{reply.problem}{tag(reply.problem)}"], words=plain_result(Attempt(1, "person")))
         return out
-    proof = prove(reply.text, today, step=step)
+    proof = prove(reply.text, today, step=step, offline=True)   # KRONOS Offline proves its own recipes (D118)
     out.update(proven=proof.ok, words=plain_result(Attempt(1, "person", reply, proof)), kind=proof.kind,
                name=proof.name, problems=feedback(proof),
                findings=[{"stage": f.stage, "line": f.line, "severity": f.severity, "message": str(f.message),
                           "code": f.code} for f in proof.findings],
                tests=[{"line": t.line, "passed": t.passed, "result": t.result, "errors": t.errors,
                        "failed": [{"message": str(m), "code": c} for m, c in t.failed]} for t in proof.tests])
-    if proof.ok:
+    out["offline_only"] = proof.offline_only   # D118: proven, but no VBA (a DOCUMENT or a read= recipe)
+    if proof.ok and proof.module:
         out.update(module=module_name(proof.name), bas=bas_text(module_name(proof.name), proof.module))
     return out
 

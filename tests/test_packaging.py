@@ -41,6 +41,9 @@ class Spec(unittest.TestCase):
 
     def test_every_bundled_file_exists(self):
         for name in spec_files():
+            if name == "data/templates":   # the one bundled folder: the look-alike templates (D118)
+                self.assertTrue(any((ROOT / name).glob("*.xlsx")) and any((ROOT / name).glob("*.docx")), name)
+                continue
             self.assertTrue((ROOT / name).is_file(), name)
 
     def test_the_program_is_found_through_the_paths_the_code_adds_at_run_time(self):
@@ -91,15 +94,19 @@ class Frozen(unittest.TestCase):
         """With sys._MEIPASS set (as in KRONOS.exe), the grammar, ForgeLib and the prompt are read from there."""
         unpacked = Path(tempfile.mkdtemp())
         for name in spec_files():
+            if (ROOT / name).is_dir():   # data/templates (D118): copied as it is
+                import shutil
+                shutil.copytree(ROOT / name, unpacked / name)
+                continue
             (unpacked / name).parent.mkdir(parents=True, exist_ok=True)
             text = (ROOT / name).read_text(encoding="utf-8")
             (unpacked / name).write_text("' UNPACKED COPY\n" + text if name.endswith(".bas") else text,
                                          encoding="utf-8")
         code = (f"import sys; sys._MEIPASS = {str(unpacked)!r}; sys.path.insert(0, {str(ROOT / 'compiler')!r}); "
-                "import resources, kronos_engine, vcl_codegen, vcl_parse; "
+                "import resources, kronos_engine, vcl_codegen, vcl_parse, vcl_template; "
                 "print(resources.FROZEN, resources.ROOT == kronos_engine.ROOT); "
                 "print(vcl_parse.GRAMMAR.parent.parent, vcl_codegen.FORGELIB.parent.parent, "
-                "kronos_engine.PROMPT.parent.parent); "
+                "kronos_engine.PROMPT.parent.parent, vcl_template.TEMPLATES.parent.parent); "
                 f"p = kronos_engine.prove(open({str(ROOT / 'vcl' / 'examples' / 'example1_rev3.vcl')!r}).read()); "
                 "print(p.ok, p.module.count('UNPACKED COPY'))")
         done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=120)
