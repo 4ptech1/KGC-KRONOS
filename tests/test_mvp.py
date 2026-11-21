@@ -68,6 +68,10 @@ class Compiler(unittest.TestCase):
         for p in all_specs():
             if p.name in ("build_example.vcl", "example4_build.vcl"):
                 continue   # BUILDs compile with compile_build (tests/test_vcl05.py)
+            if p.name == "example5_document.vcl":   # a DOCUMENT makes no VBA (D115)
+                with self.subTest(spec=p.name), self.assertRaisesRegex(CompileError, "a DOCUMENT is filled"):
+                    compile_text(p.read_text())
+                continue
             text = p.read_text()
             spec, _ = parse(text)
             with self.subTest(spec=p.name):

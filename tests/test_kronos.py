@@ -250,7 +250,7 @@ class Turns(unittest.TestCase):   # the window's engine hooks (D74, D75)
         self.assertEqual(run.fix(BROKEN_TEST), "proven")   # not proven as edited: the AI fixes it
         sent = ai.seen[1][-1]["text"]
         self.assertTrue(sent.startswith("I edited your spec by hand."))
-        self.assertIn("```vcl\nVCL 0.6\n", sent)
+        self.assertIn("```vcl\nVCL 0.7\n", sent)
         self.assertIn("[R051]", sent)
         self.assertEqual([a.source for a in run.attempts], ["ai", "person", "person", "ai"])
 

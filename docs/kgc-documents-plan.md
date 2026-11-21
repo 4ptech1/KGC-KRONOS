@@ -80,7 +80,7 @@ file back, proven by tests on look-alike practice files, with every AI-written t
 - Made by scripts beside them (the `docs/demo/` pattern), with a test that the files equal what the scripts make
   today (as `tests/test_demo.py`).
 
-### Phase 3: VCL 0.7 (a VEP first: `docs/vep-0.7-documents.md`, then one PR per part) - the VEP is done (D109)
+### Phase 3: VCL 0.7 (a VEP first: `docs/vep-0.7-documents.md`, then one PR per part) - done (D109 to D116)
 Every language change follows CLAUDE.md "Any VCL change means": spec.md and the prompt together, grammar, parser,
 validator, type checker, interpreter, compiler, ForgeLib, conformance cases, `docs/vcl-semantics.md`, tests,
 DECISIONS.md, `dist/forge_module.bas`; and `vclc sim` must still prove every spec.
@@ -116,6 +116,8 @@ DECISIONS.md, `dist/forge_module.bas`; and `vclc sim` must still prove every spe
   formulas; styles untouched), so pictures, print areas, merged cells, data validation and page setup survive.
   Fall back to today's openpyxl copy, with today's warnings, only when rows or sheets move. Test: the look-alike WPS
   with its picture comes back identical except the changed cells.
+- **4-. The prompt:** the 0.7 prompt (D116) goes to Boss with version 6, since version 5 refuses a `VCL 0.7`
+  recipe; version 6 proves a DOCUMENT or a `read=` recipe without making VBA (today its proof stops at the build).
 - **4a+. The templates:** KRONOS.exe and Offline bundle nothing from `data/` today, so a template FIXTURE (VCL 0.7
   part 3a) is refused there; ship `data/templates/` with the toolchain (D110).
 - **4b. Two files:** "Workbook to fill" and "Workbook to read from"; each Workbook ARG is bound to one upload.

@@ -66,7 +66,7 @@ If this folder came from a zip, `SNAPSHOT.txt` says which commit and date it is.
 1. `CLAUDE.md`: the rules, the constraints and the current status.
 2. `docs/kgc-kronos-context.md`: the whole project in one file. Its sections 1 to 12 are the overview; its
    appendices hold the full VCL reference, the rest of the prompt, and every committed spec with its VBA.
-3. `vcl/spec.md`: VCL 0.6, the language reference. Its reference text is the same as the prompt's (a unit test keeps
+3. `vcl/spec.md`: VCL 0.7, the language reference. Its reference text is the same as the prompt's (a unit test keeps
    them identical).
 4. `vcl/orchestrator_prompt.txt`: what KRONOS sends Codex for every request.
 5. `DECISIONS.md`: every decision and its reason, D1 onwards.

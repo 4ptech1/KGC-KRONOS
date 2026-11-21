@@ -541,20 +541,20 @@ class RealSpecs(unittest.TestCase):
     def test_orchestrator_example_1(self):
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 1"):prompt.index("EXAMPLE 2")]
-        spec = example[example.index("VCL 0.6"):]
+        spec = example[example.index("VCL 0.7"):]
         self.assertEqual(validate_text(spec), [])
 
     def test_example_1_file_is_the_prompts_example_1(self):
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 1"):prompt.index("EXAMPLE 2")]
-        self.assertEqual(read("vcl/examples/example1_rev3.vcl").strip(), example[example.index("VCL 0.6"):].strip())
+        self.assertEqual(read("vcl/examples/example1_rev3.vcl").strip(), example[example.index("VCL 0.7"):].strip())
 
     def test_example_3_copies_files_and_is_proven(self):
         # Example 3 (D33; VCL 0.6 with a GOAL line, D63) is vcl/examples/example3_files.vcl:
         # valid with no warnings, every TEST passes, and its TESTs catch every mutant.
         prompt = read("vcl/orchestrator_prompt.txt")
         example = prompt[prompt.index("EXAMPLE 3"):prompt.index("EXAMPLE 4")]
-        spec = example[example.index("VCL 0.6"):]
+        spec = example[example.index("VCL 0.7"):]
         self.assertEqual(read("vcl/examples/example3_files.vcl").strip(), spec.strip())
         self.assertEqual(validate_text(spec), [])
         results = run_tests(spec)
@@ -566,8 +566,8 @@ class RealSpecs(unittest.TestCase):
         # warnings, whose 3 TESTs pass, whose module builds lint-clean, and whose TESTs catch
         # every mutant (34 of 34; modMain.Run, which no TEST can reach, is not mutated).
         prompt = read("vcl/orchestrator_prompt.txt")
-        example = prompt[prompt.index("EXAMPLE 4"):prompt.index("FINAL CHECK")]
-        spec = example[example.index("VCL 0.6"):]
+        example = prompt[prompt.index("EXAMPLE 4"):prompt.index("EXAMPLE 5")]
+        spec = example[example.index("VCL 0.7"):]
         self.assertEqual(read("vcl/examples/example4_build.vcl").strip(), spec.strip())
         self.assertEqual(validate_text(spec), [])
         results = run_tests(spec)
@@ -575,12 +575,26 @@ class RealSpecs(unittest.TestCase):
         self.assertTrue(all(r.passed for r in results), [(r.line, r.failed) for r in results])
         self.assertEqual(mutate_report(spec, snapshot=True)[:2], (34, 34))
 
-    def test_the_prompt_teaches_vcl_0_6(self):   # D46, D58, D63
+    def test_example_5_is_a_proven_document(self):
+        # Example 5 (D116) is vcl/examples/example5_document.vcl: a DOCUMENT, valid but for its one warning
+        # (KRONOS Offline only), whose TESTs pass and catch every mutant.
         prompt = read("vcl/orchestrator_prompt.txt")
-        self.assertTrue(prompt.startswith("VBA FORGE ORCHESTRATOR · SYSTEM PROMPT · VCL 0.6\n"))
-        self.assertIn("exactly one VCL 0.6 spec. The VBA Forge compiler turns", prompt)   # D25, D31
+        example = prompt[prompt.index("EXAMPLE 5"):prompt.index("FINAL CHECK")]
+        spec = example[example.index("VCL 0.7"):]
+        self.assertEqual(read("vcl/examples/example5_document.vcl").strip(), spec.strip())
+        self.assertEqual([p.code for p in validate_text(spec) if p.severity == "error"], [])
+        self.assertEqual([p.message[:20] for p in validate_text(spec)], ["KRONOS Offline only:"])
+        results = run_tests(spec)
+        self.assertTrue(all(r.passed for r in results), [(r.line, r.failed) for r in results])
+        caught, total, _ = mutate_report(spec, snapshot=True)
+        self.assertEqual(caught, total)
+
+    def test_the_prompt_teaches_vcl_0_7(self):   # D46, D58, D63, D116
+        prompt = read("vcl/orchestrator_prompt.txt")
+        self.assertTrue(prompt.startswith("VBA FORGE ORCHESTRATOR · SYSTEM PROMPT · VCL 0.7\n"))
+        self.assertIn("exactly one VCL 0.7 spec. The VBA Forge compiler turns", prompt)   # D25, D31
         self.assertNotIn("fine-tuned", prompt)
-        for older in ("VCL 0.5", "VCL 0.4", "VCL 0.3", "VCL 0.2", "ACTIVE_SHEET", "ACTIVE_BOOK", "mode=new",
+        for older in ("VCL 0.6", "VCL 0.5", "VCL 0.4", "VCL 0.3", "VCL 0.2", "ACTIVE_SHEET", "ACTIVE_BOOK", "mode=new",
                       "not yet tested", "xlam", "CONTROLS", "<frmName>"):
             self.assertNotIn(older, prompt)
 
@@ -606,8 +620,9 @@ class RealSpecs(unittest.TestCase):
         import validator
         spec = read("vcl/spec.md")
         reference = spec[spec.index("TASK FORMAT"):spec.index("FIXTURE SPEC")]
+        import vcl_document   # a DOCUMENT's own functions and assertions (D115)
         known = (set(validator.OPS) | set(validator.VALUE_FUNCS) | validator.STRUCT | validator.ASSERT_FUNCS
-                 | validator.CONSTANTS)
+                 | validator.CONSTANTS | vcl_document.DOC_FUNCS | vcl_document.DOC_ASSERTS)
         written = set(re.findall(r"\b([A-Z][A-Z0-9_]+)\b", reference))
         called = set(re.findall(r"\b([A-Z][A-Z0-9_]{2,})\(", reference))
         taught = validator.VERSION_RANK[re.match(r"# (VCL \d+\.\d+)", spec).group(1)]

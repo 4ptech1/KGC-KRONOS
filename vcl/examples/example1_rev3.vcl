@@ -1,4 +1,4 @@
-VCL 0.6
+VCL 0.7
 TASK
 # ASSUME: Orders headers in row 1 include "Status" and "Order Date"
 # ASSUME: "Cancelled" is matched ignoring case and extra spaces

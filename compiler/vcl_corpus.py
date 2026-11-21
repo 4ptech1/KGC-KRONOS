@@ -7,7 +7,7 @@
 
 One pair is a folder data/<set>/<id>/ with
     task.txt   the request, in the words Boss would type
-    spec.vcl   the proven spec: VCL 0.6, canonical (vclc fmt), with its GOAL lines
+    spec.vcl   the proven spec: VCL 0.6 or 0.7, canonical (vclc fmt), with its GOAL lines
     meta.json  what the pair is (below), and the mutation score it was stored with
     paraphrase_N.txt   the same request worded differently (optional; never in data/eval): it can't be proven, so
                        it must keep every number of the request and every heading, sheet name and text of the
@@ -169,8 +169,8 @@ def check_item(folder, mutation=False, classified=True):
                  for p in found if p.severity == "warning" and p.code not in accepted]
     if errors:
         return problems
-    if not spec_text.startswith("VCL 0.6\n"):
-        problems.append(f"{name}: spec.vcl must be VCL 0.6")
+    if not spec_text.startswith(("VCL 0.6\n", "VCL 0.7\n")):   # 0.7 since the switch (D116)
+        problems.append(f"{name}: spec.vcl must be VCL 0.6 or VCL 0.7")
     try:
         results = run_tests(spec_text)
     except VclError as err:

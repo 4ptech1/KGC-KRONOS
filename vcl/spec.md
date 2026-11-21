@@ -1,4 +1,4 @@
-# VCL 0.6: VBA Command Language (21 Oct 2026)
+# VCL 0.7: VBA Command Language (20 Nov 2026)
 
 VCL is the contract between Claude (which writes specs) and VBA Forge (which turns them into
 tested VBA). This file is the reference that `validator.py` and the training data follow.
@@ -7,7 +7,8 @@ The formal syntax is `vcl/grammar.lark`; the reference meaning of the value func
 `vcl/semantics.py` (tables in `docs/vcl-semantics.md`); the reasons behind each decision are
 in `DECISIONS.md`.
 
-Specs start with `VCL 0.6`. The validator still reads `VCL 0.5` to `VCL 0.1` specs: every 0.5
+Specs start with `VCL 0.7`. The validator still reads `VCL 0.6` to `VCL 0.1` specs: every 0.6
+spec is also valid as 0.7 and gives the same results (E16), every 0.5
 spec is also valid as 0.6 once it has its GOAL lines and gives the same results (E15), every
 0.4 spec is also valid as 0.5 (E13), every 0.3 spec is also valid as 0.4 and gives the same
 results once a DEDUPE `cols=1,2` is written `cols=[1, 2]` (E12), every 0.2 spec is also valid
@@ -42,7 +43,7 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     specified at all, or when even a BUILD can't do all of it (rule 9). Then the code block
     contains only: # QUESTION: <one short question>
 8.  Use ALLOW only for risky actions the user explicitly asked for: file_delete,
-    file_overwrite, shell, http. No VCL 0.6 op deletes or overwrites a file, runs a program
+    file_overwrite, shell, http. No VCL 0.7 op deletes or overwrites a file, runs a program
     or uses the web, so design around them.
 9.  Write one TASK: one procedure of up to about 40 OP lines (about 60 lines of VBA). One
     macro or one tool is no reason for a BUILD: a TASK is a macro. When one TASK can't do
@@ -105,7 +106,7 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     COL($ws, "Method") = 3, and it may name another sheet only when every TEST workbook has
     a sheet of that name. No op removes or replaces a sheet.
 23. Write a BUILD only under rule 9: one complete TASK spec per SIG, each starting with
-    VCL 0.6 and each with its own GOAL, PRE, MODIFIES and ERR. CALL(<module>.<Proc>, <args>)
+    VCL 0.7 and each with its own GOAL, PRE, MODIFIES and ERR. CALL(<module>.<Proc>, <args>)
     runs another procedure of the same BUILD, never itself, directly or through others.
     Pass a Worksheet, Workbook or Range only as one of the caller's own $arguments, and
     keep a Function's result with into=<VAR> (make a callee whose count nobody reads a Sub):
@@ -122,14 +123,25 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     sentence of 10 to 200 printable ASCII characters that says what the spec does, as a
     person who has not seen the spec would say it, not just the PROC name. A BUILD has a
     GOAL for itself and for each of its TASKs.
-    Lay the spec out as shown under Layout, with no blank lines.
+25. KGC's own forms (VCL 0.7). Test a recipe on a form with FIXTURE <file>.xlsx
+    template=<name>, a look-alike of data/templates/ (wps_form, wps_form_b, estimation,
+    enquiry_register), never the real file. Write a merged range through its top-left cell
+    only; MERGE a block with the whole sheet in MODIFIES; never SORT, FILTER, DEDUPE,
+    INSERT_ROW or DELETE_ROW a sheet with merged cells. Read a second workbook only as a
+    Workbook argument that a TEST opens with read=<file>, never declared in MODIFIES: such a
+    recipe runs in KRONOS Offline only. Wrap every text you wrote yourself (a remark, an
+    assumption, a query) in AI_TEXT("...") so a person checks it. Fill a Word template with a
+    DOCUMENT (DOCUMENT FORMAT), never with a TASK; its TEMPLATE is a .docx marked up with
+    {{Name}} fields and {{BEGIN Name}} / {{END Name}} sections, and every field and section of
+    it is filled, repeated or kept exactly once.
+26. Lay the spec out as shown under Layout, with no blank lines.
 ```
 
 ## Reference
 
 ```text
 TASK FORMAT  (keys in this order; (opt) = optional)
-VCL 0.6
+VCL 0.7
 TASK
 # ASSUME: <assumption>                        (opt, one line each)
 GOAL     <one plain-English sentence: what the spec does>
@@ -146,7 +158,7 @@ PERF     screen_off calc_manual events_off    (opt, any of these)
 ERR      standard
 ALLOW    file_delete file_overwrite shell http  (opt)
 FIXTURE  <name>.xlsx <fixture spec>           (opt)
-TEST     fixture=<name>.xlsx call=<Proc>(<args>) [runs=<n>] assert=<assertion>   (two or more)
+TEST     fixture=<name>.xlsx [read=<name>.xlsx] call=<Proc>(<args>) [runs=<n>] assert=<assertion>   (two or more)
 
 Layout: write every spec in this one form. A key is padded with spaces to 9 characters, so
 values line up. Nesting = 2 extra spaces after the key, relative to the enclosing OP line;
@@ -160,7 +172,7 @@ Collection, ADD_SHEET and COPY_SHEET a Worksheet; status VARs and READ_TEXT's te
 String. VARs start at 0, "" or FALSE; Dictionary and Collection VARs start empty.
 
 BUILD FORMAT  (rule 23; for a request one TASK can't do, rule 9)
-VCL 0.6
+VCL 0.7
 BUILD
 # ASSUME: <assumption>                        (opt)
 GOAL     <one plain-English sentence: what the tool does>
@@ -173,7 +185,7 @@ FLOW     <caller> -> <callee> -> ...          (one line per chain of CALLs; ever
 FIXTURE  ...                                  (opt)
 TEST     fixture=<name>.xlsx call=modMain.RunHeadless(<args>) assert=...   (two or more)
 ---
-<one complete TASK spec per SIG, each starting with VCL 0.6, separated by lines
+<one complete TASK spec per SIG, each starting with VCL 0.7, separated by lines
 containing only --->
 
 BUILD rules: procedure names are unique in the whole BUILD, whatever their module.
@@ -184,6 +196,35 @@ PRE_ measures and wrong-sheet TEST as a TASK (rule 5: pass a sheet whose heading
 in place of one RunHeadless takes). Run is the only procedure with no ARGS and the only one
 that may pass SHEET(THIS_BOOK, ...), so a step can't also be a macro of its own: it runs
 through Run, or through an argument of RunHeadless that picks the step.
+
+DOCUMENT FORMAT  (rule 25: fill a Word template; KRONOS Offline only, no macro is made)
+VCL 0.7
+DOCUMENT
+# ASSUME: <assumption>                        (opt)
+GOAL     <one plain-English sentence: what the document gets>
+NAME     <PascalCase name>
+TEMPLATE <name>.docx                          (a Word template in data/templates/)
+ARGS     <name> As <Type>, ...                (opt; Workbook, String, Long, Double, Boolean, Date)
+FIELD    <Name> = <expr>                      (one per {{Name}} outside the repeated parts)
+REPEAT   row|column table=<n> from=<source> <Name>=<col>, ...      (opt, one per repeated part)
+REPEAT   section <Section> from=<source> <Name>=<col>, ...
+REPEAT   row table=<n> from=<source> match=<col>=<Name> <Name>=<col>, ...   (a table inside a
+                                              repeated section: the rows whose <col> is SAME as
+                                              the section row's <Name>)
+KEEP     <Section> IF <condition>             (opt: an optional section, kept once or removed)
+FIXTURE  ...                                  (a FIXTURE file for the TESTs, also with no workbook)
+TEST     fixture=<name>.xlsx call=<Name>(<args>) assert=...   (one or more; no runs=, no read=)
+table=<n> counts the template's tables in its order. A <source> is a range (one repeat per
+row; a workbook's formula cells give the values Excel saved) or rows written in place,
+[[<expr>, ...], [<expr>, ...]], for values the user typed. <col> counts a source row's values
+from 1. Expressions use the ARGS (no VARs), the value functions, AI_TEXT and
+NUMBER_TEXT(<x>, "<format>")   formats 0  0.0  0.00  #,##0  #,##0.00  #,##,##0  #,##,##0.00
+                               (the last two group as Indian numbers: 2,89,000)
+DATE_TEXT(<date>, "<format>")  formats "dd Mmm yyyy" "dd.mm.yyyy" "dd/mm/yyyy"
+A DOCUMENT's TESTs check the filled document: FIELD_TEXT(<Name>), TABLE_ROWS(<t>),
+TABLE_COLS(<t>), TABLE_CELL(<t>, <row>, <col>) (tables of the filled document, in its order),
+SECTION_COUNT(<Section>), TEXT_HAS("<text>") (1 or 0), LEFT_OVER and ERROR_COUNT; every TEST
+also proves that no {{ is left and that no workbook changed. One TEST has ERROR_COUNT = 0.
 
 OP SYNTAX
 Structural ops begin an OP line:
@@ -216,6 +257,7 @@ Every other op is a call, NAME(arguments, key=value):
           FORMAT(<target>, numfmt="<format>", bold=yes|no, fill=<name>|#RRGGBB, width=auto|<n>)
           CLEAR(<target>, what=all|contents|formats)
           COPY_ROW(<fromWs>, <fromRow>, <toWs>, <toRow>, cols=<n>)   (values of columns 1 to n)
+          MERGE(<range>)   (two or more cells into one; the same block again changes nothing)
           INSERT_ROW(<ws>, <row>)
           DELETE_ROW(<ws>, <row>)
   Sheets  ADD_SHEET(<book>, name=<expr>, after=<sheet>, into=<var>)    (a new empty sheet)
@@ -256,6 +298,11 @@ Value functions:
   SAFE_NAME(<expr>)   CLEAN_TEXT of it, or "" when that is not safe as one file or folder name
   PATH_JOIN($<root>, <part>, ...)   $<root>, then each part, joined by backslashes
   FOLDER_EXISTS(<path>)   TRUE when that folder exists
+  BLOCK(<ws>, <row1>, <col1>, <row2>, <col2>)   the block between two corners known at run time
+  ROUND(<x>, <n>)  ROUNDUP(<x>, <n>)   Excel's rounding to n digits (n from -15 to 15, written
+                       in place: -3 rounds to thousands)
+  MIN(<a>, <b>)  MAX(<a>, <b>)   the smaller or larger of two numbers
+  AI_TEXT("<text>")   text you wrote yourself, for a person to check
 Arguments are written $name. Variables and loop variables are bare names.
 Text uses "double quotes"; write a quote inside text as two quotes: "Say ""hi""".
 Also numbers, TRUE, FALSE, NOTHING. A list [<n>, <n>, ...] is only for DEDUPE cols=.
@@ -405,6 +452,19 @@ SEMANTICS  (the same on every PC, whatever its regional settings)
               of \ / ? * [ ] :, no apostrophe first or last, not History; a bad name or one
               already used (case ignored) stops the run before anything is added. Without
               after= the new sheet goes after the last one
+  ROUND       as Excel's ROUND, a half away from zero, on the 15-digit decimal Excel shows:
+              ROUND(2.675, 2) = 2.68; ROUNDUP goes away from zero: ROUNDUP(288364, -3) =
+              289000. Numbers only, guarded like any calculation, as MIN and MAX
+  AI_TEXT     is its quoted text; KRONOS lists every one as "written by the AI, not proven"
+  Merged      a value written inside a merged range must go to its top-left cell, or the run
+              stops before anything is written (FORMAT may touch any cell); MERGE stops when
+              a cell other than the top-left holds a value or the block overlaps another
+              merged range; INSERT_ROW, DELETE_ROW, SORT, DEDUPE and FILTER stop on a sheet
+              with merged cells
+  Templates   a template FIXTURE holds the form's values, formulas, number formats, fills
+              and merged ranges; reading a formula cell stops a TEST (a recipe can't know
+              what Excel would recalculate), except in the workbook a TEST opens with read=:
+              nothing can change it, so its formulas give the values Excel saved
 
 MODIFIES  (one line per sheet the macro changes, or per kind of change)
   MODIFIES $<arg>                     anything on that sheet: values, fills, formats, rows
@@ -423,8 +483,8 @@ MODIFIES  (one line per sheet the macro changes, or per kind of change)
   match), so RunHeadless's lines cover the whole tool and its TESTs get the check below.
   Every write op must go through a $sheet argument whose lines allow that change: values
   need [headers] or the whole sheet, fill-only FORMATs need fills, and anything else
-  (other FORMATs, CLEAR what=all or formats, SORT, INSERT_ROW, DELETE_ROW, DEDUPE, FILTER)
-  needs the whole sheet. Write through CELL, ROW_RANGE, USED_RANGE, RANGE or FIND of a
+  (other FORMATs, CLEAR what=all or formats, SORT, INSERT_ROW, DELETE_ROW, DEDUPE, FILTER,
+  MERGE) needs the whole sheet. Write through CELL, ROW_RANGE, USED_RANGE, RANGE, BLOCK or FIND of a
   $sheet, or through the into= VAR of ADD_SHEET or COPY_SHEET, which writes to the new
   sheet and which nothing else may set.
   MAKE_FOLDER's folder, COPY_FILE's <to> and WRITE_TEXT's file must be below a root with a
@@ -444,6 +504,7 @@ TEST ASSERTIONS  (checked on the test workbook after the run)
   SUMIFS(<Sheet>!<sumRange>, <Sheet>!<range>, <criteria>, ...)
                  sum of sumRange over the rows where every range meets its criteria
   VALUE(<Sheet>!<cell>)  SHEET_EXISTS("<name>")
+  MERGED(<Sheet>!<range>)          1 when exactly that block is merged, else 0
   ROWS_USED(<Sheet>)               the last used row (row 1, the headers, counts)
   FILE_EXISTS("<Folder>\<path>")   that file exists below a FIXTURE folder of the TEST
   FILE_COUNT("<Folder>[\<path>]")  files in that folder and in every folder below it
@@ -476,7 +537,9 @@ in the test workbook, a bare folder name (Dump) means that FIXTURE folder, the T
 file name (orders_01.xlsx) means the test workbook, for a Workbook argument, and text and
 numbers are passed as written ("P-104", 5).
 fixture=<name>.xlsx names a FIXTURE file from this spec; the harness builds it fresh for
-every TEST. fixture=target and real workbooks are not allowed.
+every TEST. fixture=target and real workbooks are not allowed. read=<name>.xlsx opens a
+second FIXTURE file read-only; in the call its file name is that Workbook argument, and every
+TEST proves it unchanged.
 
 FIXTURE SPEC
   FIXTURE <name>.xlsx sheet=<name> cols=<A:Header,B:Header,...> rows=<n> [stale=<n>] data=<col>:<rule>;<col>:<rule>
@@ -512,6 +575,10 @@ FIXTURE SPEC
   new folder below %TEMP% in Excel, whose root may be up to 120 characters), so a TEST fails
   when a file op path could be Too long in Excel but not in the interpreter: keep paths far
   over or well under the limits.
+  FIXTURE <name>.xlsx template=<name>
+  builds the whole test file from a look-alike form in data/templates/ (its sheets keep their
+  own names: name one with spaces in quotes in an assertion, 'BOM-RM'!Q10, and reach it in the
+  spec with SHEET($wb, "BOM-RM")); one template line per file and no sheet= lines beside it.
   Sheet names have no spaces, so TEST calls can use them bare. They may be short forms of
   the real sheet names (WelderPerf for "Welder Performance"); ASSUME lines describe the
   real workbook.
@@ -564,6 +631,23 @@ VCL 0.3 folder FIXTUREs: a file without `:<bytes>` gets 100 + below(900) bytes, 
 PRNG seeded with "<file>|<folder>|<path as written>|size", for example
 "router_01.xlsx|Dump|r3.pdf|size". Such a file holds that many "x" characters. A VCL 0.4
 file written `:"<text>"` holds exactly that text, with no PRNG draws.
+
+## Changes in VCL 0.7 (20 Nov 2026)
+
+Designed in `docs/vep-0.7-documents.md` (KGC's own documents, `docs/kgc-documents-plan.md` Phase 3) and built in
+its parts 3a to 3f. Every VCL 0.6 spec stays valid and gives the same results (E16). Details and reasons:
+`DECISIONS.md` D109 to D116.
+
+- The version line is `VCL 0.7` (E16).
+- `FIXTURE <file> template=<name>`: a test workbook from a look-alike form in `data/templates/` (D110).
+- Merged cells: writes go to a merged range's top-left cell; `MERGE`, `MERGED`, `BLOCK`; row ops refused on a
+  sheet with merged cells (D113).
+- `ROUND`, `ROUNDUP`, `MIN`, `MAX` with Excel's meaning (S27, S28, D111).
+- `TEST ... read=<file>`: a second workbook, read-only, whose formulas give their saved values; KRONOS Offline
+  only (D114).
+- `AI_TEXT("...")`: text the AI wrote, listed for a person to check (D112).
+- `DOCUMENT`: a spec that fills a Word template, with `NUMBER_TEXT` and `DATE_TEXT`; KRONOS Offline only (D115).
+- Hard rule 25 (KGC's forms) and rule 26 (the layout, rule 24's last sentence before).
 
 ## Wording after the corpus (19 Nov 2026)
 

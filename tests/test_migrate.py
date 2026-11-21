@@ -35,9 +35,9 @@ class TheTenSpecs(unittest.TestCase):
         # first line only, which gives the same results (E8, D33; E12, D46; E13, D58).
         new, _ = migrate((V01 / "example1_rev3.vcl").read_text(encoding="utf-8"))
         example = (ROOT / "vcl" / "examples" / "example1_rev3.vcl").read_text(encoding="utf-8")
-        self.assertTrue(new.startswith("VCL 0.2\n") and example.startswith("VCL 0.6\n"))
+        self.assertTrue(new.startswith("VCL 0.2\n") and example.startswith("VCL 0.7\n"))   # 0.7 since D116
         without_goal = "\n".join(l for l in example.split("\n") if not l.startswith("GOAL "))   # D63
-        self.assertEqual(new.replace("VCL 0.2\n", "VCL 0.6\n", 1), without_goal)
+        self.assertEqual(new.replace("VCL 0.2\n", "VCL 0.7\n", 1), without_goal)
 
     def test_the_rewrites_give_the_same_results(self):
         # The proof without its slow mutation part (vcl_migrate.py --prove runs that too).

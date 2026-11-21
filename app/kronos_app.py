@@ -809,12 +809,12 @@ def smoke(app, out):
 
     def recipe_open():
         held["recipe"] = d = app.open_recipe()
-        need("VCL 0.6" in d.typed(), "the recipe window shows no recipe")
+        need("VCL 0.7" in d.typed(), "the recipe window shows no recipe")
         d.recheck()
 
     def recipe_done():
         d = held["recipe"]
-        need("VCL 0.6" in d.typed() and "Proven" in d.status.cget("text"), "the re-check was not proven")
+        need("VCL 0.7" in d.typed() and "Proven" in d.status.cget("text"), "the re-check was not proven")
         d.close()
 
     def suggest_start():

@@ -195,7 +195,8 @@ def _parse_lines(lines, first_no, problems, allow_build=True, want=None):
     if kind == "DOCUMENT" and allow_build:   # VCL 0.7 (D115): keys only, no OPs
         head = {"kind": "DOCUMENT", "version": version, "keys": [], "assumes": []}
         order_idx, seen_key = 0, False
-        for i in range(kind_i + 1, len(lines)):
+        last = max((i for i, l in enumerate(lines) if l.strip()), default=kind_i)
+        for i in range(kind_i + 1, last + 1):   # blank lines after the spec are not part of it
             raw, line_no = lines[i], first_no + i
             if not raw.strip():
                 problems.append((line_no, coded("blank lines are not allowed inside a spec", "G016")))
