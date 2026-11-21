@@ -152,6 +152,7 @@
     ticks: {},          // id -> the assumptions are ticked
     actions: [],        // what this page asked the wizard to do, to rebuild it after Cancel
     copy: null,         // the changed workbook ready to download
+    readBook: null,     // {name, bytes}: the workbook a recipe only reads (D120); never changed, never sent anywhere
   }
   let runs = 0
   window.kronosViews = state.views
@@ -420,20 +421,20 @@
 
   // ---------- the workbook ----------
 
+  // What is wrong with a workbook file the person chose, in words, or '' when KRONOS can use it.
+  function bookProblem(file) {
+    const lower = file.name.toLowerCase()
+    if (/\.xls$/.test(lower)) return 'This is an old .xls workbook. In Excel choose File, Save As, and save it as .xlsx; then choose that.'
+    if (!/\.xls[xm]$/.test(lower)) return 'KRONOS works on Excel workbooks saved as .xlsx or .xlsm.'
+    if (file.size > MAX_BOOK) return `This workbook is ${size(file.size)}. KRONOS can work on files up to ${size(MAX_BOOK)}.`
+    return ''
+  }
+
   async function chooseBook(file) {
     say('book-note', '')
     if (!file) return
-    const lower = file.name.toLowerCase()
-    if (/\.xls$/.test(lower)) {
-      say('book-note', 'This is an old .xls workbook. In Excel choose File, Save As, and save it as .xlsx; then choose that.')
-      return
-    }
-    if (!/\.xls[xm]$/.test(lower)) {
-      say('book-note', 'KRONOS works on Excel workbooks saved as .xlsx or .xlsm.')
-      return
-    }
-    if (file.size > MAX_BOOK) {
-      say('book-note', `This workbook is ${size(file.size)}. KRONOS can work on files up to ${size(MAX_BOOK)}.`)
+    if (bookProblem(file)) {
+      say('book-note', bookProblem(file))
       return
     }
     let bytes
@@ -715,7 +716,7 @@
     const skipped = state.shown.length - ids.length
     if (skipped) list.appendChild(el('p', { class: 'details muted' }, `${skipped} recipe${skipped === 1 ? ' is' : 's are'} not ` +
       'PROVEN and not offered here.'))
-    renderApply(ids.filter((id) => !state.views[id].best.offline_only))   // D118: those have their own step
+    renderApply(ids.filter((id) => state.views[id].best.kind !== 'DOCUMENT'))   // D120: a DOCUMENT has its own step
   }
 
   function saveSection(id) {
@@ -820,16 +821,46 @@
           const chosen = names.filter((name) => name.toLowerCase() === String(arg.default).toLowerCase())[0]
           if (!chosen) input.appendChild(el('option', { value: '' }, 'Choose a sheet…'))
           names.forEach((name) => input.appendChild(el('option', { value: name, selected: name === chosen ? 'selected' : null }, name)))
+        } else if (arg.type === 'Workbook' && arg.reads) {   // D120: a second workbook, only read
+          const chosen = state.readBook ? `${state.readBook.name} (${size(state.readBook.bytes.byteLength)})` : 'none chosen yet'
+          const choose = el('button', { type: 'button', class: 'choose-read' },
+            state.readBook ? 'Choose another…' : 'Choose the workbook to read from…')
+          choose.addEventListener('click', () => $('read-file').click())
+          input = el('div', { class: 'static', 'data-recipe': id, 'data-arg': arg.name, 'data-reads': 'yes' },
+            [el('span', { class: 'read-name' }, chosen), ' ', choose])
         } else if (arg.type === 'Workbook') {
           input = el('div', { class: 'static', 'data-recipe': id, 'data-arg': arg.name }, 'the whole workbook')
         } else {
           input = el('input', { id: fid, class: 'box', type: 'text', 'data-recipe': id, 'data-arg': arg.name, value: arg.default })
         }
-        const label = arg.type === 'Worksheet' ? `Sheet for ${arg.name}` : (arg.type === 'Workbook' ? arg.name : `${arg.name} (${arg.type})`)
+        const label = arg.type === 'Worksheet' ? `Sheet for ${arg.name}`
+          : (arg.type === 'Workbook' ? (arg.reads ? `Workbook to read from (${arg.name})` : arg.name) : `${arg.name} (${arg.type})`)
         fields.appendChild(el('div', { class: 'field' }, [el('label', { for: fid }, label), input]))
       })
     })
+    if (ids.some((id) => applyArgs[id].ok && applyArgs[id].args.some((arg) => arg.reads))) {
+      fields.appendChild(el('p', { class: 'details muted' }, 'KRONOS only reads the workbook to read from, as Excel last ' +
+        'saved it. It is never changed, and it stays on this computer.'))
+    }
     $('apply').hidden = files
+  }
+
+  async function chooseReadBook(file) {   // D120
+    say('apply-note', '')
+    if (!file) return
+    if (bookProblem(file)) {
+      say('apply-note', bookProblem(file))
+      return
+    }
+    try {
+      state.readBook = { name: file.name, bytes: await file.arrayBuffer() }
+    } catch (error) {
+      say('apply-note', `KRONOS could not read the file (${error.message}).`)
+      return
+    }
+    state.copy = null
+    $('read-file').value = ''
+    renderSave()
   }
 
   async function apply() {
@@ -838,20 +869,26 @@
     const args = ids.map(() => ({}))
     let missing = null
     ;[].forEach.call($('apply-fields').querySelectorAll('[data-arg]'), (input) => {
-      if (input.tagName === 'DIV') return
+      if (input.tagName === 'DIV') {
+        if (input.getAttribute('data-reads') && !state.readBook) missing = 'the workbook to read from'
+        return
+      }
       const at = ids.indexOf(input.getAttribute('data-recipe'))
       args[at][input.getAttribute('data-arg')] = input.value
       if (input.tagName === 'SELECT' && !input.value) missing = input.getAttribute('data-arg')
     })
     if (missing) {
-      say('apply-note', `Choose a sheet for ${missing} first.`)
+      say('apply-note', missing === 'the workbook to read from' ? 'Choose the workbook to read from first.'
+        : `Choose a sheet for ${missing} first.`)
       return
     }
+    const reads = ids.some((id) => applyArgs[id].ok && applyArgs[id].args.some((arg) => arg.reads))
     $('applied').hidden = true
     state.copy = null
     try {
       const answer = await call({ type: 'apply', texts: ids.map((id) => state.views[id].best.spec), data: state.book.bytes.slice(0),
-        name: state.book.name, args, today: TODAY }, STEP_WORDS.checking)
+        name: state.book.name, args, today: TODAY,
+        read: reads ? { data: state.readBook.bytes.slice(0), name: state.readBook.name } : null }, STEP_WORDS.checking)
       window.kronosLastApplied = JSON.stringify(answer.json)
       showApplied(answer.json, answer.data)
     } catch (problem) {
@@ -885,6 +922,7 @@
     }
     state.copy = { data: bytes, name: `${data.stem} (KRONOS ${stamp()}).${data.ext}`, type: data.ext === 'xlsm' ? XLSM : XLSX }
     into.appendChild(banner('proven', 'CHANGED COPY READY', data.message, 'applied-banner'))
+    if (data.read_name) into.appendChild(el('p', { class: 'details' }, `It read ${data.read_name}, which is not changed.`))
     if (data.steps.length > 1) {
       data.steps.forEach((step, n) => {
         into.appendChild(el('h2', {}, `${n + 1}. ${step.recipe}`))
@@ -935,6 +973,7 @@
     state.ticks = {}
     state.messages = {}
     state.copy = null
+    state.readBook = null
     applyArgs = {}
     $('request').value = ''
     $('applied').hidden = true
@@ -957,6 +996,7 @@
   $('browser').textContent = browserName()
   $('cancel').addEventListener('click', cancel)
   $('choose-book').addEventListener('click', () => $('book-file').click())
+  $('read-file').addEventListener('change', (event) => { chooseReadBook(event.target.files[0]) })
   $('book-file').addEventListener('change', (event) => {
     const file = event.target.files && event.target.files[0]
     event.target.value = ''   // so that choosing the same file again still fires

@@ -398,7 +398,7 @@ class Copy(unittest.TestCase):
         self.assertIn("doesn't match", result["message"])
 
     def test_arguments_come_with_a_default_from_the_first_test(self):
-        self.assertEqual(kb.arguments(EXAMPLE), [{"name": "ws", "type": "Worksheet", "default": "Orders"}])
+        self.assertEqual(kb.arguments(EXAMPLE), [{"name": "ws", "type": "Worksheet", "default": "Orders", "reads": False}])
 
     def test_describe_gives_the_ai_the_headings_and_a_sample(self):
         d = kb.describe(save(orders(30)), "orders.xlsx")

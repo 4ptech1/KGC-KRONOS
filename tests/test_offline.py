@@ -96,6 +96,14 @@ def orders_workbook(rows=24, filtered=False):
     return out.getvalue()
 
 
+def zip_parts(data):
+    """{part: bytes} of a zip, unpacked: two zlibs can pack the same file into different bytes."""
+    import io
+    import zipfile
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        return {n: z.read(n) for n in z.namelist()}
+
+
 def workbook_state(data):
     """What a workbook holds that matters to the tests: values by cell, bold cells, column widths, per sheet."""
     import io
@@ -980,6 +988,42 @@ class InTheBrowser(unittest.TestCase):
                 with page.expect_download() as download:
                     page.click("#download")
                 self.assertEqual(workbook_state(Path(download.value.path()).read_bytes()), workbook_state(want_copy))
+                self.finish()
+
+    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+    def test_a_recipe_that_reads_a_second_workbook(self):   # D120
+        import kronos_book
+        recipe = (ROOT / "tests" / "data" / "wps_from_wps.vcl").read_bytes()
+        new = (ROOT / "data" / "templates" / "wps_form.xlsx").read_bytes()
+        old = (ROOT / "data" / "templates" / "wps_form_b.xlsx").read_bytes()
+        want, want_copy = kronos_book.apply_many([recipe.decode("utf-8")], new, "WPS-201.xlsx", [{"old": "", "ws": "WPS"}],
+                                                  TODAY, read=(old, "WPS-105.xlsx"))
+        for name, start in page_servers():
+            with self.subTest(server=name), start():
+                page = self.go_ready(name)
+                page.set_input_files("#book-file", files={"name": "WPS-201.xlsx", "mimeType": XLSX, "buffer": new})
+                page.wait_for_selector("#book-info:not([hidden])", timeout=120000)
+                page.set_input_files("#recipe-file", files={"name": "wps_from_wps.vcl", "mimeType": "text/plain",
+                                                            "buffer": recipe})
+                self.assertEqual(self.review_banners(page), ["PROVEN It passed every check and 2 of 2 practice tests."])
+                page.check("#review-list input[type=checkbox]")
+                page.click("#go-save")
+                page.wait_for_selector("#apply-card:not([hidden]) .choose-read", timeout=120000)
+                self.assertIn("no macro to download", page.text_content("#save-list"))
+                self.assertIn("Workbook to read from (old)", page.text_content("#apply-fields"))
+                page.click("#apply")
+                self.assertEqual(page.text_content("#apply-note"), "Choose the workbook to read from first.")
+                page.set_input_files("#read-file", files={"name": "WPS-105.xlsx", "mimeType": XLSX, "buffer": old})
+                page.wait_for_function("document.querySelector('#apply-fields .read-name') && document.querySelector("
+                                       "'#apply-fields .read-name').textContent.indexOf('WPS-105.xlsx') === 0", timeout=60000)
+                page.click("#apply")
+                page.wait_for_selector("#applied-banner", timeout=180000)
+                self.assertEqual(json.loads(page.evaluate("window.kronosLastApplied")), want)   # exactly normal Python's answer
+                self.assertIn("It read WPS-105.xlsx, which is not changed.", page.text_content("#applied"))
+                self.shot(page, "two-workbooks")
+                with page.expect_download() as download:
+                    page.click("#download")
+                self.assertEqual(zip_parts(Path(download.value.path()).read_bytes()), zip_parts(want_copy))   # (its zlib differs)
                 self.finish()
 
     def test_one_recipe_files_are_checked_straight_away(self):   # D89

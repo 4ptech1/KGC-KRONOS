@@ -389,6 +389,13 @@ Orchestrator project. One PR each:
   merged ranges, and only its four written cells differ.
 - **6c, two workbooks.** "Workbook to fill" and "Workbook to read from": a recipe with a `read=` TEST asks for both, and
   its read Workbook argument is bound to the second, which is never changed.
+  **Done (D120):** the first upload stays "Your workbook", the one the copy is made of; the Save step's card asks for
+  "Workbook to read from (<argument>)" with its own button when a recipe reads one (`kronos_book.arguments` marks it
+  `reads`, by the first TEST with `read=`). `kronos_book.apply_many(..., read=(bytes, name))` reads it with
+  `vcl_template.load(..., reading=True)`, as Excel last saved it, binds it to that argument and never changes it; a
+  formula there with no saved value stops the run in words. Without it nothing is done ("choose it under Workbook to
+  read from"). `tests/test_read_upload.py`, and a page test: the new WPS filled from the old one, the page's answer
+  and copy exactly normal Python's.
 - **6d, Word.** For a DOCUMENT: "Choose the Word template" (.docx, up to 2 MB, with `{{fields}}` as the guide says)
   and, when it takes a Workbook, the workbook; "Fill the Word file" proves the recipe, fills the template from the
   workbook's last values saved by Excel and downloads `<template> (KRONOS yyyy-mm-dd hh-mm).docx`. A formula with no

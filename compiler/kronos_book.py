@@ -273,15 +273,63 @@ def _call_values(keys):
     return []
 
 
+def read_params(entry, keys):
+    """The Workbook arguments the recipe only reads (D114): those its first TEST with read= passes the read file for."""
+    for k in keys:
+        if k["key"] == "TEST" and k.get("read"):
+            values = test_call(k)[0]
+            return {n for i, (n, t) in enumerate(params_of(entry))
+                    if t == "Workbook" and i < len(values) and str(values[i]) == k["read"]}
+    return set()
+
+
 def arguments(text):
-    """[{name, type, default}] of the recipe's procedure (a BUILD's modMain.RunHeadless)."""
+    """[{name, type, default, reads}] of the recipe's procedure (a BUILD's modMain.RunHeadless); reads is True for a
+    Workbook it only reads, which KRONOS Offline asks for as a second upload (D120)."""
     spec, problems = parse(text)
     if problems or not spec:
         raise BookError("The recipe doesn't parse.")
     entry, _, keys = entry_of(spec)
     values = _call_values(keys)
-    return [{"name": n, "type": t, "default": values[i] if i < len(values) else ""}
+    reads = read_params(entry, keys)
+    return [{"name": n, "type": t, "default": values[i] if i < len(values) else "", "reads": n in reads}
             for i, (n, t) in enumerate(params_of(entry))]
+
+
+def needs_reading(text):
+    """True when the recipe reads a second workbook (a TEST with read=): the page then asks for it."""
+    return any(a["reads"] for a in arguments(text))
+
+
+class ReadBook:
+    """The workbook a recipe only reads (D120): read as Excel last saved it (vcl_template's reading mode), so every
+    formula gives its saved value; nothing may change it, and nothing of it is written anywhere."""
+
+    def __init__(self, data, name):
+        check_file(data, name)
+        from vcl_template import TemplateError, load
+        try:
+            self.sheets = load(bytes(data), name, reading=True)
+        except TemplateError as ex:
+            raise BookError(f"KRONOS couldn't read the workbook to read from: {ex}") from ex
+        except Exception as ex:   # a broken file: its XML or its parts
+            raise BookError(f"KRONOS couldn't read the workbook to read from ({type(ex).__name__}: {ex}).") from ex
+        self.name = name
+        for sh in self.sheets.values():
+            sh.read_only = True
+
+    def book(self):
+        sheets = {n: sh.snapshot() for n, sh in self.sheets.items()}
+        for sh in sheets.values():   # a snapshot doesn't carry it
+            sh.read_only = True
+        return Book(sheets)
+
+
+def _unchanged(book, read):
+    """True when the read workbook is as it was loaded."""
+    return all((sh.cells, sh.fills, sh.formats, sorted(sh.merged)) ==
+               (read.sheets[n].cells, read.sheets[n].fills, read.sheets[n].formats, sorted(read.sheets[n].merged))
+               for n, sh in book.sheets.items())
 
 
 def uses_files(text):
@@ -298,12 +346,18 @@ def uses_files(text):
     return False
 
 
-def _bind(entry, given, book):
-    """The ARGS the person chose, as the values the interpreter takes."""
+def _bind(entry, given, book, reads=(), read_book=None):
+    """The ARGS the person chose, as the values the interpreter takes. A Workbook the recipe only reads is the second
+    upload (D120); every other Workbook is the uploaded one."""
     bound = {}
     for pname, typ in params_of(entry):
         text = str(given.get(pname, "")).strip() if given.get(pname) is not None else ""
-        if typ == "Workbook":
+        if typ == "Workbook" and pname in reads:
+            if read_book is None:
+                raise BookError(f"This recipe reads a second workbook ({pname}): choose it under "
+                                "\"Workbook to read from\".")
+            bound[pname] = read_book
+        elif typ == "Workbook":
             bound[pname] = book
         elif typ == "Worksheet":
             if not text:
@@ -617,27 +671,29 @@ def _download_name(name):
 
 # ---------------------------------------------------------------- apply
 
-def apply(text, data, name, args, today=None, step=None):
+def apply(text, data, name, args, today=None, step=None, read=None):
     """Run the proven recipe's procedure on the uploaded workbook and write the changed copy.
     Returns (result, bytes): bytes is None when nothing is given back, and the result says why.
-    step(name) hears each stage as it starts: checking, testing, building, reading, running, writing."""
-    return apply_many([text], data, name, [args], today, step)
+    step(name) hears each stage as it starts: checking, testing, building, reading, running, writing.
+    read: (bytes, name) of the workbook a recipe only reads (D120), or None."""
+    return apply_many([text], data, name, [args], today, step, read)
 
 
-def apply_many(texts, data, name, args_list, today=None, step=None):
+def apply_many(texts, data, name, args_list, today=None, step=None, read=None):
     """Several proven recipes, one after another, on one copy of the uploaded workbook (D89): each runs on what the
-    one before it left, and the copy is written once. Each recipe is proven first; one that isn't stops it all."""
+    one before it left, and the copy is written once. Each recipe is proven first, as KRONOS Offline proves it
+    (offline=True, D118); one that isn't stops it all."""
     from kronos_engine import prove   # here, so that importing this module stays light
     if isinstance(today, str):
         today = dt.date.fromisoformat(today)
     specs = []
     for i, text in enumerate(texts):
-        proof = prove(text, today, step=step)
-        if not proof.ok:
+        proof = prove(text, today, step=step, offline=True)
+        if not proof.ok or proof.kind == "DOCUMENT":
             which = "This recipe" if len(texts) == 1 else f"Recipe {i + 1} ({title_of(text)})"
             return _refused(f"{which} isn't proven, so KRONOS won't run it on your workbook."), None
         specs.append(proof.spec)
-    return apply_many_proven(specs, data, name, args_list, today, step)
+    return apply_many_proven(specs, data, name, args_list, today, step, read)
 
 
 def _refused(words, **more):
@@ -655,9 +711,9 @@ def title_of(text):
     return found.get("GOAL") or found.get("PROC") or found.get("NAME") or "the recipe"
 
 
-def apply_proven(text, data, name, args, today=None, step=None):
+def apply_proven(text, data, name, args, today=None, step=None, read=None):
     """apply() for a recipe that has already been proven (the page proves it first; the tests prove every spec once)."""
-    return apply_many_proven([text], data, name, [args], today, step)
+    return apply_many_proven([text], data, name, [args], today, step, read)
 
 
 def _positions(sh):
@@ -693,7 +749,7 @@ def _step_story(before, model):
     return sheets
 
 
-def apply_many_proven(texts, data, name, args_list, today=None, step=None):
+def apply_many_proven(texts, data, name, args_list, today=None, step=None, read=None):
     """apply_many() for recipes that have already been proven."""
     step = step or (lambda stage: None)
     if isinstance(today, str):
@@ -710,18 +766,22 @@ def apply_many_proven(texts, data, name, args_list, today=None, step=None):
             spec, problems = parse(text)
             if problems or not spec:
                 return _refused(f"{which(i)}The recipe doesn't parse."), None
-            entry, procs, _ = entry_of(spec)
+            if spec["kind"] == "DOCUMENT":
+                return _refused(f"{which(i)}This recipe fills a Word document, not a workbook."), None
+            entry, procs, keys = entry_of(spec)
             if uses_files(text):
                 return _refused(f"{which(i)}This recipe works with files or folders, which KRONOS can't do on an "
                                 "uploaded workbook. Use the macro instead."), None
-            parsed.append((entry, procs))
+            parsed.append((entry, procs, read_params(entry, keys)))
         step("reading")
         loaded = Loaded(bytes(data), name)
         model = loaded.book()
-        for i, (entry, procs) in enumerate(parsed):
+        reading = ReadBook(read[0], read[1]) if read and any(r for _, _, r in parsed) else None
+        for i, (entry, procs, reads) in enumerate(parsed):
             before = {n: sh.snapshot() for n, sh in model.sheets.items()}
+            read_book = reading.book() if reading and reads else None
             try:
-                bound = _bind(entry, (args_list[i] if i < len(args_list) else None) or {}, model)
+                bound = _bind(entry, (args_list[i] if i < len(args_list) else None) or {}, model, reads, read_book)
             except BookError as ex:
                 return _refused(f"{which(i)}{ex}"), None
             log = []
@@ -737,6 +797,8 @@ def apply_many_proven(texts, data, name, args_list, today=None, step=None):
             if log:
                 return _refused(f"{which(i)}The recipe stopped with an error on this workbook, so nothing was changed: "
                                 + "; ".join(str(m) for _, _, m in log[:3]), log=[str(m) for _, _, m in log]), None
+            if read_book is not None and not _unchanged(read_book, reading):   # never: the type checker refuses it
+                return _refused(f"{which(i)}The recipe changed the workbook it only reads, so nothing was changed."), None
             messages += list(machine.messages)
             steps.append({"recipe": title_of(texts[i]), "result": None if result is None else S.text_of(result),
                           "messages": list(machine.messages), "sheets": _step_story(before, model)})
@@ -755,4 +817,4 @@ def apply_many_proven(texts, data, name, args_list, today=None, step=None):
             "sheets": sheets, "changes": changes, "changes_total": total,
             "warnings": _warnings(loaded, model, status, out, patched), "kept_everything": patched,
             "result": None if result is None else S.text_of(result), "messages": messages,
-            "steps": steps, "stem": stem, "ext": ext}, out
+            "steps": steps, "stem": stem, "ext": ext, "read_name": reading.name if reading else ""}, out

@@ -12,7 +12,8 @@
 //   {type: 'describe', data, name}                    an uploaded workbook, described (D87)
 //   {type: 'recipes', data, name}                     the recipes in a file (kronos_web.read_recipe_file, D89)
 //   {type: 'arguments', text}                         a recipe's arguments
-//   {type: 'apply', texts, data, name, args, today}   recipes made on one copy of the workbook (apply_changes_many)
+//   {type: 'apply', texts, data, name, args, today, read}   recipes made on one copy of the workbook (apply_changes_many);
+//                                     read: {data, name} of the workbook a recipe only reads (D120), or null
 //   {type: 'check', text, today}                      check one recipe (kronos_web.check)
 // While working it sends {type: 'step', id, name}; before that, {type: 'status', text, short} and {type: 'ready', ...}.
 
@@ -102,7 +103,8 @@ self.onmessage = async (event) => {
       answer(kronos.check(job.text, job.today || null, step))
     } else {
       const result = kronos.apply_changes_many(JSON.stringify(job.texts), new Uint8Array(job.data), job.name,
-        JSON.stringify(job.args || []), job.today || null, step)
+        JSON.stringify(job.args || []), job.today || null, step,
+        job.read ? new Uint8Array(job.read.data) : null, job.read ? job.read.name : '')
       const parts = result.toJs()   // [the answer's JSON text, the copy's bytes]
       result.destroy()
       const data = parts[1].buffer.slice(parts[1].byteOffset, parts[1].byteOffset + parts[1].byteLength)
