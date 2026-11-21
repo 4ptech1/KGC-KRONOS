@@ -74,7 +74,7 @@ def need(reason):
     raise unittest.SkipTest(reason)
 
 
-def orders_workbook(rows=24, merged=False):
+def orders_workbook(rows=24, filtered=False):
     """A synthetic orders workbook with a few styles, as bytes: what the upload tests give KRONOS."""
     import datetime
     import io
@@ -89,8 +89,8 @@ def orders_workbook(rows=24, merged=False):
     ws["C5"].font = Font(bold=True)
     ws.column_dimensions["C"].width = 33
     wb.create_sheet("Notes")["A1"] = "keep me"
-    if merged:
-        ws.merge_cells("H1:I1")   # Excel would adjust it when rows go; KRONOS says so
+    if filtered:   # Excel would adjust the filter when rows go; KRONOS says so (merged cells refuse a row op, D113, D119)
+        ws.auto_filter.ref = "A1:D25"
     out = io.BytesIO()
     wb.save(out)
     return out.getvalue()
@@ -1003,7 +1003,7 @@ class InTheBrowser(unittest.TestCase):
 
     @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
     def test_what_a_copy_cannot_keep_must_be_ticked_before_the_download(self):   # D87
-        data = orders_workbook(merged=True)
+        data = orders_workbook(filtered=True)
         for name, start in page_servers():
             with self.subTest(server=name), start():
                 page = self.go_ready(name)
@@ -1017,7 +1017,7 @@ class InTheBrowser(unittest.TestCase):
                 self.assertEqual(page.input_value("#apply-fields select"), "Orders")
                 page.click("#apply")
                 page.wait_for_selector("#applied-banner", timeout=180000)
-                self.assertIn("merged cells", page.text_content("#warnings"))
+                self.assertIn("the filter", page.text_content("#warnings"))
                 self.assertTrue(page.is_disabled("#download"))
                 page.check("#understand")
                 self.assertTrue(page.is_enabled("#download"))

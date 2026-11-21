@@ -380,6 +380,13 @@ Orchestrator project. One PR each:
   survive. Excel recalculates on opening (`fullCalcOnLoad`), and a changed formula drops the calculation chain, which
   Excel rebuilds. Otherwise, or for a cell the writer can't patch (a shared formula's first cell), today's openpyxl
   copy, with today's warnings. An uploaded workbook's merged ranges reach the interpreter, so D113's rules hold there.
+  **Done (D119):** `compiler/kronos_patch.py`. The sheets that change and `workbook.xml` are written again with their
+  namespaces as they were (the sheet's own stays the default one); every cell, row and element the recipe left alone
+  is as it was, and every other part keeps its bytes. It also falls back to the full copy when it is not sure: a sheet
+  list or a cell that moved, an array formula or a shared formula's first cell among the changes, a cleared cell with
+  a note or link, a row or cell without its address. In the round trip of every recipe's TESTs, 304 of the 549 copies
+  come from it. `tests/test_keep_everything.py`: the WPS look-alike comes back with its pictures, print area and 97
+  merged ranges, and only its four written cells differ.
 - **6c, two workbooks.** "Workbook to fill" and "Workbook to read from": a recipe with a `read=` TEST asks for both, and
   its read Workbook argument is bound to the second, which is never changed.
 - **6d, Word.** For a DOCUMENT: "Choose the Word template" (.docx, up to 2 MB, with `{{fields}}` as the guide says)

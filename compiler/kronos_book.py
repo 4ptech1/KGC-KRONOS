@@ -161,6 +161,7 @@ class Loaded:
         for ws in self.wb.worksheets:
             sh = Sheet(ws.title)
             sh.origins = {}
+            sh.merged = [(m.min_row, m.min_col, m.max_row, m.max_col) for m in ws.merged_cells.ranges]   # D113, D119
             kept = {}
             for (r, c), cell in ws._cells.items():
                 if type(cell).__name__ == "MergedCell":
@@ -473,7 +474,16 @@ def _order(loaded, book_model):
 
 
 def _write(loaded, model):
-    """The changed workbook's bytes, and which sheets changed."""
+    """The changed workbook's bytes, which sheets changed, and whether only the changed cells were written into the
+    uploaded file itself (D119, kronos_patch: everything else kept byte for byte) or the full openpyxl copy was made."""
+    status = {}
+    for name, sh in model.sheets.items():
+        initial = loaded.initial.get(name)
+        status[name] = "new" if initial is None else ("changed" if _sheet_changed(sh, initial) else "unchanged")
+    from kronos_patch import patch
+    out = patch(loaded, model)
+    if out is not None:
+        return out, status, True
     _openpyxl()
     wb = loaded.wb
     status = {}
@@ -505,7 +515,7 @@ def _write(loaded, model):
                 archive.close()
             except ValueError:
                 pass
-    return out.getvalue(), status
+    return out.getvalue(), status, False
 
 
 # ---------------------------------------------------------------- what changed, and what to warn about
@@ -551,8 +561,13 @@ def _summary(model, status, loaded):
     return sheets, changes, total
 
 
-def _warnings(loaded, model, status, out_bytes):
+def _warnings(loaded, model, status, out_bytes, patched=False):
     found = []
+    if patched:   # D119: the uploaded file itself, with only the changed cells written: nothing lost or saved again
+        if loaded.no_result:
+            found.append({"kind": "load", "text": f"{plural(loaded.no_result, 'formula cell')} had no saved result, so "
+                             "the recipe saw them as empty. Open and save the file in Excel first if the recipe reads them."})
+        return found
     after = parts_of(out_bytes)
     for word, n in loaded.parts.items():
         left = after.get(word, 0)
@@ -731,13 +746,13 @@ def apply_many_proven(texts, data, name, args_list, today=None, step=None):
         return _refused(f"The recipe stopped on this workbook: {ex}"), None
     step("writing")
     try:
-        out, status = _write(loaded, model)
+        out, status, patched = _write(loaded, model)
     except BookError as ex:
         return _refused(str(ex)), None
     sheets, changes, total = _summary(model, status, loaded)
     stem, ext = _download_name(name)
     return {"ok": True, "message": "The changes are made on a copy; your original file is untouched.",
             "sheets": sheets, "changes": changes, "changes_total": total,
-            "warnings": _warnings(loaded, model, status, out),
+            "warnings": _warnings(loaded, model, status, out, patched), "kept_everything": patched,
             "result": None if result is None else S.text_of(result), "messages": messages,
             "steps": steps, "stem": stem, "ext": ext}, out
