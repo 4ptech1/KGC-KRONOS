@@ -172,9 +172,10 @@ right recipe. That tells us how far a MATCH can be trusted.
 3. the meaning check in KRONOS.exe (`kronos_engine.py`, `kronos_ai.py`, Review in `app/`), tested with the fake AI;
 4. the meaning check in KRONOS Offline, as part of version 7;
 5. the glossary and the shop-language requests;
-6. the training kit in `train/` (`train/README.md`; part 1, the dataset export, is done, D126), as code only: the dataset export (chat format, from `data/verified`, `data/repair` and
-   the paraphrases; never `data/eval` or `samples/kgc`), the QLoRA script, the grammar conversion, the grammar-locked
-   generator and the 4-bit export. Its tests cover only the export and the grammar conversion.
+6. the training kit in `train/` (`train/README.md`), as code only. Done: the dataset export (D126), the grammar
+   conversion (D127: `train/vcl.gbnf`, a GBNF grammar made from `vcl/grammar.lark`, accepted by every recipe in the repo
+   and read back by an independent checker), the QLoRA script and the 4-bit export (D128: written and tested as far as
+   possible without a card, never run). The first run in March is the script's `--smoke` option.
 
 **In March, on the new PC:** download the base models (IT), tune them, score them beside candidate A on the benchmark,
 and use the best only once it passes. Until then, and whenever it fails, Codex stays the writer.

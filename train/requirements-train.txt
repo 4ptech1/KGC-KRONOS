@@ -1,0 +1,15 @@
+# What train/qlora_train.py and train/export_model.py need, on the new PC only (March 2027).
+# Not installed in the cloud and not part of requirements.txt: nothing in the toolchain, the tests or CI imports them.
+#
+# On the new PC, install from the offline mirror (KRONOS\mirror, each file checked by SHA-256, D91) and then pin the
+# exact versions here with their hashes, the way requirements.txt pins lark, so every run is made with the same
+# libraries (a run's run.json records the versions it used).
+#
+# llama.cpp (MIT licence; convert_hf_to_gguf.py and llama-quantize) is not a Python package: it is built from its own
+# source from the mirror, with IT's approval.
+torch
+transformers
+peft
+bitsandbytes
+accelerate
+safetensors

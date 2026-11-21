@@ -157,7 +157,8 @@ packaging/           kronos.spec: the PyInstaller spec for KRONOS.exe (D79); the
                      build-offline.yml, its test tools are in offline_test/
 web/                 KRONOS Offline's page: index.html, styles.css, app.js, worker.js (Pyodide), logo.svg (D86)
 train/               code only, no model loaded or downloaded (D124): prompts.py, make_dataset.py (the chat dataset from data/verified
-                     and `vclc datagen`, into the git-ignored dist/train), then the grammar conversion, the QLoRA script, the 4-bit export
+                     and `vclc datagen`, into the git-ignored dist/train), grammar_gbnf.py + vcl.gbnf (VCL's grammar for llama.cpp, D127),
+                     gbnf_check.py, qlora_train.py and export_model.py (the tuning run and the 4-bit export, never run, D128)
 (model/ arrives in March 2027; the prepared datasets, the checkpoints and the weights stay
  on the new PC's 300 GB, in KRONOS\train and KRONOS\models: weights never go into the repo, D91)
 ```
@@ -262,6 +263,14 @@ release `kronos-offline-v6`, D123) are done. **Next: Phase 5** (corpus batch 9, 
 step 7, the benchmark. Then 8 KRONOS Offline version 7 (the old version 6 scope: History, the practice-run check, the
 corpus suggestion, Help), 9 storage S1, 10 the VCL memory and the day-one kit. For Boss: with version 6 in hand, paste
 the updated prompt (VCL 0.7; D94, D97, D116) into the Orchestrator Project.
+
+**The model kit (Boss, 21 Nov 2026; `docs/ai-plan.md` "Stage C in detail", `train/README.md`, D124 to D128):** the plan for the open
+model is written (a small coder model in 4-bit, kept to KRONOS's job by LoRA, a grammar lock and a short prompt; an optional Codex
+meaning check on a proven recipe), and its code before March is done: the chat dataset (`train/make_dataset.py`: 1,935 examples,
+split by pair, held-out items guarded), VCL's grammar for the offline runner (`train/vcl.gbnf`: accepts all 154 recipes), the QLoRA
+tuning script and the 4-bit export (written and tested without a model, never run; a dry run unless `--go`; the first run in March
+is `--smoke`). Still to do before March: the benchmark (step 7), the Codex meaning check in KRONOS.exe and in KRONOS Offline version 7,
+and the in-house glossary. The gaps in `docs/known-gaps.md` (D125) wait for Boss's go.
 
 Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
 1. The Job-Pack Router MVP, `docs/vep-0.3-file-ops.md` (approved by Boss): sandbox only, COPY_FILE
