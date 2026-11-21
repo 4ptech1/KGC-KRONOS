@@ -105,6 +105,7 @@ and their proven specs, each with its VBA.
 - `docs/ai-vba-plan.md`: our model writes the VBA from a proven recipe, and the VBA simulator proves it (item 7, D90).
 - `docs/kgc-documents-plan.md`: KRONOS fills KGC's own Excel and Word documents (WPS, estimation, enquiry register;
   D105), the plan another session implements; Phase 0, publishing the samples in `samples/kgc/`, is done (D106).
+- `docs/known-gaps.md`: what the dry run of KRONOS Offline version 6 on the real samples found, to fix later (D125).
 - `docs/kronos-storage-plan.md`: the new PC's 300 GB, KRONOS's home from March 2027: the layout, budgets, rules
   and monthly report (item 8, D91; the reference files follow it, D92).
 
@@ -242,6 +243,10 @@ label.
 
 Known: task_04 is bigger than a TASK should be: 48 OP lines (the validator warns above 40) and 107
 lines of VBA (rule 9: about 60); accepted for now, revisit in March.
+
+Known gaps of KRONOS Offline version 6 on the real samples (21 Nov 2026, D125, `docs/known-gaps.md`): a recipe that writes over a
+formula gives no warning; the look-alike WPS form doesn't match the real forms' rows; a Word marker inside a table cell is
+accepted by the check and refused by the fill; a Word recipe counts tables by position. Recorded, not fixed: Boss will say go.
 
 **Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
 paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98
