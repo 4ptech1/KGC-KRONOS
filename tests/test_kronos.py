@@ -364,6 +364,25 @@ class Words(unittest.TestCase):
         self.assertEqual(len(words["steps"]), 4)
         self.assertEqual(len(words["assumes"]), 3)
 
+    def test_what_a_recipe_fills_in_words(self):   # D122
+        doc = (ROOT / "tests" / "data" / "doc_estimate.vcl").read_text(encoding="utf-8")
+        words = K.summary(K.prove(doc, DAY, offline=True))
+        self.assertEqual(words["changes"], ["nothing in any workbook: it fills a copy of your Word template and leaves the "
+                                            "template as it is"])
+        self.assertEqual(words["fills"][:2], ["field Est_No", "field Date"])
+        self.assertIn("rows of table 2", words["fills"])
+        self.assertIn("section Assumption", words["fills"])
+        self.assertIn("columns of table 3", words["fills"])
+        cells = "VCL 0.7\nTASK\nOP SET_VALUE(RANGE($ws, \"c6\"), 1)\nOP FORMAT(RANGE($ws, \"A1:B2\"), fill=red)\n" \
+                "OP SET_VALUE(RANGE($ws, \"C6\"), 2)\nOP SET_VALUE(CELL($ws, 1, 1), 3)\n"
+        self.assertEqual(K.fills_of(cells, "TASK"), ["cells by address: C6, A1:B2"])   # a literal address, once
+        self.assertEqual(K.fills_of("VCL 0.7\nTASK\nOP SET_VALUE(CELL($ws, 1, 1), 3)\n", "TASK"), [])
+        many = "\n".join(f'OP SET_VALUE(RANGE($ws, "A{i}"), 1)' for i in range(1, 6))
+        self.assertEqual(K.fills_of(many, "TASK"), ["cells by address: A1, A2, A3, A4, A5"])
+        fields = "\n".join(f"FIELD F{i} = 1" for i in range(40))
+        shown = K.fills_of(fields, "DOCUMENT")
+        self.assertEqual((len(shown), shown[-1]), (31, "and 10 more"))   # a long list is cut with a count
+
     def test_sheet_hints(self):
         self.assertEqual(K.sheet_hints(GOOD), {"ws": "Orders"})
         self.assertEqual(K.sheet_hints(FILES), {"tracker": "Tracker"})

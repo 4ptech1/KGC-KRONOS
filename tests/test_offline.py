@@ -1053,6 +1053,13 @@ class InTheBrowser(unittest.TestCase):
                 page.set_input_files("#recipe-file", files={"name": "doc_estimate.vcl", "mimeType": "text/plain",
                                                             "buffer": recipe})
                 self.assertEqual(self.review_banners(page), ["PROVEN It passed every check and 2 of 2 practice tests."])
+                review = page.text_content("#review-list")   # D122: Review says what it fills and shows the AI's text
+                self.assertIn("What it fills", review)
+                self.assertIn("field Grand_Total", page.text_content("#review-list .fills"))
+                self.assertIn("section Assumption", page.text_content("#review-list .fills"))
+                self.assertIn("Written by the AI, not proven: check it", review)
+                self.assertIn("Ex-works, packing included", page.text_content("#review-list .ai-texts"))
+                self.assertIn("nothing in any workbook", review)
                 page.check("#review-list input[type=checkbox]")
                 page.click("#go-save")
                 page.wait_for_selector("#doc-list .doc .fill", timeout=120000)

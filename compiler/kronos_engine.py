@@ -361,8 +361,43 @@ def summary(proof):
     hints = sheet_hints(proof.spec)
     changes = [change_words(ln.split(None, 1)[1], hints) for ln in owner_part(proof.spec).splitlines()
                if re.match(r"MODIFIES\s", ln) and len(ln.split(None, 1)) == 2]
+    if proof.kind == "DOCUMENT":   # a DOCUMENT changes no workbook: it fills a copy of the person's Word template (D115)
+        changes = ["nothing in any workbook: it fills a copy of your Word template and leaves the template as it is"]
     return {"does": goals[0] if goals else "", "steps": goals[1:] if proof.kind == "BUILD" else [],
-            "assumes": assumes, "changes": changes, "warnings": [f.message for f in proof.warnings]}
+            "assumes": assumes, "changes": changes, "fills": fills_of(proof.spec, proof.kind),
+            "warnings": [f.message for f in proof.warnings]}
+
+
+FILLS_SHOWN = 30
+
+
+def fills_of(spec_text, kind):
+    """What a recipe fills, for Review (D122): a DOCUMENT's fields and repeated parts of the Word template, or the cells a
+    recipe writes by address (RANGE with a literal A1 reference in SET_VALUE, SET_FORMULA and FORMAT). [] when there is
+    nothing to say; a long list is cut with a count, never silently."""
+    if kind == "DOCUMENT":
+        found = []
+        for line in spec_text.splitlines():
+            m = re.match(r"FIELD\s+(\w+)\s*=", line)
+            if m:
+                found.append(f"field {m.group(1)}")
+            m = re.match(r"REPEAT\s+(row|column|section)\s+(?:table=(\d+)|(\w+))", line)
+            if m:
+                found.append(f"{m.group(1)}s of table {m.group(2)}" if m.group(2) else f"section {m.group(3)}")
+        found = list(dict.fromkeys(found))
+    else:
+        found, seen = [], set()
+        for line in spec_text.splitlines():
+            if not re.match(r"OP\s+(?:.*\bTHEN\s+)?(SET_VALUE|SET_FORMULA|FORMAT)\(", line):
+                continue
+            for ref in re.findall(r'RANGE\([^"()]*,\s*"([A-Za-z]{1,3}[0-9]+(?::[A-Za-z]{1,3}[0-9]+)?)"\)', line):
+                if ref.upper() not in seen:
+                    seen.add(ref.upper())
+                    found.append(ref.upper())
+        found = [f"cells by address: {', '.join(found)}"] if found else []
+    if len(found) > FILLS_SHOWN:
+        found = found[:FILLS_SHOWN] + [f"and {len(found) - FILLS_SHOWN} more"]
+    return found
 
 
 def sheet_hints(spec_text):
