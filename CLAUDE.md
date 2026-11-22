@@ -432,7 +432,9 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    The old version 6 scope (Phase 3: History, the practice-run check, the corpus suggestion, Help) is version 8.
    **Version 7 (D129, D130, 22 Nov 2026): the recipe finder,** KRONOS's own AI until March (Boss: "Implement the AI and give
    me KRONOS"): "Find a proven recipe" shows the closest of the library's proven recipes (`data/library.json`, never
-   `data/eval`) and renames its columns to the workbook's where sure, each rename ticked, then proves it again.
+   `data/eval`) and renames its columns to the workbook's where sure, each rename ticked, then proves it again. Published
+   as the release `kronos-offline-v7` (main `2ecc140`; SHA-256 `fd8bbc8d…`, D131), the copy Boss is handed; not proven until
+   he tries it: his own requests and workbooks on the work PC.
 7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026; `docs/ai-vba-plan.md`, D90). Phase 0, the design,
    is done. Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes (Boss: "Complete 5", 19 Nov 2026), is
    in three parts: part 1, the language core, is done (D98: the ForgeLib self-test's 241 cases pass in it, and planted
