@@ -158,7 +158,7 @@ or MISMATCH with its reasons, and Review shows the answer. Rules:
 - It sends what already goes to Codex, the request and a recipe, and never a file (D69).
 - KRONOS works without it: no Codex, no check, and Review says so.
 - In KRONOS.exe it is a call through the Codex CLI, as the writing step is. In KRONOS Offline it is a text to copy
-  into the AI chat and a box to paste the answer (version 7).
+  into the AI chat and a box to paste the answer (version 8).
 - Today Codex checks recipes Codex wrote. From March it checks our model's.
 
 **The checker is scored too.** The data generator's contrast examples (D103) are recipes that are valid but mean the
@@ -170,7 +170,7 @@ right recipe. That tells us how far a MATCH can be trusted.
 2. the benchmark, `vclc bench` (Stage A Phase 8, Boss's step 7), with today's Codex as the baseline, then the
    checker's score;
 3. the meaning check in KRONOS.exe (`kronos_engine.py`, `kronos_ai.py`, Review in `app/`), tested with the fake AI;
-4. the meaning check in KRONOS Offline, as part of version 7;
+4. the meaning check in KRONOS Offline, as part of version 8;
 5. the glossary and the shop-language requests;
 6. the training kit in `train/` (`train/README.md`), as code only. Done: the dataset export (D126), the grammar
    conversion (D127: `train/vcl.gbnf`, a GBNF grammar made from `vcl/grammar.lark`, accepted by every recipe in the repo

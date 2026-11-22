@@ -262,7 +262,7 @@ FIXTUREs D110, ROUND/ROUNDUP/MIN/MAX D111, AI_TEXT D112, merged cells D113, two 
 and the switch of spec.md and the prompt D116) and Phase 4 (KRONOS Offline version 6: the design D117, the engine D118,
 a copy that keeps everything D119, two workbooks D120, Word on the page D121, Review and the guide D122, published as the
 release `kronos-offline-v6`, D123) are done. **Next: Phase 5** (corpus batch 9, about 20 document jobs) **and Phase 6**,
-step 7, the benchmark. Then 8 KRONOS Offline version 7 (the old version 6 scope: History, the practice-run check, the
+step 7, the benchmark. Then 8 KRONOS Offline version 8 (the old version 6 scope: History, the practice-run check, the
 corpus suggestion, Help), 9 storage S1, 10 the VCL memory and the day-one kit. For Boss: with version 6 in hand, paste
 the updated prompt (VCL 0.7; D94, D97, D116) into the Orchestrator Project.
 
@@ -271,7 +271,7 @@ model is written (a small coder model in 4-bit, kept to KRONOS's job by LoRA, a 
 meaning check on a proven recipe), and its code before March is done: the chat dataset (`train/make_dataset.py`: 1,935 examples,
 split by pair, held-out items guarded), VCL's grammar for the offline runner (`train/vcl.gbnf`: accepts all 154 recipes), the QLoRA
 tuning script and the 4-bit export (written and tested without a model, never run; a dry run unless `--go`; the first run in March
-is `--smoke`). Still to do before March: the benchmark (step 7), the Codex meaning check in KRONOS.exe and in KRONOS Offline version 7,
+is `--smoke`). Still to do before March: the benchmark (step 7), the Codex meaning check in KRONOS.exe and in KRONOS Offline version 8,
 and the in-house glossary. The gaps in `docs/known-gaps.md` (D125) wait for Boss's go.
 
 Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
@@ -429,7 +429,10 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    moves), two workbooks ("Workbook to read from"), Word files filled from a template and a workbook, Review that says what a
    recipe fills and lists the AI's own text, and recipes for VCL 0.7. Published as the release `kronos-offline-v6` (main
    `95bf184`; SHA-256 `d4e1fa22…`), the copy Boss is handed; not proven until he tries it: his own Word files and workbooks.
-   The old version 6 scope (Phase 3: History, the practice-run check, the corpus suggestion, Help) is version 7.
+   The old version 6 scope (Phase 3: History, the practice-run check, the corpus suggestion, Help) is version 8.
+   **Version 7 (D129, D130, 22 Nov 2026): the recipe finder,** KRONOS's own AI until March (Boss: "Implement the AI and give
+   me KRONOS"): "Find a proven recipe" shows the closest of the library's proven recipes (`data/library.json`, never
+   `data/eval`) and renames its columns to the workbook's where sure, each rename ticked, then proves it again.
 7. **The AI writes the VBA, with its context in VCL** (Boss, 17 Nov 2026; `docs/ai-vba-plan.md`, D90). Phase 0, the design,
    is done. Phase 1, `compiler/vba_sim.py`, a simulator for the VBA KRONOS writes (Boss: "Complete 5", 19 Nov 2026), is
    in three parts: part 1, the language core, is done (D98: the ForgeLib self-test's 241 cases pass in it, and planted

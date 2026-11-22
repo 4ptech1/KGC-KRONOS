@@ -423,3 +423,8 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   (1,935 examples, held-out items guarded), VCL's grammar for the offline runner (accepts all 154 recipes in the repo), the
   QLoRA tuning script and the 4-bit export (written, never run). The gaps the dry run of version 6 found on the real samples
   are recorded in `docs/known-gaps.md` (D125) and wait for Boss's go.
+- **2026-11-22:** KRONOS Offline version 7, the recipe finder (D129, D130): KRONOS's own AI until March, with no model and
+  nothing online. "Find a proven recipe" shows the closest of about 140 proven recipes in KRONOS's library for the job
+  described, changes its column names to the workbook's where it is sure (each change ticked) and proves it again; then
+  Review and Save work as for a recipe file. The old version 7 scope (History, the practice-run check, the corpus
+  suggestion, Help) is version 8.
