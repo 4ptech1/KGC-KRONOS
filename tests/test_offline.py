@@ -39,6 +39,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "compiler"))
 sys.path.insert(0, str(ROOT / "packaging"))
 import build_offline as B  # noqa: E402
+import kronos_finder  # noqa: E402
 import kronos_web  # noqa: E402
 try:
     import openpyxl  # noqa: E402
@@ -180,6 +181,12 @@ class TheWorker(unittest.TestCase):
         sent = set(re.findall(r"call\(\{ type: '([a-z]+)'", (ROOT / "web" / "app.js").read_text(encoding="utf-8")))
         self.assertEqual(sent - accepted - {"apply"}, set())   # and everything the page sends is accepted ('apply' is the else branch)
 
+    def test_no_job_carries_a_field_named_id(self):   # D129: the page numbers its jobs with id; a job's own id overwrote it and hung
+        app = (ROOT / "web" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("Object.assign({ id: job.id }, job.message)", app)
+        for job in re.findall(r"call\(\{ type: '[a-z]+'[^}]*\}", app):
+            self.assertNotRegex(job, r"[{,]\s*id\s*:", job)
+
 
 class Launcher(unittest.TestCase):
     def test_it_keeps_windows_line_endings(self):   # rule 3
@@ -316,11 +323,14 @@ class Toolchain(unittest.TestCase):
         self.assertEqual(set(B.spec_data_files()) - set(files), set())
         for name in files:
             self.assertTrue((ROOT / name).is_file(), name)
-            if name.startswith("data/templates/"):   # the look-alike templates are the one part of data/ (D118)
+            if name.startswith("data/templates/"):   # the look-alike templates are one part of data/ (D118)
                 self.assertRegex(name, r"^data/templates/[a-z0-9_]+\.(xlsx|docx)$")
+                continue
+            if name == "data/library.json":   # and the recipe finder's library, the proven recipes only (D129)
                 continue
             self.assertFalse(name.startswith(("tests/", "data/", "specs/")), name)
         self.assertTrue(any(n.endswith(".docx") for n in files) and any(n.endswith(".xlsx") for n in files))
+        self.assertIn("data/library.json", files)
 
     def test_the_version_list_is_in_order(self):
         rows = B.versions()
@@ -557,6 +567,7 @@ class UnderPyodide(unittest.TestCase):
         texts = json.loads(kronos_web.read_recipe_file(guide, "guide.docx"))["recipes"]
         args = json.dumps([{"ws": "NCR Register"}, {"ws": "NCR Register"}, {"book": "", "ws": "NCR Register"}])
         b64 = lambda data: {"$b64": base64.b64encode(data).decode()}   # noqa: E731
+        heads = json.dumps({"NCR Register": ["NCR Number", "Date Raised", "Severity", "status"]})
         calls = [("wizard_reset", ["/kronos-data", TODAY], False),
                  ("wizard_call", ["ask", "r1", json.dumps([REQUEST, None])], True),
                  ("wizard_call", ["message", "r1", json.dumps([True])], False),
@@ -569,7 +580,10 @@ class UnderPyodide(unittest.TestCase):
                  ("words", [], False),
                  ("read_recipe_file", [b64(guide), "guide.docx"], False),
                  ("apply_changes_many", [json.dumps([t["text"] for t in texts]), b64(book), "NCR_Register_Demo.xlsx", args, TODAY],
-                  True)]
+                  True),
+                 ("find", ["highlight the open major NCRs", heads], False),   # D129: the recipe finder
+                 ("propose", ["demo-1", heads], False),
+                 ("adapt", ["demo-1", heads, json.dumps(["NCR No"]), TODAY], False)]
         cases = [{"name": f"{n}: {fn}", "kind": "call", "fn": fn, "args": a, "step": st} for n, (fn, a, st) in enumerate(calls)]
         run = subprocess.run([node, str(ROOT / "tests" / "offline_pyodide.js"), str(fresh / "app")],
                              input=json.dumps(cases), capture_output=True, text=True, encoding="utf-8", timeout=900)
@@ -998,6 +1012,56 @@ class InTheBrowser(unittest.TestCase):
                 with page.expect_download() as download:
                     page.click("#download")
                 self.assertEqual(workbook_state(Path(download.value.path()).read_bytes()), workbook_state(want_copy))
+                self.finish()
+
+    @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
+    def test_the_recipe_finder_finds_adapts_and_makes_the_copy(self):   # D129
+        import io
+        import kronos_book
+        book = (ROOT / "docs" / "demo" / "NCR_Register_Demo.xlsx").read_bytes()
+        wb = openpyxl.load_workbook(io.BytesIO(book))
+        for cell in wb["NCR Register"][1]:   # two columns spelt another way: KRONOS must offer to rename them
+            cell.value = {"NCR No": "NCR Number", "Status": "status"}.get(cell.value, cell.value)
+        out = io.BytesIO()
+        wb.save(out)
+        other = out.getvalue()
+        for name, start in page_servers():
+            with self.subTest(server=name), start():
+                page = self.go_ready(name)
+                page.click("#find-recipe")
+                self.assertIn("Describe the job", page.text_content("#find-note"))
+                page.fill("#request", "make me a cup of tea")
+                page.click("#find-recipe")
+                page.wait_for_function("document.getElementById('find-note').textContent.indexOf('Nothing in the library') >= 0",
+                                       timeout=120000)
+                page.set_input_files("#book-file", files={"name": "NCRs.xlsx", "mimeType": XLSX, "buffer": other})
+                page.wait_for_selector("#book-info:not([hidden])", timeout=120000)
+                page.fill("#request", "highlight the open major NCRs")
+                page.click("#find-recipe")
+                page.wait_for_selector("#find-results .found", timeout=120000)
+                self.assertLessEqual(page.locator("#find-results .found").count(), 5)
+                self.assertIn("Colour every NCR", page.text_content("#find-results .found"))
+                self.shot(page, "found")
+                page.click("#find-results .found .use-recipe")
+                page.wait_for_selector(".rename-row", timeout=120000)
+                self.assertEqual(page.locator(".rename-row").count(), 2)
+                self.assertIn("NCR No", page.text_content("#find-results"))
+                self.shot(page, "renames")
+                page.click("#find-results .check-found")
+                self.assertEqual(self.review_banners(page), ["PROVEN It passed every check and 3 of 3 practice tests."])
+                self.assertIn("From KRONOS's library (demo-1)", page.text_content(".library-note"))
+                self.assertIn("2 column names changed", page.text_content(".library-note"))
+                page.check("#review-list input[type=checkbox]")
+                page.click("#go-save")
+                page.wait_for_selector("#apply-card:not([hidden]) select", timeout=120000)
+                page.select_option("#apply-fields select", "NCR Register")
+                page.click("#apply")
+                page.wait_for_selector("#applied-banner", timeout=180000)
+                applied = json.loads(page.evaluate("window.kronosLastApplied"))
+                want, _ = kronos_book.apply_many([kronos_finder.entry("demo-1")["spec"]], book, "NCR_Register_Demo.xlsx",
+                                                 [{"ws": "NCR Register"}], TODAY)
+                self.assertEqual(applied["result"], want["result"])   # the same 15 NCRs as on the original spelling
+                self.shot(page, "found-copy")
                 self.finish()
 
     @unittest.skipIf(openpyxl is None, "openpyxl is not installed")
