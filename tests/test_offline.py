@@ -181,6 +181,12 @@ class TheWorker(unittest.TestCase):
         sent = set(re.findall(r"call\(\{ type: '([a-z]+)'", (ROOT / "web" / "app.js").read_text(encoding="utf-8")))
         self.assertEqual(sent - accepted - {"apply"}, set())   # and everything the page sends is accepted ('apply' is the else branch)
 
+    def test_no_job_carries_a_field_named_id(self):   # D129: the page numbers its jobs with id; a job's own id overwrote it and hung
+        app = (ROOT / "web" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("Object.assign({ id: job.id }, job.message)", app)
+        for job in re.findall(r"call\(\{ type: '[a-z]+'[^}]*\}", app):
+            self.assertNotRegex(job, r"[{,]\s*id\s*:", job)
+
 
 class Launcher(unittest.TestCase):
     def test_it_keeps_windows_line_endings(self):   # rule 3
@@ -561,6 +567,7 @@ class UnderPyodide(unittest.TestCase):
         texts = json.loads(kronos_web.read_recipe_file(guide, "guide.docx"))["recipes"]
         args = json.dumps([{"ws": "NCR Register"}, {"ws": "NCR Register"}, {"book": "", "ws": "NCR Register"}])
         b64 = lambda data: {"$b64": base64.b64encode(data).decode()}   # noqa: E731
+        heads = json.dumps({"NCR Register": ["NCR Number", "Date Raised", "Severity", "status"]})
         calls = [("wizard_reset", ["/kronos-data", TODAY], False),
                  ("wizard_call", ["ask", "r1", json.dumps([REQUEST, None])], True),
                  ("wizard_call", ["message", "r1", json.dumps([True])], False),
@@ -573,7 +580,10 @@ class UnderPyodide(unittest.TestCase):
                  ("words", [], False),
                  ("read_recipe_file", [b64(guide), "guide.docx"], False),
                  ("apply_changes_many", [json.dumps([t["text"] for t in texts]), b64(book), "NCR_Register_Demo.xlsx", args, TODAY],
-                  True)]
+                  True),
+                 ("find", ["highlight the open major NCRs", heads], False),   # D129: the recipe finder
+                 ("propose", ["demo-1", heads], False),
+                 ("adapt", ["demo-1", heads, json.dumps(["NCR No"]), TODAY], False)]
         cases = [{"name": f"{n}: {fn}", "kind": "call", "fn": fn, "args": a, "step": st} for n, (fn, a, st) in enumerate(calls)]
         run = subprocess.run([node, str(ROOT / "tests" / "offline_pyodide.js"), str(fresh / "app")],
                              input=json.dumps(cases), capture_output=True, text=True, encoding="utf-8", timeout=900)

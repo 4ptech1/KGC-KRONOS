@@ -648,7 +648,7 @@
         return
       }
       button.disabled = true
-      const answer = await call({ type: 'adapt', id: r.id, propose: true, headings: bookHeadings() }, 'Matching its columns to your workbook')
+      const answer = await call({ type: 'adapt', item: r.id, propose: true, headings: bookHeadings() }, 'Matching its columns to your workbook')
       button.disabled = false
       const plan = answer.json
       if (!plan.ok) throw { message: plan.message, plain: true }
@@ -679,7 +679,7 @@
 
   async function checkFound(r, accepted, area) {
     try {
-      const answer = await call({ type: 'adapt', id: r.id, headings: bookHeadings(), accepted, today: TODAY }, 'Changing its column names')
+      const answer = await call({ type: 'adapt', item: r.id, headings: bookHeadings(), accepted, today: TODAY }, 'Changing its column names')
       const done = answer.json
       if (!done.text) throw { message: done.message, plain: true }
       const id = newId('f')
