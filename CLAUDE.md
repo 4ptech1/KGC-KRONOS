@@ -251,6 +251,8 @@ lines of VBA (rule 9: about 60); accepted for now, revisit in March.
 Known gaps of KRONOS Offline version 6 on the real samples (21 Nov 2026, D125, `docs/known-gaps.md`): a recipe that writes over a
 formula gives no warning; the look-alike WPS form doesn't match the real forms' rows; a Word marker inside a table cell is
 accepted by the check and refused by the fill; a Word recipe counts tables by position. Recorded, not fixed: Boss will say go.
+Saved for later too (D132, 23 Nov 2026): engineering calculation recipes in the finder's library, from formulas Boss supplies or approves,
+each tested against his worked examples. KRONOS knows no engineering by itself; it works out formulas it is given.
 
 **Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
 paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98
