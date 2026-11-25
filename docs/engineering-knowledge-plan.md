@@ -77,6 +77,8 @@ code edition and a worked example for each (D132); until then they stay typed va
 - **E2, the rule sheet for Boss** (`docs/engineering-rules.md`): every rule above with its formula, units, inputs,
   source cell and its worked example taken from the sample. **Boss's one action:** reply "confirmed", or correct a row.
   The 0.5t to 2t rule is confirmed or left out here.
+  **Done (D135): the sheet is written, 18 rules (8 welding, 2 vessel data, 8 estimation), each worked example recomputed
+  from its formula and equal to the sample's saved result. Waiting for Boss's "confirmed"; E3 starts only then.**
 - **E3, the welding recipes:** proven recipes on the look-alike WPS (`data/templates/wps_form*.xlsx`): fill each run's
   heat-input range, check every run against the WPS limit, check that each PQR run is inside the WPS range, write the
   qualified thickness range (if confirmed in E2), and make a new WPS's numbers from an old WPS and a new thickness (two

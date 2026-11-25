@@ -256,8 +256,9 @@ accepted by the check and refused by the fill; a Word recipe counts tables by po
 Engineering knowledge (D132, now planned: D133, 25 Nov 2026, `docs/engineering-knowledge-plan.md`): a glossary, KGC's own formulas from
 the samples confirmed by Boss with a worked example each, and code-book values only from his own workbook. KRONOS knows no engineering by
 itself; it works out formulas it is given. E1, the glossary, is done (D134: `data/domain/glossary.md`, 84 terms,
-read by the recipe finder). **Next: E2, the rule sheet for Boss to confirm; then E3, the welding recipes;** then the document corpus
-batch and the benchmark.
+read by the recipe finder). E2, the rule sheet (`docs/engineering-rules.md`,
+18 rules from the samples' formulas with worked examples, D135), waits for Boss's "confirmed"; E3, the welding recipes, starts then.
+**Next meanwhile: the benchmark (step 7)**, then the document corpus batch.
 
 **Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
 paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98
