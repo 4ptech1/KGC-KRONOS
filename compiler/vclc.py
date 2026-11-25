@@ -10,6 +10,8 @@
   python compiler/vclc.py corpus [--mutation] [--report]    check every request and spec pair in data/ (vcl_corpus.py)
   python compiler/vclc.py corpus-add --id ID --request FILE --spec FILE --registers a,b --family F   prove and store a pair
   python compiler/vclc.py export [-o FILE]                  the pairs as JSON Lines, with their VBA compiled fresh
+  python compiler/vclc.py bench --prompts DIR | bench CANDIDATES [--today D] [--json FILE]   the benchmark on the
+                                                   held-out items: V valid, T tested, M strong, H right (vcl_bench.py, D135)
   python compiler/vclc.py datagen [-o DIR] [--today D] [--only ids]  repairs and contrast examples made from the pairs
                                                    (vcl_datagen.py, D103)
   python compiler/vclc.py ask "<request>" [--ai codex|fake] ...  KGC KRONOS: a request to a proven module (kronos_engine.py)
@@ -174,7 +176,7 @@ def cmd_mutate(files, snapshot, today):
 
 def main(argv):
     if len(argv) < 2 or argv[1] not in ("check", "test", "build", "mutate", "all", "pilot-check", "fmt", "corpus",
-                                        "corpus-add", "export", "ask", "sim", "datagen"):
+                                        "corpus-add", "export", "ask", "sim", "datagen", "bench"):
         print(__doc__)
         return 1
     cmd = argv[1]
@@ -184,6 +186,9 @@ def main(argv):
     if cmd in ("corpus", "corpus-add", "export"):
         import vcl_corpus
         return vcl_corpus.main(argv[1:])
+    if cmd == "bench":   # Stage A Phase 8: the benchmark, the only scoreboard (D135)
+        import vcl_bench
+        return vcl_bench.main(argv[2:])
     if cmd == "datagen":   # Stage A Phase 7: the data generator (D103)
         import vcl_datagen
         return vcl_datagen.main(argv[2:])
