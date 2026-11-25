@@ -145,7 +145,7 @@ harness/             Excel batch runner (deferred: PR #4)
 batches/             generated batch modules (later)
 data/                verified/ (the proven request and spec pairs, D64), repair/, eval/ (held out), results/,
                      library.json (the finder's library, built from verified/ and docs/demo, D129),
-                     templates/ (invented look-alike KGC documents, D108)
+                     templates/ (invented look-alike KGC documents, D108), domain/glossary.md (welding and engineering words, D134)
 library/             approved .bas, .cls, .frm files
 tests/               unit tests for the Python tools
 docs/                roadmap, plans, design documents, kgc-kronos-context.md (AI context)
@@ -255,8 +255,9 @@ formula gives no warning; the look-alike WPS form doesn't match the real forms' 
 accepted by the check and refused by the fill; a Word recipe counts tables by position. Recorded, not fixed: Boss will say go.
 Engineering knowledge (D132, now planned: D133, 25 Nov 2026, `docs/engineering-knowledge-plan.md`): a glossary, KGC's own formulas from
 the samples confirmed by Boss with a worked example each, and code-book values only from his own workbook. KRONOS knows no engineering by
-itself; it works out formulas it is given. **Next: E1, the glossary, and E2, the rule sheet for Boss to confirm; then E3, the welding
-recipes;** then the document corpus batch and the benchmark.
+itself; it works out formulas it is given. E1, the glossary, is done (D134: `data/domain/glossary.md`, 84 terms,
+read by the recipe finder). **Next: E2, the rule sheet for Boss to confirm; then E3, the welding recipes;** then the document corpus
+batch and the benchmark.
 
 **Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
 paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98

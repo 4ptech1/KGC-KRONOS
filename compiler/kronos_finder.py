@@ -12,7 +12,8 @@ ours). Nothing goes online.
   its recipe) and the three demo recipes in docs/demo. Never data/eval: the held-out items stay held out, so the finder
   can be scored on them like any other candidate (D59).
 - search() ranks the library for a request with BM25 over the request, the paraphrases and the GOAL, word forms folded
-  together and shop words mapped by SYNONYMS (an in-house table). Given the person's workbook headings, a recipe that
+  together and shop words mapped by SYNONYMS (an in-house table) and by the glossary's one-word spellings
+  (data/domain/glossary.md, carried inside the library, D133). Given the person's workbook headings, a recipe that
   reads columns the workbook has ranks higher.
 - adapt() renames the columns a recipe reads to the workbook's own headings, only where the match is sure, and proves
   the renamed recipe again; if the proof fails the recipe is given back unchanged. Nothing is renamed without the
@@ -32,6 +33,7 @@ sys.path.insert(0, str(HERE))
 from resources import ROOT  # noqa: E402
 
 LIBRARY = ROOT / "data" / "library.json"
+GLOSSARY = HERE.parent / "data" / "domain" / "glossary.md"   # read when the library is built; its word groups ride in it (D133)
 DEMO = HERE.parent / "docs" / "demo"   # read only when the library is built, from a checkout: not bundled
 BUILD_DAY = dt.date(2026, 11, 21)   # the date the library's recipes are proven with when it is built (fixed: same bytes)
 K1, B = 1.5, 0.75                  # BM25
@@ -74,6 +76,41 @@ SYNONYMS = [
 ABBREVIATIONS = {"no": "number", "num": "number", "nr": "number", "qty": "quantity", "desc": "description",
                  "dt": "date", "rev": "revision", "cert": "certificate", "cal": "calibration", "insp": "inspection",
                  "ref": "reference", "pct": "percent", "%": "percent", "#": "number"}
+
+
+# Glossary spellings never used as matching words: too short or too common to mean one thing (D133).
+GLOSSARY_SKIP = set("a e t v ai id od ca de dt ht hi sr bm rm oh pass".split())
+
+
+def glossary_groups(path=GLOSSARY):
+    """[[term, spelling, ...]] from data/domain/glossary.md: per row, the term and every one-word spelling a person
+    may type (lower case, starting with a letter, not a stop word or in GLOSSARY_SKIP). Phrases are for people and the
+    model, not for matching."""
+    groups = []
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if not line.startswith("| ") or len(cells) != 4 or cells[0] in ("Term", "---"):
+            continue
+        tokens = []
+        for raw in [cells[0]] + [s.strip() for s in cells[2].split(";")]:
+            w = raw.lower()
+            if re.fullmatch(r"[a-z][a-z0-9]*", w) and len(w) >= 2 and w not in STOP and w not in GLOSSARY_SKIP \
+                    and w not in tokens:
+                tokens.append(w)
+        if tokens:
+            groups.append(tokens)
+    return groups
+
+
+def use_glossary(groups):
+    """Add the glossary's word groups to the shop words (D133). The built-in SYNONYMS win: a glossary spelling already
+    in a group stays there, and the row's new spellings join that group."""
+    for tokens in groups:
+        stems = [stem(w) for w in tokens]
+        known = [_GROUP[s] for s in stems if s in _GROUP]
+        head = known[0] if known else stems[0]
+        for s in stems:
+            _GROUP.setdefault(s, head)
 
 
 class FinderError(Exception):
@@ -164,7 +201,8 @@ def build_library():
 
 def library_text(entries=None):
     entries = build_library() if entries is None else entries
-    return json.dumps({"version": 1, "built_with": BUILD_DAY.isoformat(), "entries": entries}, indent=1,
+    return json.dumps({"version": 1, "built_with": BUILD_DAY.isoformat(), "entries": entries,
+                       "glossary": [" ".join(g) for g in glossary_groups()]}, indent=1,
                       sort_keys=True, ensure_ascii=False) + "\n"
 
 
@@ -174,9 +212,11 @@ _LOADED = None
 def load_library(path=LIBRARY):
     global _LOADED
     if _LOADED is None or path != LIBRARY:
-        data = json.loads(Path(path).read_text(encoding="utf-8"))["entries"]
+        whole = json.loads(Path(path).read_text(encoding="utf-8"))
+        data = whole["entries"]
         if path != LIBRARY:
             return data
+        use_glossary([g.split() for g in whole.get("glossary", [])])   # the glossary's word groups (D133)
         _LOADED = data
     return _LOADED
 

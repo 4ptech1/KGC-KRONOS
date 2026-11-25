@@ -206,3 +206,63 @@ class Bridge(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Glossary(unittest.TestCase):
+    """data/domain/glossary.md (D133, E1): words to understand a request, never answers."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.lib = kf.load_library()   # loading the library adds the glossary's word groups
+        cls.rows = [[c.strip() for c in line.strip().strip("|").split("|")]
+                    for line in kf.GLOSSARY.read_text(encoding="utf-8").splitlines()
+                    if line.startswith("| ") and not line.startswith(("| Term", "| ---"))]
+
+    def test_every_row_has_a_term_a_meaning_spellings_and_an_area(self):
+        self.assertGreater(len(self.rows), 60)
+        areas = {"welding", "vessel", "NDE", "quality", "estimation", "shop"}
+        for row in self.rows:
+            with self.subTest(term=row[0]):
+                self.assertEqual(len(row), 4)
+                self.assertTrue(row[0] and row[1] and row[2])
+                self.assertIn(row[3], areas)
+                self.assertNotRegex(row[1], r"\d+(\.\d+)?\s*(mm|kJ|barg|bar|kg|MPa|°C)")   # no engineering values
+        terms = [row[0].lower() for row in self.rows]
+        self.assertEqual(len(terms), len(set(terms)))
+
+    def test_no_spelling_belongs_to_two_rows_or_two_built_in_groups(self):
+        groups = kf.glossary_groups()
+        seen = {}
+        built_in = {}
+        for line in kf.SYNONYMS:
+            for w in line.split():
+                built_in.setdefault(kf.stem(w), kf.stem(line.split()[0]))
+        for tokens in groups:
+            heads = {built_in[kf.stem(w)] for w in tokens if kf.stem(w) in built_in}
+            self.assertLessEqual(len(heads), 1, f"{tokens} joins two built-in groups {heads}")
+            for s in dict.fromkeys(kf.stem(w) for w in tokens):   # a row's own word forms may share a stem
+                self.assertNotIn(s, seen, f"{s} is in {seen.get(s)} and {tokens[0]}")
+                seen[s] = tokens[0]
+        for w in kf.GLOSSARY_SKIP:
+            self.assertFalse(any(w in tokens for tokens in groups))
+
+    def test_the_library_carries_the_glossary(self):
+        import json
+        whole = json.loads(kf.LIBRARY.read_text(encoding="utf-8"))
+        self.assertEqual(whole["glossary"], [" ".join(g) for g in kf.glossary_groups()])
+
+    def test_shop_spellings_mean_the_same(self):
+        self.assertEqual(kf.words("MTR"), kf.words("MTC"))
+        self.assertEqual(kf.words("MPI"), kf.words("NDE"))
+        self.assertEqual(kf.words("DPT"), kf.words("NDE"))
+        self.assertEqual(kf.words("inquiry"), kf.words("enquiry"))
+        self.assertEqual(kf.words("backchip"), kf.words("backgouge"))
+        self.assertEqual(kf.words("WPQR"), kf.words("WPS"))   # joins the built-in group, which wins
+        self.assertNotEqual(kf.words("passed"), kf.words("run"))   # "pass" is never a run
+
+    def test_a_request_in_shop_words_finds_the_right_kind_of_recipe(self):   # measured: before the glossary c004, after c131
+        best = kf.search("Flag the welds where MPI or DPT found a defect", entries=self.lib)[0]
+        self.assertIn("nde", kf.entry(best["id"])["registers"])
+        best = kf.search("List every heat number in the GRN that has no MTR", entries=self.lib)[0]
+        self.assertEqual(best["id"], "c021")
+        self.assertEqual(best["strength"], 1.0)

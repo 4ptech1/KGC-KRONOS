@@ -68,8 +68,12 @@ code edition and a worked example for each (D132); until then they stay typed va
   repad, MAWP, MDMT, corrosion allowance, joint efficiency, hydrotest, NACE, HIC...), estimation (BOM, raw weight,
   finished weight, conversion, overheads, contingency, margin...), and KGC's shop words and abbreviations as the
   samples write them. Each term has a plain meaning and the ways people write it. The recipe finder's synonym table
-  (`compiler/kronos_finder.py`) and the training data (`train/make_dataset.py`) read it; a test keeps them in step.
-  Boss may read and correct it; nothing in it is used as a number.
+  (`compiler/kronos_finder.py`) reads it; the training data uses it with the shop-language requests (`docs/ai-plan.md`,
+  Before March step 5). Boss may read and correct it; nothing in it is used as a number.
+  **Done (D134):** 84 terms; their one-word spellings join the finder's word groups and ride inside `data/library.json`,
+  so KRONOS Offline and KRONOS.exe need no new file. The finder's scores on the corpus are unchanged (a paraphrase finds
+  its own recipe 404 of 405 times; the same family 80 of 135); in shop words it now finds what it missed ("MPI or DPT"
+  finds an NDE recipe, "MTR" matches the certificate recipe fully). Boss gets it in the next KRONOS Offline release.
 - **E2, the rule sheet for Boss** (`docs/engineering-rules.md`): every rule above with its formula, units, inputs,
   source cell and its worked example taken from the sample. **Boss's one action:** reply "confirmed", or correct a row.
   The 0.5t to 2t rule is confirmed or left out here.
