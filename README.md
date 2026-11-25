@@ -432,3 +432,5 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   a glossary, KGC's own formulas from the samples confirmed by Boss with a worked example each, and code-book values only
   from his own workbook. Next: the glossary and the rule sheet for Boss to confirm, then the welding recipes.
   E1 is done (D134): the glossary of welding, vessel, NDE, estimation and shop words, read by the recipe finder.
+  E2 (D135): the rule sheet for Boss to confirm, `docs/engineering-rules.md`: 18 rules from KGC's own formulas, each with
+  its worked example recomputed.
