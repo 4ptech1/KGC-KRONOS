@@ -77,7 +77,7 @@ def pair_examples(pair_id, request, spec, today):
         seen.add(text)
         where = f"line {i + 1}: {what}"
         try:
-            proof = prove(text, today)
+            proof = prove(text, today, offline=True)   # a recipe only KRONOS Offline runs is proven without VBA
         except Exception:   # the interpreter can't run it at all: not a lesson
             crashed += 1
             continue
@@ -106,7 +106,7 @@ def attempt_examples(pair_id, request, spec, today):
         if text == normalize(spec):
             skipped.append((path.name, "identical to the stored spec"))
             continue
-        proof = prove(text, today)
+        proof = prove(text, today, offline=True)
         lines = feedback(proof)
         if proof.ok:
             caught, total, survivors = mutate_report(text, snapshot=True, today=today)

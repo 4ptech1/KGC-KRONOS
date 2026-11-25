@@ -41,10 +41,12 @@ from vcl_parse import parse as grammar_parse  # noqa: E402
 DATA = HERE.parent / "data"
 SETS = ("verified", "eval")
 REGISTERS = ("bom", "grn", "weld_log", "nde", "ncr", "itp", "welder_quals", "calibration", "consumables",
-             "material_certs", "wps_pqr", "dispatch", "job_tracker")
+             "material_certs", "wps_pqr", "dispatch", "job_tracker",
+             "wps", "estimation", "enquiry", "estimate_sheet", "proposal")   # KGC's own documents (D105, D137)
 # the plan for 150 tasks (VEP 0.6): 100 basic, 30 with the item 2 ops, 20 BUILDs
 QUOTAS = {"flag": 30, "summarise": 25, "reconcile": 20, "clean": 15, "rebuild": 10,
-          "files": 12, "sheets_formulas": 10, "find_filter": 8, "build": 20}
+          "files": 12, "sheets_formulas": 10, "find_filter": 8, "build": 20,
+          "documents": 25}   # KGC's own documents, batch 9 (docs/kgc-documents-plan.md Phase 5, D137)
 FLOOR = 0.90
 FILES = {"task.txt", "spec.vcl", "meta.json"}
 META_KEYS = {"id", "kind", "registers", "family", "ops", "op_lines", "source", "mutation", "accepted_warnings"}
@@ -109,6 +111,12 @@ def ops_used(text):
             for found in re.finditer(r"(?:^|\bTHEN )([A-Z][A-Z_]+)", node.text):
                 names.add(found.group(1))
     names -= {"AND", "OR", "NOT", "THEN"}
+    if spec.kind == "DOCUMENT":   # a DOCUMENT's steps are its FIELD and REPEAT lines (D115)
+        for line in text.splitlines():
+            key = line.split(None, 1)[0] if line.strip() else ""
+            if key in ("FIELD", "REPEAT"):
+                steps += 1
+                names.add(key)
     return sorted(names), steps
 
 
@@ -176,7 +184,9 @@ def check_item(folder, mutation=False, classified=True):
     except VclError as err:
         return problems + [f"{name}: the TESTs can't run: {err}"]
     problems += [f"{name}: TEST on line {r.line} fails: {r.failed[0] if r.failed else r.result}" for r in results if not r.passed]
-    problems += [f"{name}: {line}" for line in build_problems(spec_text, name + ".vcl")]
+    from kronos_engine import offline_only_spec   # here: kronos_engine imports this module
+    if not offline_only_spec(grammar_parse(spec_text)[0]):   # a recipe only KRONOS Offline runs has no VBA (D114, D115)
+        problems += [f"{name}: {line}" for line in build_problems(spec_text, name + ".vcl")]
     spec = parse_spec(spec_text)
     ops, steps = ops_used(spec_text)
     if meta["id"] != name:

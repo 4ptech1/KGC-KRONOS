@@ -130,6 +130,8 @@ DECISIONS.md, `dist/forge_module.bas`; and `vclc sim` must still prove every spe
 - Released as `kronos-offline-v6` by `build-offline.yml`, checked as before (Chromium 109, Firefox 115, PowerShell).
 
 ### Phase 5: corpus batch 9, documents (about 20 pairs)
+**Ready (D137):** the corpus, the data generator and the simulator test take recipes only KRONOS Offline runs; the 25
+requests are in `data/batches/batch_09.json` (5 held out); none computes an engineering rule before Boss confirms them.
 - Requests from Phase 1's job list, written as Boss would type them; specs by helpers who see only the prompt,
   gated by `corpus-add` as before (90% mutation floor), FIXTUREs from `data/templates/` only. A new family
   `documents` in `compiler/vcl_corpus.py` (QUOTAS) and registers `wps`, `estimation`, `enquiry`.

@@ -1,0 +1,231 @@
+[
+ {
+  "id": "c160",
+  "set": "verified",
+  "registers": [
+   "wps"
+  ],
+  "family": "documents",
+  "request": "Change the WPS date to 25/11/2026 and the revision to R1 wherever they appear on the form: the DATE and WPS Revision lines at the top of page 1 and again at the top of page 2. Leave everything else as it is."
+ },
+ {
+  "id": "c161",
+  "set": "verified",
+  "registers": [
+   "wps"
+  ],
+  "family": "documents",
+  "request": "On the WPS form write the new WPS number DM-WPS-202 in the WPS No. cell and 'Rev. R0 - first issue' next to it, and the WPQR number DM-PQR-202. Nothing else changes."
+ },
+ {
+  "id": "c162",
+  "set": "eval",
+  "registers": [
+   "wps"
+  ],
+  "family": "documents",
+  "request": "Copy the parent material block (type, designation, group, thickness and pipe OD, actual columns for both members) from the old WPS into the new WPS form. The old WPS is the second workbook; it is only read."
+ },
+ {
+  "id": "c163",
+  "set": "verified",
+  "registers": [
+   "wps"
+  ],
+  "family": "documents",
+  "request": "Make a new WPS from the old one: copy the company name and address, the welding process, the degree of mechanization and the filler material designation (actual and qualified) from the old WPS (the workbook I read from) into the new form, and write the new WPS number DM-WPS-203. The old WPS is only read."
+ },
+ {
+  "id": "c164",
+  "set": "verified",
+  "registers": [
+   "wps"
+  ],
+  "family": "documents",
+  "request": "In the WPS's heat-input check block (outside the print area) clear the PQR values of runs 1 to 3: the PQR I min, I max, U min, U max, v and HI recorded columns of rows 29 to 31. Keep the formulas and everything else."
+ },
+ {
+  "id": "c165",
+  "set": "verified",
+  "registers": [
+   "wps"
+  ],
+  "family": "documents",
+  "request": "At the bottom of page 2 of the WPS write 'R. Demo, Welding Engineer' as the name of the person who prepared it and today's date (dd/mm/yyyy) in the Date cell."
+ },
+ {
+  "id": "c166",
+  "set": "verified",
+  "registers": [
+   "estimation"
+  ],
+  "family": "documents",
+  "request": "In the estimation workbook's Inputs sheet change the plate rate (r_plate) to 95 and the margin to 0.12. Write nothing else."
+ },
+ {
+  "id": "c167",
+  "set": "verified",
+  "registers": [
+   "estimation"
+  ],
+  "family": "documents",
+  "request": "Add a line to the Conversion sheet after the last activity: Sl the next number, Scope FH, Activity PWHT of floating head, Basis 'furnace, 1 lot', Qty/set 1, Sets 2, Unit Lot, Rate 40000. Copy the Total Qty and Amount formulas from the row above so they work for the new row."
+ },
+ {
+  "id": "c168",
+  "set": "eval",
+  "registers": [
+   "estimation"
+  ],
+  "family": "documents",
+  "request": "On the Assumptions & Clarif. sheet add a new numbered row at the end with the clarification 'Delivery basis 20 weeks Ex-Works' and Status 'Assumed'. Number it one more than the last row."
+ },
+ {
+  "id": "c169",
+  "set": "verified",
+  "registers": [
+   "estimation"
+  ],
+  "family": "documents",
+  "request": "In the Enq Summary sheet write enquiry number E-9100 in the Enquiry column and today's date in the Date column (as dd.mm.yyyy) for every item row."
+ },
+ {
+  "id": "c170",
+  "set": "verified",
+  "registers": [
+   "estimation"
+  ],
+  "family": "documents",
+  "request": "Write the assumptions sheet for a sour-service job: add three rows after the last one, numbered on from it, saying the materials meet NACE MR0175, that HIC-tested plate is an option, and that PWHT is included; status 'Assumed' for each. These sentences are drafts for the engineer to check."
+ },
+ {
+  "id": "c171",
+  "set": "verified",
+  "registers": [
+   "enquiry"
+  ],
+  "family": "documents",
+  "request": "Add enquiry E-9104 to the register after the last row: Sr.No. one more than the last, date 20.11.2026, End User Demo Chemicals, Project PRJ-104, and its two items (Knock-out Drum, Qty 1; Filter Separator, Qty 2), Type PV for both. Merge Sr.No., Enquiry, Date, End User and Project over the item rows like the other enquiries."
+ },
+ {
+  "id": "c172",
+  "set": "verified",
+  "registers": [
+   "enquiry"
+  ],
+  "family": "documents",
+  "request": "Set the Result of enquiry E-9102 to Won in the register. The Result cell is merged over that enquiry's item rows; write it in its first cell only."
+ },
+ {
+  "id": "c173",
+  "set": "eval",
+  "registers": [
+   "enquiry"
+  ],
+  "family": "documents",
+  "request": "In the register write 'No' in the PWHT column for every item row where PWHT is blank, and tell me how many I filled."
+ },
+ {
+  "id": "c174",
+  "set": "verified",
+  "registers": [
+   "enquiry",
+   "estimation"
+  ],
+  "family": "documents",
+  "request": "Add the items of the estimation workbook's Enq Summary sheet (the workbook I read from) to the enquiry register after its last row: Item, Type, U Stamp, Old and Revised Tag No, Qty, MOC, Shell ID, Shell THK and TL to TL for each, with the enquiry number and date from the first item row. Tell me how many rows were added."
+ },
+ {
+  "id": "c175",
+  "set": "verified",
+  "registers": [
+   "enquiry"
+  ],
+  "family": "documents",
+  "request": "Highlight yellow the Enquiry cell of every enquiry in the register whose Result is still blank, and tell me how many there are. Clear old highlights first."
+ },
+ {
+  "id": "c176",
+  "set": "verified",
+  "registers": [
+   "estimate_sheet",
+   "estimation"
+  ],
+  "family": "documents",
+  "request": "Fill the internal estimation sheet from the estimation workbook: the header's estimate number and date I give, the enquiry, client and end user from the Enq Summary sheet, the price basis written as a draft for me to check, and one price-summary row per item."
+ },
+ {
+  "id": "c177",
+  "set": "eval",
+  "registers": [
+   "estimate_sheet"
+  ],
+  "family": "documents",
+  "request": "Fill the internal estimation sheet for enquiry E-9105 from these values, no workbook: client Demo OEM, end user Example Refinery Ltd, title 'Two pulsation bottles', price basis 'Ex-works, packing included', items: 1 Suction bottle Qty 2 weight 410 unit price 2,90,000 total 5,80,000; 2 Discharge bottle Qty 2 weight 450 unit price 3,05,000 total 6,10,000; total quantity 4, grand total 11,90,000."
+ },
+ {
+  "id": "c178",
+  "set": "verified",
+  "registers": [
+   "estimate_sheet",
+   "estimation"
+  ],
+  "family": "documents",
+  "request": "In the internal estimation sheet write the basis and assumptions section: one paragraph per row of the Assumptions & Clarif. sheet of the estimation workbook."
+ },
+ {
+  "id": "c179",
+  "set": "verified",
+  "registers": [
+   "proposal"
+  ],
+  "family": "documents",
+  "request": "Fill the technical proposal's cover and header: client Demo EPC, item line 'Pulsation bottles, 4 Nos', end user Example Gas Co, enquiry ref E-9101, proposal P-2750-0001 and date 25 Nov 2026, with the basis of offer as a draft sentence for me to check."
+ },
+ {
+  "id": "c180",
+  "set": "verified",
+  "registers": [
+   "proposal"
+  ],
+  "family": "documents",
+  "request": "Make the technical proposal for enquiry E-9101 with one equipment section per bottle: Suction bottle DM-V-101, 2 Nos, and Discharge bottle DM-V-102, 2 Nos, each with its design data (shell ID 400 and 450 mm, TL-TL 1600 and 1800 mm, thickness 10 mm, design pressure 18 and 35 barg) and its nozzle rows N1 to N3."
+ },
+ {
+  "id": "c181",
+  "set": "eval",
+  "registers": [
+   "proposal"
+  ],
+  "family": "documents",
+  "request": "Include the NACE annexure in the proposal for this sour-service job, with the two requirements 'NACE MR0175 / ISO 15156' Complied and 'HIC test of plates' Offered as an option. Fill the cover with client Demo EPC and proposal P-2750-0002 dated today."
+ },
+ {
+  "id": "c182",
+  "set": "verified",
+  "registers": [
+   "proposal"
+  ],
+  "family": "documents",
+  "request": "Write the technical queries table in the proposal: TQ-01 'Suction flanges 150#' with 'Offered 300# to meet the code', TQ-02 'Inspection opening rating blank' with 'Offered 600#'. Leave the NACE annexure out; this job is not sour service."
+ },
+ {
+  "id": "c183",
+  "set": "verified",
+  "registers": [
+   "proposal",
+   "enquiry"
+  ],
+  "family": "documents",
+  "request": "Make the proposal's items table from the enquiry register (the workbook I read from) for enquiry E-9101: one row per item with Sl, Item, Tag (the revised tag) and Qty, and the total quantity under it."
+ },
+ {
+  "id": "c184",
+  "set": "verified",
+  "registers": [
+   "proposal"
+  ],
+  "family": "documents",
+  "request": "Fill the proposal cover for client Demo Chemicals, enquiry E-9104, proposal P-2750-0003, today's date, item line 'Knock-out drum and filter separator, 3 Nos', end user Demo Chemicals, with no equipment sections and no NACE annexure yet."
+ }
+]
