@@ -1,0 +1,186 @@
+{
+ "items": {
+  "c022": {
+   "H": false,
+   "M": true,
+   "T": true,
+   "V": true,
+   "mutants": [
+    21,
+    21
+   ],
+   "reached": "T+M",
+   "why": "2 of 3 hidden TESTs fail"
+  },
+  "c030": {
+   "H": true,
+   "M": true,
+   "T": true,
+   "V": true,
+   "mutants": [
+    8,
+    8
+   ],
+   "reached": "T+M+H",
+   "why": ""
+  },
+  "c036": {
+   "H": true,
+   "M": true,
+   "T": true,
+   "V": true,
+   "mutants": [
+    32,
+    34
+   ],
+   "reached": "T+M+H",
+   "why": ""
+  },
+  "c045": {
+   "H": true,
+   "M": true,
+   "T": true,
+   "V": true,
+   "mutants": [
+    11,
+    12
+   ],
+   "reached": "T+M+H",
+   "why": ""
+  },
+  "c056": {
+   "H": false,
+   "M": true,
+   "T": true,
+   "V": true,
+   "mutants": [
+    19,
+    21
+   ],
+   "reached": "T+M",
+   "why": "2 of 4 hidden TESTs fail"
+  },
+  "c065": {
+   "H": true,
+   "M": false,
+   "T": true,
+   "V": true,
+   "mutants": [
+    27,
+    31
+   ],
+   "reached": "T+H",
+   "why": "its TESTs catch 27 of 31 deliberate bugs, under 90%"
+  },
+  "c087": {
+   "H": false,
+   "M": false,
+   "T": true,
+   "V": true,
+   "mutants": [
+    18,
+    22
+   ],
+   "reached": "T",
+   "why": "its TESTs catch 18 of 22 deliberate bugs, under 90%; 3 of 8 hidden TESTs fail"
+  },
+  "c089": {
+   "H": false,
+   "M": false,
+   "T": true,
+   "V": true,
+   "mutants": [
+    62,
+    73
+   ],
+   "reached": "T",
+   "why": "its TESTs catch 62 of 73 deliberate bugs, under 90%; 2 of 4 hidden TESTs fail"
+  },
+  "c093": {
+   "H": true,
+   "M": false,
+   "T": true,
+   "V": true,
+   "mutants": [
+    9,
+    11
+   ],
+   "reached": "T+H",
+   "why": "its TESTs catch 9 of 11 deliberate bugs, under 90%"
+  },
+  "c109": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "it does not check: key is a reserved option word: choose another name (G2)"
+  },
+  "c114": {
+   "H": true,
+   "M": true,
+   "T": true,
+   "V": true,
+   "mutants": [
+    38,
+    41
+   ],
+   "reached": "T+M+H",
+   "why": ""
+  },
+  "c121": {
+   "H": true,
+   "M": false,
+   "T": true,
+   "V": true,
+   "mutants": [
+    27,
+    33
+   ],
+   "reached": "T+H",
+   "why": "its TESTs catch 27 of 33 deliberate bugs, under 90%"
+  },
+  "c130": {
+   "H": true,
+   "M": false,
+   "T": true,
+   "V": true,
+   "mutants": [
+    82,
+    94
+   ],
+   "reached": "T+H",
+   "why": "its TESTs catch 82 of 94 deliberate bugs, under 90%"
+  },
+  "c133": {
+   "H": true,
+   "M": false,
+   "T": true,
+   "V": true,
+   "mutants": [
+    23,
+    27
+   ],
+   "reached": "T+H",
+   "why": "its TESTs catch 23 of 27 deliberate bugs, under 90%"
+  },
+  "c149": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "it does not check: type: assigning raw cell value cur to Num variable cur: guard it first"
+  }
+ },
+ "summary": {
+  "H": 9,
+  "M": 6,
+  "T": 13,
+  "V": 13,
+  "headline": 0.6,
+  "items": 15,
+  "strict": 4
+ },
+ "today": "2026-11-25"
+}
