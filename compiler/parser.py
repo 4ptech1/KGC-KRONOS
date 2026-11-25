@@ -106,6 +106,7 @@ class Test:
     runs: int
     assertion: str
     read: str = ""   # VCL 0.7 (D114): a second FIXTURE workbook the TEST opens read-only
+    quoted: tuple = ()   # VCL 0.7 (D138): the places of args written as a sheet name in quotes, 'Enq Summary' (unquoted in args)
 
 
 @dataclass
@@ -218,11 +219,11 @@ def tokenize(text):
 
 
 def split_top(text, sep):
-    """Split text on sep, but not inside "quotes" or (brackets)."""
-    parts, depth, quoted, start = [], 0, False, 0
+    """Split text on sep, but not inside "quotes", 'a sheet name in quotes' (D138) or (brackets)."""
+    parts, depth, quoted, start = [], 0, "", 0
     for i, ch in enumerate(text):
-        if ch == '"':
-            quoted = not quoted
+        if ch in "\"'" and (not quoted or quoted == ch):
+            quoted = "" if quoted else ch
         elif not quoted and ch == "(":
             depth += 1
         elif not quoted and ch == ")":
@@ -600,7 +601,9 @@ def _test(spec, n, value):
         else:
             spec.error(n, coded(f"runs= must be a whole number of 1 or more, got '{m['runs']}'", "V039"))
     args = [a.strip() for a in split_top(m["args"], ",")] if m["args"].strip() else []
-    spec.tests.append(Test(n, m["fixture"], m["proc"], args, runs, m["assertion"].strip(), m["read"] or ""))
+    quoted = tuple(i for i, a in enumerate(args) if len(a) > 1 and a[0] == a[-1] == "'")
+    args = [a[1:-1].replace("''", "'") if i in quoted else a for i, a in enumerate(args)]
+    spec.tests.append(Test(n, m["fixture"], m["proc"], args, runs, m["assertion"].strip(), m["read"] or "", quoted))
 
 
 def _sig(spec, n, value):

@@ -261,6 +261,9 @@ def test_call(k):
         if isinstance(item, Tree) and item.data == "neg_number":   # -4
             values.append("-" + str(item.children[0]))
             continue
+        if isinstance(item, Token) and item.type == "QSHEET":   # 'Enq Summary': the sheet's name (D138)
+            values.append(str(item)[1:-1].replace("''", "'"))
+            continue
         values.append(str(item)[1:-1] if isinstance(item, Token) and item.type == "STRING" else str(item))
     return values, runs
 

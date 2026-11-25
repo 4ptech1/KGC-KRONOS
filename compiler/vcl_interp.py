@@ -1459,7 +1459,9 @@ class DocAsserter(Asserter):
 
 def doc_rows(machine, tree):
     """A REPEAT's source as rows of texts: a range (each row of it, formulas as Excel saved them) or a list of rows
-    written in place ([[...], [...]])."""
+    written in place ([[...], [...]]), or none ([], VCL 0.7 D138: the repeated part is removed)."""
+    if isinstance(tree, Tree) and tree.data == "empty_list":
+        return []
     if isinstance(tree, Tree) and tree.data == "list_lit":
         rows = []
         for row in tree.children:
@@ -1523,6 +1525,8 @@ def run_document_tests(spec, today):
                 if str(v) != fixture:
                     raise VclError(coded(f"TEST passes {v} for ${pname}, but its fixture is {fixture}", "R063"))
                 bound[pname] = Book(book)
+            elif isinstance(v, Token) and v.type == "QSHEET":
+                raise VclError(coded(f"TEST passes {v} for ${pname}: a DOCUMENT takes no Worksheet argument", "R067"))
             elif isinstance(v, Token) and v.type == "STRING":
                 bound[pname] = str(v)[1:-1].replace('""', '"')
             elif isinstance(v, Token) and v.type == "NAME" and str(v) in ("TRUE", "FALSE"):
@@ -1604,8 +1608,10 @@ def run_tests(text, today=None):
                     raise VclError(coded(f"TEST passes {v} for ${pname}, but its fixture is {fixture}", "R048"))
                 bound[pname] = wb
                 book_args.append(pname)
-            elif isinstance(v, Token) and v.type == "NAME" and str(v) in book:
-                bound[pname] = book[str(v)]
+            elif isinstance(v, Token) and v.type in ("NAME", "QSHEET") and sheet_text(v) in book:
+                bound[pname] = book[sheet_text(v)]
+            elif isinstance(v, Token) and v.type == "QSHEET":   # VCL 0.7 (D138): 'Enq Summary'
+                raise VclError(coded(f"TEST passes {v}, but {fixture} has no sheet {sheet_text(v)}", "R068"))
             elif isinstance(v, Token) and v.type == "NAME":   # a FIXTURE folder (F6)
                 if not fs.is_folder(SANDBOX + "\\" + str(v)):
                     raise VclError(coded(f"TEST passes {v}, which is neither a sheet nor a folder of {fixture}", "R049"))
@@ -1630,8 +1636,8 @@ def run_tests(text, today=None):
         if needs_unchanged_check(spec, modifies):
             sheet_args = {}
             for pname, v in zip(params, call_vals):
-                if isinstance(v, Token) and v.type == "NAME":
-                    sheet_args.setdefault(str(v), []).append(pname)
+                if isinstance(v, Token) and v.type in ("NAME", "QSHEET"):
+                    sheet_args.setdefault(sheet_text(v), []).append(pname)
             failed += unchanged_problems(modifies, sheet_args, before, book, stopped_at_pre, book_args=book_args)
             roots = [bound[a] for a, kinds in modifies.items() if kinds.get("files") and isinstance(bound.get(a), str)]
             failed += file_unchanged_problems(roots, fs_before, fs, stopped_at_pre)

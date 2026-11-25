@@ -131,7 +131,14 @@ def check_document(text, spec):
                     c.error(coded(f"{bname}={col}: columns are counted from 1", "V359"), line)
                 binds[bname] = col
             source = t.children[2]
-            check_expr(source, line)
+            empty = isinstance(source, Tree) and source.data == "empty_list"   # from=[]: no rows, the part is removed (D138)
+            if empty and match is not None:
+                c.error(coded("match= says which rows go into each copy of a section, and from=[] has no rows", "V393"), line)
+            if not binds and not (empty and kind == "section"):
+                c.error(coded(f"REPEAT {kind} names its fields: add <field>=<column> (only a REPEAT section from=[] "
+                              "may leave them out)", "V394"), line)
+            if not empty:
+                check_expr(source, line)
             if isinstance(source, Tree) and source.data == "list_lit":
                 for row in source.children:
                     items = row.children if isinstance(row, Tree) and row.data == "list_lit" else [row]
@@ -141,7 +148,7 @@ def check_document(text, spec):
             if (kind == "section") != isinstance(target, str):
                 c.error(coded("REPEAT row and column take table=<n>; REPEAT section takes a section name", "V361"), line)
                 continue
-            repeats.append((line, kind, target, binds, match))
+            repeats.append((line, kind, target, binds, match, empty))
         elif k["key"] == "KEEP":
             sname = str(t.children[0])
             if sname in keeps:
@@ -153,7 +160,7 @@ def check_document(text, spec):
     tables, table_section, sections = shape["tables"], shape["table_section"], shape["sections"]
     section_repeats = {r[2]: r for r in repeats if r[1] == "section"}
     covered = set()   # (place, field): place is ("table", n) or ("section", name)
-    for line, kind, target, binds, match in repeats:
+    for line, kind, target, binds, match, empty in repeats:
         if kind == "section":
             if target not in sections:
                 c.error(coded(f"the template has no section {target}", "V363"), line)
@@ -162,6 +169,8 @@ def check_document(text, spec):
                 c.error(coded(f"section {target} is both repeated and kept: use one", "V364"), line)
             if [r for r in repeats if r[1] == "section" and r[2] == target][0][0] != line:
                 c.error(coded(f"section {target} is repeated twice", "V365"), line)
+            if empty and binds:
+                c.error(coded(f"REPEAT section {target} from=[] removes the section: it has no fields to bind", "V395"), line)
             for bname in binds:
                 if bname not in sections[target]:
                     c.error(coded(f"section {target} has no field {bname}", "V366"), line)
@@ -207,8 +216,8 @@ def check_document(text, spec):
         if f in in_repeated_tables and places and all((n, f) in covered for n in places):
             continue
         loose.add(f)
-    for sname, (line, _, _, binds, _) in section_repeats.items():
-        if sname not in sections:
+    for sname, (line, _, _, binds, _, empty) in section_repeats.items():
+        if sname not in sections or empty:   # from=[]: the section and the tables inside it are removed (D138)
             continue
         nested = {f for (n, f) in covered if table_section[n - 1] == sname}
         for f in sorted(sections[sname] - set(binds) - nested):
@@ -238,8 +247,11 @@ def check_document(text, spec):
         if len(test.args) != len(spec.args):
             c.error(coded(f"TEST passes {len(test.args)} arguments, but ARGS has {len(spec.args)}", "V382"))
         else:
-            for d, v in zip(spec.args, test.args):
-                if d.type == "Workbook" and v != test.fixture:
+            for i, (d, v) in enumerate(zip(spec.args, test.args)):
+                if i in test.quoted:   # D138
+                    c.error(coded(f"TEST passes '{v}' for ${d.name}: a sheet name in quotes is for a TASK's Worksheet "
+                                  "argument, and a DOCUMENT takes none", "V392"))
+                elif d.type == "Workbook" and v != test.fixture:
                     c.error(coded(f"TEST passes {v} for ${d.name}, a Workbook: pass this TEST's fixture file, "
                                   f"{test.fixture}", "V383"))
                 elif d.type == "Workbook" and not FIXTURE_FILE.fullmatch(v):

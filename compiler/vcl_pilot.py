@@ -35,7 +35,7 @@ import semantics as S  # noqa: E402
 from vcl_codegen import vba_name  # noqa: E402
 from vcl_fixtures import (EXCEL_SANDBOX_MAX, FIXTURE_HELPERS, SANDBOX, parse_fixture, parse_folder,  # noqa: E402
                           proc_name, sandbox_name, vba_for_file, vba_for_folders, vba_literal, vba_text)
-from vcl_interp import run_tests  # noqa: E402
+from vcl_interp import run_tests, sheet_text  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 
 PILOT_SPECS = ("task_12.vcl",)   # the router MVP (docs/vep-0.3-file-ops.md, Phase 5)
@@ -72,6 +72,9 @@ def not_piloted(spec, text):
     sheets in the workbook that holds the macro, which also holds the pilot's own sheets and, after another
     TEST, that TEST's sheets. A macro that only touches the sheets it is given can't tell; one that is given
     a whole workbook, or looks at the workbook itself, could."""
+    if any(k["key"] == "FIXTURE" and k["tree"].data == "template_fixture" for k in spec["keys"]):
+        return ("its practice data is a look-alike KGC template (FIXTURE ... template=), which the practice run "
+                "doesn't build yet; try it on a copy of a workbook")
     for line, fixture, vals, runs in test_calls(spec):
         if any(isinstance(v, Token) and v.type == "FILENAME" for v in vals):
             return ("its practice tests give the macro a whole workbook, and the practice workbook would hold "
@@ -106,7 +109,9 @@ def spec_procedure(name, text):
     for line, fixture, vals, runs in test_calls(spec):
         args = []
         for v in vals:
-            if isinstance(v, Token) and v.type == "NAME" and str(v) in sheets.get(fixture, []):
+            if isinstance(v, Token) and v.type == "QSHEET":   # 'Enq Summary' (D138)
+                args.append(f"ThisWorkbook.Worksheets({vba_text(sheet_text(v))})")
+            elif isinstance(v, Token) and v.type == "NAME" and str(v) in sheets.get(fixture, []):
                 args.append(f'ThisWorkbook.Worksheets("{v}")')
             elif isinstance(v, Token) and v.type == "NAME":   # a FIXTURE folder (F6)
                 args.append(f'root & "\\{v}"')

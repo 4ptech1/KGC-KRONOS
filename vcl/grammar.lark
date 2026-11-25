@@ -44,7 +44,8 @@ test_value: "fixture=" FILENAME read_opt? "call=" call_target "(" [call_arg (","
 // ---------- DOCUMENT key values (VCL 0.7, D115): a Word template filled by KRONOS Offline ----------
 template_value: DOCXNAME
 field_value: NAME "=" expr
-repeat_value: REPEAT_KIND repeat_target "from=" expr match_opt? bind ("," bind)*
+repeat_value: REPEAT_KIND repeat_target "from=" (expr | empty_list) match_opt? (bind ("," bind)*)?
+empty_list: "[" "]"   // VCL 0.7 (D138): no rows, so the repeated part is removed
 repeat_target: TABLE_EQ INT | NAME
 match_opt: MATCH_EQ INT "=" NAME
 bind: NAME "=" INT
@@ -117,7 +118,7 @@ list_lit: "[" expr ("," expr)* "]"
 
 // ---------- TEST pieces ----------
 call_target: NAME | QUALNAME
-?call_arg: NAME | STRING | NUMBER | neg_number | FILENAME   // VCL 0.4: a Workbook argument is its fixture file
+?call_arg: NAME | QSHEET | STRING | NUMBER | neg_number | FILENAME   // VCL 0.4: a Workbook argument is its fixture file; 'Enq Summary': a sheet with spaces (D138)
 neg_number: "-" NUMBER
 assertion: a_cond ("AND" a_cond)*
 a_cond: a_sum (COMP_OP a_sum)?

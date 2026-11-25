@@ -108,6 +108,14 @@ What KRONOS needs for KGC's own documents and VCL 0.6 can't say. The jobs (W1 to
 | R1 | write a cell note (comment) | none |
 | P1 | page numbers in a contents table (they depend on Word's layout) | none: typed and checked by a person |
 
+Found by corpus batch 9 (the document jobs, D137, D138):
+
+| Jobs | Could not do | What a recipe can do today |
+| --- | --- | --- |
+| c168 to c170 | pass a template's sheet whose name has spaces or symbols ('Enq Summary', 'Assumptions & Clarif.') to a Worksheet argument in a TEST | **answered by D138:** `call=StampEnquiry('Enq Summary')` |
+| c184 | a Word recipe with none of a repeated part (no equipment sections, no query rows) | **answered by D138:** `REPEAT ... from=[]` removes it |
+| c162, c163, c166 | practice data that varies on a template: a template FIXTURE is the form as it is, so every TEST sees the same few rows and a recipe's TESTs can't catch enough deliberate bugs (blank keys, a second job, a value at a boundary) | **not yet:** a FIXTURE line that overrides chosen cells of a template (for example `FIXTURE est_02.xlsx template=estimation set='Enq Summary'!B3="",C3=5`), designed with its own note before it is built; meanwhile such a job uses a plain FIXTURE with the template's columns |
+
 ## Wording of the prompt to fix
 
 | Pair | Sentence | Problem |

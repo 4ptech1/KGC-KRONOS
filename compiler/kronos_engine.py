@@ -412,7 +412,8 @@ def sheet_hints(spec_text):
     for ln in spec_text.splitlines():
         m = re.match(rf"TEST\s.*\bcall=\s*{re.escape(proc)}\(([^)]*)\)", ln)
         if m:
-            given = [v.strip() for v in m.group(1).split(",")]
+            given = [v.strip() for v in re.findall(r"'(?:[^']|'')*'|\"(?:[^\"]|\"\")*\"|[^,]+", m.group(1))]
+            given = [v[1:-1].replace("''", "'") if v.startswith("'") else v for v in given]   # 'Enq Summary' (D138)
             return {name: value for (name, typ), value in zip(args, given) if typ == "Worksheet" and value}
     return {}
 

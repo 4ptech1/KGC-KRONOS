@@ -27,7 +27,7 @@ import vba_sim as V  # noqa: E402
 from errcodes import coded  # noqa: E402
 from vcl_codegen import assemble, compile_build, compile_text  # noqa: E402
 from vcl_fixtures import SANDBOX, Formula, build_folders, build_workbooks  # noqa: E402
-from vcl_interp import entry_of, files_of, run_tests, test_number, texts_of  # noqa: E402
+from vcl_interp import entry_of, files_of, run_tests, sheet_text, test_number, texts_of  # noqa: E402
 from vcl_parse import parse  # noqa: E402
 
 __all__ = ["check_text", "Outcome"]
@@ -180,6 +180,8 @@ def check_text(text, name="spec", today=None, module=None):
         for pname, v in zip(params, call_vals):
             if isinstance(v, Token) and v.type == "FILENAME":
                 args.append(book)
+            elif isinstance(v, Token) and v.type == "QSHEET":   # 'Enq Summary' (D138)
+                args.append(book.sheet(sheet_text(v)))
             elif isinstance(v, Token) and v.type == "NAME":
                 if any(ws.name == str(v) for ws in book.sheets):
                     args.append(book.sheet(str(v)))

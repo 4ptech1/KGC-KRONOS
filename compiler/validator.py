@@ -1368,7 +1368,15 @@ class TaskChecker:
                 self.warning(coded("KRONOS Offline only: a TEST reads a second workbook (read=), so no macro is made "
                                    "for this spec until macros may open a second workbook (D36, D114)", "V344"))
         if len(test.args) == len(spec.args) and sheets is not None:
-            for decl, value in zip(spec.args, test.args):
+            for i, (decl, value) in enumerate(zip(spec.args, test.args)):
+                if i in test.quoted:   # VCL 0.7 (D138): 'Enq Summary', a sheet whose name has spaces
+                    if decl.type != "Worksheet":
+                        self.error(coded(f"TEST passes '{value}' for ${decl.name}, a {decl.type}: a sheet name in quotes "
+                                         "is only for a Worksheet argument", "V390"))
+                        continue
+                    if not self.at_least("VCL 0.7"):
+                        self.error(coded(f"a sheet name in quotes in a TEST call ('{value}') is VCL 0.7: start the spec "
+                                         "with 'VCL 0.7' to use it", "V391"))
                 if decl.type == "Workbook" and test.read and value == test.read:   # the read workbook (D114)
                     if decl.name in self.modifies or decl.name in self.modifies_sheets:
                         self.error(coded(f"${decl.name} is the workbook the TEST reads (read={test.read}): it is read-only, "
