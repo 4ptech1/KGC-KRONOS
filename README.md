@@ -428,3 +428,6 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   described, changes its column names to the workbook's where it is sure (each change ticked) and proves it again; then
   Review and Save work as for a recipe file. The old version 7 scope (History, the practice-run check, the corpus
   suggestion, Help) is version 8.
+- **2026-11-25:** The plan for KRONOS's welding and engineering knowledge (D133, `docs/engineering-knowledge-plan.md`):
+  a glossary, KGC's own formulas from the samples confirmed by Boss with a worked example each, and code-book values only
+  from his own workbook. Next: the glossary and the rule sheet for Boss to confirm, then the welding recipes.
