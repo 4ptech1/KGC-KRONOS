@@ -136,7 +136,8 @@ compiler/            vclc.py (the toolchain), validator.py + parser.py, vcl_pars
                      vba_sim.py (the VBA simulator: runs generated VBA without Excel, D90, D98), vba_check.py (the
                      compiled VBA of every TEST in the simulator against the interpreter, D99),
                      vcl_datagen.py (`vclc datagen`: repairs and contrast examples from the pairs, D103),
-                     kronos_finder.py (the recipe finder: data/library.json, search and adapt, D129)
+                     kronos_finder.py (the recipe finder: data/library.json, search and adapt, D129),
+                     vcl_bench.py (`vclc bench`: the benchmark on data/eval, V T M H, D136)
 vba/                 ForgeLib.bas, the VBA runtime every generated procedure calls
 dist/                vclc build output; only forge_module.bas, forge_selftest.bas and
                      forge_pilot.bas are committed (builds/<NAME>.bas: one module per BUILD)
@@ -258,7 +259,8 @@ the samples confirmed by Boss with a worked example each, and code-book values o
 itself; it works out formulas it is given. E1, the glossary, is done (D134: `data/domain/glossary.md`, 84 terms,
 read by the recipe finder). E2, the rule sheet (`docs/engineering-rules.md`,
 18 rules from the samples' formulas with worked examples, D135), waits for Boss's "confirmed"; E3, the welding recipes, starts then.
-**Next meanwhile: the benchmark (step 7)**, then the document corpus batch.
+The benchmark (step 7) is done (D136: `vclc bench`; Claude's baseline: 10 of 15 held-out macros right after 3
+tries, 9 on the first, 4 right with strong tests). **Next: the document corpus batch** (with KGC document jobs added to the held-out items).
 
 **Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
 paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98

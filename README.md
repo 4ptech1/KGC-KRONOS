@@ -434,3 +434,5 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   E1 is done (D134): the glossary of welding, vessel, NDE, estimation and shop words, read by the recipe finder.
   E2 (D135): the rule sheet for Boss to confirm, `docs/engineering-rules.md`: 18 rules from KGC's own formulas, each with
   its worked example recomputed.
+  The benchmark (Boss's step 7, D136): `vclc bench` scores any writer on the 15 held-out requests. Claude's baseline: 10
+  of 15 macros right after KRONOS's 3 tries (9 on the first), 4 right with strong tests; the March model must beat it.
