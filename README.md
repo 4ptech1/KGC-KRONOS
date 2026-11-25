@@ -431,3 +431,4 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
 - **2026-11-25:** The plan for KRONOS's welding and engineering knowledge (D133, `docs/engineering-knowledge-plan.md`):
   a glossary, KGC's own formulas from the samples confirmed by Boss with a worked example each, and code-book values only
   from his own workbook. Next: the glossary and the rule sheet for Boss to confirm, then the welding recipes.
+  E1 is done (D134): the glossary of welding, vessel, NDE, estimation and shop words, read by the recipe finder.
