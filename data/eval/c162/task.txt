@@ -1,0 +1,1 @@
+Copy the parent material block (type, designation, group, thickness and pipe OD, actual columns for both members) from the old WPS into the new WPS form. The old WPS is the second workbook; it is only read.

@@ -1,0 +1,1 @@
+In the register, find enquiry E-9102. Its Result cell is merged over the item rows, so write the value in the first cell only. The value to write is Won.

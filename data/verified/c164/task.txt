@@ -1,0 +1,1 @@
+In the WPS's heat-input check block (outside the print area) clear the PQR values of runs 1 to 3: the PQR I min, I max, U min, U max, v and HI recorded columns of rows 29 to 31. Keep the formulas and everything else.

@@ -1,0 +1,1 @@
+Hi, please take the items of the Enq Summary sheet in the estimation workbook I read from and add them to the enquiry register after its last row. For each one I need Item, Type, U Stamp, Old and Revised Tag No, Qty, MOC, Shell ID, Shell THK and TL to TL, using the enquiry number and date from the first item row. Please also tell me how many rows were added. Thank you!

@@ -137,8 +137,12 @@ class RoundTrip(unittest.TestCase):
                 sheets = {n: sh.snapshot() for n, sh in books[fixture].items()}
                 with self.subTest(spec=path.parent.name if path.name == "spec.vcl" else path.name, line=k["line"]):
                     out = to_xlsx(sheets)
+                    read = None
+                    if k.get("read"):   # D114, D120: the workbook the TEST reads is the second upload
+                        read = (to_xlsx({n: sh.snapshot() for n, sh in books[k["read"]].items()}), k["read"])
+                        args = {n: v for n, v in args.items() if v != k["read"]}
                     for _ in range(runs):   # runs=2 runs it again on the copy, as the TEST runs it again on the sheets
-                        result, out = kb.apply_proven(text, out, "fixture.xlsx", args, TODAY)
+                        result, out = kb.apply_proven(text, out, "fixture.xlsx", args, TODAY, read=read)
                         if out is None:
                             break
                     if expected.errors or expected.result == -1:   # a TEST that expects a stop gives no copy

@@ -1,0 +1,1 @@
+In the estimation workbook, open the Inputs sheet. Set the margin to 0.12 and the plate rate (r_plate) to 95. Write nothing else.

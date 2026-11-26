@@ -1,0 +1,1 @@
+To build the new WPS: - write the new WPS number DM-WPS-203 - copy the filler material designation (actual and qualified), the degree of mechanization, the welding process, and the company name and address from the old WPS, which is in the workbook I read from. The old WPS is only read.

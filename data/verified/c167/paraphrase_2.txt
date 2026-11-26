@@ -1,0 +1,1 @@
+Hi, please add a line to the Conversion sheet after the last activity with these values: Sl as the next number, Scope FH, Activity PWHT of floating head, Basis 'furnace, 1 lot', Qty/set 1, Sets 2, Unit Lot and Rate 40000. Also copy the Total Qty and Amount formulas down from the row above so they work in the new row. Thanks!

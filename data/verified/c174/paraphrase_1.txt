@@ -1,0 +1,1 @@
+Append the Enq Summary items (from the workbook I read from) to the enquiry register after its last row: Item, Type, U Stamp, Old and Revised Tag No, Qty, MOC, Shell ID, Shell THK, TL to TL. Enquiry number and date from the first item row. Tell me the number of rows added.

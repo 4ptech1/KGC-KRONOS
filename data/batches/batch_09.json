@@ -189,7 +189,7 @@
    "proposal"
   ],
   "family": "documents",
-  "request": "Make the technical proposal for enquiry E-9101 with one equipment section per bottle: Suction bottle DM-V-101, 2 Nos, and Discharge bottle DM-V-102, 2 Nos, each with its design data (shell ID 400 and 450 mm, TL-TL 1600 and 1800 mm, thickness 10 mm, design pressure 18 and 35 barg) and its nozzle rows N1 to N3."
+  "request": "Make the technical proposal for enquiry E-9101 with one equipment section per bottle: Suction bottle DM-V-101, 2 Nos, and Discharge bottle DM-V-102, 2 Nos, each with its design data (shell ID 400 and 450 mm, TL-TL 1600 and 1800 mm, thickness 10 mm, design pressure 18 and 35 barg) and its nozzle rows: DM-V-101 N1 Gas inlet 6 in 300#, N2 Gas outlet 6 in 300#, N3 Drain 2 in 300#; DM-V-102 N1 Gas inlet 4 in 600#, N2 Gas outlet 4 in 600#, N3 Drain 1 in 600#."
  },
  {
   "id": "c181",

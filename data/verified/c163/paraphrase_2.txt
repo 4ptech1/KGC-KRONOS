@@ -1,0 +1,1 @@
+Hi, I need a new WPS based on the old one. Please take the company name and address, the welding process, the degree of mechanization and the filler material designation, both actual and qualified, from the old WPS in the workbook I read from, and put them into the new form with the WPS number DM-WPS-203. The old WPS must only be read, never changed. Thanks!

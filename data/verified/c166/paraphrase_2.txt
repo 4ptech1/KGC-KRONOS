@@ -1,0 +1,1 @@
+Hello, could you please go to the Inputs sheet in the estimation workbook and change the plate rate (r_plate) to 95 and the margin to 0.12? Please don't write anything else. Thank you!

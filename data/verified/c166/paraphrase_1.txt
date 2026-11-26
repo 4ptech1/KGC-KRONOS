@@ -1,0 +1,1 @@
+Inputs sheet: r_plate to 95, margin to 0.12. Nothing else.

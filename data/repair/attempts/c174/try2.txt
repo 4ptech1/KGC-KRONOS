@@ -1,0 +1,16 @@
+FAIL: the TESTs catch 58 of 72 deliberate bugs, under 90%. Add TEST cases or FIXTURE rows (or a
+template FIXTURE with other values) that catch these; or, if a change can never make a difference, say why:
+   survives: line 29: 2 -> 3
+   survives: line 30: 'mode=overwrite' -> 'mode=keep'
+   survives: line 30: 1 -> 2
+   survives: line 32: step deleted
+   survives: line 32: 'SKIP_IF' -> 'EXIT_LOOP_IF'
+   survives: line 33: 2 -> 3
+   survives: line 33: 'SKIP_IF' -> 'EXIT_LOOP_IF'
+   survives: line 34: 2 -> 3
+   survives: line 35: 2 -> 3
+   survives: line 46: 'mode=overwrite' -> 'mode=keep'
+   survives: line 46: 2 -> 3
+   survives: line 46: 1 -> 2
+   survives: line 46: "|" -> changed
+   survives: line 46: step deleted

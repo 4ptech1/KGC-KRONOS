@@ -280,7 +280,7 @@ def report():
     have = Counter(p["family"] for p in pairs + held)
     for family, quota in QUOTAS.items():
         lines.append(f"  {family:16} {have[family]:3} of {quota}")
-    lines.append(f"  {'all':16} {sum(have.values()):3} of {sum(QUOTAS.values())}   ({kinds['TASK']} TASKs, {kinds['BUILD']} BUILDs)")
+    lines.append(f"  {'all':16} {sum(have.values()):3} of {sum(QUOTAS.values())}   ({kinds['TASK']} TASKs, {kinds['BUILD']} BUILDs, {kinds.get('DOCUMENT', 0)} DOCUMENTs in data/verified)")
     lines.append("")
     regs = Counter(r for p in pairs + held for r in p["registers"])
     lines.append("Registers: " + ", ".join(f"{r} {regs[r]}" for r in REGISTERS))

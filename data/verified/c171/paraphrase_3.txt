@@ -1,0 +1,1 @@
+New enquiry in the register, placed after the last row. First the items, both Type PV: Knock-out Drum with Qty 1, then Filter Separator with Qty 2. Then the header data: Enquiry E-9104, Date 20.11.2026, End User Demo Chemicals, Project PRJ-104, Sr.No. one more than the last. Merge Sr.No., Enquiry, Date, End User and Project over the item rows as for the other enquiries.

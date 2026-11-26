@@ -1,0 +1,1 @@
+Add enquiry E-9104 to the register after the last row: Sr.No. one more than the last, date 20.11.2026, End User Demo Chemicals, Project PRJ-104, and its two items (Knock-out Drum, Qty 1; Filter Separator, Qty 2), Type PV for both. Merge Sr.No., Enquiry, Date, End User and Project over the item rows like the other enquiries.

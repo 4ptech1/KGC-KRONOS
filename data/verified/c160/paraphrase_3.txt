@@ -1,0 +1,1 @@
+On the WPS form, do the following. First, find the DATE and WPS Revision lines at the top of page 1. Next, find the same two lines at the top of page 2. Then set the date to 25/11/2026 and the revision to R1 in both places. Change nothing else.

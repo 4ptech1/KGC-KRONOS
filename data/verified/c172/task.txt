@@ -1,0 +1,1 @@
+Set the Result of enquiry E-9102 to Won in the register. The Result cell is merged over that enquiry's item rows; write it in its first cell only.

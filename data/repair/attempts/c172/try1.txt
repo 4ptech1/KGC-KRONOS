@@ -1,0 +1,5 @@
+FAIL: the TESTs catch 9 of 12 deliberate bugs, under 90%. Add TEST cases or FIXTURE rows (or a
+template FIXTURE with other values) that catch these; or, if a change can never make a difference, say why:
+   survives: line 16: "Enquiry" -> changed
+   survives: line 16: step deleted
+   survives: line 20: 0 -> 1

@@ -1,0 +1,4 @@
+FAIL. The toolchain's messages:
+spec.vcl:31: warning: FIXTURE sheet Sheet1 has no stale=<n> rows, so no TEST proves old fills are cleared (rule 19) [V055]
+spec.vcl:32: error: B: +boundary uses " " 1 times, but values(...) has it 0 times [V264]
+spec.vcl:32: warning: SKIP_IF skips blank "Enquiry" cells, but FIXTURE sheet Sheet1 has none, so no TEST shows the skip matters: add +blank(<n>) (rule 19) [V059]

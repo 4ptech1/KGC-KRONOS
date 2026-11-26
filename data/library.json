@@ -5470,6 +5470,692 @@
   },
   {
    "assumes": [
+    "The practice form is the sheet WPS; the date is written as \"DATE:- 25/11/2026\" and the revision as \"WPS Revision : R1\", in the cells that hold those labels",
+    "Page 1 labels are H2 and H3, page 2 labels are H35 and H36; nothing else is touched"
+   ],
+   "changes": [
+    "anything on the sheet called \"ws\" in the recipe (WPS in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Change the date to 25/11/2026 and the revision to R1 in the header of page 1 and again in the header of page 2 of the WPS form.",
+   "id": "c160",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Welding Procedure Specification (WPS)",
+      "FORMAT NO:- QF/DM/31"
+     ],
+     "sheet": "WPS"
+    }
+   ],
+   "registers": [
+    "wps"
+   ],
+   "request": "Change the WPS date to 25/11/2026 and the revision to R1 wherever they appear on the form: the DATE and WPS Revision lines at the top of page 1 and again at the top of page 2. Leave everything else as it is.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: The practice form is the sheet WPS; the date is written as \"DATE:- 25/11/2026\" and the revision as \"WPS Revision : R1\", in the cells that hold those labels\n# ASSUME: Page 1 labels are H2 and H3, page 2 labels are H35 and H36; nothing else is touched\nGOAL     Change the date to 25/11/2026 and the revision to R1 in the header of page 1 and again in the header of page 2 of the WPS form.\nPROC     SetWpsDateAndRevision\nKIND     Function\nMODULE   modWps\nARGS     ws As Worksheet\nRET      Long\nVAR      n As Long\nPRE      LEFT(CELL($ws, 2, 8), 5) = \"DATE:\"; LEFT(CELL($ws, 3, 8), 7) = \"WPS Rev\"; LEFT(CELL($ws, 35, 8), 5) = \"DATE:\"; LEFT(CELL($ws, 36, 8), 7) = \"WPS Rev\"\nMODIFIES $ws\nOP       SET_VALUE(CELL($ws, 2, 8), \"DATE:- 25/11/2026\")\nOP       SET_VALUE(CELL($ws, 3, 8), \"WPS Revision : R1\")\nOP       SET_VALUE(CELL($ws, 35, 8), \"DATE:- 25/11/2026\")\nOP       SET_VALUE(CELL($ws, 36, 8), \"WPS Revision : R1\")\nOP       LET(n, 4)\nOP       RETURN(n)\nERR      standard\nFIXTURE  wps_01.xlsx template=wps_form\nTEST     fixture=wps_01.xlsx call=SetWpsDateAndRevision(WPS) runs=2 assert=RESULT = 4 AND ERROR_COUNT = 0 AND VALUE(WPS!H2) = \"DATE:- 25/11/2026\" AND VALUE(WPS!H3) = \"WPS Revision : R1\" AND VALUE(WPS!H35) = \"DATE:- 25/11/2026\" AND VALUE(WPS!H36) = \"WPS Revision : R1\"\nTEST     fixture=wps_01.xlsx call=SetWpsDateAndRevision(WPS) assert=VALUE(WPS!H1) = \"FORMAT NO:- QF/DM/31\" AND VALUE(WPS!C6) = \"DM-WPS-201\" AND VALUE(WPS!B50) = \"02/11/2026\" AND COUNTA(WPS!A1:AC50) = PRE_COUNTA(WPS!A1:AC50) AND VALUE(WPS!H34) = \"FORMAT NO:- QF/DM/31\"\n"
+  },
+  {
+   "assumes": [
+    "The WPS number goes in C6, the revision text next to it in F6, and the WPQR number in C7 of the sheet WPS",
+    "The revision text 'Rev. R0 - first issue' is written as the request gives it, even where the form already says so"
+   ],
+   "changes": [
+    "anything on the sheet called \"ws\" in the recipe (WPS in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Write the new WPS number DM-WPS-202, the revision note Rev. R0 - first issue and the WPQR number DM-PQR-202 on the WPS form.",
+   "id": "c161",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Welding Procedure Specification (WPS)",
+      "FORMAT NO:- QF/DM/31"
+     ],
+     "sheet": "WPS"
+    }
+   ],
+   "registers": [
+    "wps"
+   ],
+   "request": "On the WPS form write the new WPS number DM-WPS-202 in the WPS No. cell and 'Rev. R0 - first issue' next to it, and the WPQR number DM-PQR-202. Nothing else changes.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: The WPS number goes in C6, the revision text next to it in F6, and the WPQR number in C7 of the sheet WPS\n# ASSUME: The revision text 'Rev. R0 - first issue' is written as the request gives it, even where the form already says so\nGOAL     Write the new WPS number DM-WPS-202, the revision note Rev. R0 - first issue and the WPQR number DM-PQR-202 on the WPS form.\nPROC     SetWpsNumbers\nKIND     Function\nMODULE   modWps\nARGS     ws As Worksheet\nRET      Long\nVAR      n As Long\nPRE      LEFT(CELL($ws, 6, 1), 7) = \"Welding\"; LEFT(CELL($ws, 7, 1), 4) = \"WPQR\"\nMODIFIES $ws\nOP       SET_VALUE(CELL($ws, 6, 3), \"DM-WPS-202\")\nOP       SET_VALUE(CELL($ws, 6, 6), \"Rev. R0 - first issue\")\nOP       SET_VALUE(CELL($ws, 7, 3), \"DM-PQR-202\")\nOP       LET(n, 3)\nOP       RETURN(n)\nERR      standard\nFIXTURE  wps_01.xlsx template=wps_form\nTEST     fixture=wps_01.xlsx call=SetWpsNumbers(WPS) runs=2 assert=RESULT = 3 AND ERROR_COUNT = 0 AND VALUE(WPS!C6) = \"DM-WPS-202\" AND VALUE(WPS!F6) = \"Rev. R0 - first issue\" AND VALUE(WPS!C7) = \"DM-PQR-202\"\nTEST     fixture=wps_01.xlsx call=SetWpsNumbers(WPS) assert=VALUE(WPS!F7) = \"Certificate DM/2026/014\" AND VALUE(WPS!C4) = \"Demo Fabricators Pvt Ltd\" AND VALUE(WPS!H3) = \"WPS Revision : R0\" AND VALUE(WPS!C37) = \"Actual (PQR-201)\" AND COUNTA(WPS!A1:AC50) = PRE_COUNTA(WPS!A1:AC50)\n"
+  },
+  {
+   "assumes": [
+    "the sheet is \"WPS\" in both workbooks, laid out as the practice form; its labels are in column A, so they are checked by their cells in PRE",
+    "copied from the old WPS: company name C4, address C5, welding process C8, degree of mechanization C9, filler designation actual C39 and qualified F39",
+    "the new WPS number DM-WPS-203 is written into C6; the revision, PQR number and the rest of the form are not touched",
+    "a blank cell in the old WPS is not copied, so the new form keeps what it had there; the old WPS is only read",
+    "the TESTs use plain sheet FIXTURES for the old WPS (invented values in the form's cells), and the template for the new form"
+   ],
+   "changes": [
+    "anything on the sheet called \"wps\" in the recipe (WPS in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Make a new WPS from the old one by copying company, process, mechanization and filler designation and writing the new number DM-WPS-203.",
+   "id": "c163",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Welding Procedure Specification (WPS)",
+      "FORMAT NO:- QF/DM/31",
+      "Label",
+      "Mark",
+      "Actual",
+      "Hash",
+      "Gap",
+      "Qualified"
+     ],
+     "sheet": "WPS"
+    }
+   ],
+   "registers": [
+    "wps"
+   ],
+   "request": "Make a new WPS from the old one: copy the company name and address, the welding process, the degree of mechanization and the filler material designation (actual and qualified) from the old WPS (the workbook I read from) into the new form, and write the new WPS number DM-WPS-203. The old WPS is only read.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: the sheet is \"WPS\" in both workbooks, laid out as the practice form; its labels are in column A, so they are checked by their cells in PRE\n# ASSUME: copied from the old WPS: company name C4, address C5, welding process C8, degree of mechanization C9, filler designation actual C39 and qualified F39\n# ASSUME: the new WPS number DM-WPS-203 is written into C6; the revision, PQR number and the rest of the form are not touched\n# ASSUME: a blank cell in the old WPS is not copied, so the new form keeps what it had there; the old WPS is only read\n# ASSUME: the TESTs use plain sheet FIXTURES for the old WPS (invented values in the form's cells), and the template for the new form\nGOAL     Make a new WPS from the old one by copying company, process, mechanization and filler designation and writing the new number DM-WPS-203.\nPROC     MakeNewWps\nKIND     Function\nMODULE   modWps\nARGS     wps As Worksheet, oldBook As Workbook\nRET      Long\nVAR      src As Worksheet\nVAR      n As Long\nPRE      CELL($wps, 4, 1) = \"Company Name :\"; CELL($wps, 6, 1) = \"Welding Procedure Specification No. :\"; CELL($wps, 39, 1) = \"Filler Material Designation :\"; CELL(SHEET($oldBook, \"WPS\"), 4, 1) = \"Company Name :\"; CELL(SHEET($oldBook, \"WPS\"), 39, 1) = \"Filler Material Designation :\"\nMODIFIES $wps\nOP       LET(src, SHEET($oldBook, \"WPS\"))\nOP       LOOP_ROWS dir=down from=4 to=9 var=r\nOP         SKIP_IF r = 6 OR r = 7\nOP         SKIP_IF IS_EMPTY(CELL(src, r, 3))\nOP         SET_VALUE(CELL($wps, r, 3), CELL(src, r, 3))\nOP         LET(n, n + 1)\nOP       IF NOT IS_EMPTY(CELL(src, 39, 3))\nOP         SET_VALUE(CELL($wps, 39, 3), CELL(src, 39, 3))\nOP         LET(n, n + 1)\nOP       IF NOT IS_EMPTY(CELL(src, 39, 6))\nOP         SET_VALUE(CELL($wps, 39, 6), CELL(src, 39, 6))\nOP         LET(n, n + 1)\nOP       SET_VALUE(CELL($wps, 6, 3), \"DM-WPS-203\")\nOP       RETURN(n)\nPERF     screen_off\nERR      standard\nFIXTURE  new_01.xlsx template=wps_form\nFIXTURE  old_01.xlsx sheet=WPS cols=A:Label,B:Mark,C:Actual,D:Hash,E:Gap,F:Qualified rows=45 data=A:text(12)+boundary(\"\",\"\",\"Company Name :\",\"Company Address :\",\"Welding Procedure Specification No. :\",\"\",\"Welding Process :\",\"Degree of mechanization :\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Filler Material Designation :\",\"\",\"\",\"\");B:text(4);C:text(12)+boundary(\"\",\"Decoy 3\",\"Alpha Works Pvt Ltd\",\"Plot 7, Sample Park\",\"OLD-WPS-9\",\"OLD-PQR-9\",\"SMAW (111)\",\"Automatic\",\"Decoy 10\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Decoy 38\",\"AWS A5.1 E7018\",\"Decoy 40\",\"Decoy 41\",\"\");D:text(1);E:text(3);F:text(12)+boundary(\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"AWS A5.1 E7018, E7016\",\"Decoy F40\",\"\",\"\")\nFIXTURE  old_02.xlsx sheet=WPS cols=A:Label,B:Mark,C:Actual,D:Hash,E:Gap,F:Qualified rows=45 data=A:text(12)+boundary(\"\",\"\",\"Company Name :\",\"Company Address :\",\"Welding Procedure Specification No. :\",\"\",\"Welding Process :\",\"Degree of mechanization :\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Filler Material Designation :\",\"\",\"\",\"\");B:text(4);C:text(12)+boundary(\"\",\"Decoy 3\",\"Alpha Works Pvt Ltd\",\"\",\"OLD-WPS-9\",\"OLD-PQR-9\",\"SMAW (111)\",\"Automatic\",\"Decoy 10\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"Decoy 38\",\"\",\"Decoy 40\",\"Decoy 41\",\"\");D:text(1);E:text(3);F:text(12)+boundary(\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"AWS A5.1 E7018, E7016\",\"Decoy F40\",\"\",\"\")\nTEST     fixture=new_01.xlsx read=old_01.xlsx call=MakeNewWps(WPS, old_01.xlsx) runs=2 assert=RESULT = 6 AND ERROR_COUNT = 0 AND VALUE(WPS!C4) = \"Alpha Works Pvt Ltd\" AND VALUE(WPS!C5) = \"Plot 7, Sample Park\" AND VALUE(WPS!C8) = \"SMAW (111)\" AND VALUE(WPS!C9) = \"Automatic\" AND VALUE(WPS!C39) = \"AWS A5.1 E7018\" AND VALUE(WPS!F39) = \"AWS A5.1 E7018, E7016\" AND VALUE(WPS!C6) = \"DM-WPS-203\"\nTEST     fixture=new_01.xlsx read=old_02.xlsx call=MakeNewWps(WPS, old_02.xlsx) assert=RESULT = 4 AND ERROR_COUNT = 0 AND VALUE(WPS!C5) = PRE_VALUE(WPS!C5) AND VALUE(WPS!C39) = PRE_VALUE(WPS!C39) AND VALUE(WPS!C4) = \"Alpha Works Pvt Ltd\" AND VALUE(WPS!F39) = \"AWS A5.1 E7018, E7016\" AND VALUE(WPS!C6) = \"DM-WPS-203\"\nTEST     fixture=new_01.xlsx read=old_01.xlsx call=MakeNewWps(WPS, old_01.xlsx) assert=VALUE(WPS!C7) = PRE_VALUE(WPS!C7) AND VALUE(WPS!C10) = PRE_VALUE(WPS!C10) AND VALUE(WPS!F6) = PRE_VALUE(WPS!F6) AND VALUE(WPS!F7) = PRE_VALUE(WPS!F7) AND VALUE(WPS!C12) = PRE_VALUE(WPS!C12) AND VALUE(WPS!C13) = PRE_VALUE(WPS!C13) AND VALUE(WPS!C37) = PRE_VALUE(WPS!C37) AND VALUE(WPS!C40) = PRE_VALUE(WPS!C40) AND VALUE(WPS!A4) = PRE_VALUE(WPS!A4) AND VALUE(WPS!C1) = PRE_VALUE(WPS!C1) AND VALUE(WPS!H3) = PRE_VALUE(WPS!H3)\n"
+  },
+  {
+   "assumes": [
+    "The block is the PQR columns V to AA of rows 29 to 31 on the sheet WPS: PQR I min, I max, U min, U max, v and HI recorded",
+    "Only contents are cleared; the formulas in AB and AC and every other cell stay"
+   ],
+   "changes": [
+    "anything on the sheet called \"ws\" in the recipe (WPS in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Clear the recorded PQR values of runs 1 to 3 (PQR I, U, v and HI recorded) in the heat-input check block of the WPS.",
+   "id": "c164",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Welding Procedure Specification (WPS)",
+      "FORMAT NO:- QF/DM/31"
+     ],
+     "sheet": "WPS"
+    }
+   ],
+   "registers": [
+    "wps"
+   ],
+   "request": "In the WPS's heat-input check block (outside the print area) clear the PQR values of runs 1 to 3: the PQR I min, I max, U min, U max, v and HI recorded columns of rows 29 to 31. Keep the formulas and everything else.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: The block is the PQR columns V to AA of rows 29 to 31 on the sheet WPS: PQR I min, I max, U min, U max, v and HI recorded\n# ASSUME: Only contents are cleared; the formulas in AB and AC and every other cell stay\nGOAL     Clear the recorded PQR values of runs 1 to 3 (PQR I, U, v and HI recorded) in the heat-input check block of the WPS.\nPROC     ClearPqrRunValues\nKIND     Function\nMODULE   modWps\nARGS     ws As Worksheet\nRET      Long\nVAR      n As Long\nPRE      LEFT(CELL($ws, 28, 22), 3) = \"PQR\"; LEFT(CELL($ws, 28, 27), 3) = \"PQR\"; LEFT(CELL($ws, 28, 28), 3) = \"PQR\"\nMODIFIES $ws\nOP       LOOP_ROWS dir=down from=29 to=31 var=r\nOP         CLEAR(ROW_RANGE($ws, r, 22, 27), what=contents)\nOP         LET(n, n + 1)\nOP       RETURN(n)\nERR      standard\nFIXTURE  wps_01.xlsx template=wps_form\nTEST     fixture=wps_01.xlsx call=ClearPqrRunValues(WPS) runs=2 assert=RESULT = 3 AND ERROR_COUNT = 0 AND COUNTA(WPS!V28:AA31) = 6 AND COUNTA(WPS!V29:AA29) = 0 AND COUNTA(WPS!V30:AA30) = 0 AND COUNTA(WPS!V31:AA31) = 0\nTEST     fixture=wps_01.xlsx call=ClearPqrRunValues(WPS) assert=VALUE(WPS!V28) = \"PQR I min\" AND VALUE(WPS!AA28) = \"PQR HI recorded\" AND VALUE(WPS!L29) = 90 AND VALUE(WPS!Q31) = 130 AND VALUE(WPS!N26) = 1.6 AND COUNTA(WPS!A1:AC50) = PRE_COUNTA(WPS!A1:AC50) - 18\n"
+  },
+  {
+   "assumes": [
+    "the name and the date go in the Prepared By block at the bottom of the WPS sheet, in the cell to the right of the labels Name >> and Date >> (B49 and B50 on the practice form, merged to E)",
+    "the labels are found with FIND in column A, so a form with the block on other rows still works; a sheet without both labels is stopped by EXIT_IF and nothing is written",
+    "today's date is written as a real date with the number format dd/mm/yyyy, so it shows as 26/11/2026",
+    "the practice sheet is a plain sheet named WPS with Label, Value and Ref columns, not the merged form, so TESTs can compare the date with a reldates column"
+   ],
+   "changes": [
+    "anything on the sheet called \"ws\" in the recipe (WPS in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Write R. Demo, Welding Engineer as the preparer's name and today's date as dd/mm/yyyy beside the Name and Date labels at the bottom of the WPS sheet.",
+   "id": "c165",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Label",
+      "Value",
+      "Ref"
+     ],
+     "sheet": "WPS"
+    }
+   ],
+   "registers": [
+    "wps"
+   ],
+   "request": "At the bottom of page 2 of the WPS write 'R. Demo, Welding Engineer' as the name of the person who prepared it and today's date (dd/mm/yyyy) in the Date cell.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: the name and the date go in the Prepared By block at the bottom of the WPS sheet, in the cell to the right of the labels Name >> and Date >> (B49 and B50 on the practice form, merged to E)\n# ASSUME: the labels are found with FIND in column A, so a form with the block on other rows still works; a sheet without both labels is stopped by EXIT_IF and nothing is written\n# ASSUME: today's date is written as a real date with the number format dd/mm/yyyy, so it shows as 26/11/2026\n# ASSUME: the practice sheet is a plain sheet named WPS with Label, Value and Ref columns, not the merged form, so TESTs can compare the date with a reldates column\nGOAL     Write R. Demo, Welding Engineer as the preparer's name and today's date as dd/mm/yyyy beside the Name and Date labels at the bottom of the WPS sheet.\nPROC     SignWps\nKIND     Function\nMODULE   modWps\nARGS     ws As Worksheet\nRET      Long\nVAR      nameHit As Range\nVAR      dateHit As Range\nMODIFIES $ws\nOP       LET(nameHit, FIND(USED_RANGE($ws), \"Name >>\", match=whole))\nOP       LET(dateHit, FIND(USED_RANGE($ws), \"Date >>\", match=whole))\nOP       EXIT_IF IS_NOTHING(nameHit)\nOP       EXIT_IF IS_NOTHING(dateHit)\nOP       SET_VALUE(CELL($ws, ROW_OF(nameHit), 2), \"R. Demo, Welding Engineer\")\nOP       SET_VALUE(CELL($ws, ROW_OF(dateHit), 2), TODAY)\nOP       FORMAT(CELL($ws, ROW_OF(dateHit), 2), numfmt=\"dd/mm/yyyy\")\nOP       RETURN(2)\nPERF     screen_off\nERR      standard\nFIXTURE  wps_01.xlsx sheet=WPS cols=A:Label,B:Value,C:Ref rows=4 data=A:values(\"Other\"x1,\"Name >>\"x1,\"Date >>\"x1,\"Remarks\"x1)+boundary(\"Other\",\"Name >>\",\"Date >>\",\"Remarks\");B:values(\"old\"x4);C:reldates(0,0)\nFIXTURE  wps_01.xlsx sheet=Plain cols=A:Label,B:Value rows=3 data=A:values(\"Other\"x3);B:values(\"old\"x3)\nTEST     fixture=wps_01.xlsx call=SignWps(WPS) runs=2 assert=RESULT = 2 AND ERROR_COUNT = 0 AND VALUE(WPS![Value]3) = \"R. Demo, Welding Engineer\" AND VALUE(WPS![Value]4) = VALUE(WPS![Ref]4) AND VALUE(WPS![Value]2) = \"old\" AND VALUE(WPS![Value]5) = \"old\"\nTEST     fixture=wps_01.xlsx call=SignWps(WPS) assert=COUNTA(WPS![Label]) = PRE_COUNTA(WPS![Label]) AND COUNTA(WPS![Ref]) = PRE_COUNTA(WPS![Ref]) AND VALUE(WPS![Label]3) = \"Name >>\" AND VALUE(WPS![Label]4) = \"Date >>\"\nTEST     fixture=wps_01.xlsx call=SignWps(Plain) assert=RESULT = 0 AND ERROR_COUNT = 0 AND VALUE(Plain![Value]2) = \"old\" AND VALUE(Plain![Value]3) = \"old\"\n"
+  },
+  {
+   "assumes": [
+    "the Inputs sheet has the headers \"Ref\" and \"Value\" in row 1; the real sheet is called Inputs, and the TESTs use the short form Inputs with the template's own headings",
+    "the parameters are found by their Ref text, r_plate and margin, ignoring case and spaces; the margin is written as the fraction 0.12",
+    "a Ref that is not on the sheet is not added; nothing else on the sheet is written"
+   ],
+   "changes": [
+    "the Value column of the sheet called \"ws\" in the recipe (Inputs in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Set the plate rate r_plate to 95 and the margin to 0.12 in the Value column of the Inputs sheet and change nothing else.",
+   "id": "c166",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Ref",
+      "Parameter",
+      "Value",
+      "Unit"
+     ],
+     "sheet": "Inputs"
+    }
+   ],
+   "registers": [
+    "estimation"
+   ],
+   "request": "In the estimation workbook's Inputs sheet change the plate rate (r_plate) to 95 and the margin to 0.12. Write nothing else.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: the Inputs sheet has the headers \"Ref\" and \"Value\" in row 1; the real sheet is called Inputs, and the TESTs use the short form Inputs with the template's own headings\n# ASSUME: the parameters are found by their Ref text, r_plate and margin, ignoring case and spaces; the margin is written as the fraction 0.12\n# ASSUME: a Ref that is not on the sheet is not added; nothing else on the sheet is written\nGOAL     Set the plate rate r_plate to 95 and the margin to 0.12 in the Value column of the Inputs sheet and change nothing else.\nPROC     SetPlateRateAndMargin\nKIND     Function\nMODULE   modEstimation\nARGS     ws As Worksheet\nRET      Long\nVAR      cRef As Long\nVAR      cVal As Long\nVAR      n As Long\nPRE      COL($ws, \"Ref\") > 0; COL($ws, \"Value\") > 0\nMODIFIES $ws[\"Value\"]\nOP       LET(cRef, COL($ws, \"Ref\"))\nOP       LET(cVal, COL($ws, \"Value\"))\nOP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, cRef) var=r\nOP         IF SAME(CELL($ws, r, cRef), \"r_plate\")\nOP           SET_VALUE(CELL($ws, r, cVal), 95)\nOP           LET(n, n + 1)\nOP         IF SAME(CELL($ws, r, cRef), \"margin\")\nOP           SET_VALUE(CELL($ws, r, cVal), 0.12)\nOP           LET(n, n + 1)\nOP       RETURN(n)\nPERF     screen_off\nERR      standard\nFIXTURE  inputs_01.xlsx sheet=Inputs cols=A:Ref,B:Parameter,C:Value,D:Unit rows=6 data=A:values(\"fx\"x1,\"r_plate\"x1,\"r_forg\"x1,\"margin\"x1,\"oh\"x1,\"cont\"x1)+boundary(\"fx\",\"r_plate\",\"r_forg\",\"margin\",\"oh\",\"cont\");B:text(10);C:num(1,200)+boundary(85,80,130,0.05,0.1,0.02);D:values(\"INR/kg\"x6)\nFIXTURE  inputs_01.xlsx sheet=Notes cols=A:Note rows=2 data=A:text(8)\nTEST     fixture=inputs_01.xlsx call=SetPlateRateAndMargin(Inputs) runs=2 assert=RESULT = 2 AND ERROR_COUNT = 0 AND VALUE(Inputs![Value]3) = 95 AND VALUE(Inputs![Value]5) = 0.12\nTEST     fixture=inputs_01.xlsx call=SetPlateRateAndMargin(Inputs) assert=VALUE(Inputs![Value]2) = 85 AND VALUE(Inputs![Value]4) = 130 AND VALUE(Inputs![Value]6) = 0.1 AND VALUE(Inputs![Value]7) = 0.02 AND COUNTA(Inputs![Value]) = PRE_COUNTA(Inputs![Value]) AND COUNTA(Inputs![Ref]) = PRE_COUNTA(Inputs![Ref])\nTEST     fixture=inputs_01.xlsx call=SetPlateRateAndMargin(Notes) assert=RESULT = -1 AND ERROR_COUNT = 1\n"
+  },
+  {
+   "assumes": [
+    "the Conversion headings are in row 4 (Sl in A to Amount in J), so PRE checks them by their cells",
+    "the new activity goes in the row below the last used row of column A, and its Sl is that row's Sl plus one",
+    "the Total Qty formula is =Qty/set * Sets (E*F) and the Amount formula is =Total Qty * Rate (G*I), as in the row above",
+    "a re-run does nothing once the last activity is already PWHT of floating head",
+    "the Total CH, FH and ALL sums below the list are left as they are"
+   ],
+   "changes": [
+    "anything on the sheet called \"ws\" in the recipe (Conversion in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Add the PWHT of floating head activity after the last row of the Conversion sheet with the same Total Qty and Amount formulas as the row above.",
+   "id": "c167",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Conversion / Fabrication Cost Estimate - 2 Sets"
+     ],
+     "sheet": "Conversion"
+    }
+   ],
+   "registers": [
+    "estimation"
+   ],
+   "request": "Add a line to the Conversion sheet after the last activity: Sl the next number, Scope FH, Activity PWHT of floating head, Basis 'furnace, 1 lot', Qty/set 1, Sets 2, Unit Lot, Rate 40000. Copy the Total Qty and Amount formulas from the row above so they work for the new row.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: the Conversion headings are in row 4 (Sl in A to Amount in J), so PRE checks them by their cells\n# ASSUME: the new activity goes in the row below the last used row of column A, and its Sl is that row's Sl plus one\n# ASSUME: the Total Qty formula is =Qty/set * Sets (E*F) and the Amount formula is =Total Qty * Rate (G*I), as in the row above\n# ASSUME: a re-run does nothing once the last activity is already PWHT of floating head\n# ASSUME: the Total CH, FH and ALL sums below the list are left as they are\nGOAL     Add the PWHT of floating head activity after the last row of the Conversion sheet with the same Total Qty and Amount formulas as the row above.\nPROC     AddPwhtActivity\nKIND     Function\nMODULE   modEstimation\nARGS     ws As Worksheet\nRET      Long\nVAR      last As Long\nVAR      newRow As Long\nPRE      CELL($ws, 4, 1) = \"Sl\"; CELL($ws, 4, 5) = \"Qty / set\"; CELL($ws, 4, 7) = \"Total Qty\"; CELL($ws, 4, 9) = \"Rate (INR)\"; IS_NUMBER(CELL($ws, LASTROW($ws, 1), 1))\nMODIFIES $ws\nOP       LET(last, LASTROW($ws, 1))\nOP       EXIT_IF SAME(CELL($ws, last, 3), \"PWHT of floating head\")\nOP       LET(newRow, last + 1)\nOP       IF IS_NUMBER(CELL($ws, last, 1))\nOP         SET_VALUE(CELL($ws, newRow, 1), CELL($ws, last, 1) + 1)\nOP       SET_VALUE(CELL($ws, newRow, 2), \"FH\")\nOP       SET_VALUE(CELL($ws, newRow, 3), \"PWHT of floating head\")\nOP       SET_VALUE(CELL($ws, newRow, 4), \"furnace, 1 lot\")\nOP       SET_VALUE(CELL($ws, newRow, 5), 1)\nOP       SET_VALUE(CELL($ws, newRow, 6), 2)\nOP       SET_FORMULA(CELL($ws, newRow, 7), \"=RC5*RC6\", style=r1c1)\nOP       SET_VALUE(CELL($ws, newRow, 8), \"Lot\")\nOP       SET_VALUE(CELL($ws, newRow, 9), 40000)\nOP       SET_FORMULA(CELL($ws, newRow, 10), \"=RC7*RC9\", style=r1c1)\nOP       RETURN(newRow)\nPERF     screen_off\nERR      standard\nFIXTURE  est_01.xlsx template=estimation\nTEST     fixture=est_01.xlsx call=AddPwhtActivity(Conversion) assert=RESULT = 9 AND ERROR_COUNT = 0 AND VALUE(Conversion!A9) = 5 AND VALUE(Conversion!B9) = \"FH\" AND VALUE(Conversion!C9) = \"PWHT of floating head\" AND VALUE(Conversion!D9) = \"furnace, 1 lot\" AND VALUE(Conversion!E9) = 1 AND VALUE(Conversion!F9) = 2 AND VALUE(Conversion!H9) = \"Lot\" AND VALUE(Conversion!I9) = 40000 AND FORMULA(Conversion!G9) = \"=RC5*RC6\" AND FORMULA(Conversion!J9) = \"=RC7*RC9\" AND ROWS_USED(Conversion) = 13\nTEST     fixture=est_01.xlsx call=AddPwhtActivity(Conversion) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND COUNTIF(Conversion!C5:C12, \"PWHT of floating head\") = 1 AND COUNTA(Conversion!A5:A12) = PRE_COUNTA(Conversion!A5:A12) + 1 AND VALUE(Conversion!A8) = 4 AND VALUE(Conversion!C8) = \"Hydrotest & painting\" AND VALUE(Conversion!I8) = 15000 AND VALUE(Conversion!A10) = \"\" AND VALUE(Conversion!I10) = \"Total CH\"\nTEST     fixture=est_01.xlsx call=AddPwhtActivity('Enq Summary') assert=RESULT = -1 AND ERROR_COUNT = 1\n"
+  },
+  {
+   "assumes": [
+    "the real sheet is \"Enq Summary\"; the TESTs use the short form EnqSummary with the template's own headings Sr.Nos., Enquiry, Date and Item",
+    "an item row is a row whose Item cell is not blank; rows with a blank Item are left alone",
+    "today's date is written as a real date and shown as dd.mm.yyyy through its number format",
+    "the enquiry number is written as the text E-9100, replacing what the cell held"
+   ],
+   "changes": [
+    "anything on the sheet called \"ws\" in the recipe (EnqSummary in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Write enquiry number E-9100 and today's date as dd.mm.yyyy in the Enquiry and Date columns of every item row on the Enq Summary sheet.",
+   "id": "c169",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Sr.Nos.",
+      "Enquiry",
+      "Date",
+      "Item"
+     ],
+     "sheet": "EnqSummary"
+    }
+   ],
+   "registers": [
+    "estimation"
+   ],
+   "request": "In the Enq Summary sheet write enquiry number E-9100 in the Enquiry column and today's date in the Date column (as dd.mm.yyyy) for every item row.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: the real sheet is \"Enq Summary\"; the TESTs use the short form EnqSummary with the template's own headings Sr.Nos., Enquiry, Date and Item\n# ASSUME: an item row is a row whose Item cell is not blank; rows with a blank Item are left alone\n# ASSUME: today's date is written as a real date and shown as dd.mm.yyyy through its number format\n# ASSUME: the enquiry number is written as the text E-9100, replacing what the cell held\nGOAL     Write enquiry number E-9100 and today's date as dd.mm.yyyy in the Enquiry and Date columns of every item row on the Enq Summary sheet.\nPROC     StampEnquiry\nKIND     Function\nMODULE   modEnquiry\nARGS     ws As Worksheet\nRET      Long\nVAR      cEnq As Long\nVAR      cDate As Long\nVAR      cItem As Long\nVAR      n As Long\nPRE      COL($ws, \"Enquiry\") > 0; COL($ws, \"Date\") > 0; COL($ws, \"Item\") > 0\nMODIFIES $ws\nOP       LET(cEnq, COL($ws, \"Enquiry\"))\nOP       LET(cDate, COL($ws, \"Date\"))\nOP       LET(cItem, COL($ws, \"Item\"))\nOP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, cItem) var=r\nOP         SKIP_IF IS_EMPTY(CELL($ws, r, cItem))\nOP         SET_VALUE(CELL($ws, r, cEnq), \"E-9100\")\nOP         SET_VALUE(CELL($ws, r, cDate), TODAY)\nOP         FORMAT(CELL($ws, r, cDate), numfmt=\"dd.mm.yyyy\")\nOP         LET(n, n + 1)\nOP       RETURN(n)\nPERF     screen_off\nERR      standard\nFIXTURE  enq_01.xlsx sheet=EnqSummary cols=A:Sr.Nos.,B:Enquiry,C:Date,D:Item rows=6 data=A:seq(1,1);B:text(8);C:reldates(-2,-1)+boundary(-1,-1,-1,-1,-1,-1);D:values(\"Head\"x3,\"Shell\"x2,\"\"x1)+boundary(\"Head\",\"\",\"Shell\",\"Head\",\"Shell\",\"Head\")\nFIXTURE  enq_01.xlsx sheet=Notes cols=A:Note rows=2 data=A:text(8)\nTEST     fixture=enq_01.xlsx call=StampEnquiry(EnqSummary) runs=2 assert=RESULT = 5 AND ERROR_COUNT = 0 AND COUNTIF(EnqSummary![Enquiry], \"E-9100\") = 5 AND VALUE(EnqSummary![Date]2) > VALUE(EnqSummary![Date]3) AND VALUE(EnqSummary![Date]2) = VALUE(EnqSummary![Date]7)\nTEST     fixture=enq_01.xlsx call=StampEnquiry(EnqSummary) assert=VALUE(EnqSummary![Enquiry]3) = PRE_VALUE(EnqSummary![Enquiry]3) AND VALUE(EnqSummary![Date]3) = PRE_VALUE(EnqSummary![Date]3) AND COUNTA(EnqSummary![Item]) = PRE_COUNTA(EnqSummary![Item]) AND COUNTA(EnqSummary![Enquiry]) = PRE_COUNTA(EnqSummary![Enquiry])\nTEST     fixture=enq_01.xlsx call=StampEnquiry(Notes) assert=RESULT = -1 AND ERROR_COUNT = 1\n"
+  },
+  {
+   "assumes": [
+    "Headings are in row 1 of the register; each enquiry's first row holds its Sr.Nos., Enquiry, Date, End User and Project, and the item rows below carry only item columns",
+    "The new rows go straight after the last used row of the Item column; Sr.Nos. is one more than the last number in its column",
+    "Date is typed as text 20.11.2026 as in the other rows; only the five asked columns are merged over the two item rows, written through their top-left cell first",
+    "A run that finds E-9104 already in the register does nothing, so a re-run is safe"
+   ],
+   "changes": [
+    "anything on the sheet called \"ws\" in the recipe (Sheet1 in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Add enquiry E-9104 with its two items after the last row of the enquiry register and merge its Sr.Nos., Enquiry, Date, End User and Project cells over the two item rows.",
+   "id": "c171",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Sr.Nos.",
+      "Enquiry",
+      "Date",
+      "Result",
+      "End User",
+      "EPC /PMC",
+      "LSTK",
+      "Eng Contractor",
+      "Project",
+      "Item",
+      "Type",
+      "U Stamp",
+      "Old Tag No",
+      "Revised Tag No",
+      "Qty",
+      "MOC",
+      "Shell OD",
+      "Shell ID mm",
+      "Shell THK mm",
+      "TL To TL mm",
+      "Drg Unit Wt Kgs",
+      "Actual Wt",
+      "Design Pr Kg/cm2",
+      "Design Temp °C",
+      "Sour, NACE",
+      "HIC/SSC Testing",
+      "PWHT"
+     ],
+     "sheet": "Sheet1"
+    }
+   ],
+   "registers": [
+    "enquiry"
+   ],
+   "request": "Add enquiry E-9104 to the register after the last row: Sr.No. one more than the last, date 20.11.2026, End User Demo Chemicals, Project PRJ-104, and its two items (Knock-out Drum, Qty 1; Filter Separator, Qty 2), Type PV for both. Merge Sr.No., Enquiry, Date, End User and Project over the item rows like the other enquiries.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: Headings are in row 1 of the register; each enquiry's first row holds its Sr.Nos., Enquiry, Date, End User and Project, and the item rows below carry only item columns\n# ASSUME: The new rows go straight after the last used row of the Item column; Sr.Nos. is one more than the last number in its column\n# ASSUME: Date is typed as text 20.11.2026 as in the other rows; only the five asked columns are merged over the two item rows, written through their top-left cell first\n# ASSUME: A run that finds E-9104 already in the register does nothing, so a re-run is safe\nGOAL     Add enquiry E-9104 with its two items after the last row of the enquiry register and merge its Sr.Nos., Enquiry, Date, End User and Project cells over the two item rows.\nPROC     AddEnquiryE9104\nKIND     Function\nMODULE   modRegister\nARGS     ws As Worksheet\nRET      Long\nVAR      cSr As Long\nVAR      cEnq As Long\nVAR      cDate As Long\nVAR      cUser As Long\nVAR      cProj As Long\nVAR      cItem As Long\nVAR      cType As Long\nVAR      cQty As Long\nVAR      last As Long\nVAR      sr As Long\nPRE      COL($ws, \"Sr.Nos.\") > 0; COL($ws, \"Enquiry\") > 0; COL($ws, \"Date\") > 0; COL($ws, \"End User\") > 0; COL($ws, \"Project\") > 0; COL($ws, \"Item\") > 0; COL($ws, \"Type\") > 0; COL($ws, \"Qty\") > 0\nMODIFIES $ws\nOP       LET(cSr, COL($ws, \"Sr.Nos.\"))\nOP       LET(cEnq, COL($ws, \"Enquiry\"))\nOP       LET(cDate, COL($ws, \"Date\"))\nOP       LET(cUser, COL($ws, \"End User\"))\nOP       LET(cProj, COL($ws, \"Project\"))\nOP       LET(cItem, COL($ws, \"Item\"))\nOP       LET(cType, COL($ws, \"Type\"))\nOP       LET(cQty, COL($ws, \"Qty\"))\nOP       EXIT_IF NOT IS_NOTHING(FIND(RANGE($ws, \"B2:B200\"), \"E-9104\"))\nOP       LET(last, LASTROW($ws, cItem))\nOP       LOOP_ROWS dir=up from=last to=2 var=r\nOP         EXIT_LOOP_IF IS_NUMBER(CELL($ws, r, cSr))\nOP       EXIT_IF NOT IS_NUMBER(CELL($ws, r, cSr))\nOP       LET(sr, CELL($ws, r, cSr) + 1)\nOP       SET_VALUE(CELL($ws, last + 1, cSr), sr)\nOP       SET_VALUE(CELL($ws, last + 1, cEnq), \"E-9104\")\nOP       SET_VALUE(CELL($ws, last + 1, cDate), \"20.11.2026\")\nOP       SET_VALUE(CELL($ws, last + 1, cUser), \"Demo Chemicals\")\nOP       SET_VALUE(CELL($ws, last + 1, cProj), \"PRJ-104\")\nOP       SET_VALUE(CELL($ws, last + 1, cItem), \"Knock-out Drum\")\nOP       SET_VALUE(CELL($ws, last + 1, cType), \"PV\")\nOP       SET_VALUE(CELL($ws, last + 1, cQty), 1)\nOP       SET_VALUE(CELL($ws, last + 2, cItem), \"Filter Separator\")\nOP       SET_VALUE(CELL($ws, last + 2, cType), \"PV\")\nOP       SET_VALUE(CELL($ws, last + 2, cQty), 2)\nOP       MERGE(BLOCK($ws, last + 1, cSr, last + 2, cSr))\nOP       MERGE(BLOCK($ws, last + 1, cEnq, last + 2, cEnq))\nOP       MERGE(BLOCK($ws, last + 1, cDate, last + 2, cDate))\nOP       MERGE(BLOCK($ws, last + 1, cUser, last + 2, cUser))\nOP       MERGE(BLOCK($ws, last + 1, cProj, last + 2, cProj))\nOP       RETURN(2)\nERR      standard\nFIXTURE  reg_01.xlsx template=enquiry_register\nTEST     fixture=reg_01.xlsx call=AddEnquiryE9104(Sheet1) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND VALUE(Sheet1![Sr.Nos.]8) = 4 AND VALUE(Sheet1![Enquiry]8) = \"E-9104\" AND VALUE(Sheet1![Date]8) = \"20.11.2026\" AND VALUE(Sheet1![End User]8) = \"Demo Chemicals\" AND VALUE(Sheet1![Project]8) = \"PRJ-104\" AND VALUE(Sheet1![Item]8) = \"Knock-out Drum\" AND VALUE(Sheet1![Item]9) = \"Filter Separator\" AND VALUE(Sheet1![Type]8) = \"PV\" AND VALUE(Sheet1![Type]9) = \"PV\" AND VALUE(Sheet1![Qty]8) = 1 AND VALUE(Sheet1![Qty]9) = 2\nTEST     fixture=reg_01.xlsx call=AddEnquiryE9104(Sheet1) assert=RESULT = 2 AND MERGED(Sheet1!A8:A9) = 1 AND MERGED(Sheet1!B8:B9) = 1 AND MERGED(Sheet1!C8:C9) = 1 AND MERGED(Sheet1!E8:E9) = 1 AND MERGED(Sheet1!I8:I9) = 1 AND MERGED(Sheet1!D8:D9) = 0 AND MERGED(Sheet1!F8:F9) = 0 AND MERGED(Sheet1!A4:A6) = 1 AND ROWS_USED(Sheet1) = 9 AND VALUE(Sheet1![Enquiry]7) = \"E-9103\" AND COUNTA(Sheet1![Item]) = PRE_COUNTA(Sheet1![Item]) + 2\n"
+  },
+  {
+   "assumes": [
+    "The enquiry number is in the Enquiry column, written in the first row of the enquiry; its Result cell is merged over the item rows and is written in that first row only",
+    "Headings are in row 1; a missing enquiry changes nothing and the macro returns 0; the enquiry number is matched ignoring case and spaces"
+   ],
+   "changes": [
+    "the Result column of the sheet called \"ws\" in the recipe (Sheet1 in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Set the Result of enquiry E-9102 to Won in the first cell of its merged Result range in the enquiry register.",
+   "id": "c172",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Sr.Nos.",
+      "Enquiry",
+      "Date",
+      "Result",
+      "End User",
+      "EPC /PMC",
+      "LSTK",
+      "Eng Contractor",
+      "Project",
+      "Item",
+      "Type",
+      "U Stamp",
+      "Old Tag No",
+      "Revised Tag No",
+      "Qty",
+      "MOC",
+      "Shell OD",
+      "Shell ID mm",
+      "Shell THK mm",
+      "TL To TL mm",
+      "Drg Unit Wt Kgs",
+      "Actual Wt",
+      "Design Pr Kg/cm2",
+      "Design Temp °C",
+      "Sour, NACE",
+      "HIC/SSC Testing",
+      "PWHT"
+     ],
+     "sheet": "Sheet1"
+    }
+   ],
+   "registers": [
+    "enquiry"
+   ],
+   "request": "Set the Result of enquiry E-9102 to Won in the register. The Result cell is merged over that enquiry's item rows; write it in its first cell only.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: The enquiry number is in the Enquiry column, written in the first row of the enquiry; its Result cell is merged over the item rows and is written in that first row only\n# ASSUME: Headings are in row 1; a missing enquiry changes nothing and the macro returns 0; the enquiry number is matched ignoring case and spaces\nGOAL     Set the Result of enquiry E-9102 to Won in the first cell of its merged Result range in the enquiry register.\nPROC     SetEnquiryResultWon\nKIND     Function\nMODULE   modRegister\nARGS     ws As Worksheet\nRET      Long\nVAR      cEnq As Long\nVAR      cRes As Long\nVAR      n As Long\nPRE      COL($ws, \"Enquiry\") > 0; COL($ws, \"Result\") > 0\nMODIFIES $ws[\"Result\"]\nOP       LET(cEnq, COL($ws, \"Enquiry\"))\nOP       LET(cRes, COL($ws, \"Result\"))\nOP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, cEnq) var=r\nOP         SKIP_IF NOT SAME(CELL($ws, r, cEnq), \"E-9102\")\nOP         SET_VALUE(CELL($ws, r, cRes), \"Won\")\nOP         LET(n, n + 1)\nOP       RETURN(n)\nERR      standard\nFIXTURE  reg_01.xlsx template=enquiry_register\nTEST     fixture=reg_01.xlsx call=SetEnquiryResultWon(Sheet1) runs=2 assert=RESULT = 1 AND ERROR_COUNT = 0 AND VALUE(Sheet1![Result]4) = \"Won\" AND MERGED(Sheet1!D4:D6) = 1\nTEST     fixture=reg_01.xlsx call=SetEnquiryResultWon(Sheet1) assert=VALUE(Sheet1![Result]2) = \"Lost\" AND COUNTA(Sheet1![Result]) = PRE_COUNTA(Sheet1![Result]) + 1 AND COUNTIF(Sheet1![Result], \"Won\") = 1 AND VALUE(Sheet1![Enquiry]4) = \"E-9102\" AND VALUE(Sheet1![Result]7) = \"\"\n"
+  },
+  {
+   "assumes": [
+    "both sheets have their headings in row 1; the Enq Summary sheet is the one named \"Enq Summary\" of the workbook read from",
+    "the first item row is row 2 of Enq Summary; its Enquiry and Date are written on every new register row as that text",
+    "if the register's last row already carries the same Enquiry as the first item row, the items are already there and nothing is added",
+    "rows are added after the last row that holds an Item; the Sr.Nos. and other columns of a new row are left blank"
+   ],
+   "changes": [
+    "the Enquiry, Date, Item, Type, U Stamp, Old Tag No, Revised Tag No, Qty, MOC, Shell ID mm, Shell THK mm and TL To TL mm columns of the sheet called \"reg\" in the recipe (Sheet1 in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Append each item of the estimation workbook's Enq Summary sheet to the enquiry register after its last row and return how many rows were added.",
+   "id": "c174",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Sr.Nos.",
+      "Enquiry",
+      "Date",
+      "Result",
+      "End User",
+      "EPC /PMC",
+      "LSTK",
+      "Eng Contractor",
+      "Project",
+      "Item",
+      "Type",
+      "U Stamp",
+      "Old Tag No",
+      "Revised Tag No",
+      "Qty",
+      "MOC",
+      "Shell OD",
+      "Shell ID mm",
+      "Shell THK mm",
+      "TL To TL mm",
+      "Drg Unit Wt Kgs",
+      "Actual Wt",
+      "Design Pr Kg/cm2",
+      "Design Temp °C",
+      "Sour, NACE",
+      "HIC/SSC Testing",
+      "PWHT"
+     ],
+     "sheet": "Sheet1"
+    }
+   ],
+   "registers": [
+    "enquiry",
+    "estimation"
+   ],
+   "request": "Add the items of the estimation workbook's Enq Summary sheet (the workbook I read from) to the enquiry register after its last row: Item, Type, U Stamp, Old and Revised Tag No, Qty, MOC, Shell ID, Shell THK and TL to TL for each, with the enquiry number and date from the first item row. Tell me how many rows were added.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: both sheets have their headings in row 1; the Enq Summary sheet is the one named \"Enq Summary\" of the workbook read from\n# ASSUME: the first item row is row 2 of Enq Summary; its Enquiry and Date are written on every new register row as that text\n# ASSUME: if the register's last row already carries the same Enquiry as the first item row, the items are already there and nothing is added\n# ASSUME: rows are added after the last row that holds an Item; the Sr.Nos. and other columns of a new row are left blank\nGOAL     Append each item of the estimation workbook's Enq Summary sheet to the enquiry register after its last row and return how many rows were added.\nPROC     AddEnquiryItems\nKIND     Function\nMODULE   modRegister\nARGS     reg As Worksheet, est As Workbook\nRET      Long\nVAR      src As Worksheet\nVAR      cRegItem As Long\nVAR      cRegTag As Long\nVAR      cSrcItem As Long\nVAR      cSrcTag As Long\nVAR      outRow As Long\nVAR      added As Long\nPRE      SHEET_EXISTS($est, \"Enq Summary\"); COL($reg, \"Item\") > 0; COL($reg, \"Revised Tag No\") > 0; COL($reg, \"Enquiry\") > 0; COL($reg, \"Date\") > 0; COL($reg, \"Type\") > 0; COL($reg, \"U Stamp\") > 0; COL($reg, \"Old Tag No\") > 0; COL($reg, \"Qty\") > 0; COL($reg, \"MOC\") > 0; COL($reg, \"Shell ID mm\") > 0; COL($reg, \"Shell THK mm\") > 0; COL($reg, \"TL To TL mm\") > 0; COL(SHEET($est, \"Enq Summary\"), \"Item\") > 0; COL(SHEET($est, \"Enq Summary\"), \"Revised Tag No\") > 0; COL(SHEET($est, \"Enq Summary\"), \"Enquiry\") > 0; COL(SHEET($est, \"Enq Summary\"), \"Date\") > 0; COL(SHEET($est, \"Enq Summary\"), \"Type\") > 0; COL(SHEET($est, \"Enq Summary\"), \"U Stamp\") > 0; COL(SHEET($est, \"Enq Summary\"), \"Old Tag No\") > 0; COL(SHEET($est, \"Enq Summary\"), \"Qty\") > 0; COL(SHEET($est, \"Enq Summary\"), \"MOC\") > 0; COL(SHEET($est, \"Enq Summary\"), \"Shell ID mm\") > 0; COL(SHEET($est, \"Enq Summary\"), \"Shell THK mm\") > 0; COL(SHEET($est, \"Enq Summary\"), \"TL To TL mm\") > 0\nMODIFIES $reg[\"Enquiry\", \"Date\", \"Item\", \"Type\", \"U Stamp\", \"Old Tag No\", \"Revised Tag No\", \"Qty\", \"MOC\", \"Shell ID mm\", \"Shell THK mm\", \"TL To TL mm\"]\nOP       LET(src, SHEET($est, \"Enq Summary\"))\nOP       LET(cRegItem, COL($reg, \"Item\"))\nOP       LET(cRegTag, COL($reg, \"Revised Tag No\"))\nOP       LET(cSrcItem, COL(src, \"Item\"))\nOP       LET(cSrcTag, COL(src, \"Revised Tag No\"))\nOP       EXIT_IF SAME(CELL($reg, LASTROW($reg, cRegItem), COL($reg, \"Enquiry\")), CELL(src, 2, COL(src, \"Enquiry\")))\nOP       LET(outRow, LASTROW($reg, cRegItem) + 1)\nOP       LOOP_ROWS dir=down from=2 to=LASTROW(src, cSrcItem) var=r\nOP         SKIP_IF IS_EMPTY(CELL(src, r, cSrcItem))\nOP         SET_VALUE(CELL($reg, outRow, COL($reg, \"Enquiry\")), CELL(src, 2, COL(src, \"Enquiry\")))\nOP         SET_VALUE(CELL($reg, outRow, COL($reg, \"Date\")), CELL(src, 2, COL(src, \"Date\")))\nOP         SET_VALUE(CELL($reg, outRow, cRegItem), CELL(src, r, cSrcItem))\nOP         SET_VALUE(CELL($reg, outRow, COL($reg, \"Type\")), CELL(src, r, COL(src, \"Type\")))\nOP         SET_VALUE(CELL($reg, outRow, COL($reg, \"U Stamp\")), CELL(src, r, COL(src, \"U Stamp\")))\nOP         SET_VALUE(CELL($reg, outRow, COL($reg, \"Old Tag No\")), CELL(src, r, COL(src, \"Old Tag No\")))\nOP         SET_VALUE(CELL($reg, outRow, cRegTag), CELL(src, r, cSrcTag))\nOP         SET_VALUE(CELL($reg, outRow, COL($reg, \"Qty\")), CELL(src, r, COL(src, \"Qty\")))\nOP         SET_VALUE(CELL($reg, outRow, COL($reg, \"MOC\")), CELL(src, r, COL(src, \"MOC\")))\nOP         SET_VALUE(CELL($reg, outRow, COL($reg, \"Shell ID mm\")), CELL(src, r, COL(src, \"Shell ID mm\")))\nOP         SET_VALUE(CELL($reg, outRow, COL($reg, \"Shell THK mm\")), CELL(src, r, COL(src, \"Shell THK mm\")))\nOP         SET_VALUE(CELL($reg, outRow, COL($reg, \"TL To TL mm\")), CELL(src, r, COL(src, \"TL To TL mm\")))\nOP         LET(outRow, outRow + 1)\nOP         LET(added, added + 1)\nOP       RETURN(added)\nPERF     screen_off\nERR      standard\nFIXTURE  register_01.xlsx template=enquiry_register\nFIXTURE  estimation_01.xlsx template=estimation\nTEST     fixture=register_01.xlsx read=estimation_01.xlsx call=AddEnquiryItems(Sheet1, estimation_01.xlsx) runs=2 assert=RESULT = 0 AND ERROR_COUNT = 0 AND ROWS_USED(Sheet1) = 9\nTEST     fixture=register_01.xlsx read=estimation_01.xlsx call=AddEnquiryItems(Sheet1, estimation_01.xlsx) assert=RESULT = 2 AND ERROR_COUNT = 0 AND COUNTA(Sheet1![Item]) = PRE_COUNTA(Sheet1![Item]) + 2 AND VALUE(Sheet1![Enquiry]8) = \"E-9100 (TBA)\" AND VALUE(Sheet1![Enquiry]9) = \"E-9100 (TBA)\" AND VALUE(Sheet1![Date]9) = \"02.11.2026\" AND VALUE(Sheet1![Item]8) = \"Channel Head Assembly\" AND VALUE(Sheet1![Item]9) = \"Floating Head Assembly\" AND VALUE(Sheet1![Type]9) = \"HE Part\" AND VALUE(Sheet1![U Stamp]8) = \"No\"\nTEST     fixture=register_01.xlsx read=estimation_01.xlsx call=AddEnquiryItems(Sheet1, estimation_01.xlsx) assert=VALUE(Sheet1![Old Tag No]8) = \"DM-1001A\" AND VALUE(Sheet1![Revised Tag No]9) = \"DM-1001B\" AND VALUE(Sheet1![Qty]8) = 2 AND VALUE(Sheet1![MOC]9) = \"SA 516 Gr 70\" AND VALUE(Sheet1![Shell ID mm]8) = 700 AND VALUE(Sheet1![Shell THK mm]9) = 18 AND VALUE(Sheet1![TL To TL mm]8) = 1200 AND VALUE(Sheet1![Shell ID mm]9) = 640 AND VALUE(Sheet1![Date]8) = \"02.11.2026\" AND VALUE(Sheet1![TL To TL mm]9) = 900 AND VALUE(Sheet1![Shell THK mm]8) = 16 AND VALUE(Sheet1![Old Tag No]9) = \"DM-1001B\" AND VALUE(Sheet1![Qty]9) = 2 AND VALUE(Sheet1![MOC]8) = \"SA 516 Gr 70\" AND VALUE(Sheet1![Type]8) = \"HE Part\" AND VALUE(Sheet1![U Stamp]9) = \"No\" AND VALUE(Sheet1![Revised Tag No]8) = \"DM-1001A\"\n"
+  },
+  {
+   "assumes": [
+    "the register's headings are in row 1 and include \"Enquiry\" and \"Result\"",
+    "an enquiry is a row whose Enquiry cell holds a value (the top-left cell of its merged block); Result is read in that same row",
+    "a blank Result means empty or only spaces; the highlight is yellow on the Enquiry cell only",
+    "old highlights are the fills on the whole Enquiry column below the heading, all removed before the new ones are made",
+    "the second practice fixture is a plain sheet because the template has no old fills to clear"
+   ],
+   "changes": [
+    "the fill colours of the sheet called \"ws\" in the recipe (Sheet1 in the practice tests)"
+   ],
+   "family": "documents",
+   "goal": "Clear the fills of the Enquiry column and highlight yellow the Enquiry cell of every enquiry whose Result is still blank, returning how many.",
+   "id": "c175",
+   "kind": "TASK",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Sr.Nos.",
+      "Enquiry",
+      "Date",
+      "Result",
+      "End User",
+      "EPC /PMC",
+      "LSTK",
+      "Eng Contractor",
+      "Project",
+      "Item",
+      "Type",
+      "U Stamp",
+      "Old Tag No",
+      "Revised Tag No",
+      "Qty",
+      "MOC",
+      "Shell OD",
+      "Shell ID mm",
+      "Shell THK mm",
+      "TL To TL mm",
+      "Drg Unit Wt Kgs",
+      "Actual Wt",
+      "Design Pr Kg/cm2",
+      "Design Temp °C",
+      "Sour, NACE",
+      "HIC/SSC Testing",
+      "PWHT"
+     ],
+     "sheet": "Sheet1"
+    }
+   ],
+   "registers": [
+    "enquiry"
+   ],
+   "request": "Highlight yellow the Enquiry cell of every enquiry in the register whose Result is still blank, and tell me how many there are. Clear old highlights first.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nTASK\n# ASSUME: the register's headings are in row 1 and include \"Enquiry\" and \"Result\"\n# ASSUME: an enquiry is a row whose Enquiry cell holds a value (the top-left cell of its merged block); Result is read in that same row\n# ASSUME: a blank Result means empty or only spaces; the highlight is yellow on the Enquiry cell only\n# ASSUME: old highlights are the fills on the whole Enquiry column below the heading, all removed before the new ones are made\n# ASSUME: the second practice fixture is a plain sheet because the template has no old fills to clear\nGOAL     Clear the fills of the Enquiry column and highlight yellow the Enquiry cell of every enquiry whose Result is still blank, returning how many.\nPROC     HighlightOpenEnquiries\nKIND     Function\nMODULE   modRegister\nARGS     ws As Worksheet\nRET      Long\nVAR      cEnq As Long\nVAR      cRes As Long\nVAR      marked As Long\nPRE      COL($ws, \"Enquiry\") > 0; COL($ws, \"Result\") > 0\nMODIFIES $ws fills\nOP       LET(cEnq, COL($ws, \"Enquiry\"))\nOP       LET(cRes, COL($ws, \"Result\"))\nOP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, cEnq) var=r\nOP         FORMAT(CELL($ws, r, cEnq), fill=none)\nOP       LOOP_ROWS dir=down from=2 to=LASTROW($ws, cEnq) var=r\nOP         SKIP_IF IS_EMPTY(CELL($ws, r, cEnq))\nOP         IF IS_EMPTY(CELL($ws, r, cRes))\nOP           FORMAT(CELL($ws, r, cEnq), fill=yellow)\nOP           LET(marked, marked + 1)\nOP       RETURN(marked)\nPERF     screen_off\nERR      standard\nFIXTURE  register_01.xlsx template=enquiry_register\nFIXTURE  plain_01.xlsx sheet=Sheet1 cols=A:Enquiry,B:Result rows=6 stale=5 data=A:seq(1,1)+boundary(1,\"\");B:values(\"Won\"x2,\"Lost\"x1,\"\"x3)+boundary(\"\",\"\",\"\")\nFIXTURE  plain_01.xlsx sheet=Notes cols=A:Note rows=2 data=A:text(8)\nTEST     fixture=register_01.xlsx call=HighlightOpenEnquiries(Sheet1) runs=2 assert=RESULT = 2 AND ERROR_COUNT = 0 AND FILL_COUNT(Sheet1![Enquiry], #FFFF00) = 2 AND FILL_COUNT(Sheet1![Enquiry], #FFFF00) = RESULT\nTEST     fixture=register_01.xlsx call=HighlightOpenEnquiries(Sheet1) assert=COUNTA(Sheet1![Enquiry]) = PRE_COUNTA(Sheet1![Enquiry]) AND COUNTA(Sheet1![Result]) = PRE_COUNTA(Sheet1![Result]) AND FILL_COUNT(Sheet1![Result], #FFFF00) = 0\nTEST     fixture=plain_01.xlsx call=HighlightOpenEnquiries(Sheet1) assert=RESULT = 2 AND ERROR_COUNT = 0 AND FILL_COUNT(Sheet1![Enquiry], #FF0000) = 0 AND FILL_COUNT(Sheet1![Enquiry], #FFFF00) = 2\nTEST     fixture=plain_01.xlsx call=HighlightOpenEnquiries(Notes) assert=RESULT = -1 AND ERROR_COUNT = 1\n"
+  },
+  {
+   "assumes": [
+    "the estimation workbook is passed as a Workbook argument; its Assumptions & Clarif. sheet has the numbers in column A and the clarification in column B, from row 4 to the last used row of column A",
+    "one paragraph per row, taking the text of column B only",
+    "the request gives no header values, price rows, weights or costs, so every field is filled with \"\" and the price rows, the weight columns and the cost sections are removed with from=[]"
+   ],
+   "changes": [
+    "nothing in any workbook: it fills a copy of your Word template and leaves the template as it is"
+   ],
+   "family": "documents",
+   "goal": "Write the basis and assumptions section of the internal estimation sheet with one paragraph for each row of the workbook's assumptions sheet.",
+   "id": "c178",
+   "kind": "DOCUMENT",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "COST ESTIMATE SUMMARY - Practice Channel & Floating Head Assemblies, DM-1001A/B"
+     ],
+     "sheet": "Summary"
+    },
+    {
+     "headers": [
+      "Estimation Inputs - Rates & Factors (invented, for practice)"
+     ],
+     "sheet": "Inputs"
+    },
+    {
+     "headers": [
+      "Bill of Materials - Raw Material (2 sets)"
+     ],
+     "sheet": "BOM-RM"
+    },
+    {
+     "headers": [
+      "Conversion / Fabrication Cost Estimate - 2 Sets"
+     ],
+     "sheet": "Conversion"
+    },
+    {
+     "headers": [
+      "Hydrotest Options - Cost Adders (2 Sets)"
+     ],
+     "sheet": "Hydrotest Options"
+    },
+    {
+     "headers": [
+      "Sr.Nos.",
+      "Enquiry",
+      "Date",
+      "Result",
+      "End User",
+      "EPC /PMC",
+      "LSTK",
+      "Eng Contractor",
+      "Project",
+      "Item",
+      "Type",
+      "U Stamp",
+      "Old Tag No",
+      "Revised Tag No",
+      "Qty",
+      "MOC",
+      "Shell OD",
+      "Shell ID mm",
+      "Shell THK mm",
+      "TL To TL mm",
+      "Drg Unit Wt Kgs",
+      "Actual Wt",
+      "Design Pr Kg/cm2",
+      "Design Temp °C",
+      "Sour, NACE",
+      "HIC/SSC Testing",
+      "PWHT",
+      "Unit Price Opt-1 (INR)",
+      "Unit Price Opt-2 (INR)"
+     ],
+     "sheet": "Enq Summary"
+    },
+    {
+     "headers": [
+      "Assumptions & Clarifications"
+     ],
+     "sheet": "Assumptions & Clarif."
+    }
+   ],
+   "registers": [
+    "estimate_sheet",
+    "estimation"
+   ],
+   "request": "In the internal estimation sheet write the basis and assumptions section: one paragraph per row of the Assumptions & Clarif. sheet of the estimation workbook.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nDOCUMENT\n# ASSUME: the estimation workbook is passed as a Workbook argument; its Assumptions & Clarif. sheet has the numbers in column A and the clarification in column B, from row 4 to the last used row of column A\n# ASSUME: one paragraph per row, taking the text of column B only\n# ASSUME: the request gives no header values, price rows, weights or costs, so every field is filled with \"\" and the price rows, the weight columns and the cost sections are removed with from=[]\nGOAL     Write the basis and assumptions section of the internal estimation sheet with one paragraph for each row of the workbook's assumptions sheet.\nNAME     FillEstimateAssumptions\nTEMPLATE estimate_template.docx\nARGS     book As Workbook\nFIELD    Est_No = \"\"\nFIELD    Date = \"\"\nFIELD    Enquiry = \"\"\nFIELD    Title = \"\"\nFIELD    Client = \"\"\nFIELD    End_User = \"\"\nFIELD    Price_Basis = \"\"\nFIELD    Total_Qty = \"\"\nFIELD    Grand_Total = \"\"\nREPEAT   row table=2 from=[] Sl=1, Item=2, Qty=3, Weight=4, Unit_Price=5, Total=6\nREPEAT   section Assumption from=BLOCK(SHEET($book, \"Assumptions & Clarif.\"), 4, 1, LASTROW(SHEET($book, \"Assumptions & Clarif.\"), 2), 2) Text=2\nREPEAT   column table=3 from=[] Tag=1, Shell_Wt=2, Ends_Wt=3, Fin_Wt=4\nREPEAT   section Cost from=[]\nFIXTURE  est_01.xlsx template=estimation\nTEST     fixture=est_01.xlsx call=FillEstimateAssumptions(est_01.xlsx) assert=SECTION_COUNT(Assumption) = 4 AND TEXT_HAS(\"Prices ex-works, packing included; freight and taxes extra.\") = 1 AND TEXT_HAS(\"Rates are invented practice rates.\") = 1 AND TEXT_HAS(\"Option 1 has no shop hydrotest; option 2 uses a test cover and ring.\") = 1 AND TEXT_HAS(\"Quantities are per the practice enquiry.\") = 1 AND SECTION_COUNT(Cost) = 0 AND TABLE_ROWS(2) = 2 AND TABLE_COLS(3) = 1 AND LEFT_OVER = 0 AND ERROR_COUNT = 0\nTEST     fixture=est_01.xlsx call=FillEstimateAssumptions(est_01.xlsx) assert=TEXT_HAS(\"Assumptions & Clarifications\") = 0 AND TEXT_HAS(\"Option 1 adder\") = 0 AND FIELD_TEXT(Est_No) = \"\" AND FIELD_TEXT(Enquiry) = \"\" AND FIELD_TEXT(Client) = \"\" AND FIELD_TEXT(Price_Basis) = \"\" AND TABLE_ROWS(1) = 4 AND TABLE_CELL(2, 2, 2) = \"Total (excl. GST)\"\n"
+  },
+  {
+   "assumes": [
+    "The request gives no items, equipment, nozzles, NACE requirements or queries, so those parts are removed and Total_Qty is filled with \"\".",
+    "The basis of offer is a draft sentence for the engineer to check, so it is AI_TEXT."
+   ],
+   "changes": [
+    "nothing in any workbook: it fills a copy of your Word template and leaves the template as it is"
+   ],
+   "family": "documents",
+   "goal": "Fill the proposal's cover and header with the client, item line, end user, references and a draft basis of offer.",
+   "id": "c179",
+   "kind": "DOCUMENT",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Note"
+     ],
+     "sheet": "Notes"
+    }
+   ],
+   "registers": [
+    "proposal"
+   ],
+   "request": "Fill the technical proposal's cover and header: client Demo EPC, item line 'Pulsation bottles, 4 Nos', end user Example Gas Co, enquiry ref E-9101, proposal P-2750-0001 and date 25 Nov 2026, with the basis of offer as a draft sentence for me to check.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nDOCUMENT\n# ASSUME: The request gives no items, equipment, nozzles, NACE requirements or queries, so those parts are removed and Total_Qty is filled with \"\".\n# ASSUME: The basis of offer is a draft sentence for the engineer to check, so it is AI_TEXT.\nGOAL     Fill the proposal's cover and header with the client, item line, end user, references and a draft basis of offer.\nNAME     FillProposalCover\nTEMPLATE proposal_template.docx\nFIELD    Client = \"Demo EPC\"\nFIELD    Item_Line = \"Pulsation bottles, 4 Nos\"\nFIELD    End_User = \"Example Gas Co\"\nFIELD    Enquiry_Ref = \"E-9101\"\nFIELD    Proposal_No = \"P-2750-0001\"\nFIELD    Date = \"25 Nov 2026\"\nFIELD    Basis = AI_TEXT(\"Offer is based on the enquiry data sheets and ASME VIII Div 1, latest edition.\")\nFIELD    Total_Qty = \"\"\nREPEAT   row table=2 from=[] Sl=1, Item=2, Tag=3, Qty=4\nREPEAT   section Equipment from=[]\nREPEAT   row table=5 from=[] Requirement=1, Confirmation=2\nREPEAT   row table=6 from=[] TQ_No=1, Requirement=2, Query=3\nKEEP     Nace IF FALSE\nFIXTURE  notes_01.xlsx sheet=Notes cols=A:Note rows=1 data=A:values(\"practice\"x1)\nTEST     fixture=notes_01.xlsx call=FillProposalCover() assert=FIELD_TEXT(Client) = \"Demo EPC\" AND FIELD_TEXT(Proposal_No) = \"P-2750-0001\" AND FIELD_TEXT(Date) = \"25 Nov 2026\" AND FIELD_TEXT(Item_Line) = \"Pulsation bottles, 4 Nos\" AND FIELD_TEXT(End_User) = \"Example Gas Co\" AND FIELD_TEXT(Enquiry_Ref) = \"E-9101\" AND TEXT_HAS(\"Offer is based on the enquiry data sheets\") = 1 AND SECTION_COUNT(Equipment) = 0 AND SECTION_COUNT(Nace) = 0 AND FIELD_TEXT(Total_Qty) = \"\" AND LEFT_OVER = 0 AND ERROR_COUNT = 0\nTEST     fixture=notes_01.xlsx call=FillProposalCover() assert=TABLE_ROWS(1) = 6 AND TABLE_CELL(1, 1, 3) = \"Demo EPC\" AND TABLE_CELL(1, 5, 3) = \"P-2750-0001\" AND TABLE_CELL(1, 6, 3) = \"25 Nov 2026\" AND TABLE_ROWS(2) = 2 AND TABLE_ROWS(3) = 1 AND TEXT_HAS(\"NACE\") = 0\n"
+  },
+  {
+   "assumes": [
+    "the request gives no client, end user, item line, proposal number, date or basis, so those fields are filled with \"\"",
+    "the total quantity is the two quantities added, 4 Nos",
+    "the design pressures are written as typed with the unit barg, the nozzle sizes with in, and no nozzle notes were given, so Nozzle_Notes is \"\"",
+    "the request asks for no NACE annexure and no technical queries, so the NACE section is removed and the queries table has no rows"
+   ],
+   "changes": [
+    "nothing in any workbook: it fills a copy of your Word template and leaves the template as it is"
+   ],
+   "family": "documents",
+   "goal": "Make the technical proposal for enquiry E-9101 with one equipment section for the suction bottle and one for the discharge bottle, each with its design data and nozzles.",
+   "id": "c180",
+   "kind": "DOCUMENT",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Note"
+     ],
+     "sheet": "Notes"
+    }
+   ],
+   "registers": [
+    "proposal"
+   ],
+   "request": "Make the technical proposal for enquiry E-9101 with one equipment section per bottle: Suction bottle DM-V-101, 2 Nos, and Discharge bottle DM-V-102, 2 Nos, each with its design data (shell ID 400 and 450 mm, TL-TL 1600 and 1800 mm, thickness 10 mm, design pressure 18 and 35 barg) and its nozzle rows: DM-V-101 N1 Gas inlet 6 in 300#, N2 Gas outlet 6 in 300#, N3 Drain 2 in 300#; DM-V-102 N1 Gas inlet 4 in 600#, N2 Gas outlet 4 in 600#, N3 Drain 1 in 600#.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nDOCUMENT\n# ASSUME: the request gives no client, end user, item line, proposal number, date or basis, so those fields are filled with \"\"\n# ASSUME: the total quantity is the two quantities added, 4 Nos\n# ASSUME: the design pressures are written as typed with the unit barg, the nozzle sizes with in, and no nozzle notes were given, so Nozzle_Notes is \"\"\n# ASSUME: the request asks for no NACE annexure and no technical queries, so the NACE section is removed and the queries table has no rows\nGOAL     Make the technical proposal for enquiry E-9101 with one equipment section for the suction bottle and one for the discharge bottle, each with its design data and nozzles.\nNAME     FillProposalE9101\nTEMPLATE proposal_template.docx\nFIELD    Client = \"\"\nFIELD    Item_Line = \"\"\nFIELD    End_User = \"\"\nFIELD    Enquiry_Ref = \"E-9101\"\nFIELD    Proposal_No = \"\"\nFIELD    Date = \"\"\nFIELD    Basis = \"\"\nFIELD    Total_Qty = \"4 Nos\"\nREPEAT   row table=2 from=[[\"1\", \"Suction bottle\", \"DM-V-101\", 2], [\"2\", \"Discharge bottle\", \"DM-V-102\", 2]] Sl=1, Item=2, Tag=3, Qty=4\nREPEAT   section Equipment from=[[\"1\", \"Suction bottle\", \"DM-V-101\", 2, 400, 1600, 10, \"18 barg\", \"\"], [\"2\", \"Discharge bottle\", \"DM-V-102\", 2, 450, 1800, 10, \"35 barg\", \"\"]] Sl=1, Item=2, Tag=3, Qty=4, Shell_ID=5, TL_TL=6, Thk=7, Design_Pr=8, Nozzle_Notes=9\nREPEAT   row table=4 from=[[\"DM-V-101\", \"N1\", \"Gas inlet\", \"6 in\", \"300#\"], [\"DM-V-101\", \"N2\", \"Gas outlet\", \"6 in\", \"300#\"], [\"DM-V-101\", \"N3\", \"Drain\", \"2 in\", \"300#\"], [\"DM-V-102\", \"N1\", \"Gas inlet\", \"4 in\", \"600#\"], [\"DM-V-102\", \"N2\", \"Gas outlet\", \"4 in\", \"600#\"], [\"DM-V-102\", \"N3\", \"Drain\", \"1 in\", \"600#\"]] match=1=Tag Mark=2, Nozzle=3, Size=4, Rating=5\nREPEAT   row table=5 from=[] Requirement=1, Confirmation=2\nREPEAT   row table=6 from=[] TQ_No=1, Requirement=2, Query=3\nKEEP     Nace IF FALSE\nFIXTURE  notes_01.xlsx sheet=Notes cols=A:Note rows=1 data=A:values(\"practice\"x1)\nTEST     fixture=notes_01.xlsx call=FillProposalE9101() assert=SECTION_COUNT(Equipment) = 2 AND SECTION_COUNT(Nace) = 0 AND FIELD_TEXT(Enquiry_Ref) = \"E-9101\" AND FIELD_TEXT(Total_Qty) = \"4 Nos\" AND TABLE_ROWS(2) = 4 AND TABLE_CELL(2, 2, 2) = \"Suction bottle\" AND TABLE_CELL(2, 2, 3) = \"DM-V-101\" AND TABLE_CELL(2, 2, 4) = \"2\" AND TABLE_CELL(2, 3, 2) = \"Discharge bottle\" AND TABLE_CELL(2, 3, 3) = \"DM-V-102\" AND TABLE_CELL(2, 3, 4) = \"2\" AND TABLE_CELL(3, 2, 2) = \"Suction bottle\" AND TABLE_CELL(3, 3, 2) = \"DM-V-101 / 2 Nos\" AND TABLE_CELL(3, 4, 2) = \"400 ID x 1600 TL-TL x 10 thk\" AND TABLE_CELL(3, 5, 2) = \"18 barg\" AND TABLE_ROWS(4) = 4 AND TABLE_CELL(4, 2, 1) = \"N1\" AND TABLE_CELL(4, 2, 2) = \"Gas inlet\" AND TABLE_CELL(4, 2, 3) = \"6 in\" AND TABLE_CELL(4, 2, 4) = \"300#\" AND TABLE_CELL(4, 3, 2) = \"Gas outlet\" AND TABLE_CELL(4, 4, 1) = \"N3\" AND TABLE_CELL(4, 4, 2) = \"Drain\" AND TABLE_CELL(4, 4, 3) = \"2 in\" AND LEFT_OVER = 0 AND ERROR_COUNT = 0\nTEST     fixture=notes_01.xlsx call=FillProposalE9101() assert=TABLE_CELL(5, 2, 2) = \"Discharge bottle\" AND TABLE_CELL(5, 3, 2) = \"DM-V-102 / 2 Nos\" AND TABLE_CELL(5, 4, 2) = \"450 ID x 1800 TL-TL x 10 thk\" AND TABLE_CELL(5, 5, 2) = \"35 barg\" AND TABLE_ROWS(6) = 4 AND TABLE_CELL(6, 2, 1) = \"N1\" AND TABLE_CELL(6, 2, 3) = \"4 in\" AND TABLE_CELL(6, 2, 4) = \"600#\" AND TABLE_CELL(6, 3, 2) = \"Gas outlet\" AND TABLE_CELL(6, 4, 2) = \"Drain\" AND TABLE_CELL(6, 4, 3) = \"1 in\" AND TABLE_CELL(6, 4, 4) = \"600#\" AND TABLE_ROWS(7) = 1 AND TEXT_HAS(\"NACE\") = 0 AND TEXT_HAS(\"Nozzle notes: \") = 1\n"
+  },
+  {
+   "assumes": [
+    "the request gives no header values, items, equipment or basis, so every field is filled with \"\" and the item rows and equipment sections are removed with from=[]",
+    "the NACE annexure is left out because the job is not sour service, so its section is removed and its table has no rows",
+    "the two queries are typed exactly as the request gives them"
+   ],
+   "changes": [
+    "nothing in any workbook: it fills a copy of your Word template and leaves the template as it is"
+   ],
+   "family": "documents",
+   "goal": "Write the technical queries table of the proposal with two queries and leave the NACE annexure out of the document.",
+   "id": "c182",
+   "kind": "DOCUMENT",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Note"
+     ],
+     "sheet": "Notes"
+    }
+   ],
+   "registers": [
+    "proposal"
+   ],
+   "request": "Write the technical queries table in the proposal: TQ-01 'Suction flanges 150#' with 'Offered 300# to meet the code', TQ-02 'Inspection opening rating blank' with 'Offered 600#'. Leave the NACE annexure out; this job is not sour service.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nDOCUMENT\n# ASSUME: the request gives no header values, items, equipment or basis, so every field is filled with \"\" and the item rows and equipment sections are removed with from=[]\n# ASSUME: the NACE annexure is left out because the job is not sour service, so its section is removed and its table has no rows\n# ASSUME: the two queries are typed exactly as the request gives them\nGOAL     Write the technical queries table of the proposal with two queries and leave the NACE annexure out of the document.\nNAME     FillProposalQueries\nTEMPLATE proposal_template.docx\nFIELD    Client = \"\"\nFIELD    Item_Line = \"\"\nFIELD    End_User = \"\"\nFIELD    Enquiry_Ref = \"\"\nFIELD    Proposal_No = \"\"\nFIELD    Date = \"\"\nFIELD    Basis = \"\"\nFIELD    Total_Qty = \"\"\nREPEAT   row table=2 from=[] Sl=1, Item=2, Tag=3, Qty=4\nREPEAT   section Equipment from=[]\nREPEAT   row table=5 from=[] Requirement=1, Confirmation=2\nREPEAT   row table=6 from=[[\"TQ-01\", \"Suction flanges 150#\", \"Offered 300# to meet the code\"], [\"TQ-02\", \"Inspection opening rating blank\", \"Offered 600#\"]] TQ_No=1, Requirement=2, Query=3\nKEEP     Nace IF FALSE\nFIXTURE  notes_01.xlsx sheet=Notes cols=A:Note rows=1 data=A:values(\"practice\"x1)\nTEST     fixture=notes_01.xlsx call=FillProposalQueries() assert=SECTION_COUNT(Nace) = 0 AND SECTION_COUNT(Equipment) = 0 AND TEXT_HAS(\"NACE\") = 0 AND TABLE_ROWS(3) = 3 AND TABLE_CELL(3, 2, 1) = \"TQ-01\" AND TABLE_CELL(3, 2, 2) = \"Suction flanges 150#\" AND TABLE_CELL(3, 2, 3) = \"Offered 300# to meet the code\" AND TABLE_CELL(3, 3, 1) = \"TQ-02\" AND TABLE_CELL(3, 3, 2) = \"Inspection opening rating blank\" AND TABLE_CELL(3, 3, 3) = \"Offered 600#\" AND LEFT_OVER = 0 AND ERROR_COUNT = 0\nTEST     fixture=notes_01.xlsx call=FillProposalQueries() assert=TABLE_ROWS(2) = 2 AND TABLE_ROWS(1) = 6 AND FIELD_TEXT(Client) = \"\" AND FIELD_TEXT(Total_Qty) = \"\" AND FIELD_TEXT(Enquiry_Ref) = \"\" AND TEXT_HAS(\"Technical Queries\") = 1 AND TEXT_HAS(\"Technical Delivery Conditions\") = 1\n"
+  },
+  {
+   "assumes": [
+    "Today's date is the argument onDate, typed as text such as 25 Nov 2026.",
+    "Basis of offer, items table, equipment sections, NACE annexure and queries are not asked for, so Basis and Total_Qty are \"\" and those parts are removed."
+   ],
+   "changes": [
+    "nothing in any workbook: it fills a copy of your Word template and leaves the template as it is"
+   ],
+   "family": "documents",
+   "goal": "Fill the proposal cover for Demo Chemicals with the enquiry, proposal number, date and item line, with no equipment or NACE sections.",
+   "id": "c184",
+   "kind": "DOCUMENT",
+   "paraphrases": [],
+   "reads": [
+    {
+     "headers": [
+      "Note"
+     ],
+     "sheet": "Notes"
+    }
+   ],
+   "registers": [
+    "proposal"
+   ],
+   "request": "Fill the proposal cover for client Demo Chemicals, enquiry E-9104, proposal P-2750-0003, today's date, item line 'Knock-out drum and filter separator, 3 Nos', end user Demo Chemicals, with no equipment sections and no NACE annexure yet.",
+   "source": "corpus",
+   "spec": "VCL 0.7\nDOCUMENT\n# ASSUME: Today's date is the argument onDate, typed as text such as 25 Nov 2026.\n# ASSUME: Basis of offer, items table, equipment sections, NACE annexure and queries are not asked for, so Basis and Total_Qty are \"\" and those parts are removed.\nGOAL     Fill the proposal cover for Demo Chemicals with the enquiry, proposal number, date and item line, with no equipment or NACE sections.\nNAME     FillCoverOnly\nTEMPLATE proposal_template.docx\nARGS     onDate As String\nFIELD    Client = \"Demo Chemicals\"\nFIELD    Item_Line = \"Knock-out drum and filter separator, 3 Nos\"\nFIELD    End_User = \"Demo Chemicals\"\nFIELD    Enquiry_Ref = \"E-9104\"\nFIELD    Proposal_No = \"P-2750-0003\"\nFIELD    Date = $onDate\nFIELD    Basis = \"\"\nFIELD    Total_Qty = \"\"\nREPEAT   row table=2 from=[] Sl=1, Item=2, Tag=3, Qty=4\nREPEAT   section Equipment from=[]\nREPEAT   row table=5 from=[] Requirement=1, Confirmation=2\nREPEAT   row table=6 from=[] TQ_No=1, Requirement=2, Query=3\nKEEP     Nace IF FALSE\nFIXTURE  notes_01.xlsx sheet=Notes cols=A:Note rows=1 data=A:values(\"practice\"x1)\nTEST     fixture=notes_01.xlsx call=FillCoverOnly(\"25 Nov 2026\") assert=FIELD_TEXT(Client) = \"Demo Chemicals\" AND FIELD_TEXT(End_User) = \"Demo Chemicals\" AND FIELD_TEXT(Item_Line) = \"Knock-out drum and filter separator, 3 Nos\" AND FIELD_TEXT(Enquiry_Ref) = \"E-9104\" AND FIELD_TEXT(Proposal_No) = \"P-2750-0003\" AND FIELD_TEXT(Date) = \"25 Nov 2026\" AND SECTION_COUNT(Equipment) = 0 AND SECTION_COUNT(Nace) = 0 AND TEXT_HAS(\"NACE\") = 0 AND LEFT_OVER = 0 AND ERROR_COUNT = 0\nTEST     fixture=notes_01.xlsx call=FillCoverOnly(\"26 Nov 2026\") assert=TABLE_ROWS(1) = 6 AND TABLE_CELL(1, 2, 3) = \"Knock-out drum and filter separator, 3 Nos\" AND TABLE_CELL(1, 6, 3) = \"26 Nov 2026\" AND TABLE_CELL(1, 4, 3) = \"E-9104\" AND TABLE_ROWS(2) = 2 AND TABLE_ROWS(3) = 1\n"
+  },
+  {
+   "assumes": [
     "the NCR Register headers are in row 1 and include \"NCR No\", \"Severity\" and \"Status\"; data starts in row 2",
     "\"Major\" and \"Open\" are matched ignoring case and extra spaces, so \" open\" and \"OPEN \" count as Open",
     "the macro owns the fills of the data rows: each row is reset to no fill, then every Open Major row gets light red #FFC7CE across the header's columns",

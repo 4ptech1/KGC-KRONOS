@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [
+  "V055"
+ ],
+ "family": "documents",
+ "id": "c175",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 13,
+  "note": "",
+  "total": 14
+ },
+ "op_lines": 10,
+ "ops": [
+  "FORMAT",
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "enquiry"
+ ],
+ "source": "orchestrator helper"
+}

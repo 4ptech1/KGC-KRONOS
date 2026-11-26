@@ -1,0 +1,27 @@
+{
+ "accepted_warnings": [
+  "V344"
+ ],
+ "family": "documents",
+ "id": "c163",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 42,
+  "note": "",
+  "total": 43
+ },
+ "op_lines": 14,
+ "ops": [
+  "IF",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "wps"
+ ],
+ "source": "orchestrator helper"
+}

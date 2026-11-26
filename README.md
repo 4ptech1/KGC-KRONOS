@@ -436,3 +436,6 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
   its worked example recomputed.
   The benchmark (Boss's step 7, D136): `vclc bench` scores any writer on the 15 held-out requests. Claude's baseline: 10
   of 15 macros right after KRONOS's 3 tries (9 on the first), 4 right with strong tests; the March model must beat it.
+- **2026-11-26:** Corpus batch 9, KGC's own documents (D140): 22 of 25 stored, 17 to train on and 5 held out, so
+  the benchmark has 20 items; 2 retired as language gaps, 1 too close to a held-out item. Two small VCL 0.7 additions it needed (D138: a sheet name in
+  quotes in a TEST call, `REPEAT ... from=[]`) and fair scoring of Word recipes (D139). Boss pastes the prompt again.

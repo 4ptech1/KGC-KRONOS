@@ -1,0 +1,11 @@
+FAIL. The toolchain's messages:
+spec.vcl:2: warning: KRONOS Offline only: a DOCUMENT fills a Word file in KRONOS Offline; no macro is made (D115) [V389]
+FAIL test   spec.vcl  (0/2 tests)
+       line 26: RESULT=None ERROR_COUNT=0
+         ASSERT: TABLE_CELL(3, 3, 2) = "Suction bottle" is false (left "DM-V-101 / 2 Nos", right "Suction bottle") [R051]
+         ASSERT: TABLE_CELL(3, 5, 2) = "400 ID x 1600 TL-TL x 10 thk" is false (left "18 barg", right "400 ID x 1600 TL-TL x 10 thk") [R051]
+         ASSERT: TABLE_CELL(3, 6, 2) = "18 barg" can't be checked: table 3 of the filled document has no cell (6, 2) [R050]
+       line 27: RESULT=None ERROR_COUNT=0
+         ASSERT: TABLE_CELL(5, 3, 2) = "Discharge bottle" is false (left "DM-V-102 / 2 Nos", right "Discharge bottle") [R051]
+         ASSERT: TABLE_CELL(5, 5, 2) = "450 ID x 1800 TL-TL x 10 thk" is false (left "35 barg", right "450 ID x 1800 TL-TL x 10 thk") [R051]
+         ASSERT: TABLE_CELL(5, 6, 2) = "35 barg" can't be checked: table 5 of the filled document has no cell (6, 2) [R050]

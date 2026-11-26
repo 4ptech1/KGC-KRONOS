@@ -37,9 +37,9 @@ class Items(unittest.TestCase):
             for folder in items("eval"):
                 (Path(tmp) / f"{folder.name}.vcl").write_text(ref(folder.name), encoding="utf-8")
             rows = B.run(tmp, TODAY)
-        self.assertEqual(len(rows), 15)
+        self.assertEqual(len(rows), 20)   # 15, and 5 KGC document jobs from batch 9 (D140)
         self.assertEqual({k: r["reached"] for k, r in rows.items() if r["reached"] != "T+M+H"}, {})
-        self.assertEqual((B.summary(rows)["headline"], B.summary(rows)["strict"]), (1.0, 15))
+        self.assertEqual((B.summary(rows)["headline"], B.summary(rows)["strict"]), (1.0, 20))
 
     def test_a_missing_candidate_reaches_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -90,7 +90,7 @@ class Contract(unittest.TestCase):
     def test_vclc_writes_the_prompts(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(vclc.main(["vclc", "bench", "--prompts", tmp]), 0)
-            self.assertEqual(len(list(Path(tmp).glob("c*.txt"))), 15)
+            self.assertEqual(len(list(Path(tmp).glob("c*.txt"))), 20)
 
 
 class Levels(unittest.TestCase):

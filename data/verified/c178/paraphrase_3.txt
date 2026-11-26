@@ -1,0 +1,1 @@
+Take each row of the Assumptions & Clarif. sheet in the estimation workbook. For every row, write one paragraph in the basis and assumptions section of the internal estimation sheet.

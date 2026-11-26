@@ -1,0 +1,24 @@
+{
+ "accepted_warnings": [
+  "V389"
+ ],
+ "family": "documents",
+ "id": "c178",
+ "kind": "DOCUMENT",
+ "mutation": {
+  "equivalent": 1,
+  "killed": 6,
+  "note": "6 of 7; 1 equivalent: BLOCK's last column 2 -> 3 widens the block, but the section reads only its first column (Text=1).",
+  "total": 7
+ },
+ "op_lines": 13,
+ "ops": [
+  "FIELD",
+  "REPEAT"
+ ],
+ "registers": [
+  "estimate_sheet",
+  "estimation"
+ ],
+ "source": "orchestrator helper"
+}

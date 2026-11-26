@@ -1,0 +1,1 @@
+Enq Summary sheet: every item row, Enquiry = E-9100, Date = today as dd.mm.yyyy.

@@ -1,0 +1,23 @@
+{
+ "accepted_warnings": [
+  "V389"
+ ],
+ "family": "documents",
+ "id": "c180",
+ "kind": "DOCUMENT",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 81,
+  "note": "",
+  "total": 81
+ },
+ "op_lines": 13,
+ "ops": [
+  "FIELD",
+  "REPEAT"
+ ],
+ "registers": [
+  "proposal"
+ ],
+ "source": "orchestrator helper"
+}

@@ -1,0 +1,1 @@
+In the register: clear the old highlights. Then highlight yellow the Enquiry cell of each enquiry where Result is still blank. Finally, report how many enquiries that is.
