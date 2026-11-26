@@ -130,10 +130,16 @@ AutoFilter; it is not Microsoft 365's FILTER function, which SET_FORMULA refuses
     INSERT_ROW or DELETE_ROW a sheet with merged cells. Read a second workbook only as a
     Workbook argument that a TEST opens with read=<file>, never declared in MODIFIES: such a
     recipe runs in KRONOS Offline only. Wrap every text you wrote yourself (a remark, an
-    assumption, a query) in AI_TEXT("...") so a person checks it. Fill a Word template with a
-    DOCUMENT (DOCUMENT FORMAT), never with a TASK; its TEMPLATE is a .docx marked up with
-    {{Name}} fields and {{BEGIN Name}} / {{END Name}} sections, and every field and section of
-    it is filled, repeated or kept exactly once.
+    assumption, a query) in AI_TEXT("...") so a person checks it; text the user typed is never
+    AI_TEXT. Read a list on a form (activities, items, enquiries) to its last used row, never
+    at the practice form's row numbers; a form's fixed cells keep their addresses. A column you
+    add gets its heading too. When a template is the same rows every time and your TESTs can't
+    catch enough deliberate bugs on it, test on a plain sheet= FIXTURE with the template's
+    headings and invented rows. Fill a Word template with a DOCUMENT (DOCUMENT FORMAT), never
+    with a TASK; its TEMPLATE is a .docx marked up with {{Name}} fields and {{BEGIN Name}} /
+    {{END Name}} sections, and every field and section of it is filled, repeated or kept
+    exactly once. Leave out what the request doesn't give: from=[] for a repeated part, KEEP
+    <Section> IF FALSE for an optional one, "" for a field; never invented placeholder text.
 26. Lay the spec out as shown under Layout, with no blank lines.
 ```
 
@@ -644,6 +650,9 @@ Found by the document corpus batch (D137, D138). Both are additions: every spec 
   assertion names it: a look-alike template keeps its sheets' own names, spaces and symbols included (D138).
 - A DOCUMENT's `REPEAT ... from=[]` has no rows and removes the repeated row, column or section; a `REPEAT section`
   from=[] binds no fields (D138).
+- Hard rule 25 says five things batch 9 and the benchmark showed (D142): typed text is never AI_TEXT; a list on a form
+  is read to its last row; a column you add gets its heading; a plain FIXTURE when a template can't vary; and what the
+  request doesn't give is left out of a Word template, never filled with placeholder text.
 
 ## Changes in VCL 0.7 (20 Nov 2026)
 
