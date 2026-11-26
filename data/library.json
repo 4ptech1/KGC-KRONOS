@@ -5480,7 +5480,11 @@
    "goal": "Change the date to 25/11/2026 and the revision to R1 in the header of page 1 and again in the header of page 2 of the WPS form.",
    "id": "c160",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "WPS: set date 25/11/2026 and revision R1 at the top of page 1 and page 2. Nothing else.",
+    "Hi, could you please update the WPS so the date reads 25/11/2026 and the revision reads R1? They are in the DATE and WPS Revision lines at the top of page 1, and the same lines are repeated at the top of page 2. Please leave everything else on the form untouched. Thanks!",
+    "On the WPS form, do the following. First, find the DATE and WPS Revision lines at the top of page 1. Next, find the same two lines at the top of page 2. Then set the date to 25/11/2026 and the revision to R1 in both places. Change nothing else."
+   ],
    "reads": [
     {
      "headers": [
@@ -5509,7 +5513,11 @@
    "goal": "Write the new WPS number DM-WPS-202, the revision note Rev. R0 - first issue and the WPQR number DM-PQR-202 on the WPS form.",
    "id": "c161",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "WPS form: WPS No. = DM-WPS-202, next to it 'Rev. R0 - first issue', WPQR = DM-PQR-202. Nothing else.",
+    "Hello, on the WPS form could you please write the new WPS number DM-WPS-202 in the WPS No. cell, put 'Rev. R0 - first issue' next to it, and enter DM-PQR-202 as the WPQR number? Please don't change anything else. Thank you.",
+    "Three entries on the WPS form, and nothing else touched. The WPQR number is DM-PQR-202. Next to the WPS number put 'Rev. R0 - first issue'. The new WPS number DM-WPS-202 goes in the WPS No. cell."
+   ],
    "reads": [
     {
      "headers": [
@@ -5541,7 +5549,11 @@
    "goal": "Make a new WPS from the old one by copying company, process, mechanization and filler designation and writing the new number DM-WPS-203.",
    "id": "c163",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "New WPS from the old one (read-only, the workbook I read from): copy company name and address, welding process, degree of mechanization, filler material designation (actual and qualified). New number DM-WPS-203.",
+    "Hi, I need a new WPS based on the old one. Please take the company name and address, the welding process, the degree of mechanization and the filler material designation, both actual and qualified, from the old WPS in the workbook I read from, and put them into the new form with the WPS number DM-WPS-203. The old WPS must only be read, never changed. Thanks!",
+    "To build the new WPS: - write the new WPS number DM-WPS-203 - copy the filler material designation (actual and qualified), the degree of mechanization, the welding process, and the company name and address from the old WPS, which is in the workbook I read from. The old WPS is only read."
+   ],
    "reads": [
     {
      "headers": [
@@ -5576,7 +5588,11 @@
    "goal": "Clear the recorded PQR values of runs 1 to 3 (PQR I, U, v and HI recorded) in the heat-input check block of the WPS.",
    "id": "c164",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "WPS heat-input check block, outside print area: clear PQR I min, I max, U min, U max, v and HI recorded for runs 1 to 3 (rows 29 to 31). Keep formulas and the rest.",
+    "Hello, in the heat-input check block of the WPS, the one outside the print area, could you please clear the PQR values for runs 1 to 3? That means the PQR I min, I max, U min, U max, v and HI recorded columns in rows 29 to 31. Please keep the formulas and everything else as it is. Thank you.",
+    "In the WPS, go to the heat-input check block outside the print area. Look at rows 29 to 31 (runs 1 to 3). Clear the columns PQR I min, I max, U min, U max, v and HI recorded there. Do not touch the formulas or anything else."
+   ],
    "reads": [
     {
      "headers": [
@@ -5607,7 +5623,11 @@
    "goal": "Write R. Demo, Welding Engineer as the preparer's name and today's date as dd/mm/yyyy beside the Name and Date labels at the bottom of the WPS sheet.",
    "id": "c165",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "WPS page 2 bottom: preparer 'R. Demo, Welding Engineer', today's date in the Date cell as dd/mm/yyyy.",
+    "Hi, at the bottom of page 2 of the WPS, could you please write 'R. Demo, Welding Engineer' as the name of the person who prepared it, and put today's date in the Date cell, formatted dd/mm/yyyy? Thanks a lot.",
+    "On the WPS, go to the bottom of page 2. Write 'R. Demo, Welding Engineer' as the person who prepared it. Then fill the Date cell with today's date in the form dd/mm/yyyy."
+   ],
    "reads": [
     {
      "headers": [
@@ -5638,7 +5658,11 @@
    "goal": "Set the plate rate r_plate to 95 and the margin to 0.12 in the Value column of the Inputs sheet and change nothing else.",
    "id": "c166",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "Inputs sheet: r_plate to 95, margin to 0.12. Nothing else.",
+    "Hello, could you please go to the Inputs sheet in the estimation workbook and change the plate rate (r_plate) to 95 and the margin to 0.12? Please don't write anything else. Thank you!",
+    "In the estimation workbook, open the Inputs sheet. Set the margin to 0.12 and the plate rate (r_plate) to 95. Write nothing else."
+   ],
    "reads": [
     {
      "headers": [
@@ -5672,7 +5696,11 @@
    "goal": "Add the PWHT of floating head activity after the last row of the Conversion sheet with the same Total Qty and Amount formulas as the row above.",
    "id": "c167",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "Conversion sheet, new last row: Sl next number, Scope FH, Activity PWHT of floating head, Basis 'furnace, 1 lot', Qty/set 1, Sets 2, Unit Lot, Rate 40000. Copy Total Qty and Amount formulas from the row above.",
+    "Hi, please add a line to the Conversion sheet after the last activity with these values: Sl as the next number, Scope FH, Activity PWHT of floating head, Basis 'furnace, 1 lot', Qty/set 1, Sets 2, Unit Lot and Rate 40000. Also copy the Total Qty and Amount formulas down from the row above so they work in the new row. Thanks!",
+    "Add a row at the end of the Conversion sheet, after the last activity. Fill it in this order: Rate 40000, Unit Lot, Sets 2, Qty/set 1, Basis 'furnace, 1 lot', Activity PWHT of floating head, Scope FH, Sl the next number. Finally copy the Total Qty and Amount formulas from the row above."
+   ],
    "reads": [
     {
      "headers": [
@@ -5702,7 +5730,11 @@
    "goal": "Write enquiry number E-9100 and today's date as dd.mm.yyyy in the Enquiry and Date columns of every item row on the Enq Summary sheet.",
    "id": "c169",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "Enq Summary sheet: every item row, Enquiry = E-9100, Date = today as dd.mm.yyyy.",
+    "Hello, in the Enq Summary sheet could you please write the enquiry number E-9100 in the Enquiry column and today's date in the Date column, formatted as dd.mm.yyyy, for every item row? Thank you!",
+    "On the Enq Summary sheet, for each item row do two things: put today's date in the Date column as dd.mm.yyyy, and put enquiry number E-9100 in the Enquiry column."
+   ],
    "reads": [
     {
      "headers": [
@@ -5735,7 +5767,11 @@
    "goal": "Add enquiry E-9104 with its two items after the last row of the enquiry register and merge its Sr.Nos., Enquiry, Date, End User and Project cells over the two item rows.",
    "id": "c171",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "Register: add enquiry E-9104 after the last row. Sr.No. last plus one, Date 20.11.2026, End User Demo Chemicals, Project PRJ-104. Items: Knock-out Drum Qty 1, Filter Separator Qty 2, Type PV both. Merge Sr.No., Enquiry, Date, End User, Project over the item rows like the others.",
+    "Hi, could you please add a new enquiry, E-9104, to the register after the last row? Sr.No. should be one more than the last, Date 20.11.2026, End User Demo Chemicals and Project PRJ-104. It has two items: Knock-out Drum with Qty 1 and Filter Separator with Qty 2, both Type PV. Please merge Sr.No., Enquiry, Date, End User and Project over the item rows, like the other enquiries. Thanks!",
+    "New enquiry in the register, placed after the last row. First the items, both Type PV: Knock-out Drum with Qty 1, then Filter Separator with Qty 2. Then the header data: Enquiry E-9104, Date 20.11.2026, End User Demo Chemicals, Project PRJ-104, Sr.No. one more than the last. Merge Sr.No., Enquiry, Date, End User and Project over the item rows as for the other enquiries."
+   ],
    "reads": [
     {
      "headers": [
@@ -5789,7 +5825,11 @@
    "goal": "Set the Result of enquiry E-9102 to Won in the first cell of its merged Result range in the enquiry register.",
    "id": "c172",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "Register: Result of E-9102 = Won, first cell of its merged Result only.",
+    "Hello, in the register could you please set the Result of enquiry E-9102 to Won? The Result cell is merged over that enquiry's item rows, so please write it in the first cell only. Thanks!",
+    "In the register, find enquiry E-9102. Its Result cell is merged over the item rows, so write the value in the first cell only. The value to write is Won."
+   ],
    "reads": [
     {
      "headers": [
@@ -5845,7 +5885,11 @@
    "goal": "Append each item of the estimation workbook's Enq Summary sheet to the enquiry register after its last row and return how many rows were added.",
    "id": "c174",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "Append the Enq Summary items (from the workbook I read from) to the enquiry register after its last row: Item, Type, U Stamp, Old and Revised Tag No, Qty, MOC, Shell ID, Shell THK, TL to TL. Enquiry number and date from the first item row. Tell me the number of rows added.",
+    "Hi, please take the items of the Enq Summary sheet in the estimation workbook I read from and add them to the enquiry register after its last row. For each one I need Item, Type, U Stamp, Old and Revised Tag No, Qty, MOC, Shell ID, Shell THK and TL to TL, using the enquiry number and date from the first item row. Please also tell me how many rows were added. Thank you!",
+    "Goal: add rows to the enquiry register after its last row. Source: the Enq Summary sheet of the workbook I read from. Copy for each item: TL to TL, Shell THK, Shell ID, MOC, Qty, Old and Revised Tag No, U Stamp, Type, Item. Enquiry number and date come from the first item row. At the end, report how many rows were added."
+   ],
    "reads": [
     {
      "headers": [
@@ -5903,7 +5947,11 @@
    "goal": "Clear the fills of the Enquiry column and highlight yellow the Enquiry cell of every enquiry whose Result is still blank, returning how many.",
    "id": "c175",
    "kind": "TASK",
-   "paraphrases": [],
+   "paraphrases": [
+    "Register: yellow highlight on the Enquiry cell of every enquiry with blank Result, clear old highlights first, and tell me the count.",
+    "Hello, could you please clear the old highlights in the register first, then highlight in yellow the Enquiry cell of every enquiry whose Result is still blank? Please also tell me how many there are. Thanks!",
+    "In the register: clear the old highlights. Then highlight yellow the Enquiry cell of each enquiry where Result is still blank. Finally, report how many enquiries that is."
+   ],
    "reads": [
     {
      "headers": [
@@ -5958,7 +6006,11 @@
    "goal": "Write the basis and assumptions section of the internal estimation sheet with one paragraph for each row of the workbook's assumptions sheet.",
    "id": "c178",
    "kind": "DOCUMENT",
-   "paraphrases": [],
+   "paraphrases": [
+    "Internal estimation sheet: write the basis and assumptions section, one paragraph per row of the Assumptions & Clarif. sheet in the estimation workbook.",
+    "Hi, could you please write the basis and assumptions section in the internal estimation sheet? I would like one paragraph for each row of the Assumptions & Clarif. sheet of the estimation workbook. Thank you!",
+    "Take each row of the Assumptions & Clarif. sheet in the estimation workbook. For every row, write one paragraph in the basis and assumptions section of the internal estimation sheet."
+   ],
    "reads": [
     {
      "headers": [
@@ -6051,7 +6103,11 @@
    "goal": "Fill the proposal's cover and header with the client, item line, end user, references and a draft basis of offer.",
    "id": "c179",
    "kind": "DOCUMENT",
-   "paraphrases": [],
+   "paraphrases": [
+    "Technical proposal cover and header: client Demo EPC, item line 'Pulsation bottles, 4 Nos', end user Example Gas Co, enquiry ref E-9101, proposal P-2750-0001, date 25 Nov 2026. Basis of offer as a draft sentence for me to check.",
+    "Hello, could you please fill in the cover and header of the technical proposal? The client is Demo EPC, the item line is 'Pulsation bottles, 4 Nos', the end user is Example Gas Co, the enquiry ref is E-9101, the proposal is P-2750-0001 and the date is 25 Nov 2026. For the basis of offer, please write a draft sentence for me to check. Thanks!",
+    "Technical proposal, cover and header. Write the basis of offer as a draft sentence for me to check. Date 25 Nov 2026. Proposal P-2750-0001. Enquiry ref E-9101. End user Example Gas Co. Item line 'Pulsation bottles, 4 Nos'. Client Demo EPC."
+   ],
    "reads": [
     {
      "headers": [
@@ -6081,7 +6137,11 @@
    "goal": "Make the technical proposal for enquiry E-9101 with one equipment section for the suction bottle and one for the discharge bottle, each with its design data and nozzles.",
    "id": "c180",
    "kind": "DOCUMENT",
-   "paraphrases": [],
+   "paraphrases": [
+    "Technical proposal for enquiry E-9101, one equipment section per bottle. Suction bottle DM-V-101, 2 Nos: shell ID 400 mm, TL-TL 1600 mm, thickness 10 mm, design pressure 18 barg; nozzles N1 Gas inlet 6 in 300#, N2 Gas outlet 6 in 300#, N3 Drain 2 in 300#. Discharge bottle DM-V-102, 2 Nos: shell ID 450 mm, TL-TL 1800 mm, thickness 10 mm, 35 barg; nozzles N1 Gas inlet 4 in 600#, N2 Gas outlet 4 in 600#, N3 Drain 1 in 600#.",
+    "Hi, could you please make the technical proposal for enquiry E-9101 with one equipment section for each bottle? The first is the Suction bottle DM-V-101, 2 Nos, with shell ID 400 mm, TL-TL 1600 mm, thickness 10 mm and design pressure 18 barg. Its nozzles are N1 Gas inlet 6 in 300#, N2 Gas outlet 6 in 300# and N3 Drain 2 in 300#. The second is the Discharge bottle DM-V-102, 2 Nos, with shell ID 450 mm, TL-TL 1800 mm, thickness 10 mm and design pressure 35 barg. Its nozzles are N1 Gas inlet 4 in 600#, N2 Gas outlet 4 in 600# and N3 Drain 1 in 600#. Thank you!",
+    "Proposal for enquiry E-9101, an equipment section per bottle. Section A, Suction bottle DM-V-101, 2 Nos. Design data: design pressure 18 barg, thickness 10 mm, TL-TL 1600 mm, shell ID 400 mm. Nozzle rows: N1 Gas inlet 6 in 300#; N2 Gas outlet 6 in 300#; N3 Drain 2 in 300#. Section B, Discharge bottle DM-V-102, 2 Nos. Design data: design pressure 35 barg, thickness 10 mm, TL-TL 1800 mm, shell ID 450 mm. Nozzle rows: N1 Gas inlet 4 in 600#; N2 Gas outlet 4 in 600#; N3 Drain 1 in 600#."
+   ],
    "reads": [
     {
      "headers": [
@@ -6110,7 +6170,11 @@
    "goal": "Write the technical queries table of the proposal with two queries and leave the NACE annexure out of the document.",
    "id": "c182",
    "kind": "DOCUMENT",
-   "paraphrases": [],
+   "paraphrases": [
+    "Proposal: technical queries table with TQ-01 'Suction flanges 150#' / 'Offered 300# to meet the code' and TQ-02 'Inspection opening rating blank' / 'Offered 600#'. No NACE annexure, not sour service.",
+    "Hello, could you please write the technical queries table in the proposal? TQ-01 is 'Suction flanges 150#' with 'Offered 300# to meet the code', and TQ-02 is 'Inspection opening rating blank' with 'Offered 600#'. Please leave out the NACE annexure, because this job is not sour service. Thanks!",
+    "For the proposal, leave the NACE annexure out (not sour service). Fill the technical queries table: first TQ-02 'Inspection opening rating blank' with 'Offered 600#'; also TQ-01 'Suction flanges 150#' with 'Offered 300# to meet the code'."
+   ],
    "reads": [
     {
      "headers": [
@@ -6138,7 +6202,11 @@
    "goal": "Fill the proposal cover for Demo Chemicals with the enquiry, proposal number, date and item line, with no equipment or NACE sections.",
    "id": "c184",
    "kind": "DOCUMENT",
-   "paraphrases": [],
+   "paraphrases": [
+    "Proposal cover: client Demo Chemicals, enquiry E-9104, proposal P-2750-0003, date today, item line 'Knock-out drum and filter separator, 3 Nos', end user Demo Chemicals. No equipment sections, no NACE annexure yet.",
+    "Hi, could you please fill the proposal cover? The client is Demo Chemicals, the enquiry is E-9104, the proposal is P-2750-0003, the date is today, the item line is 'Knock-out drum and filter separator, 3 Nos' and the end user is Demo Chemicals. Please add no equipment sections and no NACE annexure yet. Thank you!",
+    "Proposal cover, with no equipment sections and no NACE annexure yet. End user Demo Chemicals. Item line 'Knock-out drum and filter separator, 3 Nos'. Today's date. Proposal P-2750-0003. Enquiry E-9104. Client Demo Chemicals."
+   ],
    "reads": [
     {
      "headers": [
