@@ -127,6 +127,8 @@ prompt with Boss's next paste:
 - when a template FIXTURE can't vary enough for the TESTs, use a plain `sheet=` FIXTURE with the template's headings;
 - a list on a sheet is read to its last used row, never at the practice form's row numbers;
 - text the user typed is never AI_TEXT.
+Seen again in the benchmark on the document items (D141): a new column on a sheet gets its heading too (c168), and the
+user's own words were marked AI_TEXT again (c168).
 
 | Pair | Sentence | Problem |
 | --- | --- | --- |

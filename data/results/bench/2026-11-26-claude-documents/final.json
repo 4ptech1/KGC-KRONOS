@@ -1,0 +1,194 @@
+{
+ "items": {
+  "c022": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c030": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c036": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c045": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c056": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c065": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c087": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c089": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c093": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c109": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c114": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c121": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c130": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c133": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c149": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c162": {
+   "H": true,
+   "M": false,
+   "T": true,
+   "V": true,
+   "mutants": [
+    11,
+    16
+   ],
+   "reached": "T+H",
+   "why": "its TESTs catch 11 of 16 deliberate bugs, under 90%"
+  },
+  "c168": {
+   "H": false,
+   "M": false,
+   "T": true,
+   "V": true,
+   "mutants": [
+    15,
+    18
+   ],
+   "reached": "T",
+   "why": "its TESTs catch 15 of 18 deliberate bugs, under 90%; 1 of 3 hidden TESTs fail"
+  },
+  "c173": {
+   "H": true,
+   "M": true,
+   "T": true,
+   "V": true,
+   "mutants": [
+    12,
+    12
+   ],
+   "reached": "T+M+H",
+   "why": ""
+  },
+  "c177": {
+   "H": false,
+   "M": true,
+   "T": true,
+   "V": true,
+   "mutants": [
+    43,
+    43
+   ],
+   "reached": "T+M",
+   "why": "1 of 2 hidden TESTs fail"
+  },
+  "c181": {
+   "H": true,
+   "M": true,
+   "T": true,
+   "V": true,
+   "mutants": [
+    13,
+    13
+   ],
+   "reached": "T+M+H",
+   "why": ""
+  }
+ },
+ "summary": {
+  "H": 3,
+  "M": 3,
+  "T": 5,
+  "V": 5,
+  "headline": 0.15,
+  "items": 20,
+  "strict": 2
+ },
+ "today": "2026-11-26"
+}
