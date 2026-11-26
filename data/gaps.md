@@ -120,8 +120,8 @@ Found by corpus batch 9 (the document jobs, D137, D138):
 
 ## Wording of the prompt to fix
 
-From corpus batch 9 (D140): the helpers' brief added four rules that the prompt implies but does not say. To go into the
-prompt with Boss's next paste:
+From corpus batch 9 (D140): the helpers' brief added four rules that the prompt implied but did not say. **In the prompt
+since D142 (hard rule 25), with the column heading below:**
 - a part of a Word template the request does not ask for is left out (`from=[]`, KEEP ... IF FALSE, a field ""), never
   filled with invented placeholder text;
 - when a template FIXTURE can't vary enough for the TESTs, use a plain `sheet=` FIXTURE with the template's headings;
