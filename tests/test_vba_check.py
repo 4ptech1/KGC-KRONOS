@@ -36,8 +36,14 @@ class EverySpec(unittest.TestCase):
                 if out.skipped is not None:
                     skipped.append(path.name)
         self.assertGreaterEqual(proven, 165)   # every spec, example and corpus pair with TESTs on 19 Nov 2026
-        # build_example.vcl doesn't parse on purpose; Example 5 is a DOCUMENT, which makes no VBA (D115)
-        self.assertEqual(sorted(skipped), ["build_example.vcl", "example5_document.vcl"])
+        # build_example.vcl doesn't parse on purpose; a recipe only KRONOS Offline runs (a DOCUMENT, D115, or one whose
+        # TEST reads a second workbook, D114) makes no VBA, so it is skipped too, and nothing else is
+        from kronos_engine import offline_only_spec
+        from vcl_parse import parse
+        offline = sorted(name_of(p) for p in SPECS if p.name != "build_example.vcl"
+                         and offline_only_spec(parse(p.read_text(encoding="utf-8"))[0]))
+        self.assertIn("example5_document.vcl", offline)
+        self.assertEqual(sorted(skipped), sorted(["build_example.vcl"] + offline))
 
 
 class PlantedBugs(unittest.TestCase):

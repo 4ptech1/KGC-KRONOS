@@ -201,6 +201,20 @@ class AddingAndExporting(unittest.TestCase):
 
     REQUEST = "Delete every cancelled order, then sort what is left by order date, newest first."
 
+    def test_a_recipe_only_kronos_offline_runs_is_stored_without_vba(self):   # D137: Word, and two workbooks
+        for item, name, family, registers in (("c901", "doc_estimate.vcl", "documents", ["estimate_sheet", "estimation"]),
+                                              ("c902", "wps_from_wps.vcl", "documents", ["wps"])):
+            with self.subTest(recipe=name):
+                spec = (ROOT / "tests" / "data" / name).read_text(encoding="utf-8")
+                found = vcl_corpus.add_item(item, "Fill the practice document from the practice workbook as the recipe says.",
+                                            spec, registers, family, source="a test", equivalent=0, note="",
+                                            accepted_warnings=["V344"] if item == "c902" else ["V389"])
+                floor = [p for p in found if "floor" in p]
+                self.assertEqual([p for p in found if p not in floor and "survives" not in p], [])
+                self.assertFalse(any("does not build" in p for p in found))
+        meta = json.loads((vcl_corpus.DATA / "verified" / "c901" / "meta.json").read_text(encoding="utf-8"))
+        self.assertEqual((meta["kind"], meta["ops"]), ("DOCUMENT", ["FIELD", "REPEAT"]))
+
     def test_a_proven_spec_is_stored_in_canonical_form(self):
         untidy = example("example1_rev3.vcl").replace("PRE      ", "PRE  ")
         problems = vcl_corpus.add_item("c101", self.REQUEST, untidy, ["dispatch"], "clean", source="the prompt's Example 1")
