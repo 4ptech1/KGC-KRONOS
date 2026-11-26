@@ -439,3 +439,5 @@ Dataset count: 150 proven pairs of the planned 150: 135 in `data/verified/` and 
 - **2026-11-26:** Corpus batch 9, KGC's own documents (D140): 22 of 25 stored, 17 to train on and 5 held out, so
   the benchmark has 20 items; 2 retired as language gaps, 1 too close to a held-out item. Two small VCL 0.7 additions it needed (D138: a sheet name in
   quotes in a TEST call, `REPEAT ... from=[]`) and fair scoring of Word recipes (D139). Boss pastes the prompt again.
+  The benchmark on the 5 document items (D141): 0 of 5 right on the first try, 3 of 5 after KRONOS's 3 tries, 2 of 5
+  right and strong.

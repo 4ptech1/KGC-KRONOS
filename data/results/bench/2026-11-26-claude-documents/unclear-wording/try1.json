@@ -1,0 +1,174 @@
+{
+ "items": {
+  "c022": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c030": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c036": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c045": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c056": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c065": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c087": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c089": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c093": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c109": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c114": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c121": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c130": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c133": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c149": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c162": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "it does not check: fixture file wps_new.xlsx must be named like snake_case_01.xlsx (rule 12)"
+  },
+  "c168": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "it does not check: assertion: sheet Assumptions & Clarif. has no [B] header in this TEST (not in its FIXTURE cols, and not written or copied into row 1)"
+  },
+  "c173": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c177": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  },
+  "c181": {
+   "H": false,
+   "M": false,
+   "T": false,
+   "V": false,
+   "reached": "",
+   "why": "no candidate"
+  }
+ },
+ "summary": {
+  "H": 0,
+  "M": 0,
+  "T": 0,
+  "V": 0,
+  "headline": 0.0,
+  "items": 20,
+  "strict": 0
+ },
+ "today": "2026-11-26"
+}
