@@ -24,7 +24,7 @@
    "wps"
   ],
   "family": "documents",
-  "request": "Copy the parent material block (type, designation, group, thickness and pipe OD, actual columns for both members) from the old WPS into the new WPS form. The old WPS is the second workbook; it is only read."
+  "request": "Copy the parent material block (type, designation, group, thickness and pipe OD, actual columns for both members) from the old WPS into the new WPS form. The old WPS is the second workbook; it is only read. Tell me how many cells were copied; where a cell of the old WPS is blank, leave the new form's cell as it is."
  },
  {
   "id": "c163",
@@ -78,7 +78,7 @@
    "estimation"
   ],
   "family": "documents",
-  "request": "On the Assumptions & Clarif. sheet add a new numbered row at the end with the clarification 'Delivery basis 20 weeks Ex-Works' and Status 'Assumed'. Number it one more than the last row."
+  "request": "On the Assumptions & Clarif. sheet add a new numbered row at the end with the clarification 'Delivery basis 20 weeks Ex-Works' and Status 'Assumed'. Number it one more than the last row. Every run adds one more such row, and tells me its number."
  },
  {
   "id": "c169",
