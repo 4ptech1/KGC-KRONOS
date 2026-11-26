@@ -1,0 +1,5 @@
+FAIL. The toolchain's messages:
+FAIL test   spec.vcl  (2/3 tests)
+       line 37: RESULT=0 ERROR_COUNT=0
+         ASSERT: COUNTIF(Conversion!C5:C12, "PWHT of floating head") = 0 is false (left 1, right 0) [R051]
+         ASSERT: COUNTA(Conversion!A5:A12) = PRE_COUNTA(Conversion!A5:A12) is false (left 5, right 4) [R051]

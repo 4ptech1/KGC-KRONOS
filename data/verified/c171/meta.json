@@ -1,0 +1,26 @@
+{
+ "accepted_warnings": [],
+ "family": "documents",
+ "id": "c171",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 74,
+  "note": "",
+  "total": 75
+ },
+ "op_lines": 31,
+ "ops": [
+  "EXIT_IF",
+  "EXIT_LOOP_IF",
+  "LET",
+  "LOOP_ROWS",
+  "MERGE",
+  "RETURN",
+  "SET_VALUE"
+ ],
+ "registers": [
+  "enquiry"
+ ],
+ "source": "orchestrator helper"
+}

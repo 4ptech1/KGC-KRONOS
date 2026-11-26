@@ -1,0 +1,1 @@
+At the bottom of page 2 of the WPS write 'R. Demo, Welding Engineer' as the name of the person who prepared it and today's date (dd/mm/yyyy) in the Date cell.

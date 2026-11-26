@@ -1,0 +1,4 @@
+FAIL. The toolchain's messages:
+spec.vcl:22: error: PRE appears more than once [V061]
+spec.vcl:55: warning: KRONOS Offline only: a TEST reads a second workbook (read=), so no macro is made for this spec until macros may open a second workbook (D36, D114) [V344]
+spec.vcl:55: warning: the spec adds to a dictionary, but no FIXTURE column repeats a key: add +dupes(n) so the TESTs see repeated keys (rule 19) [V057]

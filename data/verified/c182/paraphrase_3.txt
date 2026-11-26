@@ -1,0 +1,1 @@
+For the proposal, leave the NACE annexure out (not sour service). Fill the technical queries table: first TQ-02 'Inspection opening rating blank' with 'Offered 600#'; also TQ-01 'Suction flanges 150#' with 'Offered 300# to meet the code'.

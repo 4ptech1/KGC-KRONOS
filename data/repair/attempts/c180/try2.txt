@@ -1,0 +1,1 @@
+PASS (81 of 81 deliberate bugs caught); notes: V389: KRONOS Offline only: a DOCUMENT fills a Word file in KRONOS Offline; no macro is made (D115)

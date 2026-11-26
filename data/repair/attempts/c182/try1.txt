@@ -1,0 +1,4 @@
+FAIL. The toolchain's messages:
+spec.vcl:2: warning: KRONOS Offline only: a DOCUMENT fills a Word file in KRONOS Offline; no macro is made (D115) [V389]
+spec.vcl:19: error: REPEAT section Equipment from=[] removes the section: it has no fields to bind [V395]
+spec.vcl:20: error: match= says which rows go into each copy of a section, and from=[] has no rows [V393]

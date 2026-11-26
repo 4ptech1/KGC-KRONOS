@@ -1,0 +1,1 @@
+Register: yellow highlight on the Enquiry cell of every enquiry with blank Result, clear old highlights first, and tell me the count.

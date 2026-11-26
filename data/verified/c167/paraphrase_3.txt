@@ -1,0 +1,1 @@
+Add a row at the end of the Conversion sheet, after the last activity. Fill it in this order: Rate 40000, Unit Lot, Sets 2, Qty/set 1, Basis 'furnace, 1 lot', Activity PWHT of floating head, Scope FH, Sl the next number. Finally copy the Total Qty and Amount formulas from the row above.

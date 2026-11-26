@@ -1,0 +1,3 @@
+FAIL. The toolchain's messages:
+spec.vcl:31: error: D: +boundary uses "" 1 times, but values(...) has it 0 times [V264]
+spec.vcl:33: error: assertion: COUNTIF criteria must be a "quoted" text or a number, got 'TODAY' [V205]

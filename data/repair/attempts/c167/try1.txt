@@ -1,0 +1,4 @@
+FAIL. The toolchain's messages:
+spec.vcl:21: error: type: raw cell value CELL($ws,last,1) used in arithmetic: guard it with IS_NUMBER or IS_DATE first [T006]
+spec.vcl:35: error: no TEST guards against collateral changes with a PRE_ measure (rule 5) [V189]
+spec.vcl:36: error: assertion: sheet Conversion has no [Activity] header in this TEST (not in its FIXTURE cols, and not written or copied into row 1) [V205]

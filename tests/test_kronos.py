@@ -507,9 +507,14 @@ class Practice(unittest.TestCase):   # the practice run beside the saved module 
                 built += 1
                 self.assertEqual(why, "")
                 self.assertEqual(lint(module, public_helpers(FORGELIB)), [], path)
-        self.assertEqual(sorted(declined), ["c028", "c048", "c128"])   # ADD_SHEET and COPY_SHEET take a Workbook argument
-        for why in declined.values():
-            self.assertTrue(why.startswith("its practice tests give the macro a whole workbook"), why)
+        templates = sorted(n for n, why in declined.items() if "look-alike KGC template" in why)   # D138: not built yet
+        self.assertEqual(templates, sorted(path.parent.name for path in paths
+                                           if re.search(r"^TASK$", path.read_text(encoding="utf-8"), re.M)
+                                           and re.search(r"^FIXTURE\s+\S+\s+template=", path.read_text(encoding="utf-8"), re.M)))
+        self.assertEqual(sorted(set(declined) - set(templates)), ["c028", "c048", "c128"])   # ADD_SHEET and COPY_SHEET take a Workbook argument
+        for name, why in declined.items():
+            if name not in templates:
+                self.assertTrue(why.startswith("its practice tests give the macro a whole workbook"), why)
         self.assertGreaterEqual(built, 55)
 
     def test_an_odd_spec_never_stops_saving(self):

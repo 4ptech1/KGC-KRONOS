@@ -1,0 +1,3 @@
+FAIL. The toolchain's messages:
+spec.vcl:21: error: assertion: unknown word TODAY [V205]
+spec.vcl:21: warning: the spec uses TODAY, but no FIXTURE column uses reldates(lo, hi): fixed dates drift as TODAY moves (rule 19) [V056]

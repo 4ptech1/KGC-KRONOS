@@ -1,0 +1,1 @@
+On the Assumptions & Clarif. sheet add a new numbered row at the end with the clarification 'Delivery basis 20 weeks Ex-Works' and Status 'Assumed'. Number it one more than the last row. Every run adds one more such row, and tells me its number.

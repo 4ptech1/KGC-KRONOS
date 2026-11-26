@@ -1,0 +1,1 @@
+Conversion sheet, new last row: Sl next number, Scope FH, Activity PWHT of floating head, Basis 'furnace, 1 lot', Qty/set 1, Sets 2, Unit Lot, Rate 40000. Copy Total Qty and Amount formulas from the row above.

@@ -1,0 +1,1 @@
+Hello, could you please clear the old highlights in the register first, then highlight in yellow the Enquiry cell of every enquiry whose Result is still blank? Please also tell me how many there are. Thanks!

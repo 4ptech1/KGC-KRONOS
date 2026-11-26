@@ -115,8 +115,18 @@ Found by corpus batch 9 (the document jobs, D137, D138):
 | c168 to c170 | pass a template's sheet whose name has spaces or symbols ('Enq Summary', 'Assumptions & Clarif.') to a Worksheet argument in a TEST | **answered by D138:** `call=StampEnquiry('Enq Summary')` |
 | c184 | a Word recipe with none of a repeated part (no equipment sections, no query rows) | **answered by D138:** `REPEAT ... from=[]` removes it |
 | c162, c163, c166 | practice data that varies on a template: a template FIXTURE is the form as it is, so every TEST sees the same few rows and a recipe's TESTs can't catch enough deliberate bugs (blank keys, a second job, a value at a boundary) | **not yet:** a FIXTURE line that overrides chosen cells of a template (for example `FIXTURE est_02.xlsx template=estimation set='Enq Summary'!B3="",C3=5`), designed with its own note before it is built; meanwhile such a job uses a plain FIXTURE with the template's columns |
+| c176 | a value worked out per row of a REPEAT read from a range (an item's total = Qty x unit price), and a total over the rows (total quantity, grand total): a FIELD or a bound column only copies a value | **not stored** (retired after three rounds): a Word recipe reads the totals from cells the workbook already computes, or the request types them |
+| c183 | a REPEAT that takes only some rows of a range (the items of one enquiry, E-9101, out of the whole register): `from=` reads every row of its range, and `match=` works only inside a repeated section | **not stored:** the recipe hard-coded the enquiry's rows of the practice register, which no real register would match; needs a row filter on a REPEAT source, designed with its own note |
 
 ## Wording of the prompt to fix
+
+From corpus batch 9 (D140): the helpers' brief added four rules that the prompt implies but does not say. To go into the
+prompt with Boss's next paste:
+- a part of a Word template the request does not ask for is left out (`from=[]`, KEEP ... IF FALSE, a field ""), never
+  filled with invented placeholder text;
+- when a template FIXTURE can't vary enough for the TESTs, use a plain `sheet=` FIXTURE with the template's headings;
+- a list on a sheet is read to its last used row, never at the practice form's row numbers;
+- text the user typed is never AI_TEXT.
 
 | Pair | Sentence | Problem |
 | --- | --- | --- |

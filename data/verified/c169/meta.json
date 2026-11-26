@@ -1,0 +1,25 @@
+{
+ "accepted_warnings": [],
+ "family": "documents",
+ "id": "c169",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 18,
+  "note": "",
+  "total": 18
+ },
+ "op_lines": 10,
+ "ops": [
+  "FORMAT",
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "estimation"
+ ],
+ "source": "orchestrator helper"
+}

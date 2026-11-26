@@ -1,0 +1,1 @@
+Hello, in the register could you please set the Result of enquiry E-9102 to Won? The Result cell is merged over that enquiry's item rows, so please write it in the first cell only. Thanks!

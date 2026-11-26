@@ -1,0 +1,1 @@
+On the WPS form write the new WPS number DM-WPS-202 in the WPS No. cell and 'Rev. R0 - first issue' next to it, and the WPQR number DM-PQR-202. Nothing else changes.

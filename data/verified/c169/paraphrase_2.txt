@@ -1,0 +1,1 @@
+Hello, in the Enq Summary sheet could you please write the enquiry number E-9100 in the Enquiry column and today's date in the Date column, formatted as dd.mm.yyyy, for every item row? Thank you!

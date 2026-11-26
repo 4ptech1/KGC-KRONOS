@@ -1,0 +1,6 @@
+FAIL. The toolchain's messages:
+spec.vcl:21: warning: the spec uses TODAY, but no FIXTURE column uses reldates(lo, hi): fixed dates drift as TODAY moves (rule 19) [V056]
+FAIL test   spec.vcl  (1/2 tests)
+       line 21: RESULT=2 ERROR_COUNT=0
+         ASSERT: COUNTIF(WPS!B50, ">46000") = 1 is false (left 0, right 1) [R051]
+         ASSERT: COUNTIF(WPS!B50, "<47800") = 1 is false (left 0, right 1) [R051]

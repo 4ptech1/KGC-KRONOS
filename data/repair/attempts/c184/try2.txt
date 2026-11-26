@@ -1,0 +1,13 @@
+FAIL: the TESTs catch 16 of 27 deliberate bugs, under 90%. Add TEST cases or FIXTURE rows (or a
+template FIXTURE with other values) that catch these; or, if a change can never make a difference, say why:
+   survives: line 15: Basis -> empty
+   survives: line 16: Total_Qty -> empty
+   survives: line 17: 1 -> 2
+   survives: line 17: 2 -> 3
+   survives: line 17: 3 -> 4
+   survives: line 17: 4 -> 5
+   survives: line 19: 1 -> 2
+   survives: line 19: 2 -> 3
+   survives: line 20: 1 -> 2
+   survives: line 20: 2 -> 3
+   survives: line 20: 3 -> 4

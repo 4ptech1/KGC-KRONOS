@@ -1,0 +1,5 @@
+FAIL. The toolchain's messages:
+spec.vcl:2: warning: KRONOS Offline only: a DOCUMENT fills a Word file in KRONOS Offline; no macro is made (D115) [V389]
+FAIL test   spec.vcl  (1/2 tests)
+       line 25: RESULT=None ERROR_COUNT=0
+         ASSERT: TABLE_ROWS(2) = 3 is false (left 2, right 3) [R051]

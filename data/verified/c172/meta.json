@@ -1,0 +1,24 @@
+{
+ "accepted_warnings": [],
+ "family": "documents",
+ "id": "c172",
+ "kind": "TASK",
+ "mutation": {
+  "equivalent": 0,
+  "killed": 13,
+  "note": "",
+  "total": 14
+ },
+ "op_lines": 7,
+ "ops": [
+  "LET",
+  "LOOP_ROWS",
+  "RETURN",
+  "SET_VALUE",
+  "SKIP_IF"
+ ],
+ "registers": [
+  "enquiry"
+ ],
+ "source": "orchestrator helper"
+}

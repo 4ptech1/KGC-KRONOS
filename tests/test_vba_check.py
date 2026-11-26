@@ -34,7 +34,7 @@ class EverySpec(unittest.TestCase):
                 self.assertEqual(out.differences, [])
                 proven += out.proven
                 if out.skipped is not None:
-                    skipped.append(path.name)
+                    skipped.append(name_of(path))
         self.assertGreaterEqual(proven, 165)   # every spec, example and corpus pair with TESTs on 19 Nov 2026
         # build_example.vcl doesn't parse on purpose; a recipe only KRONOS Offline runs (a DOCUMENT, D115, or one whose
         # TEST reads a second workbook, D114) makes no VBA, so it is skipped too, and nothing else is

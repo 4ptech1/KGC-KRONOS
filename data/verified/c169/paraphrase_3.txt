@@ -1,0 +1,1 @@
+On the Enq Summary sheet, for each item row do two things: put today's date in the Date column as dd.mm.yyyy, and put enquiry number E-9100 in the Enquiry column.

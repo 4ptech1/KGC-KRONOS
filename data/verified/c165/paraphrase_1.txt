@@ -1,0 +1,1 @@
+WPS page 2 bottom: preparer 'R. Demo, Welding Engineer', today's date in the Date cell as dd/mm/yyyy.

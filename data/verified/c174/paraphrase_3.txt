@@ -1,0 +1,1 @@
+Goal: add rows to the enquiry register after its last row. Source: the Enq Summary sheet of the workbook I read from. Copy for each item: TL to TL, Shell THK, Shell ID, MOC, Qty, Old and Revised Tag No, U Stamp, Type, Item. Enquiry number and date come from the first item row. At the end, report how many rows were added.
