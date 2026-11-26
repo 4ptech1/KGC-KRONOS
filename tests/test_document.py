@@ -23,7 +23,7 @@ from vcl_codegen import DOCUMENT_ONLY, CompileError, compile_text  # noqa: E402
 from vcl_docx import DocxError, Plan, Repeat, fill, template_fields  # noqa: E402
 from vcl_fmt import format_text  # noqa: E402
 from vcl_interp import run_tests  # noqa: E402
-from vcl_mutate import mutate_report  # noqa: E402
+from vcl_mutate import doc_mutants, mutate_report  # noqa: E402
 
 TODAY = dt.date(2026, 11, 20)
 TEMPLATES = ROOT / "data" / "templates"
@@ -156,6 +156,9 @@ class TheSpecs(unittest.TestCase):
             (PROPOSAL.replace("SECTION_COUNT(Equipment) = 2", "SECTION_COUNT(Equipment) = 2 AND VALUE(Notes!A2) = 1"),
              "VALUE is not one of"),
             (PROPOSAL.replace("FIELD_TEXT(Proposal_No)", "FIELD_TEXT(Mark)"), "FIELD_TEXT(Mark): Mark has no FIELD"),
+            (PROPOSAL.replace("ARGS     proposalNo As String, onDate As String, sour As Boolean",
+                              "ARGS     proposalNo As String, onDate As String, sour As Boolean, extra As String"),
+             "$extra is never read"),
         ]
         for text, want in cases:
             with self.subTest(want=want):
@@ -168,6 +171,28 @@ class TheSpecs(unittest.TestCase):
         results = run_tests(bad, TODAY)
         self.assertFalse(results[0].passed)
         self.assertTrue(any(re.search("could not be filled", m) for m in results[0].failed), results[0].failed)
+
+
+class NoOpMutants(unittest.TestCase):
+    """D139: a deliberate bug must be able to change something. A FIELD that is already "" is not emptied again, and a
+    REPEAT from=[] keeps its <Name>=<col> numbers (no rows, so a column can change nothing); its table number still
+    changes, since that removes another table."""
+
+    def test_an_empty_field_is_not_emptied_again(self):
+        text = PROPOSAL.replace('FIELD    Basis = AI_TEXT("Offer based on the enquiry data sheet and ASME VIII-1, latest '
+                                'edition.")', 'FIELD    Basis = ""')
+        lines = text.splitlines()
+        line = next(i for i, ln in enumerate(lines) if ln.startswith("FIELD    Basis"))
+        self.assertEqual([what for i, what, _ in doc_mutants(text) if i == line], [])
+        self.assertTrue(all(new != lines[i] for i, _, new in doc_mutants(text)))
+
+    def test_a_repeat_with_no_rows_keeps_its_columns(self):
+        text = PROPOSAL.replace(
+            'REPEAT   row table=6 from=[["TQ-01", "Suction flanges 150#", "Offered 300# to meet the code"]] TQ_No=1, '
+            'Requirement=2, Query=3', "REPEAT   row table=6 from=[] TQ_No=1, Requirement=2, Query=3")
+        self.assertNotEqual(text, PROPOSAL)
+        line = next(i for i, ln in enumerate(text.splitlines()) if ln.startswith("REPEAT   row table=6"))
+        self.assertEqual([what for i, what, _ in doc_mutants(text) if i == line], ["6 -> 7"])
 
 
 if __name__ == "__main__":

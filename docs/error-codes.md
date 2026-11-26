@@ -404,6 +404,7 @@ message, `{...}` stands for the part that varies.
 | V393 | error | match= says which rows go into each copy of a section, and from=[] has no rows | vcl_document.py |
 | V394 | error | REPEAT {kind} names its fields: add <field>=<column> (only a REPEAT section from=[] may leave them out) | vcl_document.py |
 | V395 | error | REPEAT section {target} from=[] removes the section: it has no fields to bind | vcl_document.py |
+| V396 | error | ${d.name} is never read: a DOCUMENT asks the person for every argument, so drop it from ARGS and from the TEST calls | vcl_document.py |
 
 ## G: grammar
 

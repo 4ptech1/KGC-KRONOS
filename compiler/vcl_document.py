@@ -81,6 +81,7 @@ def check_document(text, spec):
         c.error(str(exc), templates[0]["line"])
         return c.problems
     args = {d.name: d.type for d in spec.args}
+    used = set()   # the arguments a FIELD, REPEAT or KEEP line reads (D139)
 
     def check_expr(t, line):
         for call in _calls(t):
@@ -100,6 +101,8 @@ def check_document(text, spec):
             if fname == "AI_TEXT" and not (len(pos) == 1 and isinstance(pos[0], Token) and pos[0].type == "STRING"):
                 c.error(coded('AI_TEXT needs one "quoted" text, written in place', "V354"), line)
         for tok in _tokens(t):
+            if tok.type == "ARG":
+                used.add(str(tok)[1:])
             if tok.type == "ARG" and str(tok)[1:] not in args:
                 c.error(coded(f"undeclared argument {tok} (declare it in ARGS)", "V355"), line)
             elif tok.type == "NAME" and str(tok) not in CONSTANTS and not _is_call_name(t, tok):
@@ -156,6 +159,10 @@ def check_document(text, spec):
             keeps[sname] = line
             check_expr(t.children[1], line)
 
+    for d in spec.args:   # every argument is a question or an upload for the person, so each one must be read (D139)
+        if d.name not in used:
+            c.error(coded(f"${d.name} is never read: a DOCUMENT asks the person for every argument, so drop it from ARGS "
+                          "and from the TEST calls", "V396"), d.line)
     # the spec against its template
     tables, table_section, sections = shape["tables"], shape["table_section"], shape["sections"]
     section_repeats = {r[2]: r for r in repeats if r[1] == "section"}

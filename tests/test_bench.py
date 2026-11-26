@@ -24,6 +24,9 @@ TODAY = dt.date(2026, 11, 25)
 EVAL = ROOT / "data" / "eval"
 
 
+PROPOSAL = (ROOT / "tests" / "data" / "doc_proposal.vcl").read_text(encoding="utf-8")
+
+
 def ref(item):
     return (EVAL / item / "spec.vcl").read_text(encoding="utf-8")
 
@@ -57,6 +60,23 @@ class Contract(unittest.TestCase):
         self.assertEqual(kind, "BUILD")
         self.assertEqual(len(lines), 2)
         self.assertTrue(lines[0].startswith("NAME") and "modMain.RunHeadless(" in lines[1])
+
+    def test_a_document_gives_its_name_template_and_args(self):
+        kind, lines = B.contract(PROPOSAL)
+        self.assertEqual(kind, "DOCUMENT")
+        self.assertEqual([ln.split()[0] for ln in lines], ["NAME", "TEMPLATE", "ARGS"])
+
+    def test_a_document_is_scored_like_any_recipe(self):
+        """The practice proposal against itself reaches every level; with one table value changed its own TESTs, also
+        changed, still pass, and the hidden ones don't (D139)."""
+        out = B.score(PROPOSAL, PROPOSAL, TODAY)
+        self.assertEqual(out["reached"], "T+M+H")
+        wrong = PROPOSAL.replace('"Gas outlet"', '"Gas exit"')
+        self.assertNotEqual(wrong, PROPOSAL)
+        out = B.score(wrong, PROPOSAL, TODAY)
+        self.assertTrue(out["T"])
+        self.assertFalse(out["H"])
+        self.assertIn("hidden TESTs fail", out["why"])
 
     def test_the_prompt_shows_the_request_and_the_contract_only(self):
         for folder in items("eval"):
