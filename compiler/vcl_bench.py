@@ -5,7 +5,8 @@
 
 The items are the held-out pairs in data/eval: never trained on, paraphrased or repaired (D59). A writer (Claude as the
 Orchestrator today, Codex, our model from March 2027) sees an item's request and its **contract**: the names and types
-the hidden TESTs call (a TASK's PROC, KIND, ARGS and RET; a BUILD's NAME and its modMain.RunHeadless SIG). Nothing else
+the hidden TESTs call (a TASK's PROC, KIND, ARGS and RET; a BUILD's NAME and its modMain.RunHeadless SIG; a
+DOCUMENT's NAME, TEMPLATE and ARGS). Nothing else
 of the reference recipe.
 
 A candidate is a file CANDIDATES/<id>.vcl (a recipe, or a whole AI reply with one vcl block). It is scored in four
@@ -49,6 +50,9 @@ def contract(spec_text):
         lines = [ln for ln in head.splitlines() if _key(ln) == "NAME"
                  or (_key(ln) == "SIG" and "modMain.RunHeadless(" in ln)]
         kind = "BUILD"
+    elif re.search(r"^DOCUMENT\s*$", head, re.M):   # a Word recipe (D115): its name, its template and its ARGS (D139)
+        lines = [ln for ln in head.splitlines() if _key(ln) in ("NAME", "TEMPLATE", "ARGS")]
+        kind = "DOCUMENT"
     else:
         lines = [ln for ln in head.splitlines() if _key(ln) in ("PROC", "KIND", "ARGS", "RET")]
         kind = "TASK"
@@ -59,8 +63,9 @@ def prompt(folder):
     """What a writer sees for one item: the request and the contract."""
     request = (folder / "task.txt").read_text(encoding="utf-8").strip()
     kind, lines = contract((folder / "spec.vcl").read_text(encoding="utf-8"))
-    what = ("Write a VCL 0.7 BUILD. Its NAME and its modMain.RunHeadless signature must be exactly:" if kind == "BUILD"
-            else "Write a VCL 0.7 TASK. Its PROC, KIND, ARGS and RET must be exactly:")
+    what = {"BUILD": "Write a VCL 0.7 BUILD. Its NAME and its modMain.RunHeadless signature must be exactly:",
+            "DOCUMENT": "Write a VCL 0.7 DOCUMENT. Its NAME, TEMPLATE and ARGS must be exactly:"}.get(
+        kind, "Write a VCL 0.7 TASK. Its PROC, KIND, ARGS and RET must be exactly:")
     return f"{request}\n\n{what}\n" + "\n".join(lines) + "\n"
 
 

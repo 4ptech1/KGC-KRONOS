@@ -530,6 +530,7 @@
  "V393": "match= says which rows go into each copy of a section, and from=[] has no rows",
  "V394": "REPEAT {kind} names its fields: add <field>=<column> (only a REPEAT section from=[] may leave them out)",
  "V395": "REPEAT section {target} from=[] removes the section: it has no fields to bind",
+ "V396": "${d.name} is never read: a DOCUMENT asks the person for every argument, so drop it from ARGS and from the TEST calls",
  "X001": "reldates() boundary values are whole numbers of days, got {value}",
  "X002": "dates() boundary values are yyyy-mm-dd dates, got {value}",
  "X003": "{kind}() boundary values are numbers, got {value}",

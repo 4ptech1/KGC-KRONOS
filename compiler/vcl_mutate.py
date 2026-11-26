@@ -74,21 +74,30 @@ DOC_KEYS = ("FIELD ", "REPEAT ", "KEEP ")
 
 def doc_mutants(text):
     """A DOCUMENT's deliberate bugs (D115): each number one higher and each quoted text changed, on its FIELD,
-    REPEAT and KEEP lines, and each FIELD line's value turned into empty text. (i, what, the whole new line)."""
+    REPEAT and KEEP lines, and each FIELD line's value turned into empty text. (i, what, the whole new line).
+    No mutant is the line itself (a FIELD that is already "" emptied), and a REPEAT from=[] keeps its <Name>=<col>
+    numbers: with no rows, a column can change nothing (D139)."""
     for i, line in enumerate(text.splitlines()):
         if not line.startswith(DOC_KEYS):
             continue
         key, body = line[:9], line[9:]
+        found = []
+        empty = re.search(r"\bfrom=\[\]", body) if key.startswith("REPEAT") else None
         for m in re.finditer(r"(?<![\w$.\"])(\d+)(?![\w.])", body):
+            if empty and m.start() > empty.start():
+                continue
             n = int(m.group(1))
-            yield i, f"{n} -> {n + 1}", key + body[:m.start()] + str(n + 1) + body[m.end():]
+            found.append((f"{n} -> {n + 1}", key + body[:m.start()] + str(n + 1) + body[m.end():]))
         for m in re.finditer(r'"((?:[^"]|"")+)"', body):
-            yield i, f'"{m.group(1)}" -> changed', key + body[:m.start()] + '"zz' + m.group(1) + '"' + body[m.end():]
+            found.append((f'"{m.group(1)}" -> changed', key + body[:m.start()] + '"zz' + m.group(1) + '"' + body[m.end():]))
         if key.startswith("FIELD"):
             name = body.split("=", 1)[0].strip()
-            yield i, f"{name} -> empty", f'{key}{name} = ""'
+            found.append((f"{name} -> empty", f'{key}{name} = ""'))
         if key.startswith("KEEP"):
-            yield i, "condition negated", key + body.replace(" IF ", " IF NOT ", 1)
+            found.append(("condition negated", key + body.replace(" IF ", " IF NOT ", 1)))
+        for what, new_line in found:
+            if new_line != line:
+                yield i, what, new_line
 
 
 def mutate_report(text, snapshot=False, today=None):
