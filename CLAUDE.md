@@ -260,7 +260,9 @@ itself; it works out formulas it is given. E1, the glossary, is done (D134: `dat
 read by the recipe finder). E2, the rule sheet (`docs/engineering-rules.md`,
 18 rules from the samples' formulas with worked examples, D135), waits for Boss's "confirmed"; E3, the welding recipes, starts then.
 The benchmark (step 7) is done (D136: `vclc bench`; Claude's baseline: 10 of 15 held-out macros right after 3
-tries, 9 on the first, 4 right with strong tests). **Next: the document corpus batch** (with KGC document jobs added to the held-out items).
+tries, 9 on the first, 4 right with strong tests). **Next: the document corpus batch** (with KGC document jobs added to the held-out items): the corpus takes
+Word and two-workbook recipes (D137), and two small VCL 0.7 additions it needed are in (D138: a TEST passes a
+template sheet in quotes, `'Enq Summary'`; `REPEAT ... from=[]` removes a repeated part; Boss pastes the prompt again).
 
 **Boss's ten steps (18 Nov 2026, D101), the current order:** 1 try KRONOS Offline v5 and 2 the IT request and prompt
 paste (Boss: done); 3 and 4 the corpus to 150 and the prompt fixes (done, D93 to D97); 5 the VBA simulator (done, D98

@@ -398,6 +398,12 @@ message, `{...}` stands for the part that varies.
 | V387 | error | SECTION_COUNT({s}): the template has no section {s} | vcl_document.py |
 | V388 | error | no TEST checks ERROR_COUNT = 0 (rule 5) | vcl_document.py |
 | V389 | error | KRONOS Offline only: a DOCUMENT fills a Word file in KRONOS Offline; no macro is made (D115) | vcl_document.py |
+| V390 | error | TEST passes '{value}' for ${decl.name}, a {decl.type}: a sheet name in quotes is only for a Worksheet argument | validator.py |
+| V391 | error | a sheet name in quotes in a TEST call ('{value}') is VCL 0.7: start the spec with 'VCL 0.7' to use it | validator.py |
+| V392 | error | TEST passes '{v}' for ${d.name}: a sheet name in quotes is for a TASK's Worksheet argument, and a DOCUMENT takes none | vcl_document.py |
+| V393 | error | match= says which rows go into each copy of a section, and from=[] has no rows | vcl_document.py |
+| V394 | error | REPEAT {kind} names its fields: add <field>=<column> (only a REPEAT section from=[] may leave them out) | vcl_document.py |
+| V395 | error | REPEAT section {target} from=[] removes the section: it has no fields to bind | vcl_document.py |
 
 ## G: grammar
 
@@ -591,6 +597,8 @@ message, `{...}` stands for the part that varies.
 | R064 | error | the document could not be filled: {ex} | vcl_interp.py |
 | R065 | error | the filled document still holds {report.left_over} {{ (a field nothing filled) | vcl_interp.py |
 | R066 | error | the workbook {fixture} changed on sheet {name}: a DOCUMENT changes no workbook | vcl_interp.py |
+| R067 | error | TEST passes {v} for ${pname}: a DOCUMENT takes no Worksheet argument | vcl_interp.py |
+| R068 | error | TEST passes {v}, but {fixture} has no sheet {sheet_text(v)} | vcl_interp.py |
 
 ## K: KRONOS engine
 

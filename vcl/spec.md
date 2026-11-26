@@ -216,7 +216,9 @@ FIXTURE  ...                                  (a FIXTURE file for the TESTs, als
 TEST     fixture=<name>.xlsx call=<Name>(<args>) assert=...   (one or more; no runs=, no read=)
 table=<n> counts the template's tables in its order. A <source> is a range (one repeat per
 row; a workbook's formula cells give the values Excel saved) or rows written in place,
-[[<expr>, ...], [<expr>, ...]], for values the user typed. <col> counts a source row's values
+[[<expr>, ...], [<expr>, ...]], for values the user typed, or [] for none: from=[] removes
+the repeated row, column or section (a REPEAT section from=[] binds no <Name>, and the
+tables inside it go with it; a row or column still names its <Name>=<col>). <col> counts a source row's values
 from 1. Expressions use the ARGS (no VARs), the value functions, AI_TEXT and
 NUMBER_TEXT(<x>, "<format>")   formats 0  0.0  0.00  #,##0  #,##0.00  #,##,##0  #,##,##0.00
                                (the last two group as Indian numbers: 2,89,000)
@@ -526,14 +528,15 @@ An assertion names a sheet as one word (Ncr!B2). A sheet the macro adds whose na
 spaces is written in single quotes, as in Excel: VALUE('Open NCRs'!B1),
 COUNTA('Open NCRs'![NCR No]), ROWS_USED('Open NCRs'); write a quote in the name as ''.
 Quotes are only for a name that isn't one word, and the name must be one ADD_SHEET could
-give; FIXTURE sheets have no spaces. SHEET_EXISTS("<name>") takes any name.
+give, or a template sheet's own name. SHEET_EXISTS("<name>") takes any name.
 runs=<n> calls the procedure n times on the same test workbook before checking
 (default 1).
 Combine assertions with AND; there is no TRUE, FALSE or NOT. SHEET_EXISTS(...) and
 FILE_EXISTS(...) stand alone; write "is not there" as SHEET_EXISTS("<name>") = 0 or
 FILE_EXISTS("<path>") = 0. When every run stops at PRE, the automatic check already proves
 that nothing changed. In TEST call arguments, a bare sheet name (Orders) means that worksheet
-in the test workbook, a bare folder name (Dump) means that FIXTURE folder, the TEST's fixture
+in the test workbook, as does a sheet name in quotes ('Enq Summary', a template's sheet
+with spaces or symbols), a bare folder name (Dump) means that FIXTURE folder, the TEST's fixture
 file name (orders_01.xlsx) means the test workbook, for a Workbook argument, and text and
 numbers are passed as written ("P-104", 5).
 fixture=<name>.xlsx names a FIXTURE file from this spec; the harness builds it fresh for
@@ -578,8 +581,9 @@ FIXTURE SPEC
   FIXTURE <name>.xlsx template=<name>
   builds the whole test file from a look-alike form in data/templates/ (its sheets keep their
   own names: name one with spaces in quotes in an assertion, 'BOM-RM'!Q10, and reach it in the
-  spec with SHEET($wb, "BOM-RM")); one template line per file and no sheet= lines beside it.
-  Sheet names have no spaces, so TEST calls can use them bare. They may be short forms of
+  spec with SHEET($wb, "BOM-RM"), or pass it in quotes to a Worksheet argument,
+  call=StampEnquiry('Enq Summary')); one template line per file and no sheet= lines beside it.
+  sheet= names have no spaces, so TEST calls use them bare. They may be short forms of
   the real sheet names (WelderPerf for "Welder Performance"); ASSUME lines describe the
   real workbook.
   Each column has its own fixed seed, made from file name + sheet + column. The builder
@@ -631,6 +635,15 @@ VCL 0.3 folder FIXTUREs: a file without `:<bytes>` gets 100 + below(900) bytes, 
 PRNG seeded with "<file>|<folder>|<path as written>|size", for example
 "router_01.xlsx|Dump|r3.pdf|size". Such a file holds that many "x" characters. A VCL 0.4
 file written `:"<text>"` holds exactly that text, with no PRNG draws.
+
+## Changes after VCL 0.7 (25 Nov 2026)
+
+Found by the document corpus batch (D137, D138). Both are additions: every spec stays valid and gives the same results.
+
+- A TEST call may pass a sheet name in quotes to a Worksheet argument, `call=StampEnquiry('Enq Summary')`, as an
+  assertion names it: a look-alike template keeps its sheets' own names, spaces and symbols included (D138).
+- A DOCUMENT's `REPEAT ... from=[]` has no rows and removes the repeated row, column or section; a `REPEAT section`
+  from=[] binds no fields (D138).
 
 ## Changes in VCL 0.7 (20 Nov 2026)
 

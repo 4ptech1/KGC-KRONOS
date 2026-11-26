@@ -129,7 +129,8 @@ read-opt ::= "read=" sp t-filename
 test-value ::= "fixture=" sp t-filename (sp read-opt)? sp "call=" sp call-target sp "(" (sp call-arg (sp "," sp call-arg)*)? sp ")" (sp "runs=" sp t-int)? sp "assert=" sp assertion
 template-value ::= t-docxname
 field-value ::= t-name sp "=" sp expr
-repeat-value ::= t-repeat-kind sp repeat-target sp "from=" sp expr (sp match-opt)? sp bind (sp "," sp bind)*
+repeat-value ::= t-repeat-kind sp repeat-target sp "from=" (sp expr | sp empty-list) (sp match-opt)? (sp bind (sp "," sp bind)*)?
+empty-list ::= "[" sp "]"
 repeat-target ::= t-table-eq sp t-int | t-name
 match-opt ::= t-match-eq sp t-int sp "=" sp t-name
 bind ::= t-name sp "=" sp t-int
@@ -171,7 +172,7 @@ call-item ::= option | expr
 option ::= t-optkey sp "=" sp expr
 list-lit ::= "[" sp expr (sp "," sp expr)* sp "]"
 call-target ::= t-name | t-qualname
-call-arg ::= t-name | t-string | t-number | neg-number | t-filename
+call-arg ::= t-name | t-qsheet | t-string | t-number | neg-number | t-filename
 neg-number ::= "-" sp t-number
 assertion ::= a-cond (sp "AND" sp a-cond)*
 a-cond ::= a-sum (sp t-comp-op sp a-sum)?
