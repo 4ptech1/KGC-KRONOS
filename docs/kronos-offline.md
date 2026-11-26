@@ -358,7 +358,7 @@ How version 4 does it (D89):
 - **Cancel** stops the browser's Python as before; the page then starts a fresh one and rebuilds every request from the
   actions it kept (`Wizard.restore`), so nothing pasted is lost.
 - Still Phase 3: History, the practice-run check, the corpus suggestion and Help.
-- Boss tried version 5 on the work PC on 18 Nov 2026: it works (D101). Phase 3 comes as version 8 (D117, D129): version 6 is
+- Boss tried version 5 on the work PC on 18 Nov 2026: it works (D101). Phase 3 comes as version 9 (D117, D129, D143): version 6 is
   Phase 4, KGC's own documents, and version 7 is the recipe finder.
 
 **Phase 4, KGC's own documents (version 6, D117)** (`docs/kgc-documents-plan.md` Phase 4; Boss: "Go Phase 4",
@@ -429,7 +429,7 @@ nothing new is written; the page only ever sends the request and the workbook's 
 the page test: a job field named `id` overwrote the page's own job number and the page waited for ever, so the field is
 `item` and a test keeps every job free of `id`.
 
-**Phase 3, the rest (version 8 since D129):** History (past runs kept in this browser on this PC in IndexedDB, every read and write in
+**Phase 3, the rest (version 9 since D143; version 8 refreshes the toolchain):** History (past runs kept in this browser on this PC in IndexedDB, every read and write in
 try/catch, newest first, with "Download the run record", like the runs folder KRONOS keeps; say plainly that clearing
 the browser's data removes them); the practice run (download its module, and a box to paste Excel's result back for
 `vcl_pilot.check`, with the verdict); "Suggest for the corpus" (D70: downloads the candidate file for Boss to send to
@@ -458,6 +458,7 @@ Boss's whole brief, word for word, with BlueForce's original four files, is in t
 | 5 | 17-11-2026 | `62d66d4` | **Cancel, made sure (D89):** "Try the practice example" shows the working panel the moment it is clicked (its file can wait behind Python's own downloads, and version 4's panel then came too late to Cancel); Cancel before the file arrives stops it, says so where Boss is, and, when it comes before KRONOS's words, loads them again (in version 4 the tips, the "never does" list and the Orchestrator line then stayed empty). Found by a CI run of version 4's page test. |
 | 6 | 21-11-2026 | `95bf184` | **KGC's own documents (D117 to D122):** **a copy that keeps everything** (when no row and no sheet moves, only the changed cells are written into your file itself, so pictures, print areas, merged cells and notes stay), **two workbooks** (a recipe that reads a second workbook asks for "Workbook to read from", read as Excel last saved it and never changed), **Word** (choose a .docx template and fill it from the workbook; fields, repeated rows, columns and sections, prices as 2,89,000; a formula with no saved value stops the fill), **the AI's text marked** (Review lists every sentence the AI wrote, "not proven: check it", and what each recipe fills). Recipes for VCL 0.7 now run here; KRONOS.exe is unchanged. The old version 6 scope (History, the practice-run check, the corpus suggestion, Help) is now version 7. |
 | 7 | 22-11-2026 | `2ecc140` | **KRONOS's recipe finder (D129, D130):** "Or find a proven recipe" in step 1 shows the closest of about 140 proven recipes in KRONOS's own library for the job described, with no AI chat and nothing online; "Use this recipe" changes its column names to the workbook's where KRONOS is sure (each change ticked by the person) and proves it again, then Review and Save work as for a recipe file. The old version 7 scope (History, the practice-run check, the corpus suggestion, Help) is now version 8. |
+| 8 | 26-11-2026 | (added after the release) | **Today's toolchain and prompt, no new screens (D143):** recipes may pass a sheet whose name has spaces in quotes, `'Enq Summary'`, and a Word recipe may leave a repeated part out with `from=[]` (D138); a Word recipe that declares an argument it never reads is refused (D139); the recipe finder knows KGC's shop words from the glossary (D134) and its library has KGC's own document jobs from batch 9: WPS forms, the estimation workbook, the enquiry register and the proposal in Word (D140); the prompt to copy into the AI chat is today's, with hard rule 25's new lessons (D142). |
 
 Each copy is the release `kronos-offline-v<N>`, and its SHA-256 is on its release page and in the `.sha256.txt`
 beside the zip:

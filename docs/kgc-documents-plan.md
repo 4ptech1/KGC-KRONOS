@@ -142,7 +142,7 @@ requests are in `data/batches/batch_09.json` (5 held out); none computes an engi
 
 ### Later (not in this plan)
 - KRONOS.exe learns DOCUMENT and two-workbook recipes; the old version 6 scope (History, practice-run check, corpus
-  suggestion, Help) as Offline version 8 (version 7 is the recipe finder, D129); storage S1; the VCL memory; the day-one kit.
+  suggestion, Help) as Offline version 9 (version 7 is the recipe finder, D129; version 8 a refresh, D143); storage S1; the VCL memory; the day-one kit.
 
 ## Rules for the implementing session
 - Read `CLAUDE.md` first. One PR per phase or part; never weaken a test or threshold; specs are inputs.

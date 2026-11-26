@@ -263,7 +263,8 @@ The benchmark (step 7) is done (D136: `vclc bench`; Claude's baseline: 10 of 15 
 tries, 9 on the first, 4 right with strong tests). The document corpus batch is stored (D140: 22 of 25, 5 of them held out, so the benchmark has 20 items; 2 retired as
 language gaps, 1 too close to a held-out item). Claude's score on the 5 new held-out items (D141): 0 of 5 right on the first try,
 3 of 5 after 3 tries, 2 of 5 right and strong. Batch 9's prompt lessons are in hard rule 25 (D142; Boss pastes the prompt).
-**Next: KRONOS Offline version 8.** The corpus takes
+**Next: KRONOS Offline version 8, a refresh with today's toolchain, prompt and library (D143),
+then version 9.** The corpus takes
 Word and two-workbook recipes (D137), and two small VCL 0.7 additions it needed are in (D138: a TEST passes a
 template sheet in quotes, `'Enq Summary'`; `REPEAT ... from=[]` removes a repeated part; Boss pastes the prompt again). The mutation scorer skips deliberate bugs
 that can change nothing in a Word recipe, and the benchmark scores Word jobs (D139).
@@ -278,7 +279,7 @@ FIXTUREs D110, ROUND/ROUNDUP/MIN/MAX D111, AI_TEXT D112, merged cells D113, two 
 and the switch of spec.md and the prompt D116) and Phase 4 (KRONOS Offline version 6: the design D117, the engine D118,
 a copy that keeps everything D119, two workbooks D120, Word on the page D121, Review and the guide D122, published as the
 release `kronos-offline-v6`, D123) are done. **Next: Phase 5** (corpus batch 9, about 20 document jobs) **and Phase 6**,
-step 7, the benchmark. Then 8 KRONOS Offline version 8 (the old version 6 scope: History, the practice-run check, the
+step 7, the benchmark. Then 8 KRONOS Offline version 9 (the old version 6 scope: History, the practice-run check, the
 corpus suggestion, Help), 9 storage S1, 10 the VCL memory and the day-one kit. For Boss: with version 6 in hand, paste
 the updated prompt (VCL 0.7; D94, D97, D116) into the Orchestrator Project.
 
@@ -287,7 +288,7 @@ model is written (a small coder model in 4-bit, kept to KRONOS's job by LoRA, a 
 meaning check on a proven recipe), and its code before March is done: the chat dataset (`train/make_dataset.py`: 1,935 examples,
 split by pair, held-out items guarded), VCL's grammar for the offline runner (`train/vcl.gbnf`: accepts all 154 recipes), the QLoRA
 tuning script and the 4-bit export (written and tested without a model, never run; a dry run unless `--go`; the first run in March
-is `--smoke`). Still to do before March: the benchmark (step 7), the Codex meaning check in KRONOS.exe and in KRONOS Offline version 8,
+is `--smoke`). Still to do before March: the benchmark (step 7), the Codex meaning check in KRONOS.exe and in KRONOS Offline version 9,
 and the in-house glossary. The gaps in `docs/known-gaps.md` (D125) wait for Boss's go.
 
 Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
@@ -445,7 +446,7 @@ Next, in order (`docs/vcl-mvp-plan.md` calls them items 4, 5, 5b, 6-7 and 9):
    moves), two workbooks ("Workbook to read from"), Word files filled from a template and a workbook, Review that says what a
    recipe fills and lists the AI's own text, and recipes for VCL 0.7. Published as the release `kronos-offline-v6` (main
    `95bf184`; SHA-256 `d4e1fa22…`), the copy Boss is handed; not proven until he tries it: his own Word files and workbooks.
-   The old version 6 scope (Phase 3: History, the practice-run check, the corpus suggestion, Help) is version 8.
+   The old version 6 scope (Phase 3: History, the practice-run check, the corpus suggestion, Help) is version 9 (D143: version 8 is a refresh of the toolchain, the prompt and the library).
    **Version 7 (D129, D130, 22 Nov 2026): the recipe finder,** KRONOS's own AI until March (Boss: "Implement the AI and give
    me KRONOS"): "Find a proven recipe" shows the closest of the library's proven recipes (`data/library.json`, never
    `data/eval`) and renames its columns to the workbook's where sure, each rename ticked, then proves it again. Published
