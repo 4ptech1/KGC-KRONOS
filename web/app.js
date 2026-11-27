@@ -876,6 +876,7 @@
         const answer = await wizard('save', id, [values], 'Building the macro')
         const saved = answer.saved
         window.kronosLastSaved = saved
+        record('Saved the macro', id, [])
         download(saved.bas, saved.bas_name, 'text/plain')
         clear(result)
         result.appendChild(el('p', { class: 'details' }, `Saved ${saved.bas_name} to your Downloads folder. Then, in Excel:`))
@@ -1013,6 +1014,7 @@
         name: state.book.name, args, today: TODAY,
         read: reads ? { data: state.readBook.bytes.slice(0), name: state.readBook.name } : null }, STEP_WORDS.checking)
       window.kronosLastApplied = JSON.stringify(answer.json)
+      if (answer.json.ok) record('Made a changed copy of a workbook', ids, [state.book.name].concat(reads ? [state.readBook.name] : []))
       showApplied(answer.json, answer.data)
     } catch (problem) {
       say('apply-note', problemText(problem))
@@ -1136,6 +1138,7 @@
         templateName: template.name, args, today: TODAY,
         book: needsBook ? { data: state.book.bytes.slice(0), name: state.book.name } : null }, STEP_WORDS.checking)
       window.kronosLastFilled = JSON.stringify(answer.json)
+      if (answer.json.ok) record('Filled a Word template', id, [template.name].concat(needsBook ? [state.book.name] : []))
       showFilled(id, answer.json, answer.data)
     } catch (problem) {
       say(`doc-note-${id}`, problemText(problem))
@@ -1266,6 +1269,38 @@
     go('ask')
   }
 
+  // ---------- History (D145) ----------
+
+  // record(kind, ids, files): keeps what was done, with the request and the recipe, never a file
+  function record(kind, ids, files) {
+    const list = [].concat(ids)
+    window.kronosHistory.add({ kind, title: list.map((id) => state.views[id].best.title).join(' + '),
+      request: $('request').value, recipe: list.map((id) => state.views[id].best.spec).join('\n\n'), files })
+  }
+
+  async function showHistory() {
+    const into = clear($('history-list'))
+    const rows = await window.kronosHistory.all()
+    into.hidden = false
+    $('clear-history').hidden = !rows.length
+    say('history-note', window.kronosHistory.mode() === 'memory'
+      ? 'This browser keeps nothing between visits, so this list lasts only until you close the page.' : '')
+    if (!rows.length) {
+      into.appendChild(el('p', { class: 'details muted' }, 'Nothing yet.'))
+      return
+    }
+    rows.forEach((run) => {
+      const card = el('div', { class: 'history-run' })
+      card.appendChild(el('h2', {}, `${run.title}`))
+      card.appendChild(el('p', { class: 'details' }, `${run.kind} · ${new Date(run.when).toLocaleString()}` +
+        (run.files && run.files.length ? ` · ${run.files.join(', ')}` : '')))
+      const get = el('button', { type: 'button', class: 'download-run' }, 'Download the run record')
+      get.addEventListener('click', () => download(window.kronosHistory.text(run), `KRONOS run ${run.when.slice(0, 16).replace(/[T:]/g, '-')}.txt`, 'text/plain'))
+      card.appendChild(el('div', { class: 'buttons' }, get))
+      into.appendChild(card)
+    })
+  }
+
   // ---------- the browser line, and off we go ----------
 
   function browserName() {
@@ -1295,6 +1330,11 @@
     openRecipes(file)
   })
   $('load-example').addEventListener('click', loadExample)
+  $('show-history').addEventListener('click', showHistory)
+  $('clear-history').addEventListener('click', async () => {
+    await window.kronosHistory.clear()
+    showHistory()
+  })
   $('go-save').addEventListener('click', () => go('save'))
   $('apply').addEventListener('click', apply)
   $('start-over').addEventListener('click', startOver)

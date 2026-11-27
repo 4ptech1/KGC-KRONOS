@@ -141,6 +141,17 @@
     </section>
   </section>
 
+  <section class="card" id="history-card" aria-labelledby="history-title">
+    <h1 id="history-title">History</h1>
+    <p class="details">The macros you saved, the copies you made and the Word files you filled in this browser on this PC,
+      newest first. Only the request and the recipe are kept, never your files. Clearing this browser's data removes the
+      list.</p>
+    <div class="buttons"><button type="button" id="show-history">Show the history</button>
+      <button type="button" id="clear-history" hidden>Clear the history</button></div>
+    <p class="note" id="history-note" hidden></p>
+    <div id="history-list" hidden></div>
+  </section>
+
   <p class="about" id="about">This browser: <span id="browser">?</span> · Python: <span id="python">starting</span></p>
 </main>
 
@@ -155,6 +166,7 @@
   </div>
 </div>
 
+<script src="history.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
