@@ -943,6 +943,21 @@ class InTheBrowser(unittest.TestCase):
                 self.assertEqual(Path(practice.value.path()).read_bytes(), want_saved["practice"].encode("ascii"))
                 self.assertIn("Alt+F11", page.text_content("#save-list"))
                 self.shot(page, "save")
+                # History (D145): the saved macro is in the list, with the request and the recipe, and no file
+                page.click(".step[data-step=ask]")
+                page.click("#show-history")
+                page.wait_for_selector("#history-list .history-run")
+                self.assertEqual(page.locator("#history-list .history-run").count(), 1)
+                self.assertIn("Saved the macro", page.text_content("#history-list"))
+                with page.expect_download() as record:
+                    page.click("#history-list .download-run")
+                text = Path(record.value.path()).read_text(encoding="utf-8")
+                self.assertIn("What was done: Saved the macro", text)
+                self.assertIn(REQUEST, text)
+                self.assertIn("VCL 0.7", text)
+                page.click("#clear-history")
+                page.wait_for_selector("#history-list .muted")
+                self.assertIn("Nothing yet", page.text_content("#history-list"))
                 self.finish()
 
     def test_the_question_step(self):   # D89

@@ -265,7 +265,8 @@ language gaps, 1 too close to a held-out item). Claude's score on the 5 new held
 3 of 5 after 3 tries, 2 of 5 right and strong. Batch 9's prompt lessons are in hard rule 25 (D142; Boss pastes the prompt).
 KRONOS Offline version 8, a refresh with today's toolchain, prompt and library (D143), is published as the
 release `kronos-offline-v8` (main `3037f4d`, SHA-256 `d5578d88…`, D144). **For Boss: download version 8, then paste the
-prompt.** **Next: KRONOS Offline version 9** (History, the practice-run check, the corpus suggestion, Help, the Codex meaning check). The corpus takes
+prompt.** **KRONOS Offline version 9 is being built, part by part: History is done (D145); next the practice-run check, the
+corpus suggestion, Help, the Codex meaning check.** The corpus takes
 Word and two-workbook recipes (D137), and two small VCL 0.7 additions it needed are in (D138: a TEST passes a
 template sheet in quotes, `'Enq Summary'`; `REPEAT ... from=[]` removes a repeated part; Boss pastes the prompt again). The mutation scorer skips deliberate bugs
 that can change nothing in a Word recipe, and the benchmark scores Word jobs (D139).
